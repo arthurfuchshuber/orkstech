@@ -544,11 +544,11 @@ export default function ContasAPagar() {
         <div className="space-y-6">
           <div className="space-y-4">
             <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Dados da Conta</p>
+            <TextInput label="Título da despesa" placeholder="Título da despesa" value={form.description} onChange={(e) => updateField("description", e.target.value)} error={errors.description} />
             <div className="grid grid-cols-2 gap-4">
               <TextInput label="Fornecedor" placeholder="Nome do fornecedor" value={form.supplier_name} onChange={(e) => updateField("supplier_name", e.target.value)} icon={<Building2 className="w-4 h-4" />} />
               <TextInput label="Nº do Documento" placeholder="Nota fiscal, boleto..." value={form.document_number} onChange={(e) => updateField("document_number", e.target.value)} icon={<FileText className="w-4 h-4" />} />
             </div>
-            <TextInput label="Descrição" placeholder="Descrição da despesa" value={form.description} onChange={(e) => updateField("description", e.target.value)} error={errors.description} />
             <div className="grid grid-cols-3 gap-4">
               <CurrencyInput label="Valor" value={form.amount} onValueChange={(v) => updateField("amount", v)} error={errors.amount} />
               <DateInput label="Data de emissão" value={form.issue_date} onValueChange={(d) => updateField("issue_date", d)} />
