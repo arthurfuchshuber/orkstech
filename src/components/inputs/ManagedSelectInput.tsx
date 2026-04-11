@@ -154,7 +154,9 @@ export function ManagedSelectInput({
     }
   };
 
-  const hasManagement = onAdd || onEdit || onDelete || onReorder;
+  const hasManagement = onAdd || onEdit || onDelete || onReorder || onAddModal || onEditModal;
+  const hasAdd = onAdd || onAddModal;
+  const hasEdit = onEdit || onEditModal;
 
   return (
     <div className="space-y-1.5">
