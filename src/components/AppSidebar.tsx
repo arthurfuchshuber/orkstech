@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import { NavLink } from "@/components/NavLink";
 import { DynamicIcon } from "@/components/DynamicIcon";
@@ -204,17 +204,15 @@ export function AppSidebar() {
     return [];
   };
 
-  const activeIds = findActiveIds(tree, location.pathname);
+  const [openMap, setOpenMap] = useState<Record<string, boolean>>({});
 
-  const [openMap, setOpenMap] = useState<Record<string, boolean>>(() => {
+  // Recalculate open state whenever route changes — only open ancestors of active route
+  useEffect(() => {
+    const ids = findActiveIds(tree, location.pathname);
     const map: Record<string, boolean> = {};
-    activeIds.forEach((id) => (map[id] = true));
-    // Default open "Cadastros"
-    tree.forEach((t) => {
-      if (t.slug === "cadastros") map[t.id] = true;
-    });
-    return map;
-  });
+    ids.forEach((id) => (map[id] = true));
+    setOpenMap(map);
+  }, [location.pathname, tree]);
 
   const toggle = (id: string) => {
     setOpenMap((prev) => ({ ...prev, [id]: !prev[id] }));
