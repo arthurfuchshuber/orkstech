@@ -48,6 +48,8 @@ export function ManagedSelectInput({
   onEdit,
   onDelete,
   onReorder,
+  onAddModal,
+  onEditModal,
   addLabel = "Novo item",
 }: ManagedSelectInputProps) {
   const [open, setOpen] = useState(false);
