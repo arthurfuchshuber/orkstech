@@ -9,6 +9,10 @@ import Dashboard from "./pages/app/Dashboard";
 import Financas from "./pages/app/Financas";
 import CustomerSuccess from "./pages/app/CustomerSuccess";
 import Clientes from "./pages/app/Clientes";
+import Fornecedores from "./pages/app/Fornecedores";
+import Empresas from "./pages/app/Empresas";
+import Contratos from "./pages/app/Contratos";
+import ProdutosServicos from "./pages/app/ProdutosServicos";
 import Automacoes from "./pages/app/Automacoes";
 import Configuracoes from "./pages/app/Configuracoes";
 import PlaceholderPage from "./pages/app/PlaceholderPage";
@@ -31,9 +35,11 @@ const App = () => (
             <Route path="cs" element={<CustomerSuccess />} />
             <Route path="cs/*" element={<PlaceholderPage />} />
             <Route path="clientes" element={<Clientes />} />
-            <Route path="fornecedores" element={<PlaceholderPage />} />
+            <Route path="fornecedores" element={<Fornecedores />} />
+            <Route path="empresas" element={<Empresas />} />
+            <Route path="contratos" element={<Contratos />} />
+            <Route path="produtos" element={<ProdutosServicos />} />
             <Route path="inventario" element={<PlaceholderPage />} />
-            <Route path="contratos" element={<PlaceholderPage />} />
             <Route path="automacoes/workflows" element={<Automacoes />} />
             <Route path="automacoes/*" element={<PlaceholderPage />} />
             <Route path="config" element={<Configuracoes />} />
