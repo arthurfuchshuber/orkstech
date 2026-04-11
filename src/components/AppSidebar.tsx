@@ -38,16 +38,14 @@ function MenuItemNode({
   depth = 0,
   pathname,
   openMap,
-  toggle,
-  navigate,
+  onToggle,
 }: {
   item: MenuItem;
   collapsed: boolean;
   depth?: number;
   pathname: string;
   openMap: Record<string, boolean>;
-  toggle: (id: string, parentId: string | null) => void;
-  navigate: (path: string) => void;
+  onToggle: (id: string, parentId: string | null) => void;
 }) {
   if (!item.is_visible || !item.is_active) return null;
 
@@ -68,7 +66,7 @@ function MenuItemNode({
               depth={depth}
               pathname={pathname}
               openMap={openMap}
-              toggle={toggle}
+              onToggle={onToggle}
             />
           ))}
         </>
@@ -80,7 +78,7 @@ function MenuItemNode({
         <SidebarMenuItem>
           <SidebarMenuButton asChild>
             <button
-              onClick={() => toggle(item.id, item.parent_id)}
+              onClick={() => onToggle(item.id, item.parent_id)}
               className="relative w-full flex items-center gap-2.5 px-3 py-1.5 rounded-md text-[13px] transition-all duration-200 text-muted-foreground/70 hover:text-foreground hover:bg-muted/40"
               style={{ paddingLeft: `${12 + depth * 12}px` }}
             >
@@ -106,7 +104,7 @@ function MenuItemNode({
                   depth={depth + 1}
                   pathname={pathname}
                   openMap={openMap}
-                  toggle={toggle}
+                  onToggle={onToggle}
                 />
               ))}
             </SidebarMenu>
@@ -142,7 +140,7 @@ function MenuItemNode({
                 {!collapsed && <span>{item.name}</span>}
               </NavLink>
               {!collapsed && (
-                <button onClick={() => toggle(item.id, item.parent_id)} className="p-1">
+                <button onClick={() => onToggle(item.id, item.parent_id)} className="p-1">
                   <ChevronRight
                     className={`w-3 h-3 transition-transform duration-200 ${
                       isOpen ? "rotate-90 text-foreground/60" : "text-muted-foreground/30"
@@ -163,7 +161,7 @@ function MenuItemNode({
                 depth={depth + 1}
                 pathname={pathname}
                 openMap={openMap}
-                toggle={toggle}
+                onToggle={onToggle}
               />
             ))}
           </SidebarMenu>
@@ -205,6 +203,7 @@ export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const location = useLocation();
+  const navigate = useNavigate();
   const { tree, flatMenus, isLoading } = useMenus();
 
   const findActiveIds = (items: MenuItem[], path: string): string[] => {
@@ -218,37 +217,54 @@ export function AppSidebar() {
     return [];
   };
 
-  const activeIds = findActiveIds(tree, location.pathname);
-  const activeIdsKey = activeIds.join("|");
+  const activeIdsKey = findActiveIds(tree, location.pathname).join("|");
 
   const [openMap, setOpenMap] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
+    const ids = findActiveIds(tree, location.pathname);
     const nextOpenMap: Record<string, boolean> = {};
-    activeIds.forEach((id) => {
+    ids.forEach((id) => {
       nextOpenMap[id] = true;
     });
     setOpenMap(nextOpenMap);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeIdsKey, location.pathname]);
 
-  const toggle = (id: string, parentId: string | null) => {
-    setOpenMap((prev) => {
-      const next = { ...prev };
-      const isCurrentlyOpen = !!prev[id];
-      const siblingIds = flatMenus
-        .filter((menu) => menu.parent_id === parentId)
-        .map((menu) => menu.id);
+  const handleToggle = (id: string, parentId: string | null) => {
+    const isCurrentlyOpen = !!openMap[id];
 
-      siblingIds.forEach((siblingId) => {
-        next[siblingId] = false;
-      });
+    // Close siblings
+    const siblingIds = flatMenus
+      .filter((menu) => menu.parent_id === parentId)
+      .map((menu) => menu.id);
 
-      if (!isCurrentlyOpen) {
-        next[id] = true;
-      }
-
-      return next;
+    const next: Record<string, boolean> = { ...openMap };
+    siblingIds.forEach((siblingId) => {
+      next[siblingId] = false;
     });
+
+    if (!isCurrentlyOpen) {
+      next[id] = true;
+
+      // Navigate to the first route in this category
+      const menuItem = flatMenus.find((m) => m.id === id);
+      if (menuItem) {
+        const firstRoute = findFirstRoute({
+          ...menuItem,
+          children: tree
+            .flatMap(function flatten(m): MenuItem[] {
+              return m.id === id ? [m] : (m.children ?? []).flatMap(flatten);
+            })
+            .find((m) => m.id === id)?.children,
+        } as MenuItem);
+        if (firstRoute && firstRoute !== location.pathname) {
+          navigate(firstRoute);
+        }
+      }
+    }
+
+    setOpenMap(next);
   };
 
   return (
@@ -280,7 +296,7 @@ export function AppSidebar() {
                     collapsed={collapsed}
                     pathname={location.pathname}
                     openMap={openMap}
-                    toggle={toggle}
+                    onToggle={handleToggle}
                   />
                 ))}
               </SidebarMenu>
