@@ -16,7 +16,7 @@ import {
 import {
   ChevronRight, ChevronDown, Pencil, GripVertical, Menu, Eye, EyeOff,
 } from "lucide-react";
-import { DragDropContext, Droppable, Draggable, type DropResult } from "@hello-pangea/dnd";
+import { Droppable, Draggable, type DropResult } from "@hello-pangea/dnd";
 
 const ICON_OPTIONS = [
   "LayoutDashboard", "DollarSign", "Receipt", "TrendingUp", "PiggyBank", "FileText",
