@@ -77,12 +77,22 @@ export function ManagedSelectInput({
     : localOptions;
 
   const startAdd = () => {
+    if (onAddModal) {
+      setOpen(false);
+      onAddModal();
+      return;
+    }
     setInputValue("");
     setMode("add");
   };
 
   const startEdit = (opt: ManagedOption, e: React.MouseEvent) => {
     e.stopPropagation();
+    if (onEditModal) {
+      setOpen(false);
+      onEditModal(opt.value);
+      return;
+    }
     setEditingId(opt.value);
     setInputValue(opt.label);
     setMode("edit");
