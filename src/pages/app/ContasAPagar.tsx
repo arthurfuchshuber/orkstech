@@ -117,6 +117,7 @@ export default function ContasAPagar() {
   const [fornModalOpen, setFornModalOpen] = useState(false);
   const [fornEditingId, setFornEditingId] = useState<string | null>(null);
   const [scanning, setScanning] = useState(false);
+  const [isPickingScanFile, setIsPickingScanFile] = useState(false);
   const scanInputRef = useRef<HTMLInputElement>(null);
 
   // Fetch data
@@ -356,11 +357,17 @@ export default function ContasAPagar() {
 
   const handleScanBoleto = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file) return;
+    setIsPickingScanFile(false);
+
+    if (!file) {
+      if (scanInputRef.current) scanInputRef.current.value = "";
+      return;
+    }
 
     const MAX = 10 * 1024 * 1024;
     if (file.size > MAX) {
       toast.error("Arquivo muito grande (máx. 10MB)");
+      if (scanInputRef.current) scanInputRef.current.value = "";
       return;
     }
 
@@ -392,9 +399,6 @@ export default function ContasAPagar() {
         return;
       }
 
-      console.log("Boleto extracted:", extracted);
-
-      // Batch update all fields at once to avoid multiple re-renders
       setForm((prev) => ({
         ...prev,
         description: extracted.description || prev.description,
@@ -407,7 +411,6 @@ export default function ContasAPagar() {
           : prev.notes,
       }));
 
-      // Ensure modal stays open
       setShowForm(true);
       toast.success("Dados do boleto extraídos! Confira e ajuste os campos antes de salvar.");
     } catch (err) {
@@ -653,10 +656,11 @@ export default function ContasAPagar() {
       {/* Create/Edit Form */}
       <FormModal
         open={showForm}
-        onOpenChange={(open) => { if (!open && !scanning) resetForm(); else setShowForm(true); }}
+        onOpenChange={(open) => { if (!open && !scanning && !isPickingScanFile) resetForm(); else setShowForm(true); }}
         title={editingId ? "Editar Conta" : "Nova Conta a Pagar"}
         description="Preencha os dados da despesa"
         size="md"
+        preventOutsideClose={scanning || isPickingScanFile}
       >
         <div className="space-y-4">
           {/* Scanner de Boleto */}
@@ -664,7 +668,10 @@ export default function ContasAPagar() {
             <div>
               <button
                 type="button"
-                onClick={() => scanInputRef.current?.click()}
+                onClick={() => {
+                  setIsPickingScanFile(true);
+                  scanInputRef.current?.click();
+                }}
                 disabled={scanning}
                 className="flex items-center gap-3 w-full p-4 rounded-xl border-2 border-dashed border-primary/30 bg-primary/[0.03] hover:bg-primary/[0.06] hover:border-primary/50 transition-all duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-wait"
               >
@@ -691,6 +698,8 @@ export default function ContasAPagar() {
                 type="file"
                 accept=".pdf,.jpg,.jpeg,.png,.webp"
                 onChange={handleScanBoleto}
+                onClick={() => setIsPickingScanFile(true)}
+                onBlur={() => setTimeout(() => setIsPickingScanFile(false), 150)}
                 className="hidden"
               />
             </div>
