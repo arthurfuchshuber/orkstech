@@ -1,4 +1,5 @@
 import { LucideIcon } from "lucide-react";
+import { Card } from "@/components/ui/card";
 
 interface StatCardProps {
   title: string;
@@ -16,15 +17,15 @@ export function StatCard({ title, value, change, changeType = "neutral", icon: I
   }[changeType];
 
   return (
-    <div className="p-5 rounded-xl glass hover:border-primary/20 transition-all duration-300 group">
+    <Card className="p-4 border-border/50 shadow-sm hover:shadow-md hover:border-primary/20 transition-all duration-300 group">
       <div className="flex items-start justify-between mb-3">
-        <span className="text-sm text-muted-foreground">{title}</span>
-        <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
-          <Icon className="w-4 h-4 text-primary" />
+        <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{title}</span>
+        <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center group-hover:bg-primary/15 transition-colors">
+          <Icon className="w-3.5 h-3.5 text-primary" />
         </div>
       </div>
-      <div className="text-2xl font-bold text-foreground mb-1">{value}</div>
-      {change && <span className={`text-xs font-medium ${changeColor}`}>{change}</span>}
-    </div>
+      <div className="text-2xl font-bold text-foreground tracking-tight">{value}</div>
+      {change && <span className={`text-xs font-medium mt-1 block ${changeColor}`}>{change}</span>}
+    </Card>
   );
 }
