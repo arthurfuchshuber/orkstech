@@ -10,6 +10,7 @@ interface FormModalProps {
   description?: string;
   children: React.ReactNode;
   size?: "sm" | "md" | "lg" | "xl";
+  preventOutsideClose?: boolean;
 }
 
 const sizeMap = {
@@ -19,10 +20,24 @@ const sizeMap = {
   xl: "max-w-4xl",
 };
 
-export function FormModal({ open, onOpenChange, title, description, children, size = "lg" }: FormModalProps) {
+export function FormModal({
+  open,
+  onOpenChange,
+  title,
+  description,
+  children,
+  size = "lg",
+  preventOutsideClose = false,
+}: FormModalProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
+        onPointerDownOutside={(event) => {
+          if (preventOutsideClose) event.preventDefault();
+        }}
+        onInteractOutside={(event) => {
+          if (preventOutsideClose) event.preventDefault();
+        }}
         className={cn(
           sizeMap[size],
           "p-0 gap-0 border-border/50 bg-card shadow-2xl rounded-xl overflow-hidden",
