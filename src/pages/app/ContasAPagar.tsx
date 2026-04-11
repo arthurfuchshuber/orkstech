@@ -16,6 +16,7 @@ import { CurrencyInput } from "@/components/inputs/CurrencyInput";
 import { DateInput } from "@/components/inputs/DateInput";
 import { ManagedSelectInput } from "@/components/inputs/ManagedSelectInput";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { FileAttachment } from "@/components/inputs/FileAttachment";
 
 import { useManagedSelect } from "@/hooks/useManagedSelect";
 import { CategoriaFinanceiraModal } from "@/components/modals/CategoriaFinanceiraModal";
