@@ -1,10 +1,10 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Receipt, Plus, Check, Loader2, AlertTriangle, Clock, Ban,
   FileText, Search, CreditCard,
   Building2, Target, Landmark, FolderTree, X, Copy, Pencil,
-  Banknote, ChevronDown
+  Banknote, ChevronDown, ScanLine
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { StatCard } from "@/components/StatCard";
@@ -116,6 +116,8 @@ export default function ContasAPagar() {
   const [fpEditingId, setFpEditingId] = useState<string | null>(null);
   const [fornModalOpen, setFornModalOpen] = useState(false);
   const [fornEditingId, setFornEditingId] = useState<string | null>(null);
+  const [scanning, setScanning] = useState(false);
+  const scanInputRef = useRef<HTMLInputElement>(null);
 
   // Fetch data
   const { data: payables = [], isLoading } = useQuery({
@@ -350,6 +352,62 @@ export default function ContasAPagar() {
       attachment_url: null,
     });
     setShowForm(true);
+  };
+
+  const handleScanBoleto = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const MAX = 10 * 1024 * 1024;
+    if (file.size > MAX) {
+      toast.error("Arquivo muito grande (máx. 10MB)");
+      return;
+    }
+
+    setScanning(true);
+    try {
+      const reader = new FileReader();
+      const base64 = await new Promise<string>((resolve, reject) => {
+        reader.onload = () => {
+          const result = reader.result as string;
+          resolve(result.split(",")[1]);
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+
+      const { data, error } = await supabase.functions.invoke("scan-boleto", {
+        body: { file_base64: base64, file_type: file.type },
+      });
+
+      if (error) throw error;
+      if (data?.error) {
+        toast.error(data.error);
+        return;
+      }
+
+      const extracted = data?.data;
+      if (!extracted) {
+        toast.error("Não foi possível extrair dados do boleto");
+        return;
+      }
+
+      // Auto-fill form
+      if (extracted.description) updateField("description", extracted.description);
+      if (extracted.supplier_name) updateField("supplier_name", extracted.supplier_name);
+      if (extracted.document_number) updateField("document_number", extracted.document_number);
+      if (extracted.amount) updateField("amount", extracted.amount);
+      if (extracted.due_date) updateField("due_date", new Date(extracted.due_date + "T12:00:00"));
+      if (extracted.barcode) updateField("notes", `Linha digitável: ${extracted.barcode}${form.notes ? `\n${form.notes}` : ""}`);
+
+      toast.success("Dados do boleto extraídos com sucesso!");
+    } catch (err) {
+      console.error("Scan error:", err);
+      toast.error("Erro ao escanear boleto");
+    } finally {
+      setScanning(false);
+      if (scanInputRef.current) scanInputRef.current.value = "";
+    }
   };
 
   const openPaymentDialog = (id: string) => {
@@ -592,6 +650,43 @@ export default function ContasAPagar() {
         size="md"
       >
         <div className="space-y-4">
+          {/* Scanner de Boleto */}
+          {!editingId && (
+            <div>
+              <button
+                type="button"
+                onClick={() => scanInputRef.current?.click()}
+                disabled={scanning}
+                className="flex items-center gap-3 w-full p-4 rounded-xl border-2 border-dashed border-primary/30 bg-primary/[0.03] hover:bg-primary/[0.06] hover:border-primary/50 transition-all duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-wait"
+              >
+                {scanning ? (
+                  <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                    <Loader2 className="w-5 h-5 text-primary animate-spin" />
+                  </div>
+                ) : (
+                  <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                    <ScanLine className="w-5 h-5 text-primary" />
+                  </div>
+                )}
+                <div className="text-left">
+                  <p className="text-sm font-medium text-foreground">
+                    {scanning ? "Analisando boleto com IA..." : "Escanear Boleto (PDF/Imagem)"}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {scanning ? "Extraindo valor, vencimento, fornecedor..." : "Preenche os dados automaticamente a partir do boleto"}
+                  </p>
+                </div>
+              </button>
+              <input
+                ref={scanInputRef}
+                type="file"
+                accept=".pdf,.jpg,.jpeg,.png,.webp"
+                onChange={handleScanBoleto}
+                className="hidden"
+              />
+            </div>
+          )}
+
           {/* Tipo PJ/PF */}
           <div>
             <label className="text-sm font-medium text-foreground mb-2 block">Tipo de pessoa</label>
