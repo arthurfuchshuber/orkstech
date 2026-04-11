@@ -323,6 +323,7 @@ export default function ContasAPagar() {
       recurrence_interval: item.recurrence_interval || "",
       notes: item.notes || "",
       pessoa_tipo: item.pessoa_tipo || "pj",
+      attachment_url: null,
     });
     setShowForm(true);
   };
