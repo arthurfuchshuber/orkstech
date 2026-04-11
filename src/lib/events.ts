@@ -1,5 +1,3 @@
-// Event Bus System - Core event-driven architecture
-
 export type EventType =
   | "cliente.criado" | "cliente.atualizado" | "cliente.removido"
   | "fornecedor.criado" | "fornecedor.atualizado"
@@ -65,21 +63,22 @@ export interface AutomationAction {
 }
 
 type EventHandler = (event: SystemEvent) => void;
+type StoreListener = () => void;
 
 class EventBus {
-  private handlers: Map<string, EventHandler[]> = new Map();
+  private handlers = new Map<string, EventHandler[]>();
   private history: HistoryEntry[] = [];
   private notifications: Notification[] = [];
   private automations: Automation[] = this.getDefaultAutomations();
-  private listeners: Set<() => void> = new Set();
+  private listeners = new Set<StoreListener>();
 
   on(eventType: EventType | "*", handler: EventHandler) {
     const existing = this.handlers.get(eventType) || [];
-    existing.push(handler);
-    this.handlers.set(eventType, existing);
+    this.handlers.set(eventType, [...existing, handler]);
+
     return () => {
       const handlers = this.handlers.get(eventType) || [];
-      this.handlers.set(eventType, handlers.filter(h => h !== handler));
+      this.handlers.set(eventType, handlers.filter((item) => item !== handler));
     };
   }
 
@@ -90,19 +89,15 @@ class EventBus {
       timestamp: new Date(),
     };
 
-    // Execute direct handlers
     const handlers = [
-      ...(this.handlers.get(event.type) || []),
+      ...(this.handlers.get(fullEvent.type) || []),
       ...(this.handlers.get("*") || []),
     ];
-    handlers.forEach(h => h(fullEvent));
 
-    // Auto-generate history
+    handlers.forEach((handler) => handler(fullEvent));
+
     this.addHistory(fullEvent);
-
-    // Run automations
     this.runAutomations(fullEvent);
-
     this.notifyListeners();
   }
 
@@ -121,7 +116,7 @@ class EventBus {
       "atividade.criada": "Atividade registrada",
     };
 
-    this.history.unshift({
+    const nextEntry: HistoryEntry = {
       id: crypto.randomUUID(),
       usuario: (event.data.usuario as string) || "Sistema",
       data: event.timestamp,
@@ -129,31 +124,42 @@ class EventBus {
       registroTipo: event.moduloOrigem,
       registroId: event.registroId || "",
       descricao: (event.data.descricao as string) || `Evento ${event.type} registrado`,
-    });
+    };
+
+    this.history = [nextEntry, ...this.history];
   }
 
   private runAutomations(event: SystemEvent) {
-    const matching = this.automations.filter(a => a.ativo && a.eventoGatilho === event.type);
-    
-    matching.forEach(automation => {
-      // Check conditions
-      const conditionsMet = automation.condicoes.every(cond => {
-        const value = event.data[cond.campo];
-        switch (cond.operador) {
-          case "igual": return value === cond.valor;
-          case "diferente": return value !== cond.valor;
-          case "contem": return String(value).includes(cond.valor);
-          default: return true;
+    const matching = this.automations.filter((automation) => automation.ativo && automation.eventoGatilho === event.type);
+
+    if (matching.length === 0) return;
+
+    for (const automation of matching) {
+      const conditionsMet = automation.condicoes.every((condition) => {
+        const value = event.data[condition.campo];
+
+        switch (condition.operador) {
+          case "igual":
+            return value === condition.valor;
+          case "diferente":
+            return value !== condition.valor;
+          case "contem":
+            return String(value ?? "").includes(condition.valor);
+          case "maior":
+            return Number(value) > Number(condition.valor);
+          case "menor":
+            return Number(value) < Number(condition.valor);
+          default:
+            return true;
         }
       });
 
-      if (!conditionsMet && automation.condicoes.length > 0) return;
+      if (!conditionsMet && automation.condicoes.length > 0) continue;
 
-      // Execute actions
-      automation.acoes.forEach(action => {
+      for (const action of automation.acoes) {
         switch (action.tipo) {
           case "criar_notificacao":
-            this.addNotification({
+            this.pushNotification({
               tipo: (action.config.tipo as Notification["tipo"]) || "informacao",
               titulo: (action.config.titulo as string) || automation.nome,
               descricao: (action.config.descricao as string) || `Automação "${automation.nome}" executada`,
@@ -162,11 +168,8 @@ class EventBus {
               moduloOrigem: event.moduloOrigem,
             });
             break;
-          case "criar_historico":
-            // Already added by default
-            break;
           case "criar_atividade":
-            this.addNotification({
+            this.pushNotification({
               tipo: "lembrete",
               titulo: (action.config.titulo as string) || "Nova tarefa",
               descricao: (action.config.descricao as string) || "Atividade criada automaticamente",
@@ -175,62 +178,104 @@ class EventBus {
               moduloOrigem: event.moduloOrigem,
             });
             break;
+          case "criar_historico":
+          case "criar_financeiro":
+          case "atualizar_status":
+            break;
         }
-      });
+      }
 
-      automation.executadoCount++;
-    });
+      this.automations = this.automations.map((item) =>
+        item.id === automation.id ? { ...item, executadoCount: item.executadoCount + 1 } : item,
+      );
+    }
   }
 
-  addNotification(notif: Omit<Notification, "id" | "timestamp" | "lida">) {
-    this.notifications.unshift({
-      ...notif,
+  private pushNotification(notification: Omit<Notification, "id" | "timestamp" | "lida">) {
+    const nextNotification: Notification = {
+      ...notification,
       id: crypto.randomUUID(),
       timestamp: new Date(),
       lida: false,
-    });
+    };
+
+    this.notifications = [nextNotification, ...this.notifications];
+  }
+
+  addNotification(notification: Omit<Notification, "id" | "timestamp" | "lida">) {
+    this.pushNotification(notification);
     this.notifyListeners();
   }
 
   markNotificationRead(id: string) {
-    const n = this.notifications.find(n => n.id === id);
-    if (n) n.lida = true;
-    this.notifyListeners();
+    let changed = false;
+
+    this.notifications = this.notifications.map((notification) => {
+      if (notification.id !== id || notification.lida) return notification;
+      changed = true;
+      return { ...notification, lida: true };
+    });
+
+    if (changed) this.notifyListeners();
   }
 
   markAllRead() {
-    this.notifications.forEach(n => n.lida = true);
+    const hasUnread = this.notifications.some((notification) => !notification.lida);
+    if (!hasUnread) return;
+
+    this.notifications = this.notifications.map((notification) => ({ ...notification, lida: true }));
     this.notifyListeners();
   }
 
-  getNotifications() { return [...this.notifications]; }
-  getUnreadCount() { return this.notifications.filter(n => !n.lida).length; }
-  getHistory() { return [...this.history]; }
-  getAutomations() { return [...this.automations]; }
-  
+  getNotifications() {
+    return this.notifications;
+  }
+
+  getUnreadCount() {
+    return this.notifications.filter((notification) => !notification.lida).length;
+  }
+
+  getHistory() {
+    return this.history;
+  }
+
+  getAutomations() {
+    return this.automations;
+  }
+
   toggleAutomation(id: string) {
-    const a = this.automations.find(a => a.id === id);
-    if (a) a.ativo = !a.ativo;
-    this.notifyListeners();
+    let changed = false;
+
+    this.automations = this.automations.map((automation) => {
+      if (automation.id !== id) return automation;
+      changed = true;
+      return { ...automation, ativo: !automation.ativo };
+    });
+
+    if (changed) this.notifyListeners();
   }
 
   addAutomation(automation: Omit<Automation, "id" | "criadoEm" | "executadoCount">) {
-    this.automations.push({
-      ...automation,
-      id: crypto.randomUUID(),
-      criadoEm: new Date(),
-      executadoCount: 0,
-    });
+    this.automations = [
+      ...this.automations,
+      {
+        ...automation,
+        id: crypto.randomUUID(),
+        criadoEm: new Date(),
+        executadoCount: 0,
+      },
+    ];
+
     this.notifyListeners();
   }
 
-  subscribe(listener: () => void) {
+  subscribe(listener: StoreListener) {
     this.listeners.add(listener);
     return () => this.listeners.delete(listener);
   }
 
   private notifyListeners() {
-    this.listeners.forEach(l => l());
+    this.listeners.forEach((listener) => listener());
   }
 
   private getDefaultAutomations(): Automation[] {
