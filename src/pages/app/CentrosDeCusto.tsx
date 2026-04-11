@@ -103,27 +103,11 @@ export default function CentrosDeCusto() {
         ))}
       </Card>
 
-      <Dialog open={modalOpen} onOpenChange={(v) => !v && closeModal()}>
-        <DialogContent>
-          <DialogHeader><DialogTitle>{editingId ? "Editar Centro de Custo" : "Novo Centro de Custo"}</DialogTitle></DialogHeader>
-          <div className="space-y-4 py-2">
-            <div>
-              <label className="text-sm font-medium text-foreground mb-1.5 block">Nome</label>
-              <Input value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} placeholder="Ex: Marketing" />
-            </div>
-            <div>
-              <label className="text-sm font-medium text-foreground mb-1.5 block">Descrição</label>
-              <Textarea value={form.descricao} onChange={(e) => setForm({ ...form, descricao: e.target.value })} placeholder="Descrição do centro de custo..." rows={3} />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={closeModal}>Cancelar</Button>
-            <Button onClick={() => saveMutation.mutate()} disabled={!form.nome.trim() || saveMutation.isPending}>
-              {saveMutation.isPending ? "Salvando..." : "Salvar"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <CentroCustoModal
+        open={modalOpen}
+        onOpenChange={setModalOpen}
+        editingId={editingId}
+      />
     </div>
   );
 }
