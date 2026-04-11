@@ -531,8 +531,8 @@ export default function ContasAPagar() {
               options={bankAccounts.map((b: any) => ({ value: b.id, label: `${b.nome}${b.banco ? ` - ${b.banco}` : ""}` }))}
               placeholder="Selecione a conta..."
               icon={<Landmark className="w-4 h-4" />}
-              onAdd={contasCrud.onAdd}
-              onEdit={contasCrud.onEdit}
+              onAddModal={() => { setCbEditingId(null); setCbModalOpen(true); }}
+              onEditModal={(id) => { setCbEditingId(id); setCbModalOpen(true); }}
               onDelete={contasCrud.onDelete}
               addLabel="Nova conta bancária"
             />
