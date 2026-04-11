@@ -65,10 +65,10 @@ export async function createAccountPayable(records: AccountPayableInsert[]) {
   return data;
 }
 
-export async function updateAccountPayable(id: string, updates: Record<string, any>) {
+export async function updateAccountPayable(id: string, updates: any) {
   const { data, error } = await supabase
     .from("accounts_payable")
-    .update(updates)
+    .update(updates as any)
     .eq("id", id)
     .select()
     .single();
