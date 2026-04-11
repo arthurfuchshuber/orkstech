@@ -648,7 +648,7 @@ export default function ContasAPagar() {
                     <span className="text-sm font-medium text-foreground">Conta recorrente</span>
                   </label>
                   {form.is_recurring && (
-                    <SelectInput
+                    <ManagedSelectInput
                       value={form.recurrence_interval}
                       onValueChange={(v) => updateField("recurrence_interval", v)}
                       options={[
