@@ -1,10 +1,21 @@
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
-import { Outlet } from "react-router-dom";
-import { Search, User } from "lucide-react";
+import { Outlet, useNavigate } from "react-router-dom";
+import { Search, User, LogOut } from "lucide-react";
 import { NotificationDropdown } from "@/components/NotificationDropdown";
+import { useAuth } from "@/hooks/useAuth";
+import { toast } from "sonner";
 
 export default function AppLayout() {
+  const { user, signOut } = useAuth();
+  const navigate = useNavigate();
+
+  const handleSignOut = async () => {
+    await signOut();
+    toast.success("Sessão encerrada");
+    navigate("/login");
+  };
+
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full bg-background">
@@ -20,9 +31,15 @@ export default function AppLayout() {
             </div>
             <div className="flex items-center gap-1.5">
               <NotificationDropdown />
+              <span className="text-xs text-muted-foreground hidden sm:block mr-1 max-w-[120px] truncate">
+                {user?.email}
+              </span>
               <div className="w-8 h-8 rounded-full bg-primary/15 flex items-center justify-center ring-1 ring-border/50">
                 <User className="w-3.5 h-3.5 text-primary" />
               </div>
+              <button onClick={handleSignOut} className="w-8 h-8 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors" title="Sair">
+                <LogOut className="w-3.5 h-3.5" />
+              </button>
             </div>
           </header>
           <main className="flex-1 p-6 overflow-auto">

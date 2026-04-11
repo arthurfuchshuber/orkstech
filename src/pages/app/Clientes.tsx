@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { eventBus } from "@/lib/events";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Users, Plus, Building2, UserRound, Check, Loader2, Mail, MapPin, Home, Info, FileSearch, DollarSign, FileText, Phone, Clock, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { StatCard } from "@/components/StatCard";
@@ -18,6 +18,8 @@ import { RelatedDocuments } from "@/components/modules/RelatedDocuments";
 import { RelatedActivities } from "@/components/modules/RelatedActivities";
 import { RelatedHistory } from "@/components/modules/RelatedHistory";
 import { validateClientForm, type ClientFormData, type FormErrors } from "@/lib/validators";
+import { useAuth } from "@/hooks/useAuth";
+import { fetchClientes, createCliente, countClientes, checkClienteDuplicidade } from "@/lib/supabase-helpers";
 import { toast } from "sonner";
 
 const initialForm: ClientFormData = {
@@ -46,12 +48,35 @@ const clientTabs = [
 ];
 
 export default function Clientes() {
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState<ClientFormData>(initialForm);
   const [errors, setErrors] = useState<FormErrors>({});
   const [loadingCnpj, setLoadingCnpj] = useState(false);
   const [cnpjMessage, setCnpjMessage] = useState("");
   const [activeTab, setActiveTab] = useState("info");
+
+  const { data: clientes = [] } = useQuery({ queryKey: ["clientes"], queryFn: fetchClientes });
+  const { data: counts = { total: 0, pj: 0, pf: 0 } } = useQuery({ queryKey: ["clientes-counts"], queryFn: countClientes });
+
+  const mutation = useMutation({
+    mutationFn: createCliente,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["clientes"] });
+      queryClient.invalidateQueries({ queryKey: ["clientes-counts"] });
+      toast.success("Cliente cadastrado com sucesso!");
+      setForm(initialForm);
+      setErrors({});
+      setShowForm(false);
+      setCnpjMessage("");
+    },
+    onError: (err: any) => {
+      if (err?.message?.includes("clientes_cpf_unique")) toast.error("CPF já cadastrado no sistema");
+      else if (err?.message?.includes("clientes_cnpj_unique")) toast.error("CNPJ já cadastrado no sistema");
+      else toast.error("Erro ao cadastrar cliente");
+    },
+  });
 
   const updateField = <K extends keyof ClientFormData>(key: K, value: ClientFormData[K]) => {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -65,27 +90,28 @@ export default function Clientes() {
   const handleCnpjBlur = async () => {
     const raw = form.cnpj.replace(/\D/g, "");
     if (raw.length !== 14) return;
-    
     const { validateCNPJ } = await import("@/lib/validators");
-    if (!validateCNPJ(raw)) {
-      setErrors((prev) => ({ ...prev, cnpj: "CNPJ inválido" }));
-      return;
-    }
+    if (!validateCNPJ(raw)) { setErrors((prev) => ({ ...prev, cnpj: "CNPJ inválido" })); return; }
 
     setLoadingCnpj(true);
     setCnpjMessage("");
     try {
+      // Check duplicidade no banco
+      const exists = await checkClienteDuplicidade("pj", raw);
+      if (exists) {
+        setErrors((prev) => ({ ...prev, cnpj: "CNPJ já cadastrado no sistema" }));
+        setLoadingCnpj(false);
+        return;
+      }
+
       const res = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${raw}`);
       if (res.ok) {
         const data = await res.json();
-
-        // Check situação cadastral
         if (data.descricao_situacao_cadastral && data.descricao_situacao_cadastral !== "ATIVA") {
           setErrors((prev) => ({ ...prev, cnpj: "CNPJ inválido ou empresa não ativa na Receita Federal." }));
           setLoadingCnpj(false);
           return;
         }
-
         setForm((prev) => ({
           ...prev,
           razaoSocial: data.razao_social || prev.razaoSocial,
@@ -104,9 +130,7 @@ export default function Clientes() {
       } else {
         setErrors((prev) => ({ ...prev, cnpj: "CNPJ não encontrado na Receita Federal." }));
       }
-    } catch {
-      // silently fail
-    } finally {
+    } catch { /* silent */ } finally {
       setLoadingCnpj(false);
     }
   };
@@ -116,7 +140,7 @@ export default function Clientes() {
     toast.success("Endereço preenchido automaticamente");
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     const validationErrors = validateClientForm(form);
     if (Object.keys(validationErrors).length > 0) {
       setErrors(validationErrors);
@@ -124,17 +148,35 @@ export default function Clientes() {
       return;
     }
 
-    eventBus.emit({
-      type: "cliente.criado",
-      data: { nome: form.nomeCompleto || form.razaoSocial, tipo: form.type, descricao: `Cliente ${form.nomeCompleto || form.razaoSocial} cadastrado` },
-      moduloOrigem: "clientes",
-      registroId: crypto.randomUUID(),
+    // Verificar duplicidade antes de salvar
+    const doc = form.type === "pf" ? form.cpf.replace(/\D/g, "") : form.cnpj.replace(/\D/g, "");
+    const exists = await checkClienteDuplicidade(form.type, doc);
+    if (exists) {
+      setErrors((prev) => ({ ...prev, [form.type === "pf" ? "cpf" : "cnpj"]: `${form.type === "pf" ? "CPF" : "CNPJ"} já cadastrado` }));
+      toast.error(`${form.type === "pf" ? "CPF" : "CNPJ"} já cadastrado no sistema`);
+      return;
+    }
+
+    mutation.mutate({
+      user_id: user!.id,
+      tipo: form.type,
+      nome_completo: form.type === "pf" ? form.nomeCompleto : undefined,
+      cpf: form.type === "pf" ? form.cpf.replace(/\D/g, "") : undefined,
+      razao_social: form.type === "pj" ? form.razaoSocial : undefined,
+      nome_fantasia: form.type === "pj" ? form.nomeFantasia || undefined : undefined,
+      cnpj: form.type === "pj" ? form.cnpj.replace(/\D/g, "") : undefined,
+      inscricao_estadual: form.inscricaoEstadual || undefined,
+      inscricao_municipal: form.inscricaoMunicipal || undefined,
+      telefone: form.telefone.replace(/\D/g, "") || undefined,
+      email: form.email || undefined,
+      data_nascimento: form.dataNascimento ? form.dataNascimento.toISOString().split("T")[0] : undefined,
+      logradouro: form.endereco.logradouro || undefined,
+      bairro: form.endereco.bairro || undefined,
+      cidade: form.endereco.cidade || undefined,
+      estado: form.endereco.estado || undefined,
+      cep: form.endereco.cep || undefined,
+      observacoes: form.observacoes || undefined,
     });
-    toast.success("Cliente cadastrado com sucesso!");
-    setForm(initialForm);
-    setErrors({});
-    setShowForm(false);
-    setCnpjMessage("");
   };
 
   const handleOpenChange = (open: boolean) => {
@@ -150,7 +192,9 @@ export default function Clientes() {
             <div className="w-11 h-11 rounded-xl bg-muted/30 flex items-center justify-center mb-3">
               <Users className="w-5 h-5 text-muted-foreground/30" />
             </div>
-            <p className="text-sm text-muted-foreground font-medium">Selecione um cliente para ver detalhes</p>
+            <p className="text-sm text-muted-foreground font-medium">
+              {clientes.length === 0 ? "Nenhum cliente cadastrado ainda" : "Selecione um cliente para ver detalhes"}
+            </p>
           </div>
         );
       case "contratos": return <RelatedContracts />;
@@ -175,9 +219,9 @@ export default function Clientes() {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <StatCard icon={Users} title="Total de Clientes" value="0" />
-        <StatCard icon={Building2} title="Pessoa Jurídica" value="0" />
-        <StatCard icon={UserRound} title="Pessoa Física" value="0" />
+        <StatCard icon={Users} title="Total de Clientes" value={String(counts.total)} />
+        <StatCard icon={Building2} title="Pessoa Jurídica" value={String(counts.pj)} />
+        <StatCard icon={UserRound} title="Pessoa Física" value={String(counts.pf)} />
       </div>
 
       <Card className="border-border/50 shadow-sm overflow-hidden">
@@ -187,7 +231,6 @@ export default function Clientes() {
 
       <FormModal open={showForm} onOpenChange={handleOpenChange} title="Novo Cliente" description="Preencha os dados do cliente. CNPJ e CEP preenchem dados automaticamente." size="xl">
         <div className="space-y-6">
-          {/* Type Selector */}
           <div className="space-y-2">
             <label className="text-sm font-medium text-foreground">Tipo de cliente</label>
             <div className="grid grid-cols-2 gap-3">
@@ -195,14 +238,8 @@ export default function Clientes() {
                 { key: "pf" as const, label: "Pessoa Física", sub: "CPF", icon: UserRound },
                 { key: "pj" as const, label: "Pessoa Jurídica", sub: "CNPJ", icon: Building2 },
               ]).map(({ key, label, sub, icon: Icon }) => (
-                <button
-                  key={key}
-                  type="button"
-                  onClick={() => { updateField("type", key); setErrors({}); }}
-                  className={`flex items-center gap-3 p-3.5 rounded-lg border-2 transition-all duration-200 ${
-                    form.type === key ? "border-primary bg-primary/5" : "border-border/50 hover:border-muted-foreground/30"
-                  }`}
-                >
+                <button key={key} type="button" onClick={() => { updateField("type", key); setErrors({}); }}
+                  className={`flex items-center gap-3 p-3.5 rounded-lg border-2 transition-all duration-200 ${form.type === key ? "border-primary bg-primary/5" : "border-border/50 hover:border-muted-foreground/30"}`}>
                   <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${form.type === key ? "bg-primary/15" : "bg-muted/50"}`}>
                     <Icon className={`w-4 h-4 ${form.type === key ? "text-primary" : "text-muted-foreground"}`} />
                   </div>
@@ -218,7 +255,6 @@ export default function Clientes() {
 
           <div className="h-px bg-border/30" />
 
-          {/* PF Fields */}
           {form.type === "pf" ? (
             <div className="space-y-4">
               <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Dados pessoais</p>
@@ -285,8 +321,9 @@ export default function Clientes() {
 
           <div className="flex justify-end gap-3 pt-1">
             <Button variant="outline" onClick={() => handleOpenChange(false)} className="rounded-lg">Cancelar</Button>
-            <Button onClick={handleSubmit} className="rounded-lg gap-2 shadow-sm">
-              <Check className="w-4 h-4" /> Salvar Cliente
+            <Button onClick={handleSubmit} disabled={mutation.isPending} className="rounded-lg gap-2 shadow-sm">
+              {mutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+              Salvar Cliente
             </Button>
           </div>
         </div>

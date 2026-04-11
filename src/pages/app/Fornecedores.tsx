@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { eventBus } from "@/lib/events";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Truck, Plus, Building2, UserRound, Check, Mail, MapPin, Home, Info, DollarSign, FileText, Clock, ShoppingCart, Tag, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { StatCard } from "@/components/StatCard";
@@ -16,6 +16,8 @@ import { RelatedFinancial } from "@/components/modules/RelatedFinancial";
 import { RelatedDocuments } from "@/components/modules/RelatedDocuments";
 import { RelatedHistory } from "@/components/modules/RelatedHistory";
 import { validateSupplierForm, type SupplierFormData, type FormErrors } from "@/lib/validators";
+import { useAuth } from "@/hooks/useAuth";
+import { fetchFornecedores, createFornecedor, countFornecedores, checkFornecedorDuplicidade } from "@/lib/supabase-helpers";
 import { toast } from "sonner";
 
 const tabs = [
@@ -49,12 +51,35 @@ const initialForm: SupplierFormData = {
 };
 
 export default function Fornecedores() {
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
   const [showForm, setShowForm] = useState(false);
   const [activeTab, setActiveTab] = useState("info");
   const [form, setForm] = useState<SupplierFormData>(initialForm);
   const [errors, setErrors] = useState<FormErrors>({});
   const [loadingCnpj, setLoadingCnpj] = useState(false);
   const [cnpjMessage, setCnpjMessage] = useState("");
+
+  const { data: fornecedores = [] } = useQuery({ queryKey: ["fornecedores"], queryFn: fetchFornecedores });
+  const { data: counts = { total: 0, empresas: 0 } } = useQuery({ queryKey: ["fornecedores-counts"], queryFn: countFornecedores });
+
+  const mutation = useMutation({
+    mutationFn: createFornecedor,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["fornecedores"] });
+      queryClient.invalidateQueries({ queryKey: ["fornecedores-counts"] });
+      toast.success("Fornecedor cadastrado com sucesso!");
+      setForm(initialForm);
+      setErrors({});
+      setShowForm(false);
+      setCnpjMessage("");
+    },
+    onError: (err: any) => {
+      if (err?.message?.includes("fornecedores_cpf_unique")) toast.error("CPF já cadastrado");
+      else if (err?.message?.includes("fornecedores_cnpj_unique")) toast.error("CNPJ já cadastrado");
+      else toast.error("Erro ao cadastrar fornecedor");
+    },
+  });
 
   const update = (key: string, value: string) => {
     setForm((p) => ({ ...p, [key]: value }));
@@ -66,21 +91,24 @@ export default function Fornecedores() {
     if (form.type !== "empresa") return;
     const raw = form.cpfCnpj.replace(/\D/g, "");
     if (raw.length !== 14) return;
-
     const { validateCNPJ } = await import("@/lib/validators");
-    if (!validateCNPJ(raw)) {
-      setErrors((prev) => ({ ...prev, cpfCnpj: "CNPJ inválido" }));
-      return;
-    }
+    if (!validateCNPJ(raw)) { setErrors((prev) => ({ ...prev, cpfCnpj: "CNPJ inválido" })); return; }
 
     setLoadingCnpj(true);
     setCnpjMessage("");
     try {
+      const exists = await checkFornecedorDuplicidade("pj", raw);
+      if (exists) {
+        setErrors((prev) => ({ ...prev, cpfCnpj: "CNPJ já cadastrado no sistema" }));
+        setLoadingCnpj(false);
+        return;
+      }
+
       const res = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${raw}`);
       if (res.ok) {
         const data = await res.json();
         if (data.descricao_situacao_cadastral && data.descricao_situacao_cadastral !== "ATIVA") {
-          setErrors((prev) => ({ ...prev, cpfCnpj: "CNPJ inválido ou empresa não ativa na Receita Federal." }));
+          setErrors((prev) => ({ ...prev, cpfCnpj: "CNPJ inválido ou empresa não ativa" }));
           setLoadingCnpj(false);
           return;
         }
@@ -109,7 +137,7 @@ export default function Fornecedores() {
     toast.success("Endereço preenchido automaticamente");
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     const validationErrors = validateSupplierForm(form);
     if (Object.keys(validationErrors).length > 0) {
       setErrors(validationErrors);
@@ -117,12 +145,32 @@ export default function Fornecedores() {
       return;
     }
 
-    eventBus.emit({ type: "fornecedor.criado", data: { nome: form.nome, descricao: `Fornecedor ${form.nome} cadastrado` }, moduloOrigem: "fornecedores", registroId: crypto.randomUUID() });
-    toast.success("Fornecedor cadastrado com sucesso!");
-    setForm(initialForm);
-    setErrors({});
-    setShowForm(false);
-    setCnpjMessage("");
+    const tipoDb = form.type === "empresa" ? "pj" as const : "pf" as const;
+    const docRaw = form.cpfCnpj.replace(/\D/g, "");
+
+    const exists = await checkFornecedorDuplicidade(tipoDb, docRaw);
+    if (exists) {
+      setErrors((prev) => ({ ...prev, cpfCnpj: `${form.type === "empresa" ? "CNPJ" : "CPF"} já cadastrado` }));
+      toast.error(`${form.type === "empresa" ? "CNPJ" : "CPF"} já cadastrado no sistema`);
+      return;
+    }
+
+    mutation.mutate({
+      user_id: user!.id,
+      tipo: tipoDb,
+      nome_completo: form.type === "pessoa" ? form.nome : undefined,
+      cpf: form.type === "pessoa" ? docRaw : undefined,
+      razao_social: form.type === "empresa" ? form.nome : undefined,
+      cnpj: form.type === "empresa" ? docRaw : undefined,
+      telefone: form.telefone.replace(/\D/g, "") || undefined,
+      email: form.email || undefined,
+      logradouro: form.endereco.logradouro || undefined,
+      bairro: form.endereco.bairro || undefined,
+      cidade: form.endereco.cidade || undefined,
+      estado: form.endereco.estado || undefined,
+      cep: form.endereco.cep || undefined,
+      observacoes: form.observacoes || undefined,
+    });
   };
 
   const handleOpenChange = (open: boolean) => {
@@ -136,7 +184,16 @@ export default function Fornecedores() {
       case "financeiro": return <RelatedFinancial />;
       case "documentos": return <RelatedDocuments />;
       case "historico": return <RelatedHistory />;
-      default: return <div className="py-12 text-center"><div className="w-11 h-11 rounded-xl bg-muted/30 flex items-center justify-center mb-3 mx-auto"><Truck className="w-5 h-5 text-muted-foreground/30" /></div><p className="text-sm text-muted-foreground font-medium">Selecione um fornecedor para ver detalhes</p></div>;
+      default: return (
+        <div className="py-12 text-center">
+          <div className="w-11 h-11 rounded-xl bg-muted/30 flex items-center justify-center mb-3 mx-auto">
+            <Truck className="w-5 h-5 text-muted-foreground/30" />
+          </div>
+          <p className="text-sm text-muted-foreground font-medium">
+            {fornecedores.length === 0 ? "Nenhum fornecedor cadastrado ainda" : "Selecione um fornecedor para ver detalhes"}
+          </p>
+        </div>
+      );
     }
   };
 
@@ -153,9 +210,9 @@ export default function Fornecedores() {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <StatCard icon={Truck} title="Total de Fornecedores" value="0" />
-        <StatCard icon={Building2} title="Empresas" value="0" />
-        <StatCard icon={Tag} title="Categorias" value="0" />
+        <StatCard icon={Truck} title="Total de Fornecedores" value={String(counts.total)} />
+        <StatCard icon={Building2} title="Empresas" value={String(counts.empresas)} />
+        <StatCard icon={Tag} title="Categorias" value={String(new Set(fornecedores.map((f: any) => f.categoria).filter(Boolean)).size)} />
       </div>
 
       <Card className="border-border/50 shadow-sm overflow-hidden">
@@ -198,13 +255,7 @@ export default function Fornecedores() {
               </div>
             )}
             <div className="grid grid-cols-2 gap-4">
-              <DocumentInput
-                type={form.type === "empresa" ? "cnpj" : "cpf"}
-                value={form.cpfCnpj}
-                onValueChange={(raw) => update("cpfCnpj", raw)}
-                onBlur={form.type === "empresa" ? handleCnpjBlur : undefined}
-                error={errors.cpfCnpj}
-              />
+              <DocumentInput type={form.type === "empresa" ? "cnpj" : "cpf"} value={form.cpfCnpj} onValueChange={(raw) => update("cpfCnpj", raw)} onBlur={form.type === "empresa" ? handleCnpjBlur : undefined} error={errors.cpfCnpj} />
               <TextInput label="Nome" placeholder={form.type === "empresa" ? "Razão social do fornecedor" : "Nome do fornecedor"} value={form.nome} onChange={(e) => update("nome", e.target.value)} error={errors.nome} />
               <SelectInput label="Categoria" placeholder="Selecione a categoria" value={form.categoria} onValueChange={(v) => update("categoria", v)} options={categoriaOptions} icon={<Tag className="w-4 h-4" />} />
               <TextInput label="Contato Responsável" placeholder="Nome do contato principal" value={form.contatoResponsavel} onChange={(e) => update("contatoResponsavel", e.target.value)} />
@@ -235,7 +286,10 @@ export default function Fornecedores() {
           <div className="h-px bg-border/30" />
           <div className="flex justify-end gap-3 pt-1">
             <Button variant="outline" onClick={() => handleOpenChange(false)} className="rounded-lg">Cancelar</Button>
-            <Button onClick={handleSubmit} className="rounded-lg gap-2 shadow-sm"><Check className="w-4 h-4" /> Salvar Fornecedor</Button>
+            <Button onClick={handleSubmit} disabled={mutation.isPending} className="rounded-lg gap-2 shadow-sm">
+              {mutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+              Salvar Fornecedor
+            </Button>
           </div>
         </div>
       </FormModal>
