@@ -8,11 +8,10 @@ import { Input } from "@/components/ui/input";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
-import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from "@/components/ui/select";
-
-type TipoForma = "pix" | "boleto" | "cartao" | "transferencia" | "dinheiro";
+import { ManagedSelectInput } from "@/components/inputs/ManagedSelectInput";
+import { TipoFormaPagamentoModal } from "./TipoFormaPagamentoModal";
+import { useManagedSelect } from "@/hooks/useManagedSelect";
+import { CreditCard } from "lucide-react";
 
 interface FormaPagamentoModalProps {
   open: boolean;
@@ -24,7 +23,29 @@ interface FormaPagamentoModalProps {
 export function FormaPagamentoModal({ open, onOpenChange, editingId, onSaved }: FormaPagamentoModalProps) {
   const { user } = useAuth();
   const qc = useQueryClient();
-  const [form, setForm] = useState({ nome: "", tipo: "pix" as TipoForma });
+  const [form, setForm] = useState({ nome: "", tipo_id: "", numero_cartao: "" });
+  const [tipoModalOpen, setTipoModalOpen] = useState(false);
+  const [tipoEditingId, setTipoEditingId] = useState<string | null>(null);
+
+  const tiposCrud = useManagedSelect("tipos_forma_pagamento");
+
+  // Seed default tipos on first load
+  useEffect(() => {
+    if (user && open) {
+      supabase.rpc("seed_default_tipos_pagamento", { p_user_id: user.id }).then(() => {
+        qc.invalidateQueries({ queryKey: ["tipos-forma-pagamento"] });
+      });
+    }
+  }, [user, open]);
+
+  const { data: tipos = [] } = useQuery({
+    queryKey: ["tipos-forma-pagamento"],
+    queryFn: async () => {
+      const { data } = await supabase.from("tipos_forma_pagamento").select("id, nome").eq("ativo", true).order("ordem");
+      return data ?? [];
+    },
+    enabled: !!user,
+  });
 
   const { data: existing } = useQuery({
     queryKey: ["formas_pagamento_edit", editingId],
@@ -38,20 +59,35 @@ export function FormaPagamentoModal({ open, onOpenChange, editingId, onSaved }: 
 
   useEffect(() => {
     if (existing && editingId) {
-      setForm({ nome: existing.nome, tipo: existing.tipo as TipoForma });
+      setForm({
+        nome: existing.nome,
+        tipo_id: existing.tipo_id || "",
+        numero_cartao: existing.numero_cartao || "",
+      });
     } else if (!editingId && open) {
-      setForm({ nome: "", tipo: "pix" });
+      setForm({ nome: "", tipo_id: "", numero_cartao: "" });
     }
   }, [existing, editingId, open]);
 
+  // Check if selected tipo is "cartão" related
+  const selectedTipo = tipos.find((t: any) => t.id === form.tipo_id);
+  const isCartao = selectedTipo?.nome?.toLowerCase().includes("cartão") || selectedTipo?.nome?.toLowerCase().includes("cartao");
+
   const saveMutation = useMutation({
     mutationFn: async () => {
+      const payload: any = {
+        nome: form.nome,
+        tipo_id: form.tipo_id || null,
+        numero_cartao: isCartao ? (form.numero_cartao || null) : null,
+        // Keep tipo enum for backward compat - map from tipo name
+        tipo: mapTipoToEnum(selectedTipo?.nome),
+      };
       if (editingId) {
-        const { error } = await supabase.from("formas_pagamento").update({ nome: form.nome, tipo: form.tipo }).eq("id", editingId);
+        const { error } = await supabase.from("formas_pagamento").update(payload).eq("id", editingId);
         if (error) throw error;
         return editingId;
       } else {
-        const { data, error } = await supabase.from("formas_pagamento").insert({ nome: form.nome, tipo: form.tipo, user_id: user!.id }).select("id").single();
+        const { data, error } = await supabase.from("formas_pagamento").insert({ ...payload, user_id: user!.id }).select("id").single();
         if (error) throw error;
         return data.id;
       }
@@ -67,35 +103,67 @@ export function FormaPagamentoModal({ open, onOpenChange, editingId, onSaved }: 
   });
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
-        <DialogHeader><DialogTitle>{editingId ? "Editar Forma de Pagamento" : "Nova Forma de Pagamento"}</DialogTitle></DialogHeader>
-        <div className="space-y-4 py-2">
-          <div>
-            <label className="text-sm font-medium text-foreground mb-1.5 block">Nome</label>
-            <Input value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} placeholder="Ex: PIX Banco do Brasil" maxLength={60} />
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>{editingId ? "Editar Forma de Pagamento" : "Nova Forma de Pagamento"}</DialogTitle></DialogHeader>
+          <div className="space-y-4 py-2">
+            <div>
+              <label className="text-sm font-medium text-foreground mb-1.5 block">Nome</label>
+              <Input value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} placeholder="Ex: PIX Banco do Brasil" maxLength={60} />
+            </div>
+            <ManagedSelectInput
+              label="Tipo"
+              value={form.tipo_id}
+              onValueChange={(v) => setForm({ ...form, tipo_id: v })}
+              options={tipos.map((t: any) => ({ value: t.id, label: t.nome }))}
+              placeholder="Selecione o tipo..."
+              icon={<CreditCard className="w-4 h-4" />}
+              onAddModal={() => { setTipoEditingId(null); setTipoModalOpen(true); }}
+              onEditModal={(id) => { setTipoEditingId(id); setTipoModalOpen(true); }}
+              onDelete={tiposCrud.onDelete}
+              onReorder={tiposCrud.onReorder}
+              addLabel="Novo tipo"
+            />
+            {isCartao && (
+              <div>
+                <label className="text-sm font-medium text-foreground mb-1.5 block">Número do Cartão (últimos dígitos)</label>
+                <Input
+                  value={form.numero_cartao}
+                  onChange={(e) => setForm({ ...form, numero_cartao: e.target.value.replace(/\D/g, "").slice(0, 4) })}
+                  placeholder="Ex: 1234"
+                  maxLength={4}
+                />
+                <p className="text-xs text-muted-foreground mt-1">Últimos 4 dígitos para identificação</p>
+              </div>
+            )}
           </div>
-          <div>
-            <label className="text-sm font-medium text-foreground mb-1.5 block">Tipo</label>
-            <Select value={form.tipo} onValueChange={(v) => setForm({ ...form, tipo: v as TipoForma })}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="pix">PIX</SelectItem>
-                <SelectItem value="boleto">Boleto</SelectItem>
-                <SelectItem value="cartao">Cartão</SelectItem>
-                <SelectItem value="transferencia">Transferência</SelectItem>
-                <SelectItem value="dinheiro">Dinheiro</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-          <Button onClick={() => saveMutation.mutate()} disabled={!form.nome.trim() || saveMutation.isPending}>
-            {saveMutation.isPending ? "Salvando..." : "Salvar"}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
+            <Button onClick={() => saveMutation.mutate()} disabled={!form.nome.trim() || saveMutation.isPending}>
+              {saveMutation.isPending ? "Salvando..." : "Salvar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <TipoFormaPagamentoModal
+        open={tipoModalOpen}
+        onOpenChange={setTipoModalOpen}
+        editingId={tipoEditingId}
+        onSaved={(id) => setForm((prev) => ({ ...prev, tipo_id: id }))}
+      />
+    </>
   );
+}
+
+function mapTipoToEnum(tipoNome?: string): "pix" | "boleto" | "cartao" | "transferencia" | "dinheiro" {
+  if (!tipoNome) return "pix";
+  const lower = tipoNome.toLowerCase();
+  if (lower.includes("pix")) return "pix";
+  if (lower.includes("boleto")) return "boleto";
+  if (lower.includes("cartão") || lower.includes("cartao")) return "cartao";
+  if (lower.includes("transferência") || lower.includes("transferencia")) return "transferencia";
+  if (lower.includes("dinheiro")) return "dinheiro";
+  return "pix";
 }
