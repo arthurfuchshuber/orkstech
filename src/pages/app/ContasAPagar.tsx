@@ -15,7 +15,7 @@ import { TextareaInput } from "@/components/inputs/TextareaInput";
 import { CurrencyInput } from "@/components/inputs/CurrencyInput";
 import { DateInput } from "@/components/inputs/DateInput";
 import { ManagedSelectInput } from "@/components/inputs/ManagedSelectInput";
-import { SelectInput } from "@/components/inputs/SelectInput";
+
 import { useManagedSelect } from "@/hooks/useManagedSelect";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -510,13 +510,17 @@ export default function ContasAPagar() {
           </DialogHeader>
           <div className="space-y-4 pt-2">
             <DateInput label="Data do pagamento" value={paymentDate} onValueChange={setPaymentDate} />
-            <SelectInput
+            <ManagedSelectInput
               label="Conta bancária"
               value={paymentBankAccount}
               onValueChange={setPaymentBankAccount}
               options={bankAccounts.map((b: any) => ({ value: b.id, label: `${b.nome}${b.banco ? ` - ${b.banco}` : ""}` }))}
               placeholder="Selecione a conta..."
               icon={<Landmark className="w-4 h-4" />}
+              onAdd={contasCrud.onAdd}
+              onEdit={contasCrud.onEdit}
+              onDelete={contasCrud.onDelete}
+              addLabel="Nova conta bancária"
             />
             <div className="flex justify-end gap-3 pt-2">
               <Button variant="outline" onClick={() => setShowPaymentDialog(false)} className="rounded-lg">Cancelar</Button>
