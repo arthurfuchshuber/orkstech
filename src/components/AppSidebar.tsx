@@ -38,7 +38,6 @@ function MenuItemNode({
   // Group header (has children, no route)
   if (hasChildren && !item.route) {
     if (collapsed) {
-      // In collapsed mode, render children directly
       return (
         <>
           {item.children!.map((child) => (
@@ -58,26 +57,33 @@ function MenuItemNode({
 
     return (
       <div className="py-0.5">
-        <button
-          onClick={() => toggle(item.id)}
-          className="w-full flex items-center justify-between px-3 py-1.5 mb-0.5 group"
-          style={{ paddingLeft: `${12 + depth * 12}px` }}
-        >
-          <span
-            className={`text-[10px] font-semibold uppercase tracking-[0.08em] transition-colors ${
-              isChildActive
-                ? "text-primary/70"
-                : "text-muted-foreground/40 group-hover:text-muted-foreground/60"
-            }`}
-          >
-            {item.name}
-          </span>
-          <ChevronRight
-            className={`w-3 h-3 text-muted-foreground/30 transition-transform duration-200 ${
-              isOpen ? "rotate-90" : ""
-            }`}
-          />
-        </button>
+        <SidebarMenuItem>
+          <SidebarMenuButton asChild>
+            <button
+              onClick={() => toggle(item.id)}
+              className={`relative w-full flex items-center gap-2.5 px-3 py-1.5 rounded-md text-[13px] transition-all duration-200 ${
+                isChildActive
+                  ? "text-primary font-medium bg-primary/[0.08]"
+                  : "text-muted-foreground/70 hover:text-foreground hover:bg-muted/40"
+              }`}
+              style={{ paddingLeft: `${12 + depth * 12}px` }}
+            >
+              {isChildActive && (
+                <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[2px] h-4 rounded-full bg-primary" />
+              )}
+              <DynamicIcon
+                name={item.icon}
+                className={`w-[15px] h-[15px] flex-shrink-0 ${isChildActive ? "text-primary" : ""}`}
+              />
+              <span className="flex-1 text-left">{item.name}</span>
+              <ChevronRight
+                className={`w-3.5 h-3.5 text-muted-foreground/40 transition-transform duration-200 ${
+                  isOpen ? "rotate-90" : ""
+                }`}
+              />
+            </button>
+          </SidebarMenuButton>
+        </SidebarMenuItem>
 
         {isOpen && (
           <SidebarGroupContent>
