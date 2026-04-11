@@ -1,12 +1,8 @@
-import { Settings, User, Shield, Palette, Database, ChevronRight } from "lucide-react";
+import { Settings, ChevronRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 const sections = [
   { icon: Settings, title: "Geral", description: "Nome da empresa, fuso horário, moeda e preferências gerais", url: "/app/config" },
-  { icon: User, title: "Usuários", description: "Gerenciar membros da equipe, convites e permissões individuais", url: "/app/config/usuarios" },
-  { icon: Shield, title: "Permissões", description: "Papéis, controle de acesso e políticas de segurança", url: "/app/config/permissoes" },
-  { icon: Palette, title: "Aparência", description: "Personalizar tema, cores, logo e branding da plataforma", url: "/app/config/aparencia" },
-  { icon: Database, title: "Dados", description: "Exportar, importar, backup e gerenciamento de dados", url: "/app/config/dados" },
 ];
 
 export default function Configuracoes() {
@@ -14,8 +10,8 @@ export default function Configuracoes() {
   return (
     <div className="space-y-6 animate-fade-in">
       <div>
-        <h1 className="text-2xl font-bold text-foreground">Configurações</h1>
-        <p className="text-muted-foreground text-sm">Gerencie as configurações da plataforma</p>
+        <h1 className="text-2xl font-bold text-foreground tracking-tight">Configurações</h1>
+        <p className="text-muted-foreground text-sm mt-0.5">Gerencie as configurações da plataforma</p>
       </div>
 
       <div className="space-y-3">
