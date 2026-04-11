@@ -40,24 +40,6 @@ export default function CentrosDeCusto() {
 
   const filtered = items.filter((i) => i.nome.toLowerCase().includes(search.toLowerCase()));
 
-  const saveMutation = useMutation({
-    mutationFn: async () => {
-      if (editingId) {
-        const { error } = await supabase.from("centros_custo").update({ nome: form.nome, descricao: form.descricao || null }).eq("id", editingId);
-        if (error) throw error;
-      } else {
-        const { error } = await supabase.from("centros_custo").insert({ nome: form.nome, descricao: form.descricao || null, user_id: user!.id });
-        if (error) throw error;
-      }
-    },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["centros_custo"] });
-      toast.success(editingId ? "Centro de custo atualizado" : "Centro de custo criado");
-      closeModal();
-    },
-    onError: () => toast.error("Erro ao salvar"),
-  });
-
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase.from("centros_custo").delete().eq("id", id);
@@ -77,9 +59,8 @@ export default function CentrosDeCusto() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["centros_custo"] }),
   });
 
-  const closeModal = () => { setModalOpen(false); setEditingId(null); setForm({ nome: "", descricao: "" }); };
-  const openNew = () => { setEditingId(null); setForm({ nome: "", descricao: "" }); setModalOpen(true); };
-  const openEdit = (item: CentroCusto) => { setEditingId(item.id); setForm({ nome: item.nome, descricao: item.descricao || "" }); setModalOpen(true); };
+  const openNew = () => { setEditingId(null); setModalOpen(true); };
+  const openEdit = (item: CentroCusto) => { setEditingId(item.id); setModalOpen(true); };
 
   return (
     <div className="space-y-6">
