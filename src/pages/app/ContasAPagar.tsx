@@ -567,152 +567,172 @@ export default function ContasAPagar() {
         onOpenChange={(open) => { if (!open) resetForm(); else setShowForm(true); }}
         title={editingId ? "Editar Conta" : "Nova Conta a Pagar"}
         description="Preencha os dados da despesa"
-        size="xl"
+        size="md"
       >
-        <div className="space-y-5">
-          {/* Row 1: PJ/PF + Título */}
-          <div className="flex items-end gap-4">
-            <div className="shrink-0">
-              <label className="text-sm font-medium text-foreground mb-1.5 block">Tipo</label>
-              <RadioGroup value={form.pessoa_tipo} onValueChange={(v) => updateField("pessoa_tipo", v as "pj" | "pf")} className="flex gap-3">
-                <label className="flex items-center gap-1.5 cursor-pointer text-sm">
-                  <RadioGroupItem value="pj" /> PJ
-                </label>
-                <label className="flex items-center gap-1.5 cursor-pointer text-sm">
-                  <RadioGroupItem value="pf" /> PF
-                </label>
-              </RadioGroup>
-            </div>
-            <div className="flex-1">
-              <TextInput label="Título da despesa" placeholder="Ex: Aluguel do escritório" value={form.description} onChange={(e) => updateField("description", e.target.value)} error={errors.description} />
-            </div>
+        <div className="space-y-4">
+          {/* Tipo PJ/PF */}
+          <div>
+            <label className="text-sm font-medium text-foreground mb-2 block">Tipo de pessoa</label>
+            <RadioGroup value={form.pessoa_tipo} onValueChange={(v) => updateField("pessoa_tipo", v as "pj" | "pf")} className="flex gap-2">
+              <label className={`flex items-center gap-2 cursor-pointer text-sm px-4 py-2.5 rounded-lg border transition-all duration-200 ${form.pessoa_tipo === "pj" ? "border-primary bg-primary/10 text-primary font-medium" : "border-border hover:border-muted-foreground/30"}`}>
+                <RadioGroupItem value="pj" className="sr-only" />
+                <Building2 className="w-4 h-4" />
+                Pessoa Jurídica
+              </label>
+              <label className={`flex items-center gap-2 cursor-pointer text-sm px-4 py-2.5 rounded-lg border transition-all duration-200 ${form.pessoa_tipo === "pf" ? "border-primary bg-primary/10 text-primary font-medium" : "border-border hover:border-muted-foreground/30"}`}>
+                <RadioGroupItem value="pf" className="sr-only" />
+                <Receipt className="w-4 h-4" />
+                Pessoa Física
+              </label>
+            </RadioGroup>
           </div>
 
-          {/* Row 2: Fornecedor + Documento + Valor */}
-          <div className="grid grid-cols-3 gap-3">
-            <TextInput label="Fornecedor" placeholder="Nome do fornecedor" value={form.supplier_name} onChange={(e) => updateField("supplier_name", e.target.value)} icon={<Building2 className="w-4 h-4" />} />
-            <TextInput label="Nº Documento" placeholder="NF, boleto..." value={form.document_number} onChange={(e) => updateField("document_number", e.target.value)} icon={<FileText className="w-4 h-4" />} />
-            <CurrencyInput label="Valor" value={form.amount} onValueChange={(v) => updateField("amount", v)} error={errors.amount} />
-          </div>
+          {/* Título */}
+          <TextInput label="Título da despesa" placeholder="Ex: Aluguel do escritório" value={form.description} onChange={(e) => updateField("description", e.target.value)} error={errors.description} />
 
-          {/* Row 3: Datas */}
+          {/* Fornecedor */}
+          <TextInput label="Fornecedor" placeholder="Nome do fornecedor" value={form.supplier_name} onChange={(e) => updateField("supplier_name", e.target.value)} icon={<Building2 className="w-4 h-4" />} />
+
+          {/* Nº Documento */}
+          <TextInput label="Nº Documento" placeholder="NF, boleto, recibo..." value={form.document_number} onChange={(e) => updateField("document_number", e.target.value)} icon={<FileText className="w-4 h-4" />} />
+
+          {/* Valor */}
+          <CurrencyInput label="Valor" value={form.amount} onValueChange={(v) => updateField("amount", v)} error={errors.amount} />
+
+          {/* Datas lado a lado (exceção para economizar espaço vertical) */}
           <div className="grid grid-cols-2 gap-3">
-            <DateInput label="Emissão" value={form.issue_date} onValueChange={(d) => updateField("issue_date", d)} />
+            <DateInput label="Data de emissão" value={form.issue_date} onValueChange={(d) => updateField("issue_date", d)} />
             <DateInput label="Vencimento" value={form.due_date} onValueChange={(d) => updateField("due_date", d)} error={errors.due_date} />
           </div>
 
-          <div className="h-px bg-border/20" />
-
-          {/* Row 4: Classificação - 2x2 grid */}
-          <div className="grid grid-cols-2 gap-3">
-            <ManagedSelectInput
-              label="Categoria"
-              value={form.category_id}
-              onValueChange={(v) => updateField("category_id", v)}
-              options={categories.map((c: any) => ({ value: c.id, label: c.nome }))}
-              placeholder="Selecione..."
-              icon={<FolderTree className="w-4 h-4" />}
-              onAddModal={() => { setCatEditingId(null); setCatModalOpen(true); }}
-              onEditModal={(id) => { setCatEditingId(id); setCatModalOpen(true); }}
-              onDelete={categoriasCrud.onDelete}
-              onReorder={categoriasCrud.onReorder}
-              addLabel="Nova categoria"
-            />
-            <ManagedSelectInput
-              label="Centro de Custo"
-              value={form.cost_center_id}
-              onValueChange={(v) => updateField("cost_center_id", v)}
-              options={costCenters.map((c: any) => ({ value: c.id, label: c.nome }))}
-              placeholder="Selecione..."
-              icon={<Target className="w-4 h-4" />}
-              onAddModal={() => { setCcEditingId(null); setCcModalOpen(true); }}
-              onEditModal={(id) => { setCcEditingId(id); setCcModalOpen(true); }}
-              onDelete={centrosCrud.onDelete}
-              addLabel="Novo centro de custo"
-            />
-            <ManagedSelectInput
-              label="Conta Bancária"
-              value={form.bank_account_id}
-              onValueChange={(v) => updateField("bank_account_id", v)}
-              options={bankAccounts.map((b: any) => ({ value: b.id, label: `${b.nome}${b.banco ? ` - ${b.banco}` : ""}` }))}
-              placeholder="Selecione..."
-              icon={<Landmark className="w-4 h-4" />}
-              onAddModal={() => { setCbEditingId(null); setCbModalOpen(true); }}
-              onEditModal={(id) => { setCbEditingId(id); setCbModalOpen(true); }}
-              onDelete={contasCrud.onDelete}
-              addLabel="Nova conta bancária"
-            />
-            <ManagedSelectInput
-              label="Forma de Pagamento"
-              value={form.payment_method_id}
-              onValueChange={(v) => updateField("payment_method_id", v)}
-              options={paymentMethods.map((p: any) => ({ value: p.id, label: p.nome }))}
-              placeholder="Selecione..."
-              icon={<CreditCard className="w-4 h-4" />}
-              onAddModal={() => { setFpEditingId(null); setFpModalOpen(true); }}
-              onEditModal={(id) => { setFpEditingId(id); setFpModalOpen(true); }}
-              onDelete={formasCrud.onDelete}
-              addLabel="Nova forma de pagamento"
-            />
+          {/* Separador com label */}
+          <div className="flex items-center gap-3 pt-1">
+            <div className="h-px flex-1 bg-border/30" />
+            <span className="text-[11px] uppercase tracking-widest text-muted-foreground/60 font-medium">Classificação</span>
+            <div className="h-px flex-1 bg-border/30" />
           </div>
 
-          {/* Row 5: Parcelamento */}
+          {/* Categoria */}
+          <ManagedSelectInput
+            label="Categoria"
+            value={form.category_id}
+            onValueChange={(v) => updateField("category_id", v)}
+            options={categories.map((c: any) => ({ value: c.id, label: c.nome }))}
+            placeholder="Selecione a categoria..."
+            icon={<FolderTree className="w-4 h-4" />}
+            onAddModal={() => { setCatEditingId(null); setCatModalOpen(true); }}
+            onEditModal={(id) => { setCatEditingId(id); setCatModalOpen(true); }}
+            onDelete={categoriasCrud.onDelete}
+            onReorder={categoriasCrud.onReorder}
+            addLabel="Nova categoria"
+          />
+
+          {/* Centro de Custo */}
+          <ManagedSelectInput
+            label="Centro de Custo"
+            value={form.cost_center_id}
+            onValueChange={(v) => updateField("cost_center_id", v)}
+            options={costCenters.map((c: any) => ({ value: c.id, label: c.nome }))}
+            placeholder="Selecione o centro de custo..."
+            icon={<Target className="w-4 h-4" />}
+            onAddModal={() => { setCcEditingId(null); setCcModalOpen(true); }}
+            onEditModal={(id) => { setCcEditingId(id); setCcModalOpen(true); }}
+            onDelete={centrosCrud.onDelete}
+            addLabel="Novo centro de custo"
+          />
+
+          {/* Conta Bancária */}
+          <ManagedSelectInput
+            label="Conta Bancária"
+            value={form.bank_account_id}
+            onValueChange={(v) => updateField("bank_account_id", v)}
+            options={bankAccounts.map((b: any) => ({ value: b.id, label: `${b.nome}${b.banco ? ` - ${b.banco}` : ""}` }))}
+            placeholder="Selecione a conta..."
+            icon={<Landmark className="w-4 h-4" />}
+            onAddModal={() => { setCbEditingId(null); setCbModalOpen(true); }}
+            onEditModal={(id) => { setCbEditingId(id); setCbModalOpen(true); }}
+            onDelete={contasCrud.onDelete}
+            addLabel="Nova conta bancária"
+          />
+
+          {/* Forma de Pagamento */}
+          <ManagedSelectInput
+            label="Forma de Pagamento"
+            value={form.payment_method_id}
+            onValueChange={(v) => updateField("payment_method_id", v)}
+            options={paymentMethods.map((p: any) => ({ value: p.id, label: p.nome }))}
+            placeholder="Selecione a forma..."
+            icon={<CreditCard className="w-4 h-4" />}
+            onAddModal={() => { setFpEditingId(null); setFpModalOpen(true); }}
+            onEditModal={(id) => { setFpEditingId(id); setFpModalOpen(true); }}
+            onDelete={formasCrud.onDelete}
+            addLabel="Nova forma de pagamento"
+          />
+
+          {/* Parcelamento */}
           {!editingId && (
             <>
-              <div className="h-px bg-border/20" />
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <label className="text-sm font-medium text-foreground">Parcelas</label>
-                  <Input
-                    type="number"
-                    min={1}
-                    max={120}
-                    value={form.installments}
-                    onChange={(e) => updateField("installments", parseInt(e.target.value) || 1)}
-                  />
-                  {form.installments > 1 && form.amount > 0 && (
-                    <p className="text-xs text-muted-foreground">
-                      {form.installments}x de {formatCurrency((form.amount / 100) / form.installments)}
-                    </p>
-                  )}
-                  {errors.installments && <p className="text-xs text-destructive">{errors.installments}</p>}
-                </div>
-                <div className="space-y-3">
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={form.is_recurring}
-                      onChange={(e) => updateField("is_recurring", e.target.checked)}
-                      className="rounded border-input"
-                    />
-                    <span className="text-sm font-medium text-foreground">Conta recorrente</span>
-                  </label>
-                  {form.is_recurring && (
-                    <ManagedSelectInput
-                      value={form.recurrence_interval}
-                      onValueChange={(v) => updateField("recurrence_interval", v)}
-                      options={[
-                        { value: "weekly", label: "Semanal" },
-                        { value: "monthly", label: "Mensal" },
-                        { value: "yearly", label: "Anual" },
-                      ]}
-                      placeholder="Intervalo..."
-                    />
-                  )}
-                </div>
+              <div className="flex items-center gap-3 pt-1">
+                <div className="h-px flex-1 bg-border/30" />
+                <span className="text-[11px] uppercase tracking-widest text-muted-foreground/60 font-medium">Parcelamento</span>
+                <div className="h-px flex-1 bg-border/30" />
               </div>
+
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-foreground">Número de parcelas</label>
+                <Input
+                  type="number"
+                  min={1}
+                  max={120}
+                  value={form.installments}
+                  onChange={(e) => updateField("installments", parseInt(e.target.value) || 1)}
+                />
+                {form.installments > 1 && form.amount > 0 && (
+                  <p className="text-xs text-muted-foreground">
+                    {form.installments}x de {formatCurrency((form.amount / 100) / form.installments)}
+                  </p>
+                )}
+                {errors.installments && <p className="text-xs text-destructive">{errors.installments}</p>}
+              </div>
+
+              <label className="flex items-center gap-2.5 cursor-pointer py-1">
+                <input
+                  type="checkbox"
+                  checked={form.is_recurring}
+                  onChange={(e) => updateField("is_recurring", e.target.checked)}
+                  className="rounded border-input"
+                />
+                <span className="text-sm font-medium text-foreground">Conta recorrente</span>
+              </label>
+              {form.is_recurring && (
+                <ManagedSelectInput
+                  label="Intervalo de recorrência"
+                  value={form.recurrence_interval}
+                  onValueChange={(v) => updateField("recurrence_interval", v)}
+                  options={[
+                    { value: "weekly", label: "Semanal" },
+                    { value: "monthly", label: "Mensal" },
+                    { value: "yearly", label: "Anual" },
+                  ]}
+                  placeholder="Selecione..."
+                />
+              )}
             </>
           )}
 
-          <div className="h-px bg-border/20" />
-
-          {/* Row 6: Observações + Anexo */}
-          <div className="grid grid-cols-2 gap-3">
-            <TextareaInput label="Observações" placeholder="Observações..." value={form.notes} onChange={(e) => updateField("notes", e.target.value)} />
-            <FileAttachment value={form.attachment_url} onValueChange={(url) => updateField("attachment_url", url)} folder="contas-pagar" />
+          {/* Extras */}
+          <div className="flex items-center gap-3 pt-1">
+            <div className="h-px flex-1 bg-border/30" />
+            <span className="text-[11px] uppercase tracking-widest text-muted-foreground/60 font-medium">Extras</span>
+            <div className="h-px flex-1 bg-border/30" />
           </div>
 
-          <div className="flex justify-end gap-3 pt-1">
+          <TextareaInput label="Observações" placeholder="Informações adicionais sobre esta despesa..." value={form.notes} onChange={(e) => updateField("notes", e.target.value)} />
+
+          <FileAttachment value={form.attachment_url} onValueChange={(url) => updateField("attachment_url", url)} folder="contas-pagar" />
+
+          {/* Ações */}
+          <div className="flex justify-end gap-3 pt-3 border-t border-border/20">
             <Button variant="outline" onClick={resetForm} className="rounded-lg">Cancelar</Button>
             <Button onClick={handleSubmit} disabled={isPending} className="rounded-lg gap-2 shadow-sm">
               {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
