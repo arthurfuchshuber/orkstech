@@ -653,7 +653,7 @@ export default function ContasAPagar() {
       {/* Create/Edit Form */}
       <FormModal
         open={showForm}
-        onOpenChange={(open) => { if (!open) resetForm(); else setShowForm(true); }}
+        onOpenChange={(open) => { if (!open && !scanning) resetForm(); else setShowForm(true); }}
         title={editingId ? "Editar Conta" : "Nova Conta a Pagar"}
         description="Preencha os dados da despesa"
         size="md"
