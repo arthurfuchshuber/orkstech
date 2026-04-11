@@ -1,10 +1,9 @@
 import {
-  LayoutDashboard, DollarSign, Receipt, TrendingUp, FileText, PiggyBank,
-  Users, HeartHandshake, BarChart2, Target, UserCheck,
-  Building2, Truck, Package, FileSearch,
+  DollarSign, Receipt, TrendingUp, FileText, PiggyBank,
+  Users, Truck, Package,
   Zap, Workflow, Webhook, Bell,
-  Settings, Shield, Palette, User, Database,
-  ChevronRight, ShoppingBag,
+  Settings,
+  ChevronRight,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
@@ -17,15 +16,8 @@ import {
 
 const sections = [
   {
-    label: "Geral",
-    items: [
-      { title: "Dashboard", url: "/app", icon: LayoutDashboard },
-    ],
-  },
-  {
     label: "Finanças",
     items: [
-      { title: "Visão Geral", url: "/app/financas", icon: DollarSign },
       { title: "Contas a Pagar", url: "/app/financas/pagar", icon: Receipt },
       { title: "Contas a Receber", url: "/app/financas/receber", icon: TrendingUp },
       { title: "Fluxo de Caixa", url: "/app/financas/fluxo", icon: PiggyBank },
@@ -33,22 +25,10 @@ const sections = [
     ],
   },
   {
-    label: "Customer Success",
-    items: [
-      { title: "Visão Geral", url: "/app/cs", icon: HeartHandshake },
-      { title: "Health Score", url: "/app/cs/health", icon: BarChart2 },
-      { title: "NPS", url: "/app/cs/nps", icon: Target },
-      { title: "Onboarding", url: "/app/cs/onboarding", icon: UserCheck },
-    ],
-  },
-  {
     label: "Cadastros",
     items: [
       { title: "Clientes", url: "/app/clientes", icon: Users },
       { title: "Fornecedores", url: "/app/fornecedores", icon: Truck },
-      { title: "Empresas", url: "/app/empresas", icon: Building2 },
-      { title: "Contratos", url: "/app/contratos", icon: FileSearch },
-      { title: "Produtos & Serviços", url: "/app/produtos", icon: ShoppingBag },
       { title: "Inventário", url: "/app/inventario", icon: Package },
     ],
   },
@@ -64,10 +44,6 @@ const sections = [
     label: "Configurações",
     items: [
       { title: "Geral", url: "/app/config", icon: Settings },
-      { title: "Usuários", url: "/app/config/usuarios", icon: User },
-      { title: "Permissões", url: "/app/config/permissoes", icon: Shield },
-      { title: "Aparência", url: "/app/config/aparencia", icon: Palette },
-      { title: "Dados", url: "/app/config/dados", icon: Database },
     ],
   },
 ];
@@ -78,7 +54,7 @@ export function AppSidebar() {
   const location = useLocation();
 
   const initialOpen = sections.reduce((acc, section) => {
-    acc[section.label] = section.items.some((i) => location.pathname === i.url) || section.label === "Geral";
+    acc[section.label] = section.items.some((i) => location.pathname === i.url) || section.label === "Cadastros";
     return acc;
   }, {} as Record<string, boolean>);
 
@@ -134,7 +110,6 @@ export function AppSidebar() {
                           <SidebarMenuButton asChild>
                             <NavLink
                               to={item.url}
-                              end={item.url === "/app"}
                               className={`relative flex items-center gap-2.5 px-3 py-1.5 rounded-md text-[13px] transition-all duration-200 ${
                                 isActive
                                   ? "text-primary font-medium bg-primary/[0.08]"
