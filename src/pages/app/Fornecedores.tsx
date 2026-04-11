@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { eventBus } from "@/lib/events";
 import { Truck, Plus, Building2, UserRound, Check, Mail, MapPin, Home, Info, DollarSign, FileText, Clock, ShoppingCart, Tag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { StatCard } from "@/components/StatCard";
