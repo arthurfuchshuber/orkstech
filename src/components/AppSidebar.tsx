@@ -4,6 +4,7 @@ import {
   Zap, Workflow, Webhook, Bell,
   Settings,
   ChevronRight,
+  FolderTree, Target, Landmark, CreditCard,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
@@ -22,6 +23,15 @@ const sections = [
       { title: "Contas a Receber", url: "/app/financas/receber", icon: TrendingUp },
       { title: "Fluxo de Caixa", url: "/app/financas/fluxo", icon: PiggyBank },
       { title: "DRE", url: "/app/financas/dre", icon: FileText },
+    ],
+  },
+  {
+    label: "Configuração Financeira",
+    items: [
+      { title: "Plano de Contas", url: "/app/financas/plano-de-contas", icon: FolderTree },
+      { title: "Centros de Custo", url: "/app/financas/centros-de-custo", icon: Target },
+      { title: "Contas Bancárias", url: "/app/financas/contas-bancarias", icon: Landmark },
+      { title: "Formas de Pagamento", url: "/app/financas/formas-de-pagamento", icon: CreditCard },
     ],
   },
   {

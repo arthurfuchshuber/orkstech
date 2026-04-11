@@ -14,6 +14,80 @@ export type Database = {
   }
   public: {
     Tables: {
+      categorias_financeiras: {
+        Row: {
+          ativo: boolean
+          categoria_pai_id: string | null
+          created_at: string
+          id: string
+          nome: string
+          ordem: number
+          tipo: Database["public"]["Enums"]["tipo_financeiro"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          ativo?: boolean
+          categoria_pai_id?: string | null
+          created_at?: string
+          id?: string
+          nome: string
+          ordem?: number
+          tipo: Database["public"]["Enums"]["tipo_financeiro"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          ativo?: boolean
+          categoria_pai_id?: string | null
+          created_at?: string
+          id?: string
+          nome?: string
+          ordem?: number
+          tipo?: Database["public"]["Enums"]["tipo_financeiro"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "categorias_financeiras_categoria_pai_id_fkey"
+            columns: ["categoria_pai_id"]
+            isOneToOne: false
+            referencedRelation: "categorias_financeiras"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      centros_custo: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          descricao: string | null
+          id: string
+          nome: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          nome: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          nome?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       clientes: {
         Row: {
           ativo: boolean
@@ -140,6 +214,42 @@ export type Database = {
         }
         Relationships: []
       }
+      contas_bancarias: {
+        Row: {
+          ativo: boolean
+          banco: string | null
+          created_at: string
+          id: string
+          nome: string
+          saldo_inicial: number
+          tipo: Database["public"]["Enums"]["tipo_conta_bancaria"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          ativo?: boolean
+          banco?: string | null
+          created_at?: string
+          id?: string
+          nome: string
+          saldo_inicial?: number
+          tipo?: Database["public"]["Enums"]["tipo_conta_bancaria"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          ativo?: boolean
+          banco?: string | null
+          created_at?: string
+          id?: string
+          nome?: string
+          saldo_inicial?: number
+          tipo?: Database["public"]["Enums"]["tipo_conta_bancaria"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       empresas: {
         Row: {
           bairro: string | null
@@ -195,6 +305,36 @@ export type Database = {
           observacoes?: string | null
           razao_social?: string
           telefone?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      formas_pagamento: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          id: string
+          nome: string
+          tipo: Database["public"]["Enums"]["tipo_forma_pagamento"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          nome: string
+          tipo?: Database["public"]["Enums"]["tipo_forma_pagamento"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          nome?: string
+          tipo?: Database["public"]["Enums"]["tipo_forma_pagamento"]
           updated_at?: string
           user_id?: string
         }
@@ -332,6 +472,18 @@ export type Database = {
     }
     Enums: {
       pessoa_tipo: "pf" | "pj"
+      tipo_conta_bancaria:
+        | "corrente"
+        | "poupanca"
+        | "caixa"
+        | "carteira_digital"
+      tipo_financeiro: "receita" | "despesa" | "custo" | "ajuste"
+      tipo_forma_pagamento:
+        | "pix"
+        | "boleto"
+        | "cartao"
+        | "transferencia"
+        | "dinheiro"
       unidade_medida:
         | "un"
         | "kg"
@@ -472,6 +624,20 @@ export const Constants = {
   public: {
     Enums: {
       pessoa_tipo: ["pf", "pj"],
+      tipo_conta_bancaria: [
+        "corrente",
+        "poupanca",
+        "caixa",
+        "carteira_digital",
+      ],
+      tipo_financeiro: ["receita", "despesa", "custo", "ajuste"],
+      tipo_forma_pagamento: [
+        "pix",
+        "boleto",
+        "cartao",
+        "transferencia",
+        "dinheiro",
+      ],
       unidade_medida: [
         "un",
         "kg",
