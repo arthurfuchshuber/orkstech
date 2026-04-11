@@ -121,36 +121,11 @@ export default function FormasDePagamento() {
         })}
       </Card>
 
-      <Dialog open={modalOpen} onOpenChange={(v) => !v && closeModal()}>
-        <DialogContent>
-          <DialogHeader><DialogTitle>{editingId ? "Editar Forma de Pagamento" : "Nova Forma de Pagamento"}</DialogTitle></DialogHeader>
-          <div className="space-y-4 py-2">
-            <div>
-              <label className="text-sm font-medium text-foreground mb-1.5 block">Nome</label>
-              <Input value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} placeholder="Ex: PIX Banco do Brasil" />
-            </div>
-            <div>
-              <label className="text-sm font-medium text-foreground mb-1.5 block">Tipo</label>
-              <Select value={form.tipo} onValueChange={(v) => setForm({ ...form, tipo: v as TipoForma })}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="pix">PIX</SelectItem>
-                  <SelectItem value="boleto">Boleto</SelectItem>
-                  <SelectItem value="cartao">Cartão</SelectItem>
-                  <SelectItem value="transferencia">Transferência</SelectItem>
-                  <SelectItem value="dinheiro">Dinheiro</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={closeModal}>Cancelar</Button>
-            <Button onClick={() => saveMutation.mutate()} disabled={!form.nome.trim() || saveMutation.isPending}>
-              {saveMutation.isPending ? "Salvando..." : "Salvar"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <FormaPagamentoModal
+        open={modalOpen}
+        onOpenChange={setModalOpen}
+        editingId={editingId}
+      />
     </div>
   );
 }
