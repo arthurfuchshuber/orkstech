@@ -11,6 +11,7 @@ import {
 import { ManagedSelectInput } from "@/components/inputs/ManagedSelectInput";
 import { TipoFormaPagamentoModal } from "./TipoFormaPagamentoModal";
 import { useManagedSelect } from "@/hooks/useManagedSelect";
+import { FileAttachment } from "@/components/inputs/FileAttachment";
 import { CreditCard } from "lucide-react";
 
 interface FormaPagamentoModalProps {
@@ -23,13 +24,12 @@ interface FormaPagamentoModalProps {
 export function FormaPagamentoModal({ open, onOpenChange, editingId, onSaved }: FormaPagamentoModalProps) {
   const { user } = useAuth();
   const qc = useQueryClient();
-  const [form, setForm] = useState({ nome: "", tipo_id: "", numero_cartao: "" });
+  const [form, setForm] = useState({ nome: "", tipo_id: "", numero_cartao: "", attachment_url: null as string | null });
   const [tipoModalOpen, setTipoModalOpen] = useState(false);
   const [tipoEditingId, setTipoEditingId] = useState<string | null>(null);
 
   const tiposCrud = useManagedSelect("tipos_forma_pagamento");
 
-  // Seed default tipos on first load
   useEffect(() => {
     if (user && open) {
       supabase.rpc("seed_default_tipos_pagamento", { p_user_id: user.id }).then(() => {
@@ -63,13 +63,13 @@ export function FormaPagamentoModal({ open, onOpenChange, editingId, onSaved }: 
         nome: existing.nome,
         tipo_id: existing.tipo_id || "",
         numero_cartao: existing.numero_cartao || "",
+        attachment_url: null,
       });
     } else if (!editingId && open) {
-      setForm({ nome: "", tipo_id: "", numero_cartao: "" });
+      setForm({ nome: "", tipo_id: "", numero_cartao: "", attachment_url: null });
     }
   }, [existing, editingId, open]);
 
-  // Check if selected tipo is "cartão" related
   const selectedTipo = tipos.find((t: any) => t.id === form.tipo_id);
   const isCartao = selectedTipo?.nome?.toLowerCase().includes("cartão") || selectedTipo?.nome?.toLowerCase().includes("cartao");
 
@@ -79,7 +79,6 @@ export function FormaPagamentoModal({ open, onOpenChange, editingId, onSaved }: 
         nome: form.nome,
         tipo_id: form.tipo_id || null,
         numero_cartao: isCartao ? (form.numero_cartao || null) : null,
-        // Keep tipo enum for backward compat - map from tipo name
         tipo: mapTipoToEnum(selectedTipo?.nome),
       };
       if (editingId) {
@@ -137,6 +136,7 @@ export function FormaPagamentoModal({ open, onOpenChange, editingId, onSaved }: 
                 <p className="text-xs text-muted-foreground mt-1">Últimos 4 dígitos para identificação</p>
               </div>
             )}
+            <FileAttachment value={form.attachment_url} onValueChange={(url) => setForm({ ...form, attachment_url: url })} folder="formas-pagamento" />
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>

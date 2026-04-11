@@ -12,6 +12,7 @@ import { ManagedSelectInput } from "@/components/inputs/ManagedSelectInput";
 import { BancoModal } from "./BancoModal";
 import { useManagedSelect } from "@/hooks/useManagedSelect";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { FileAttachment } from "@/components/inputs/FileAttachment";
 import { Landmark } from "lucide-react";
 
 type TipoConta = "corrente" | "poupanca" | "caixa" | "carteira_digital";
@@ -32,13 +33,13 @@ export function ContaBancariaModal({ open, onOpenChange, editingId, onSaved }: C
     tipo: "corrente" as TipoConta,
     saldo_inicial: "0",
     pessoa_tipo: "pj" as "pj" | "pf",
+    attachment_url: null as string | null,
   });
   const [bancoModalOpen, setBancoModalOpen] = useState(false);
   const [bancoEditingId, setBancoEditingId] = useState<string | null>(null);
 
   const bancosCrud = useManagedSelect("bancos");
 
-  // Seed default bancos on first load
   useEffect(() => {
     if (user && open) {
       supabase.rpc("seed_default_bancos", { p_user_id: user.id }).then(() => {
@@ -56,7 +57,6 @@ export function ContaBancariaModal({ open, onOpenChange, editingId, onSaved }: C
     enabled: !!user,
   });
 
-  // Tipo de conta options (managed)
   const tipoContaOptions = [
     { value: "corrente", label: "Corrente" },
     { value: "poupanca", label: "Poupança" },
@@ -82,15 +82,15 @@ export function ContaBancariaModal({ open, onOpenChange, editingId, onSaved }: C
         tipo: existing.tipo as TipoConta,
         saldo_inicial: String(existing.saldo_inicial),
         pessoa_tipo: (existing as any).pessoa_tipo || "pj",
+        attachment_url: null,
       });
     } else if (!editingId && open) {
-      setForm({ nome: "", banco_id: "", tipo: "corrente", saldo_inicial: "0", pessoa_tipo: "pj" });
+      setForm({ nome: "", banco_id: "", tipo: "corrente", saldo_inicial: "0", pessoa_tipo: "pj", attachment_url: null });
     }
   }, [existing, editingId, open]);
 
   const saveMutation = useMutation({
     mutationFn: async () => {
-      // Get banco name for backward compat
       const selectedBanco = bancos.find((b: any) => b.id === form.banco_id);
       const bancoLabel = selectedBanco ? `${selectedBanco.codigo} - ${selectedBanco.nome}` : null;
 
@@ -169,6 +169,7 @@ export function ContaBancariaModal({ open, onOpenChange, editingId, onSaved }: C
               <label className="text-sm font-medium text-foreground mb-1.5 block">Saldo Inicial (R$)</label>
               <Input type="number" step="0.01" value={form.saldo_inicial} onChange={(e) => setForm({ ...form, saldo_inicial: e.target.value })} />
             </div>
+            <FileAttachment value={form.attachment_url} onValueChange={(url) => setForm({ ...form, attachment_url: url })} folder="contas-bancarias" />
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
