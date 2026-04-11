@@ -301,6 +301,7 @@ export default function ContasAPagar() {
     setEditingId(item.id);
     setForm({
       description: item.description,
+      supplier_id: item.supplier_id || "",
       supplier_name: item.supplier_name || "",
       document_number: item.document_number || "",
       amount: Math.round(item.amount * 100),

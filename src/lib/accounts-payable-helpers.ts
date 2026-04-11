@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 export type AccountPayableInsert = {
   user_id: string;
   description: string;
+  supplier_id?: string | null;
   supplier_name?: string | null;
   document_number?: string | null;
   amount: number;
