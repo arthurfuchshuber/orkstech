@@ -4,7 +4,7 @@ import {
   Building2, Truck, Package, FileSearch,
   Zap, Workflow, Webhook, Bell,
   Settings, Shield, Palette, User, Database,
-  ChevronDown, ChevronRight,
+  ChevronRight, ShoppingBag,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
@@ -46,8 +46,10 @@ const sections = [
     items: [
       { title: "Clientes", url: "/app/clientes", icon: Users },
       { title: "Fornecedores", url: "/app/fornecedores", icon: Truck },
-      { title: "Inventário", url: "/app/inventario", icon: Package },
+      { title: "Empresas", url: "/app/empresas", icon: Building2 },
       { title: "Contratos", url: "/app/contratos", icon: FileSearch },
+      { title: "Produtos & Serviços", url: "/app/produtos", icon: ShoppingBag },
+      { title: "Inventário", url: "/app/inventario", icon: Package },
     ],
   },
   {
