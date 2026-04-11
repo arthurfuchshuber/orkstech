@@ -21,6 +21,7 @@ const TextInput = React.forwardRef<HTMLInputElement, TextInputProps>(
           )}
           <input
             ref={ref}
+            maxLength={props.maxLength ?? 60}
             className={cn(
               "flex h-10 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm transition-all duration-200",
               "placeholder:text-muted-foreground/50",
