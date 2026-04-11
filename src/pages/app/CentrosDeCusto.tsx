@@ -7,10 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
-} from "@/components/ui/dialog";
+import { CentroCustoModal } from "@/components/modals/CentroCustoModal";
 import { Plus, Pencil, Trash2, Power, Target } from "lucide-react";
 
 interface CentroCusto {
@@ -25,7 +22,6 @@ export default function CentrosDeCusto() {
   const qc = useQueryClient();
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [form, setForm] = useState({ nome: "", descricao: "" });
   const [search, setSearch] = useState("");
 
   const { data: items = [], isLoading } = useQuery({
