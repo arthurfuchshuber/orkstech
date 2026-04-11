@@ -39,7 +39,7 @@ export default function ContasBancarias() {
   const qc = useQueryClient();
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [form, setForm] = useState({ nome: "", banco: "", tipo: "corrente" as TipoConta, saldo_inicial: "0" });
+  
 
   const { data: items = [], isLoading } = useQuery({
     queryKey: ["contas_bancarias"],

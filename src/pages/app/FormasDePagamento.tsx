@@ -39,7 +39,7 @@ export default function FormasDePagamento() {
   const qc = useQueryClient();
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [form, setForm] = useState({ nome: "", tipo: "pix" as TipoForma });
+  
 
   const { data: items = [], isLoading } = useQuery({
     queryKey: ["formas_pagamento"],
