@@ -55,24 +55,6 @@ export default function FormasDePagamento() {
     enabled: !!user,
   });
 
-  const saveMutation = useMutation({
-    mutationFn: async () => {
-      if (editingId) {
-        const { error } = await supabase.from("formas_pagamento").update({ nome: form.nome, tipo: form.tipo }).eq("id", editingId);
-        if (error) throw error;
-      } else {
-        const { error } = await supabase.from("formas_pagamento").insert({ nome: form.nome, tipo: form.tipo, user_id: user!.id });
-        if (error) throw error;
-      }
-    },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["formas_pagamento"] });
-      toast.success(editingId ? "Forma de pagamento atualizada" : "Forma de pagamento criada");
-      closeModal();
-    },
-    onError: () => toast.error("Erro ao salvar"),
-  });
-
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase.from("formas_pagamento").delete().eq("id", id);
@@ -92,9 +74,8 @@ export default function FormasDePagamento() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["formas_pagamento"] }),
   });
 
-  const closeModal = () => { setModalOpen(false); setEditingId(null); setForm({ nome: "", tipo: "pix" }); };
-  const openNew = () => { setEditingId(null); setForm({ nome: "", tipo: "pix" }); setModalOpen(true); };
-  const openEdit = (item: FormaPagamento) => { setEditingId(item.id); setForm({ nome: item.nome, tipo: item.tipo }); setModalOpen(true); };
+  const openNew = () => { setEditingId(null); setModalOpen(true); };
+  const openEdit = (item: FormaPagamento) => { setEditingId(item.id); setModalOpen(true); };
 
   return (
     <div className="space-y-6">
