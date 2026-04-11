@@ -354,6 +354,62 @@ export default function ContasAPagar() {
     setShowForm(true);
   };
 
+  const handleScanBoleto = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const MAX = 10 * 1024 * 1024;
+    if (file.size > MAX) {
+      toast.error("Arquivo muito grande (máx. 10MB)");
+      return;
+    }
+
+    setScanning(true);
+    try {
+      const reader = new FileReader();
+      const base64 = await new Promise<string>((resolve, reject) => {
+        reader.onload = () => {
+          const result = reader.result as string;
+          resolve(result.split(",")[1]);
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+
+      const { data, error } = await supabase.functions.invoke("scan-boleto", {
+        body: { file_base64: base64, file_type: file.type },
+      });
+
+      if (error) throw error;
+      if (data?.error) {
+        toast.error(data.error);
+        return;
+      }
+
+      const extracted = data?.data;
+      if (!extracted) {
+        toast.error("Não foi possível extrair dados do boleto");
+        return;
+      }
+
+      // Auto-fill form
+      if (extracted.description) updateField("description", extracted.description);
+      if (extracted.supplier_name) updateField("supplier_name", extracted.supplier_name);
+      if (extracted.document_number) updateField("document_number", extracted.document_number);
+      if (extracted.amount) updateField("amount", extracted.amount);
+      if (extracted.due_date) updateField("due_date", new Date(extracted.due_date + "T12:00:00"));
+      if (extracted.barcode) updateField("notes", `Linha digitável: ${extracted.barcode}${form.notes ? `\n${form.notes}` : ""}`);
+
+      toast.success("Dados do boleto extraídos com sucesso!");
+    } catch (err) {
+      console.error("Scan error:", err);
+      toast.error("Erro ao escanear boleto");
+    } finally {
+      setScanning(false);
+      if (scanInputRef.current) scanInputRef.current.value = "";
+    }
+  };
+
   const openPaymentDialog = (id: string) => {
     setPayingId(id);
     setPaymentBankAccount("");
