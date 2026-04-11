@@ -22,6 +22,16 @@ function hasActiveDescendant(item: MenuItem, pathname: string): boolean {
   return item.children?.some((child) => hasActiveDescendant(child, pathname)) ?? false;
 }
 
+function findFirstRoute(item: MenuItem): string | null {
+  if (item.route) return item.route;
+  for (const child of item.children ?? []) {
+    if (!child.is_active || !child.is_visible) continue;
+    const route = findFirstRoute(child);
+    if (route) return route;
+  }
+  return null;
+}
+
 function MenuItemNode({
   item,
   collapsed,
@@ -29,6 +39,7 @@ function MenuItemNode({
   pathname,
   openMap,
   toggle,
+  navigate,
 }: {
   item: MenuItem;
   collapsed: boolean;
@@ -36,6 +47,7 @@ function MenuItemNode({
   pathname: string;
   openMap: Record<string, boolean>;
   toggle: (id: string, parentId: string | null) => void;
+  navigate: (path: string) => void;
 }) {
   if (!item.is_visible || !item.is_active) return null;
 
