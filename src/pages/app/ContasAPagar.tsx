@@ -15,6 +15,20 @@ import { TextareaInput } from "@/components/inputs/TextareaInput";
 import { CurrencyInput } from "@/components/inputs/CurrencyInput";
 import { DateInput } from "@/components/inputs/DateInput";
 import { ManagedSelectInput } from "@/components/inputs/ManagedSelectInput";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+  FileText, Search, CreditCard,
+  Building2, Target, Landmark, FolderTree, X, Copy, Pencil,
+  Banknote, ChevronDown
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { StatCard } from "@/components/StatCard";
+import { Card } from "@/components/ui/card";
+import { FormModal } from "@/components/FormModal";
+import { TextInput } from "@/components/inputs/TextInput";
+import { TextareaInput } from "@/components/inputs/TextareaInput";
+import { CurrencyInput } from "@/components/inputs/CurrencyInput";
+import { DateInput } from "@/components/inputs/DateInput";
+import { ManagedSelectInput } from "@/components/inputs/ManagedSelectInput";
 
 import { useManagedSelect } from "@/hooks/useManagedSelect";
 import { CategoriaFinanceiraModal } from "@/components/modals/CategoriaFinanceiraModal";
@@ -39,7 +53,7 @@ interface PayableForm {
   description: string;
   supplier_name: string;
   document_number: string;
-  amount: number; // in cents
+  amount: number;
   due_date?: Date;
   issue_date?: Date;
   category_id: string;
@@ -50,6 +64,7 @@ interface PayableForm {
   is_recurring: boolean;
   recurrence_interval: string;
   notes: string;
+  pessoa_tipo: "pj" | "pf";
 }
 
 const initialForm: PayableForm = {
@@ -67,6 +82,7 @@ const initialForm: PayableForm = {
   is_recurring: false,
   recurrence_interval: "",
   notes: "",
+  pessoa_tipo: "pj",
 };
 
 const statusConfig: Record<string, { label: string; color: string; icon: typeof Clock }> = {
@@ -558,6 +574,19 @@ export default function ContasAPagar() {
         <div className="space-y-6">
           <div className="space-y-4">
             <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Dados da Conta</p>
+            <div>
+              <label className="text-sm font-medium text-foreground mb-1.5 block">Pessoa</label>
+              <RadioGroup value={form.pessoa_tipo} onValueChange={(v) => updateField("pessoa_tipo", v as "pj" | "pf")} className="flex gap-4">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <RadioGroupItem value="pj" />
+                  <span className="text-sm">Pessoa Jurídica (PJ)</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <RadioGroupItem value="pf" />
+                  <span className="text-sm">Pessoa Física (PF)</span>
+                </label>
+              </RadioGroup>
+            </div>
             <TextInput label="Título da despesa" placeholder="Título da despesa" value={form.description} onChange={(e) => updateField("description", e.target.value)} error={errors.description} />
             <div className="grid grid-cols-2 gap-4">
               <TextInput label="Fornecedor" placeholder="Nome do fornecedor" value={form.supplier_name} onChange={(e) => updateField("supplier_name", e.target.value)} icon={<Building2 className="w-4 h-4" />} />
