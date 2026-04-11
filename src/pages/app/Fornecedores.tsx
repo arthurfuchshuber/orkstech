@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { eventBus } from "@/lib/events";
-import { Truck, Plus, Building2, UserRound, Check, Mail, MapPin, Home, Info, DollarSign, FileText, Clock, ShoppingCart, Tag } from "lucide-react";
+import { Truck, Plus, Building2, UserRound, Check, Mail, MapPin, Home, Info, DollarSign, FileText, Clock, ShoppingCart, Tag, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { StatCard } from "@/components/StatCard";
 import { Card } from "@/components/ui/card";
@@ -10,9 +10,12 @@ import { DocumentInput } from "@/components/inputs/DocumentInput";
 import { PhoneInput } from "@/components/inputs/PhoneInput";
 import { CepInput } from "@/components/inputs/CepInput";
 import { TextInput } from "@/components/inputs/TextInput";
+import { TextareaInput } from "@/components/inputs/TextareaInput";
+import { SelectInput } from "@/components/inputs/SelectInput";
 import { RelatedFinancial } from "@/components/modules/RelatedFinancial";
 import { RelatedDocuments } from "@/components/modules/RelatedDocuments";
 import { RelatedHistory } from "@/components/modules/RelatedHistory";
+import { validateSupplierForm, type SupplierFormData, type FormErrors } from "@/lib/validators";
 import { toast } from "sonner";
 
 const tabs = [
@@ -23,18 +26,83 @@ const tabs = [
   { id: "historico", label: "Histórico", icon: Clock, count: 0 },
 ];
 
+const categoriaOptions = [
+  { value: "tecnologia", label: "Tecnologia" },
+  { value: "logistica", label: "Logística" },
+  { value: "escritorio", label: "Material de Escritório" },
+  { value: "servicos", label: "Serviços" },
+  { value: "consultoria", label: "Consultoria" },
+  { value: "marketing", label: "Marketing" },
+  { value: "outros", label: "Outros" },
+];
+
+const initialForm: SupplierFormData = {
+  type: "empresa",
+  nome: "",
+  cpfCnpj: "",
+  telefone: "",
+  email: "",
+  contatoResponsavel: "",
+  categoria: "",
+  observacoes: "",
+  endereco: { cep: "", logradouro: "", bairro: "", cidade: "", estado: "" },
+};
+
 export default function Fornecedores() {
   const [showForm, setShowForm] = useState(false);
   const [activeTab, setActiveTab] = useState("info");
-  const [form, setForm] = useState({
-    type: "empresa" as "empresa" | "pessoa",
-    nome: "", cpfCnpj: "", telefone: "", email: "",
-    contatoResponsavel: "", categoria: "", observacoes: "",
-    endereco: { cep: "", logradouro: "", bairro: "", cidade: "", estado: "" },
-  });
+  const [form, setForm] = useState<SupplierFormData>(initialForm);
+  const [errors, setErrors] = useState<FormErrors>({});
+  const [loadingCnpj, setLoadingCnpj] = useState(false);
+  const [cnpjMessage, setCnpjMessage] = useState("");
 
-  const update = (key: string, value: string) => setForm((p) => ({ ...p, [key]: value }));
+  const update = (key: string, value: string) => {
+    setForm((p) => ({ ...p, [key]: value }));
+    if (errors[key]) setErrors((prev) => { const n = { ...prev }; delete n[key]; return n; });
+  };
   const updateAddr = (key: string, value: string) => setForm((p) => ({ ...p, endereco: { ...p.endereco, [key]: value } }));
+
+  const handleCnpjBlur = async () => {
+    if (form.type !== "empresa") return;
+    const raw = form.cpfCnpj.replace(/\D/g, "");
+    if (raw.length !== 14) return;
+
+    const { validateCNPJ } = await import("@/lib/validators");
+    if (!validateCNPJ(raw)) {
+      setErrors((prev) => ({ ...prev, cpfCnpj: "CNPJ inválido" }));
+      return;
+    }
+
+    setLoadingCnpj(true);
+    setCnpjMessage("");
+    try {
+      const res = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${raw}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.descricao_situacao_cadastral && data.descricao_situacao_cadastral !== "ATIVA") {
+          setErrors((prev) => ({ ...prev, cpfCnpj: "CNPJ inválido ou empresa não ativa na Receita Federal." }));
+          setLoadingCnpj(false);
+          return;
+        }
+        setForm((p) => ({
+          ...p,
+          nome: data.razao_social || p.nome,
+          endereco: {
+            logradouro: data.logradouro || p.endereco.logradouro,
+            bairro: data.bairro || p.endereco.bairro,
+            cidade: data.municipio || p.endereco.cidade,
+            estado: data.uf || p.endereco.estado,
+            cep: data.cep ? data.cep.replace(/\D/g, "") : p.endereco.cep,
+          },
+        }));
+        setCnpjMessage("Dados preenchidos automaticamente");
+        setErrors((prev) => { const n = { ...prev }; delete n.cpfCnpj; delete n.nome; return n; });
+        toast.success("Dados do fornecedor preenchidos automaticamente");
+      }
+    } catch { /* silent */ } finally {
+      setLoadingCnpj(false);
+    }
+  };
 
   const handleAddressFound = (addr: { logradouro: string; bairro: string; cidade: string; estado: string }) => {
     setForm((p) => ({ ...p, endereco: { ...p.endereco, ...addr } }));
@@ -42,9 +110,24 @@ export default function Fornecedores() {
   };
 
   const handleSubmit = () => {
+    const validationErrors = validateSupplierForm(form);
+    if (Object.keys(validationErrors).length > 0) {
+      setErrors(validationErrors);
+      toast.error("Corrija os campos destacados antes de salvar");
+      return;
+    }
+
     eventBus.emit({ type: "fornecedor.criado", data: { nome: form.nome, descricao: `Fornecedor ${form.nome} cadastrado` }, moduloOrigem: "fornecedores", registroId: crypto.randomUUID() });
     toast.success("Fornecedor cadastrado com sucesso!");
+    setForm(initialForm);
+    setErrors({});
     setShowForm(false);
+    setCnpjMessage("");
+  };
+
+  const handleOpenChange = (open: boolean) => {
+    setShowForm(open);
+    if (!open) { setForm(initialForm); setErrors({}); setCnpjMessage(""); }
   };
 
   const renderTab = () => {
@@ -80,7 +163,7 @@ export default function Fornecedores() {
         <div className="p-4">{renderTab()}</div>
       </Card>
 
-      <FormModal open={showForm} onOpenChange={setShowForm} title="Novo Fornecedor" description="Cadastre um novo fornecedor com dados de contato e categoria." size="xl">
+      <FormModal open={showForm} onOpenChange={handleOpenChange} title="Novo Fornecedor" description="Cadastre um novo fornecedor. CNPJ e CEP preenchem dados automaticamente." size="xl">
         <div className="space-y-6">
           <div className="space-y-2">
             <label className="text-sm font-medium text-foreground">Tipo</label>
@@ -89,7 +172,7 @@ export default function Fornecedores() {
                 { key: "empresa" as const, label: "Empresa", icon: Building2 },
                 { key: "pessoa" as const, label: "Pessoa Física", icon: UserRound },
               ]).map(({ key, label, icon: Icon }) => (
-                <button key={key} type="button" onClick={() => update("type", key)}
+                <button key={key} type="button" onClick={() => { update("type", key); setErrors({}); }}
                   className={`flex items-center gap-3 p-3.5 rounded-lg border-2 transition-all ${form.type === key ? "border-primary bg-primary/5" : "border-border/50 hover:border-muted-foreground/30"}`}>
                   <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${form.type === key ? "bg-primary/15" : "bg-muted/50"}`}>
                     <Icon className={`w-4 h-4 ${form.type === key ? "text-primary" : "text-muted-foreground"}`} />
@@ -100,19 +183,41 @@ export default function Fornecedores() {
               ))}
             </div>
           </div>
+
           <div className="h-px bg-border/30" />
-          <div className="grid grid-cols-2 gap-4">
-            <TextInput label="Nome" placeholder="Nome do fornecedor" value={form.nome} onChange={(e) => update("nome", e.target.value)} />
-            <DocumentInput type={form.type === "empresa" ? "cnpj" : "cpf"} value={form.cpfCnpj} onValueChange={(raw) => update("cpfCnpj", raw)} />
-            <TextInput label="Categoria" placeholder="Ex: Tecnologia, Logística..." value={form.categoria} onChange={(e) => update("categoria", e.target.value)} icon={<Tag className="w-4 h-4" />} />
-            <TextInput label="Contato Responsável" placeholder="Nome do contato" value={form.contatoResponsavel} onChange={(e) => update("contatoResponsavel", e.target.value)} />
+
+          <div className="space-y-4">
+            <div className="flex items-center gap-2">
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Dados cadastrais</p>
+              {loadingCnpj && <Loader2 className="w-3 h-3 animate-spin text-primary" />}
+            </div>
+            {cnpjMessage && (
+              <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-primary/5 border border-primary/20">
+                <Check className="w-3.5 h-3.5 text-primary" />
+                <span className="text-xs text-primary">{cnpjMessage}</span>
+              </div>
+            )}
+            <div className="grid grid-cols-2 gap-4">
+              <DocumentInput
+                type={form.type === "empresa" ? "cnpj" : "cpf"}
+                value={form.cpfCnpj}
+                onValueChange={(raw) => update("cpfCnpj", raw)}
+                onBlur={form.type === "empresa" ? handleCnpjBlur : undefined}
+                error={errors.cpfCnpj}
+              />
+              <TextInput label="Nome" placeholder={form.type === "empresa" ? "Razão social do fornecedor" : "Nome do fornecedor"} value={form.nome} onChange={(e) => update("nome", e.target.value)} error={errors.nome} />
+              <SelectInput label="Categoria" placeholder="Selecione a categoria" value={form.categoria} onValueChange={(v) => update("categoria", v)} options={categoriaOptions} icon={<Tag className="w-4 h-4" />} />
+              <TextInput label="Contato Responsável" placeholder="Nome do contato principal" value={form.contatoResponsavel} onChange={(e) => update("contatoResponsavel", e.target.value)} />
+            </div>
           </div>
+
           <div className="h-px bg-border/30" />
           <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Contato</p>
           <div className="grid grid-cols-2 gap-4">
-            <PhoneInput value={form.telefone} onValueChange={(raw) => update("telefone", raw)} />
-            <TextInput label="Email" type="email" placeholder="email@exemplo.com" value={form.email} onChange={(e) => update("email", e.target.value)} icon={<Mail className="w-4 h-4" />} />
+            <PhoneInput value={form.telefone} onValueChange={(raw) => update("telefone", raw)} error={errors.telefone} />
+            <TextInput label="Email" type="email" placeholder="email@exemplo.com" value={form.email} onChange={(e) => update("email", e.target.value)} icon={<Mail className="w-4 h-4" />} error={errors.email} />
           </div>
+
           <div className="h-px bg-border/30" />
           <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Endereço</p>
           <div className="grid grid-cols-3 gap-4">
@@ -124,10 +229,12 @@ export default function Fornecedores() {
             <TextInput label="Cidade" placeholder="Cidade" value={form.endereco.cidade} onChange={(e) => updateAddr("cidade", e.target.value)} icon={<MapPin className="w-4 h-4" />} />
             <TextInput label="Estado" placeholder="UF" value={form.endereco.estado} onChange={(e) => updateAddr("estado", e.target.value)} />
           </div>
-          <TextInput label="Observações" placeholder="Observações..." value={form.observacoes} onChange={(e) => update("observacoes", e.target.value)} />
+
+          <TextareaInput label="Observações" placeholder="Observações sobre o fornecedor..." value={form.observacoes} onChange={(e) => update("observacoes", e.target.value)} />
+
           <div className="h-px bg-border/30" />
           <div className="flex justify-end gap-3 pt-1">
-            <Button variant="outline" onClick={() => setShowForm(false)} className="rounded-lg">Cancelar</Button>
+            <Button variant="outline" onClick={() => handleOpenChange(false)} className="rounded-lg">Cancelar</Button>
             <Button onClick={handleSubmit} className="rounded-lg gap-2 shadow-sm"><Check className="w-4 h-4" /> Salvar Fornecedor</Button>
           </div>
         </div>
