@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { eventBus } from "@/lib/events";
 import { FileSearch, Plus, Check, Info, DollarSign, FileText, Clock, Users, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { StatCard } from "@/components/StatCard";
@@ -85,7 +86,7 @@ export default function Contratos() {
           <div className="h-px bg-border/30" />
           <div className="flex justify-end gap-3 pt-1">
             <Button variant="outline" onClick={() => setShowForm(false)} className="rounded-lg">Cancelar</Button>
-            <Button onClick={() => { toast.success("Contrato criado!"); setShowForm(false); }} className="rounded-lg gap-2 shadow-sm"><Check className="w-4 h-4" /> Salvar Contrato</Button>
+            <Button onClick={() => { eventBus.emit({ type: "contrato.criado", data: { cliente: form.cliente, valor: form.valor, descricao: `Contrato criado para ${form.cliente}` }, moduloOrigem: "contratos", registroId: crypto.randomUUID() }); toast.success("Contrato criado!"); setShowForm(false); }} className="rounded-lg gap-2 shadow-sm"><Check className="w-4 h-4" /> Salvar Contrato</Button>
           </div>
         </div>
       </FormModal>

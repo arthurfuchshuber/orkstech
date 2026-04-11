@@ -41,6 +41,7 @@ export default function Fornecedores() {
   };
 
   const handleSubmit = () => {
+    eventBus.emit({ type: "fornecedor.criado", data: { nome: form.nome, descricao: `Fornecedor ${form.nome} cadastrado` }, moduloOrigem: "fornecedores", registroId: crypto.randomUUID() });
     toast.success("Fornecedor cadastrado com sucesso!");
     setShowForm(false);
   };

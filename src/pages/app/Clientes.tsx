@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { eventBus } from "@/lib/events";
 import { Users, Plus, Building2, UserRound, Check, Loader2, Mail, MapPin, Home, Info, FileSearch, DollarSign, FileText, Phone, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { StatCard } from "@/components/StatCard";
@@ -118,6 +119,7 @@ export default function Clientes() {
   };
 
   const handleSubmit = () => {
+    eventBus.emit({ type: "cliente.criado", data: { nome: form.nome || form.razaoSocial, tipo: form.type, descricao: `Cliente ${form.nome || form.razaoSocial} cadastrado` }, moduloOrigem: "clientes", registroId: crypto.randomUUID() });
     toast.success("Cliente cadastrado com sucesso!");
     setForm(initialForm);
     setShowForm(false);
