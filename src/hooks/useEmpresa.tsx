@@ -12,28 +12,31 @@ const EmpresaContext = createContext<EmpresaContextType | undefined>(undefined);
 
 export function EmpresaProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
+  const userId = user?.id ?? null;
   const [empresa, setEmpresa] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const fetchEmpresa = async () => {
-    if (!user) {
+  const fetchEmpresa = async (targetUserId = userId) => {
+    if (!targetUserId) {
       setEmpresa(null);
       setLoading(false);
       return;
     }
+
     setLoading(true);
     const { data } = await supabase
       .from("empresas")
       .select("*")
-      .eq("user_id", user.id)
+      .eq("user_id", targetUserId)
       .maybeSingle();
+
     setEmpresa(data);
     setLoading(false);
   };
 
   useEffect(() => {
-    fetchEmpresa();
-  }, [user]);
+    fetchEmpresa(userId);
+  }, [userId]);
 
   return (
     <EmpresaContext.Provider value={{ empresa, loading, refetch: fetchEmpresa }}>
