@@ -16,19 +16,6 @@ import { CurrencyInput } from "@/components/inputs/CurrencyInput";
 import { DateInput } from "@/components/inputs/DateInput";
 import { ManagedSelectInput } from "@/components/inputs/ManagedSelectInput";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-  FileText, Search, CreditCard,
-  Building2, Target, Landmark, FolderTree, X, Copy, Pencil,
-  Banknote, ChevronDown
-} from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { StatCard } from "@/components/StatCard";
-import { Card } from "@/components/ui/card";
-import { FormModal } from "@/components/FormModal";
-import { TextInput } from "@/components/inputs/TextInput";
-import { TextareaInput } from "@/components/inputs/TextareaInput";
-import { CurrencyInput } from "@/components/inputs/CurrencyInput";
-import { DateInput } from "@/components/inputs/DateInput";
-import { ManagedSelectInput } from "@/components/inputs/ManagedSelectInput";
 
 import { useManagedSelect } from "@/hooks/useManagedSelect";
 import { CategoriaFinanceiraModal } from "@/components/modals/CategoriaFinanceiraModal";
