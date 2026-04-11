@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { DragDropContext } from "@hello-pangea/dnd";
 import { useMenus, type MenuItem } from "@/hooks/useMenus";
 import { DynamicIcon } from "@/components/DynamicIcon";
 import { toast } from "sonner";
@@ -202,7 +203,9 @@ export default function GerenciarMenu() {
             Nenhum menu encontrado
           </div>
         ) : (
-          renderMenuTree(tree, "root")
+          <DragDropContext onDragEnd={handleDragEnd}>
+            {renderDroppable(tree, "root")}
+          </DragDropContext>
         )}
       </Card>
 
