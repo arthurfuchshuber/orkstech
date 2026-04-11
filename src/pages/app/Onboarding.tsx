@@ -51,8 +51,14 @@ export default function Onboarding() {
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  const set = (field: keyof EmpresaForm) => (v: string) =>
-    setForm((prev) => ({ ...prev, [field]: v }));
+  const setField = (field: keyof EmpresaForm, value: string) =>
+    setForm((prev) => ({ ...prev, [field]: value }));
+
+  const handleInputChange = (field: keyof EmpresaForm) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+    setField(field, e.target.value);
+
+  const handleValueChange = (field: keyof EmpresaForm) => (raw: string, _formatted: string) =>
+    setField(field, raw);
 
   const validate = () => {
     const e: Record<string, string> = {};
@@ -99,7 +105,6 @@ export default function Onboarding() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      {/* Minimal header */}
       <header className="h-14 flex items-center justify-between border-b border-border/30 px-6 bg-background/80 backdrop-blur-lg">
         <div className="flex items-center gap-2.5">
           <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center">
@@ -112,7 +117,6 @@ export default function Onboarding() {
         </Button>
       </header>
 
-      {/* Content */}
       <div className="flex-1 flex items-center justify-center p-6">
         <div className="w-full max-w-2xl space-y-6">
           <div className="text-center space-y-2">
@@ -133,29 +137,42 @@ export default function Onboarding() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="md:col-span-2">
-                <TextInput label="Razão Social *" value={form.razao_social} onChange={set("razao_social")} error={errors.razao_social} />
+                <TextInput label="Razão Social *" value={form.razao_social} onChange={handleInputChange("razao_social")} error={errors.razao_social} />
               </div>
-              <TextInput label="Nome Fantasia" value={form.nome_fantasia} onChange={set("nome_fantasia")} />
-              <DocumentInput label="CNPJ *" value={form.cnpj} onChange={set("cnpj")} type="cnpj" error={errors.cnpj} />
-              <TextInput label="Inscrição Estadual" value={form.inscricao_estadual} onChange={set("inscricao_estadual")} />
-              <TextInput label="Inscrição Municipal" value={form.inscricao_municipal} onChange={set("inscricao_municipal")} />
-              <PhoneInput label="Telefone" value={form.telefone} onChange={set("telefone")} />
-              <TextInput label="E-mail" value={form.email} onChange={set("email")} />
+              <TextInput label="Nome Fantasia" value={form.nome_fantasia} onChange={handleInputChange("nome_fantasia")} />
+              <DocumentInput label="CNPJ *" value={form.cnpj} onValueChange={handleValueChange("cnpj")} type="cnpj" error={errors.cnpj} />
+              <TextInput label="Inscrição Estadual" value={form.inscricao_estadual} onChange={handleInputChange("inscricao_estadual")} />
+              <TextInput label="Inscrição Municipal" value={form.inscricao_municipal} onChange={handleInputChange("inscricao_municipal")} />
+              <PhoneInput label="Telefone" value={form.telefone} onValueChange={handleValueChange("telefone")} />
+              <TextInput label="E-mail" value={form.email} onChange={handleInputChange("email")} />
             </div>
 
             <h3 className="text-sm font-medium mt-6 mb-3 text-muted-foreground">Endereço</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="md:col-span-2">
-                <TextInput label="Logradouro" value={form.logradouro} onChange={set("logradouro")} />
+                <TextInput label="Logradouro" value={form.logradouro} onChange={handleInputChange("logradouro")} />
               </div>
-              <TextInput label="Bairro" value={form.bairro} onChange={set("bairro")} />
-              <TextInput label="Cidade" value={form.cidade} onChange={set("cidade")} />
-              <TextInput label="Estado" value={form.estado} onChange={set("estado")} />
-              <CepInput label="CEP" value={form.cep} onChange={set("cep")} />
+              <TextInput label="Bairro" value={form.bairro} onChange={handleInputChange("bairro")} />
+              <TextInput label="Cidade" value={form.cidade} onChange={handleInputChange("cidade")} />
+              <TextInput label="Estado" value={form.estado} onChange={handleInputChange("estado")} />
+              <CepInput
+                label="CEP"
+                value={form.cep}
+                onValueChange={handleValueChange("cep")}
+                onAddressFound={(addr) => {
+                  setForm((prev) => ({
+                    ...prev,
+                    logradouro: addr.logradouro,
+                    bairro: addr.bairro,
+                    cidade: addr.cidade,
+                    estado: addr.estado,
+                  }));
+                }}
+              />
             </div>
 
             <div className="mt-4">
-              <TextareaInput label="Observações" value={form.observacoes} onChange={set("observacoes")} />
+              <TextareaInput label="Observações" value={form.observacoes} onChange={handleInputChange("observacoes")} />
             </div>
 
             <div className="mt-6 flex justify-end">
