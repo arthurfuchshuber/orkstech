@@ -392,15 +392,24 @@ export default function ContasAPagar() {
         return;
       }
 
-      // Auto-fill form
-      if (extracted.description) updateField("description", extracted.description);
-      if (extracted.supplier_name) updateField("supplier_name", extracted.supplier_name);
-      if (extracted.document_number) updateField("document_number", extracted.document_number);
-      if (extracted.amount) updateField("amount", extracted.amount);
-      if (extracted.due_date) updateField("due_date", new Date(extracted.due_date + "T12:00:00"));
-      if (extracted.barcode) updateField("notes", `Linha digitável: ${extracted.barcode}${form.notes ? `\n${form.notes}` : ""}`);
+      console.log("Boleto extracted:", extracted);
 
-      toast.success("Dados do boleto extraídos com sucesso!");
+      // Batch update all fields at once to avoid multiple re-renders
+      setForm((prev) => ({
+        ...prev,
+        description: extracted.description || prev.description,
+        supplier_name: extracted.supplier_name || prev.supplier_name,
+        document_number: extracted.document_number || prev.document_number,
+        amount: extracted.amount || prev.amount,
+        due_date: extracted.due_date ? new Date(extracted.due_date + "T12:00:00") : prev.due_date,
+        notes: extracted.barcode
+          ? `Linha digitável: ${extracted.barcode}${prev.notes ? `\n${prev.notes}` : ""}`
+          : prev.notes,
+      }));
+
+      // Ensure modal stays open
+      setShowForm(true);
+      toast.success("Dados do boleto extraídos! Confira e ajuste os campos antes de salvar.");
     } catch (err) {
       console.error("Scan error:", err);
       toast.error("Erro ao escanear boleto");
