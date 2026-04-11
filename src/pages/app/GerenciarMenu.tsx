@@ -137,14 +137,8 @@ export default function GerenciarMenu() {
                         </button>
                       )}
 
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-7 w-7"
-                        onClick={() => openEdit(item)}
-                      >
-                        <Pencil className="w-3.5 h-3.5" />
-                      </Button>
+
+
                     </div>
 
                     {isOpen && hasChildren && (
