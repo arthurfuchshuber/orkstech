@@ -233,6 +233,7 @@ export default function ContasAPagar() {
           is_recurring: form.is_recurring,
           recurrence_interval: form.is_recurring && form.recurrence_interval ? form.recurrence_interval : null,
           notes: form.notes || null,
+          pessoa_tipo: form.pessoa_tipo,
         },
       });
       return;
