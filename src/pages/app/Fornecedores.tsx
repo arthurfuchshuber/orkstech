@@ -67,7 +67,7 @@ export default function Fornecedores() {
     const raw = form.cpfCnpj.replace(/\D/g, "");
     if (raw.length !== 14) return;
 
-    const { validateCNPJ } = await import("@/components/inputs/DocumentInput");
+    const { validateCNPJ } = await import("@/lib/validators");
     if (!validateCNPJ(raw)) {
       setErrors((prev) => ({ ...prev, cpfCnpj: "CNPJ inválido" }));
       return;

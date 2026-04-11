@@ -66,7 +66,7 @@ export default function Clientes() {
     const raw = form.cnpj.replace(/\D/g, "");
     if (raw.length !== 14) return;
     
-    const { validateCNPJ } = await import("@/components/inputs/DocumentInput");
+    const { validateCNPJ } = await import("@/lib/validators");
     if (!validateCNPJ(raw)) {
       setErrors((prev) => ({ ...prev, cnpj: "CNPJ inválido" }));
       return;
