@@ -1,48 +1,26 @@
 import { useState } from "react";
 import { eventBus } from "@/lib/events";
-import { Users, Plus, Building2, UserRound, Check, Loader2, Mail, MapPin, Home, Info, FileSearch, DollarSign, FileText, Phone, Clock } from "lucide-react";
+import { Users, Plus, Building2, UserRound, Check, Loader2, Mail, MapPin, Home, Info, FileSearch, DollarSign, FileText, Phone, Clock, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { StatCard } from "@/components/StatCard";
 import { Card } from "@/components/ui/card";
 import { FormModal } from "@/components/FormModal";
 import { ModuleTabs } from "@/components/ModuleTabs";
-import { DocumentInput, validateCNPJ } from "@/components/inputs/DocumentInput";
+import { DocumentInput } from "@/components/inputs/DocumentInput";
 import { PhoneInput } from "@/components/inputs/PhoneInput";
 import { CepInput } from "@/components/inputs/CepInput";
 import { TextInput } from "@/components/inputs/TextInput";
+import { TextareaInput } from "@/components/inputs/TextareaInput";
+import { DateInput } from "@/components/inputs/DateInput";
 import { RelatedContracts } from "@/components/modules/RelatedContracts";
 import { RelatedFinancial } from "@/components/modules/RelatedFinancial";
 import { RelatedDocuments } from "@/components/modules/RelatedDocuments";
 import { RelatedActivities } from "@/components/modules/RelatedActivities";
 import { RelatedHistory } from "@/components/modules/RelatedHistory";
+import { validateClientForm, type ClientFormData, type FormErrors } from "@/lib/validators";
 import { toast } from "sonner";
 
-type ClientType = "pf" | "pj";
-
-interface AddressData {
-  logradouro: string;
-  bairro: string;
-  cidade: string;
-  estado: string;
-  cep: string;
-}
-
-interface ClientForm {
-  type: ClientType;
-  nomeCompleto: string;
-  cpf: string;
-  razaoSocial: string;
-  nomeFantasia: string;
-  cnpj: string;
-  inscricaoEstadual: string;
-  inscricaoMunicipal: string;
-  telefone: string;
-  email: string;
-  observacoes: string;
-  endereco: AddressData;
-}
-
-const initialForm: ClientForm = {
+const initialForm: ClientFormData = {
   type: "pf",
   nomeCompleto: "",
   cpf: "",
@@ -54,6 +32,7 @@ const initialForm: ClientForm = {
   telefone: "",
   email: "",
   observacoes: "",
+  dataNascimento: undefined,
   endereco: { logradouro: "", bairro: "", cidade: "", estado: "", cep: "" },
 };
 
@@ -68,48 +47,67 @@ const clientTabs = [
 
 export default function Clientes() {
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState<ClientForm>(initialForm);
+  const [form, setForm] = useState<ClientFormData>(initialForm);
+  const [errors, setErrors] = useState<FormErrors>({});
   const [loadingCnpj, setLoadingCnpj] = useState(false);
   const [cnpjMessage, setCnpjMessage] = useState("");
   const [activeTab, setActiveTab] = useState("info");
 
-  const updateField = <K extends keyof ClientForm>(key: K, value: ClientForm[K]) => {
+  const updateField = <K extends keyof ClientFormData>(key: K, value: ClientFormData[K]) => {
     setForm((prev) => ({ ...prev, [key]: value }));
+    if (errors[key]) setErrors((prev) => { const n = { ...prev }; delete n[key]; return n; });
   };
 
-  const updateAddress = (field: keyof AddressData, value: string) => {
+  const updateAddress = (field: string, value: string) => {
     setForm((prev) => ({ ...prev, endereco: { ...prev.endereco, [field]: value } }));
   };
 
   const handleCnpjBlur = async () => {
     const raw = form.cnpj.replace(/\D/g, "");
-    if (raw.length === 14 && validateCNPJ(raw)) {
-      setLoadingCnpj(true);
-      setCnpjMessage("");
-      try {
-        const res = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${raw}`);
-        if (res.ok) {
-          const data = await res.json();
-          setForm((prev) => ({
-            ...prev,
-            razaoSocial: data.razao_social || prev.razaoSocial,
-            nomeFantasia: data.nome_fantasia || prev.nomeFantasia,
-            endereco: {
-              logradouro: data.logradouro || prev.endereco.logradouro,
-              bairro: data.bairro || prev.endereco.bairro,
-              cidade: data.municipio || prev.endereco.cidade,
-              estado: data.uf || prev.endereco.estado,
-              cep: data.cep ? data.cep.replace(/\D/g, "") : prev.endereco.cep,
-            },
-          }));
-          setCnpjMessage("Dados da empresa encontrados automaticamente");
-          toast.success("Dados da empresa preenchidos automaticamente");
+    if (raw.length !== 14) return;
+    
+    const { validateCNPJ } = await import("@/components/inputs/DocumentInput");
+    if (!validateCNPJ(raw)) {
+      setErrors((prev) => ({ ...prev, cnpj: "CNPJ inválido" }));
+      return;
+    }
+
+    setLoadingCnpj(true);
+    setCnpjMessage("");
+    try {
+      const res = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${raw}`);
+      if (res.ok) {
+        const data = await res.json();
+
+        // Check situação cadastral
+        if (data.descricao_situacao_cadastral && data.descricao_situacao_cadastral !== "ATIVA") {
+          setErrors((prev) => ({ ...prev, cnpj: "CNPJ inválido ou empresa não ativa na Receita Federal." }));
+          setLoadingCnpj(false);
+          return;
         }
-      } catch {
-        // silently fail
-      } finally {
-        setLoadingCnpj(false);
+
+        setForm((prev) => ({
+          ...prev,
+          razaoSocial: data.razao_social || prev.razaoSocial,
+          nomeFantasia: data.nome_fantasia || prev.nomeFantasia,
+          endereco: {
+            logradouro: data.logradouro || prev.endereco.logradouro,
+            bairro: data.bairro || prev.endereco.bairro,
+            cidade: data.municipio || prev.endereco.cidade,
+            estado: data.uf || prev.endereco.estado,
+            cep: data.cep ? data.cep.replace(/\D/g, "") : prev.endereco.cep,
+          },
+        }));
+        setCnpjMessage("Dados da empresa encontrados automaticamente");
+        setErrors((prev) => { const n = { ...prev }; delete n.cnpj; return n; });
+        toast.success("Dados da empresa preenchidos automaticamente");
+      } else {
+        setErrors((prev) => ({ ...prev, cnpj: "CNPJ não encontrado na Receita Federal." }));
       }
+    } catch {
+      // silently fail
+    } finally {
+      setLoadingCnpj(false);
     }
   };
 
@@ -119,11 +117,29 @@ export default function Clientes() {
   };
 
   const handleSubmit = () => {
-    eventBus.emit({ type: "cliente.criado", data: { nome: form.nomeCompleto || form.razaoSocial, tipo: form.type, descricao: `Cliente ${form.nomeCompleto || form.razaoSocial} cadastrado` }, moduloOrigem: "clientes", registroId: crypto.randomUUID() });
+    const validationErrors = validateClientForm(form);
+    if (Object.keys(validationErrors).length > 0) {
+      setErrors(validationErrors);
+      toast.error("Corrija os campos destacados antes de salvar");
+      return;
+    }
+
+    eventBus.emit({
+      type: "cliente.criado",
+      data: { nome: form.nomeCompleto || form.razaoSocial, tipo: form.type, descricao: `Cliente ${form.nomeCompleto || form.razaoSocial} cadastrado` },
+      moduloOrigem: "clientes",
+      registroId: crypto.randomUUID(),
+    });
     toast.success("Cliente cadastrado com sucesso!");
     setForm(initialForm);
+    setErrors({});
     setShowForm(false);
     setCnpjMessage("");
+  };
+
+  const handleOpenChange = (open: boolean) => {
+    setShowForm(open);
+    if (!open) { setForm(initialForm); setErrors({}); setCnpjMessage(""); }
   };
 
   const renderTabContent = () => {
@@ -164,22 +180,12 @@ export default function Clientes() {
         <StatCard icon={UserRound} title="Pessoa Física" value="0" />
       </div>
 
-      {/* Client Detail Tabs */}
       <Card className="border-border/50 shadow-sm overflow-hidden">
         <ModuleTabs tabs={clientTabs} activeTab={activeTab} onTabChange={setActiveTab} />
-        <div className="p-4">
-          {renderTabContent()}
-        </div>
+        <div className="p-4">{renderTabContent()}</div>
       </Card>
 
-      {/* Modal */}
-      <FormModal
-        open={showForm}
-        onOpenChange={setShowForm}
-        title="Novo Cliente"
-        description="Preencha os dados do cliente. CNPJ e CEP preenchem dados automaticamente."
-        size="xl"
-      >
+      <FormModal open={showForm} onOpenChange={handleOpenChange} title="Novo Cliente" description="Preencha os dados do cliente. CNPJ e CEP preenchem dados automaticamente." size="xl">
         <div className="space-y-6">
           {/* Type Selector */}
           <div className="space-y-2">
@@ -192,11 +198,9 @@ export default function Clientes() {
                 <button
                   key={key}
                   type="button"
-                  onClick={() => updateField("type", key)}
+                  onClick={() => { updateField("type", key); setErrors({}); }}
                   className={`flex items-center gap-3 p-3.5 rounded-lg border-2 transition-all duration-200 ${
-                    form.type === key
-                      ? "border-primary bg-primary/5"
-                      : "border-border/50 hover:border-muted-foreground/30"
+                    form.type === key ? "border-primary bg-primary/5" : "border-border/50 hover:border-muted-foreground/30"
                   }`}
                 >
                   <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${form.type === key ? "bg-primary/15" : "bg-muted/50"}`}>
@@ -214,13 +218,16 @@ export default function Clientes() {
 
           <div className="h-px bg-border/30" />
 
-          {/* Dynamic Fields */}
+          {/* PF Fields */}
           {form.type === "pf" ? (
             <div className="space-y-4">
               <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Dados pessoais</p>
               <div className="grid grid-cols-2 gap-4">
-                <TextInput label="Nome completo" placeholder="Nome completo" value={form.nomeCompleto} onChange={(e) => updateField("nomeCompleto", e.target.value)} icon={<UserRound className="w-4 h-4" />} />
-                <DocumentInput type="cpf" value={form.cpf} onValueChange={(raw) => updateField("cpf", raw)} />
+                <TextInput label="Nome completo" placeholder="Nome completo do cliente" value={form.nomeCompleto} onChange={(e) => updateField("nomeCompleto", e.target.value)} icon={<UserRound className="w-4 h-4" />} error={errors.nomeCompleto} />
+                <DocumentInput type="cpf" value={form.cpf} onValueChange={(raw) => updateField("cpf", raw)} error={errors.cpf} />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <DateInput label="Data de nascimento" value={form.dataNascimento} onValueChange={(d) => updateField("dataNascimento", d)} />
               </div>
             </div>
           ) : (
@@ -236,8 +243,8 @@ export default function Clientes() {
                 </div>
               )}
               <div className="grid grid-cols-2 gap-4">
-                <DocumentInput type="cnpj" value={form.cnpj} onValueChange={(raw) => updateField("cnpj", raw)} onBlur={handleCnpjBlur} />
-                <TextInput label="Razão Social" placeholder="Razão social" value={form.razaoSocial} onChange={(e) => updateField("razaoSocial", e.target.value)} icon={<Building2 className="w-4 h-4" />} />
+                <DocumentInput type="cnpj" value={form.cnpj} onValueChange={(raw) => updateField("cnpj", raw)} onBlur={handleCnpjBlur} error={errors.cnpj} />
+                <TextInput label="Razão Social" placeholder="Razão social da empresa" value={form.razaoSocial} onChange={(e) => updateField("razaoSocial", e.target.value)} icon={<Building2 className="w-4 h-4" />} error={errors.razaoSocial} />
                 <TextInput label="Nome Fantasia" placeholder="Nome fantasia" value={form.nomeFantasia} onChange={(e) => updateField("nomeFantasia", e.target.value)} />
                 <TextInput label="Inscrição Estadual" placeholder="Inscrição estadual" value={form.inscricaoEstadual} onChange={(e) => updateField("inscricaoEstadual", e.target.value)} />
                 <TextInput label="Inscrição Municipal" placeholder="Inscrição municipal" value={form.inscricaoMunicipal} onChange={(e) => updateField("inscricaoMunicipal", e.target.value)} />
@@ -250,8 +257,8 @@ export default function Clientes() {
           <div className="space-y-4">
             <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Contato</p>
             <div className="grid grid-cols-2 gap-4">
-              <PhoneInput value={form.telefone} onValueChange={(raw) => updateField("telefone", raw)} />
-              <TextInput label="Email" type="email" placeholder="email@exemplo.com" value={form.email} onChange={(e) => updateField("email", e.target.value)} icon={<Mail className="w-4 h-4" />} />
+              <PhoneInput value={form.telefone} onValueChange={(raw) => updateField("telefone", raw)} error={errors.telefone} />
+              <TextInput label="Email" type="email" placeholder="email@exemplo.com" value={form.email} onChange={(e) => updateField("email", e.target.value)} icon={<Mail className="w-4 h-4" />} error={errors.email} />
             </div>
           </div>
 
@@ -272,14 +279,12 @@ export default function Clientes() {
             </div>
           </div>
 
-          <div className="space-y-4">
-            <TextInput label="Observações" placeholder="Observações sobre o cliente..." value={form.observacoes} onChange={(e) => updateField("observacoes", e.target.value)} />
-          </div>
+          <TextareaInput label="Observações" placeholder="Observações sobre o cliente..." value={form.observacoes} onChange={(e) => updateField("observacoes", e.target.value)} />
 
           <div className="h-px bg-border/30" />
 
           <div className="flex justify-end gap-3 pt-1">
-            <Button variant="outline" onClick={() => setShowForm(false)} className="rounded-lg">Cancelar</Button>
+            <Button variant="outline" onClick={() => handleOpenChange(false)} className="rounded-lg">Cancelar</Button>
             <Button onClick={handleSubmit} className="rounded-lg gap-2 shadow-sm">
               <Check className="w-4 h-4" /> Salvar Cliente
             </Button>
