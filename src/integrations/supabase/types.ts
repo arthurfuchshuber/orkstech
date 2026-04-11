@@ -38,6 +38,7 @@ export type Database = {
             | Database["public"]["Enums"]["recurrence_interval"]
             | null
           status: Database["public"]["Enums"]["payable_status"]
+          supplier_id: string | null
           supplier_name: string | null
           updated_at: string
           user_id: string
@@ -65,6 +66,7 @@ export type Database = {
             | Database["public"]["Enums"]["recurrence_interval"]
             | null
           status?: Database["public"]["Enums"]["payable_status"]
+          supplier_id?: string | null
           supplier_name?: string | null
           updated_at?: string
           user_id: string
@@ -92,6 +94,7 @@ export type Database = {
             | Database["public"]["Enums"]["recurrence_interval"]
             | null
           status?: Database["public"]["Enums"]["payable_status"]
+          supplier_id?: string | null
           supplier_name?: string | null
           updated_at?: string
           user_id?: string
@@ -123,6 +126,13 @@ export type Database = {
             columns: ["payment_method_id"]
             isOneToOne: false
             referencedRelation: "formas_pagamento"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "accounts_payable_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "fornecedores"
             referencedColumns: ["id"]
           },
         ]

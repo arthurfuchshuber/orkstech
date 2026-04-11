@@ -23,6 +23,7 @@ import { CategoriaFinanceiraModal } from "@/components/modals/CategoriaFinanceir
 import { CentroCustoModal } from "@/components/modals/CentroCustoModal";
 import { ContaBancariaModal } from "@/components/modals/ContaBancariaModal";
 import { FormaPagamentoModal } from "@/components/modals/FormaPagamentoModal";
+import { FornecedorModal } from "@/components/modals/FornecedorModal";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
@@ -39,6 +40,7 @@ import { format, isPast, addDays, isBefore } from "date-fns";
 
 interface PayableForm {
   description: string;
+  supplier_id: string;
   supplier_name: string;
   document_number: string;
   amount: number;
@@ -58,6 +60,7 @@ interface PayableForm {
 
 const initialForm: PayableForm = {
   description: "",
+  supplier_id: "",
   supplier_name: "",
   document_number: "",
   amount: 0,
@@ -111,6 +114,8 @@ export default function ContasAPagar() {
   const [cbEditingId, setCbEditingId] = useState<string | null>(null);
   const [fpModalOpen, setFpModalOpen] = useState(false);
   const [fpEditingId, setFpEditingId] = useState<string | null>(null);
+  const [fornModalOpen, setFornModalOpen] = useState(false);
+  const [fornEditingId, setFornEditingId] = useState<string | null>(null);
 
   // Fetch data
   const { data: payables = [], isLoading } = useQuery({
@@ -122,6 +127,19 @@ export default function ContasAPagar() {
     queryKey: ["accounts-payable-counts"],
     queryFn: countAccountsPayable,
   });
+
+  const { data: fornecedores = [] } = useQuery({
+    queryKey: ["fornecedores"],
+    queryFn: async () => {
+      const { data } = await supabase.from("fornecedores").select("id, tipo, nome_completo, razao_social, nome_fantasia").eq("ativo", true).order("razao_social");
+      return data ?? [];
+    },
+  });
+
+  const fornecedorOptions = fornecedores.map((f: any) => ({
+    value: f.id,
+    label: f.tipo === "pj" ? (f.nome_fantasia || f.razao_social || "—") : (f.nome_completo || "—"),
+  }));
 
   const { data: categories = [] } = useQuery({
     queryKey: ["categorias-financeiras"],
@@ -224,6 +242,7 @@ export default function ContasAPagar() {
         id: editingId,
         data: {
           description: form.description,
+          supplier_id: form.supplier_id || null,
           supplier_name: form.supplier_name || null,
           document_number: form.document_number || null,
           amount: form.amount / 100,
@@ -255,6 +274,7 @@ export default function ContasAPagar() {
       records.push({
         user_id: user!.id,
         description: form.installments > 1 ? `${form.description} (${i + 1}/${form.installments})` : form.description,
+        supplier_id: form.supplier_id || null,
         supplier_name: form.supplier_name || null,
         document_number: form.document_number || null,
         amount: i === form.installments - 1 ? totalAmount - installmentAmount * (form.installments - 1) : installmentAmount,
@@ -281,6 +301,7 @@ export default function ContasAPagar() {
     setEditingId(item.id);
     setForm({
       description: item.description,
+      supplier_id: item.supplier_id || "",
       supplier_name: item.supplier_name || "",
       document_number: item.document_number || "",
       amount: Math.round(item.amount * 100),
@@ -311,6 +332,7 @@ export default function ContasAPagar() {
     setEditingId(null);
     setForm({
       description: item.description,
+      supplier_id: item.supplier_id || "",
       supplier_name: item.supplier_name || "",
       document_number: "",
       amount: Math.round(item.amount * 100),
@@ -591,7 +613,24 @@ export default function ContasAPagar() {
           <TextInput label="Título da despesa" placeholder="Ex: Aluguel do escritório" value={form.description} onChange={(e) => updateField("description", e.target.value)} error={errors.description} />
 
           {/* Fornecedor */}
-          <TextInput label="Fornecedor" placeholder="Nome do fornecedor" value={form.supplier_name} onChange={(e) => updateField("supplier_name", e.target.value)} icon={<Building2 className="w-4 h-4" />} />
+          <ManagedSelectInput
+            label="Fornecedor"
+            value={form.supplier_id}
+            onValueChange={(v) => {
+              updateField("supplier_id", v);
+              const forn = fornecedores.find((f: any) => f.id === v);
+              if (forn) {
+                const name = forn.tipo === "pj" ? (forn.nome_fantasia || forn.razao_social || "") : (forn.nome_completo || "");
+                updateField("supplier_name", name);
+              }
+            }}
+            options={fornecedorOptions}
+            placeholder="Selecione o fornecedor..."
+            icon={<Building2 className="w-4 h-4" />}
+            onAddModal={() => { setFornEditingId(null); setFornModalOpen(true); }}
+            onEditModal={(id) => { setFornEditingId(id); setFornModalOpen(true); }}
+            addLabel="Novo fornecedor"
+          />
 
           {/* Nº Documento */}
           <TextInput label="Nº Documento" placeholder="NF, boleto, recibo..." value={form.document_number} onChange={(e) => updateField("document_number", e.target.value)} icon={<FileText className="w-4 h-4" />} />
@@ -767,6 +806,15 @@ export default function ContasAPagar() {
         onOpenChange={setFpModalOpen}
         editingId={fpEditingId}
         onSaved={(id) => updateField("payment_method_id", id)}
+      />
+      <FornecedorModal
+        open={fornModalOpen}
+        onOpenChange={setFornModalOpen}
+        editingId={fornEditingId}
+        onSaved={(id) => {
+          updateField("supplier_id", id);
+          queryClient.invalidateQueries({ queryKey: ["fornecedores"] });
+        }}
       />
     </div>
   );
