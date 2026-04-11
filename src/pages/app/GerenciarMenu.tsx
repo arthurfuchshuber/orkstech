@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { DragDropContext } from "@hello-pangea/dnd";
 import { useMenus, type MenuItem } from "@/hooks/useMenus";
 import { DynamicIcon } from "@/components/DynamicIcon";
 import { toast } from "sonner";
@@ -16,7 +17,7 @@ import {
 import {
   ChevronRight, ChevronDown, Pencil, GripVertical, Menu, Eye, EyeOff,
 } from "lucide-react";
-import { DragDropContext, Droppable, Draggable, type DropResult } from "@hello-pangea/dnd";
+import { Droppable, Draggable, type DropResult } from "@hello-pangea/dnd";
 
 const ICON_OPTIONS = [
   "LayoutDashboard", "DollarSign", "Receipt", "TrendingUp", "PiggyBank", "FileText",
@@ -95,89 +96,87 @@ export default function GerenciarMenu() {
     reorder.mutate(updates);
   };
 
-  const renderMenuTree = (items: MenuItem[], droppableId: string, depth = 0) => (
-    <DragDropContext onDragEnd={handleDragEnd}>
-      <Droppable droppableId={droppableId}>
-        {(provided) => (
-          <div ref={provided.innerRef} {...provided.droppableProps} className="space-y-1">
-            {items.map((item, index) => {
-              const hasChildren = !!item.children?.length;
-              const isOpen = openMap[item.id] ?? false;
+  const renderDroppable = (items: MenuItem[], droppableId: string, depth = 0) => (
+    <Droppable droppableId={droppableId}>
+      {(provided) => (
+        <div ref={provided.innerRef} {...provided.droppableProps} className="space-y-1">
+          {items.map((item, index) => {
+            const hasChildren = !!item.children?.length;
+            const isOpen = openMap[item.id] ?? false;
 
-              return (
-                <Draggable key={item.id} draggableId={item.id} index={index}>
-                  {(prov, snapshot) => (
-                    <div ref={prov.innerRef} {...prov.draggableProps}>
-                      <div
-                        className={`flex items-center gap-2 px-3 py-2 rounded-lg border transition-colors ${
-                          snapshot.isDragging
-                            ? "border-primary/30 bg-primary/[0.05] shadow-lg"
-                            : "border-border/40 bg-card hover:bg-muted/30"
-                        } ${!item.is_active ? "opacity-50" : ""}`}
-                      >
-                        <div {...prov.dragHandleProps} className="cursor-grab active:cursor-grabbing">
-                          <GripVertical className="w-4 h-4 text-muted-foreground/40" />
-                        </div>
-                        <DynamicIcon name={item.icon} className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-                        <span className="flex-1 text-sm font-medium text-foreground">{item.name}</span>
-
-                        {item.route && (
-                          <span className="text-[10px] text-muted-foreground/60 font-mono max-w-[120px] truncate">
-                            {item.route}
-                          </span>
-                        )}
-
-                        <Badge
-                          variant={item.is_active ? "default" : "secondary"}
-                          className="text-[10px] h-5"
-                        >
-                          {item.is_active ? "Ativo" : "Inativo"}
-                        </Badge>
-
-                        {!item.is_visible && (
-                          <Badge variant="outline" className="text-[10px] h-5 gap-1">
-                            <EyeOff className="w-2.5 h-2.5" /> Oculto
-                          </Badge>
-                        )}
-
-                        {hasChildren && (
-                          <button
-                            onClick={() => toggle(item.id)}
-                            className="p-1 rounded hover:bg-muted/50"
-                          >
-                            {isOpen ? (
-                              <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" />
-                            ) : (
-                              <ChevronRight className="w-3.5 h-3.5 text-muted-foreground" />
-                            )}
-                          </button>
-                        )}
-
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7"
-                          onClick={() => openEdit(item)}
-                        >
-                          <Pencil className="w-3.5 h-3.5" />
-                        </Button>
+            return (
+              <Draggable key={item.id} draggableId={item.id} index={index}>
+                {(prov, snapshot) => (
+                  <div ref={prov.innerRef} {...prov.draggableProps}>
+                    <div
+                      className={`flex items-center gap-2 px-3 py-2 rounded-lg border transition-colors ${
+                        snapshot.isDragging
+                          ? "border-primary/30 bg-primary/[0.05] shadow-lg"
+                          : "border-border/40 bg-card hover:bg-muted/30"
+                      } ${!item.is_active ? "opacity-50" : ""}`}
+                    >
+                      <div {...prov.dragHandleProps} className="cursor-grab active:cursor-grabbing">
+                        <GripVertical className="w-4 h-4 text-muted-foreground/40" />
                       </div>
+                      <DynamicIcon name={item.icon} className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                      <span className="flex-1 text-sm font-medium text-foreground">{item.name}</span>
 
-                      {isOpen && hasChildren && (
-                        <div className="ml-6 mt-1 pl-3 border-l-2 border-border/30 space-y-1">
-                          {renderMenuTree(item.children!, item.id, depth + 1)}
-                        </div>
+                      {item.route && (
+                        <span className="text-[10px] text-muted-foreground/60 font-mono max-w-[120px] truncate">
+                          {item.route}
+                        </span>
                       )}
+
+                      <Badge
+                        variant={item.is_active ? "default" : "secondary"}
+                        className="text-[10px] h-5"
+                      >
+                        {item.is_active ? "Ativo" : "Inativo"}
+                      </Badge>
+
+                      {!item.is_visible && (
+                        <Badge variant="outline" className="text-[10px] h-5 gap-1">
+                          <EyeOff className="w-2.5 h-2.5" /> Oculto
+                        </Badge>
+                      )}
+
+                      {hasChildren && (
+                        <button
+                          onClick={() => toggle(item.id)}
+                          className="p-1 rounded hover:bg-muted/50"
+                        >
+                          {isOpen ? (
+                            <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" />
+                          ) : (
+                            <ChevronRight className="w-3.5 h-3.5 text-muted-foreground" />
+                          )}
+                        </button>
+                      )}
+
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7"
+                        onClick={() => openEdit(item)}
+                      >
+                        <Pencil className="w-3.5 h-3.5" />
+                      </Button>
                     </div>
-                  )}
-                </Draggable>
-              );
-            })}
-            {provided.placeholder}
-          </div>
-        )}
-      </Droppable>
-    </DragDropContext>
+
+                    {isOpen && hasChildren && (
+                      <div className="ml-6 mt-1 pl-3 border-l-2 border-border/30 space-y-1">
+                        {renderDroppable(item.children!, item.id, depth + 1)}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </Draggable>
+            );
+          })}
+          {provided.placeholder}
+        </div>
+      )}
+    </Droppable>
   );
 
   if (isLoading) {
@@ -204,7 +203,9 @@ export default function GerenciarMenu() {
             Nenhum menu encontrado
           </div>
         ) : (
-          renderMenuTree(tree, "root")
+          <DragDropContext onDragEnd={handleDragEnd}>
+            {renderDroppable(tree, "root")}
+          </DragDropContext>
         )}
       </Card>
 
