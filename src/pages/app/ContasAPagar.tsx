@@ -1,10 +1,10 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Receipt, Plus, Check, Loader2, AlertTriangle, Clock, Ban,
   FileText, Search, CreditCard,
   Building2, Target, Landmark, FolderTree, X, Copy, Pencil,
-  Banknote, ChevronDown
+  Banknote, ChevronDown, ScanLine
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { StatCard } from "@/components/StatCard";
@@ -116,6 +116,8 @@ export default function ContasAPagar() {
   const [fpEditingId, setFpEditingId] = useState<string | null>(null);
   const [fornModalOpen, setFornModalOpen] = useState(false);
   const [fornEditingId, setFornEditingId] = useState<string | null>(null);
+  const [scanning, setScanning] = useState(false);
+  const scanInputRef = useRef<HTMLInputElement>(null);
 
   // Fetch data
   const { data: payables = [], isLoading } = useQuery({
