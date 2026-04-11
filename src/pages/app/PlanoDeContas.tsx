@@ -15,8 +15,9 @@ import {
 } from "@/components/ui/select";
 import {
   ChevronRight, ChevronDown, Plus, Pencil, Trash2, Power,
-  FolderTree, TrendingUp, TrendingDown, Minus, RefreshCw,
+  FolderTree, TrendingUp, TrendingDown, Minus, RefreshCw, GripVertical,
 } from "lucide-react";
+import { DragDropContext, Droppable, Draggable, type DropResult } from "@hello-pangea/dnd";
 
 type TipoFinanceiro = "receita" | "despesa" | "custo" | "ajuste";
 
@@ -51,6 +52,20 @@ const tipoIcons: Record<TipoFinanceiro, typeof TrendingUp> = {
   ajuste: RefreshCw,
 };
 
+function flattenTree(nodes: Categoria[], parentId: string | null = null): { id: string; node: Categoria; level: number; parentId: string | null }[] {
+  const result: { id: string; node: Categoria; level: number; parentId: string | null }[] = [];
+  function walk(items: Categoria[], lvl: number, pid: string | null) {
+    items.forEach((n) => {
+      result.push({ id: n.id, node: n, level: lvl, parentId: pid });
+      if (n.children && n.children.length > 0) {
+        walk(n.children, lvl + 1, n.id);
+      }
+    });
+  }
+  walk(nodes, 0, parentId);
+  return result;
+}
+
 function buildTree(items: Categoria[]): Categoria[] {
   const map = new Map<string, Categoria>();
   const roots: Categoria[] = [];
@@ -71,77 +86,13 @@ function buildTree(items: Categoria[]): Categoria[] {
   return roots;
 }
 
-interface TreeNodeProps {
-  node: Categoria;
-  level: number;
-  onEdit: (c: Categoria) => void;
-  onDelete: (id: string) => void;
-  onToggle: (id: string, ativo: boolean) => void;
-  onAddChild: (parentId: string, tipo: TipoFinanceiro) => void;
-}
-
-function TreeNode({ node, level, onEdit, onDelete, onToggle, onAddChild }: TreeNodeProps) {
-  const [open, setOpen] = useState(true);
-  const hasChildren = node.children && node.children.length > 0;
-  const Icon = tipoIcons[node.tipo];
-
-  return (
-    <div>
-      <div
-        className={`flex items-center gap-2 py-2 px-3 rounded-md hover:bg-muted/40 transition-colors group ${
-          !node.ativo ? "opacity-50" : ""
-        }`}
-        style={{ paddingLeft: `${level * 24 + 12}px` }}
-      >
-        <button
-          onClick={() => setOpen(!open)}
-          className="w-5 h-5 flex items-center justify-center flex-shrink-0"
-        >
-          {hasChildren ? (
-            open ? <ChevronDown className="w-4 h-4 text-muted-foreground" /> : <ChevronRight className="w-4 h-4 text-muted-foreground" />
-          ) : (
-            <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground/30" />
-          )}
-        </button>
-
-        <Icon className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-        <span className="text-sm font-medium text-foreground flex-1">{node.nome}</span>
-
-        <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${tipoColors[node.tipo]}`}>
-          {tipoLabels[node.tipo]}
-        </Badge>
-
-        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onAddChild(node.id, node.tipo)}>
-            <Plus className="w-3.5 h-3.5" />
-          </Button>
-          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onEdit(node)}>
-            <Pencil className="w-3.5 h-3.5" />
-          </Button>
-          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onToggle(node.id, !node.ativo)}>
-            <Power className={`w-3.5 h-3.5 ${node.ativo ? "text-emerald-400" : "text-muted-foreground"}`} />
-          </Button>
-          {!hasChildren && (
-            <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => onDelete(node.id)}>
-              <Trash2 className="w-3.5 h-3.5" />
-            </Button>
-          )}
-        </div>
-      </div>
-
-      {open && hasChildren && node.children!.map((child) => (
-        <TreeNode key={child.id} node={child} level={level + 1} onEdit={onEdit} onDelete={onDelete} onToggle={onToggle} onAddChild={onAddChild} />
-      ))}
-    </div>
-  );
-}
-
 export default function PlanoDeContas() {
   const { user } = useAuth();
   const qc = useQueryClient();
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [form, setForm] = useState({ nome: "", tipo: "receita" as TipoFinanceiro, categoria_pai_id: null as string | null, ordem: 0 });
+  const [form, setForm] = useState({ nome: "", tipo: "receita" as TipoFinanceiro, categoria_pai_id: null as string | null });
+  const [collapsedIds, setCollapsedIds] = useState<Set<string>>(new Set());
 
   const { data: categorias = [], isLoading } = useQuery({
     queryKey: ["categorias_financeiras"],
@@ -158,19 +109,85 @@ export default function PlanoDeContas() {
   });
 
   const tree = buildTree(categorias);
+  const flatItems = flattenTree(tree);
+
+  // Filter out collapsed children
+  const visibleItems = flatItems.filter((item) => {
+    // Check if any ancestor is collapsed
+    let current = item.parentId;
+    while (current) {
+      if (collapsedIds.has(current)) return false;
+      const parent = flatItems.find((f) => f.id === current);
+      current = parent?.parentId ?? null;
+    }
+    return true;
+  });
+
+  const toggleCollapse = (id: string) => {
+    setCollapsedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const reorderMutation = useMutation({
+    mutationFn: async (updates: { id: string; ordem: number }[]) => {
+      const promises = updates.map(({ id, ordem }) =>
+        supabase.from("categorias_financeiras").update({ ordem }).eq("id", id)
+      );
+      await Promise.all(promises);
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["categorias_financeiras"] }),
+    onError: () => toast.error("Erro ao reordenar"),
+  });
+
+  const handleDragEnd = (result: DropResult) => {
+    if (!result.destination || result.source.index === result.destination.index) return;
+
+    const sourceItem = visibleItems[result.source.index];
+    const destItem = visibleItems[result.destination.index];
+
+    // Only allow reorder within same parent
+    if (sourceItem.parentId !== destItem.parentId) {
+      toast.error("Arraste apenas entre categorias do mesmo nível");
+      return;
+    }
+
+    // Get siblings of this parent
+    const parentId = sourceItem.parentId;
+    const siblings = categorias
+      .filter((c) => c.categoria_pai_id === parentId)
+      .sort((a, b) => a.ordem - b.ordem);
+
+    const srcIdx = siblings.findIndex((s) => s.id === sourceItem.id);
+    const destIdx = siblings.findIndex((s) => s.id === destItem.id);
+    if (srcIdx === -1 || destIdx === -1) return;
+
+    const reordered = [...siblings];
+    const [moved] = reordered.splice(srcIdx, 1);
+    reordered.splice(destIdx, 0, moved);
+
+    const updates = reordered.map((item, i) => ({ id: item.id, ordem: i }));
+    reorderMutation.mutate(updates);
+  };
 
   const saveMutation = useMutation({
     mutationFn: async () => {
       if (editingId) {
         const { error } = await supabase
           .from("categorias_financeiras")
-          .update({ nome: form.nome, tipo: form.tipo, categoria_pai_id: form.categoria_pai_id, ordem: form.ordem })
+          .update({ nome: form.nome, tipo: form.tipo, categoria_pai_id: form.categoria_pai_id })
           .eq("id", editingId);
         if (error) throw error;
       } else {
+        // Auto-calculate ordem
+        const siblings = categorias.filter((c) => c.categoria_pai_id === form.categoria_pai_id);
+        const ordem = siblings.length;
         const { error } = await supabase
           .from("categorias_financeiras")
-          .insert({ nome: form.nome, tipo: form.tipo, categoria_pai_id: form.categoria_pai_id, ordem: form.ordem, user_id: user!.id });
+          .insert({ nome: form.nome, tipo: form.tipo, categoria_pai_id: form.categoria_pai_id, ordem, user_id: user!.id });
         if (error) throw error;
       }
     },
@@ -205,18 +222,18 @@ export default function PlanoDeContas() {
   const closeModal = () => {
     setModalOpen(false);
     setEditingId(null);
-    setForm({ nome: "", tipo: "receita", categoria_pai_id: null, ordem: 0 });
+    setForm({ nome: "", tipo: "receita", categoria_pai_id: null });
   };
 
   const openNew = (parentId?: string, tipo?: TipoFinanceiro) => {
     setEditingId(null);
-    setForm({ nome: "", tipo: tipo || "receita", categoria_pai_id: parentId || null, ordem: categorias.length });
+    setForm({ nome: "", tipo: tipo || "receita", categoria_pai_id: parentId || null });
     setModalOpen(true);
   };
 
   const openEdit = (c: Categoria) => {
     setEditingId(c.id);
-    setForm({ nome: c.nome, tipo: c.tipo, categoria_pai_id: c.categoria_pai_id, ordem: c.ordem });
+    setForm({ nome: c.nome, tipo: c.tipo, categoria_pai_id: c.categoria_pai_id });
     setModalOpen(true);
   };
 
@@ -229,7 +246,7 @@ export default function PlanoDeContas() {
           <FolderTree className="w-6 h-6 text-primary" />
           <div>
             <h1 className="text-xl font-bold text-foreground">Plano de Contas</h1>
-            <p className="text-sm text-muted-foreground">Gerencie suas categorias financeiras</p>
+            <p className="text-sm text-muted-foreground">Gerencie suas categorias financeiras — arraste para reordenar</p>
           </div>
         </div>
         <Button onClick={() => openNew()} className="gap-2">
@@ -245,19 +262,78 @@ export default function PlanoDeContas() {
             Nenhuma categoria cadastrada. Crie sua primeira categoria para começar.
           </div>
         ) : (
-          <div className="divide-y divide-border/50">
-            {tree.map((node) => (
-              <TreeNode
-                key={node.id}
-                node={node}
-                level={0}
-                onEdit={openEdit}
-                onDelete={(id) => deleteMutation.mutate(id)}
-                onToggle={(id, ativo) => toggleMutation.mutate({ id, ativo })}
-                onAddChild={(parentId, tipo) => openNew(parentId, tipo)}
-              />
-            ))}
-          </div>
+          <DragDropContext onDragEnd={handleDragEnd}>
+            <Droppable droppableId="plano-de-contas">
+              {(provided) => (
+                <div ref={provided.innerRef} {...provided.droppableProps} className="divide-y divide-border/50">
+                  {visibleItems.map((item, index) => {
+                    const node = item.node;
+                    const hasChildren = node.children && node.children.length > 0;
+                    const isCollapsed = collapsedIds.has(node.id);
+                    const Icon = tipoIcons[node.tipo];
+
+                    return (
+                      <Draggable key={node.id} draggableId={node.id} index={index}>
+                        {(provided, snapshot) => (
+                          <div
+                            ref={provided.innerRef}
+                            {...provided.draggableProps}
+                            className={`flex items-center gap-2 py-2 px-3 rounded-md transition-colors group ${
+                              !node.ativo ? "opacity-50" : ""
+                            } ${snapshot.isDragging ? "bg-muted/60 shadow-lg" : "hover:bg-muted/40"}`}
+                            style={{
+                              ...provided.draggableProps.style,
+                              paddingLeft: `${item.level * 24 + 12}px`,
+                            }}
+                          >
+                            <div {...provided.dragHandleProps} className="cursor-grab active:cursor-grabbing flex-shrink-0">
+                              <GripVertical className="w-4 h-4 text-muted-foreground/40" />
+                            </div>
+
+                            <button
+                              onClick={() => toggleCollapse(node.id)}
+                              className="w-5 h-5 flex items-center justify-center flex-shrink-0"
+                            >
+                              {hasChildren ? (
+                                isCollapsed ? <ChevronRight className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />
+                              ) : (
+                                <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground/30" />
+                              )}
+                            </button>
+
+                            <Icon className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                            <span className="text-sm font-medium text-foreground flex-1">{node.nome}</span>
+
+                            <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${tipoColors[node.tipo]}`}>
+                              {tipoLabels[node.tipo]}
+                            </Badge>
+
+                            <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openNew(node.id, node.tipo)}>
+                                <Plus className="w-3.5 h-3.5" />
+                              </Button>
+                              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEdit(node)}>
+                                <Pencil className="w-3.5 h-3.5" />
+                              </Button>
+                              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => toggleMutation.mutate({ id: node.id, ativo: !node.ativo })}>
+                                <Power className={`w-3.5 h-3.5 ${node.ativo ? "text-emerald-400" : "text-muted-foreground"}`} />
+                              </Button>
+                              {!hasChildren && (
+                                <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => deleteMutation.mutate(node.id)}>
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </Button>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </Draggable>
+                    );
+                  })}
+                  {provided.placeholder}
+                </div>
+              )}
+            </Droppable>
+          </DragDropContext>
         )}
       </Card>
 
@@ -294,10 +370,6 @@ export default function PlanoDeContas() {
                   ))}
                 </SelectContent>
               </Select>
-            </div>
-            <div>
-              <label className="text-sm font-medium text-foreground mb-1.5 block">Ordem de Exibição</label>
-              <Input type="number" value={form.ordem} onChange={(e) => setForm({ ...form, ordem: parseInt(e.target.value) || 0 })} />
             </div>
           </div>
           <DialogFooter>
