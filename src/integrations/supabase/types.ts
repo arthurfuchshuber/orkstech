@@ -412,6 +412,94 @@ export type Database = {
         }
         Relationships: []
       }
+      menu_permissions: {
+        Row: {
+          can_view: boolean
+          created_at: string
+          id: string
+          menu_id: string
+          role: string
+        }
+        Insert: {
+          can_view?: boolean
+          created_at?: string
+          id?: string
+          menu_id: string
+          role?: string
+        }
+        Update: {
+          can_view?: boolean
+          created_at?: string
+          id?: string
+          menu_id?: string
+          role?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "menu_permissions_menu_id_fkey"
+            columns: ["menu_id"]
+            isOneToOne: false
+            referencedRelation: "menus"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      menus: {
+        Row: {
+          created_at: string
+          icon: string | null
+          id: string
+          is_active: boolean
+          is_visible: boolean
+          module: string
+          name: string
+          order_index: number
+          parent_id: string | null
+          route: string | null
+          slug: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          icon?: string | null
+          id?: string
+          is_active?: boolean
+          is_visible?: boolean
+          module?: string
+          name: string
+          order_index?: number
+          parent_id?: string | null
+          route?: string | null
+          slug: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          icon?: string | null
+          id?: string
+          is_active?: boolean
+          is_visible?: boolean
+          module?: string
+          name?: string
+          order_index?: number
+          parent_id?: string | null
+          route?: string | null
+          slug?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "menus_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "menus"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       produtos: {
         Row: {
           ativo: boolean
@@ -468,7 +556,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      seed_default_menus: { Args: { p_user_id: string }; Returns: undefined }
     }
     Enums: {
       pessoa_tipo: "pf" | "pj"

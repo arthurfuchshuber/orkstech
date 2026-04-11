@@ -1,77 +1,224 @@
-import {
-  DollarSign, Receipt, TrendingUp, FileText, PiggyBank,
-  Users, Truck, Package,
-  Zap, Workflow, Webhook, Bell,
-  Settings,
-  ChevronRight,
-  FolderTree, Target, Landmark, CreditCard,
-} from "lucide-react";
-import { NavLink } from "@/components/NavLink";
-import { useLocation } from "react-router-dom";
 import { useState } from "react";
+import { useLocation } from "react-router-dom";
+import { NavLink } from "@/components/NavLink";
+import { DynamicIcon } from "@/components/DynamicIcon";
+import { useMenus, type MenuItem } from "@/hooks/useMenus";
+import { ChevronRight, Zap } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent,
   SidebarMenu, SidebarMenuButton, SidebarMenuItem,
   SidebarHeader, useSidebar,
 } from "@/components/ui/sidebar";
+import { Skeleton } from "@/components/ui/skeleton";
 
-const sections = [
-  {
-    label: "Finanças",
-    items: [
-      { title: "Contas a Pagar", url: "/app/financas/pagar", icon: Receipt },
-      { title: "Contas a Receber", url: "/app/financas/receber", icon: TrendingUp },
-      { title: "Fluxo de Caixa", url: "/app/financas/fluxo", icon: PiggyBank },
-      { title: "DRE", url: "/app/financas/dre", icon: FileText },
-    ],
-  },
-  {
-    label: "Configuração Financeira",
-    items: [
-      { title: "Plano de Contas", url: "/app/financas/plano-de-contas", icon: FolderTree },
-      { title: "Centros de Custo", url: "/app/financas/centros-de-custo", icon: Target },
-      { title: "Contas Bancárias", url: "/app/financas/contas-bancarias", icon: Landmark },
-      { title: "Formas de Pagamento", url: "/app/financas/formas-de-pagamento", icon: CreditCard },
-    ],
-  },
-  {
-    label: "Cadastros",
-    items: [
-      { title: "Clientes", url: "/app/clientes", icon: Users },
-      { title: "Fornecedores", url: "/app/fornecedores", icon: Truck },
-      { title: "Inventário", url: "/app/inventario", icon: Package },
-    ],
-  },
-  {
-    label: "Automações",
-    items: [
-      { title: "Workflows", url: "/app/automacoes/workflows", icon: Workflow },
-      { title: "Integrações", url: "/app/automacoes/integracoes", icon: Webhook },
-      { title: "Notificações", url: "/app/automacoes/notificacoes", icon: Bell },
-    ],
-  },
-  {
-    label: "Configurações",
-    items: [
-      { title: "Geral", url: "/app/config", icon: Settings },
-    ],
-  },
-];
+function MenuItemNode({
+  item,
+  collapsed,
+  depth = 0,
+  pathname,
+  openMap,
+  toggle,
+}: {
+  item: MenuItem;
+  collapsed: boolean;
+  depth?: number;
+  pathname: string;
+  openMap: Record<string, boolean>;
+  toggle: (id: string) => void;
+}) {
+  if (!item.is_visible || !item.is_active) return null;
+
+  const hasChildren = item.children && item.children.length > 0;
+  const isOpen = openMap[item.id] ?? false;
+  const isActive = item.route ? pathname === item.route : false;
+  const isChildActive = item.children?.some(
+    (c) => c.route === pathname || c.children?.some((cc) => cc.route === pathname)
+  );
+
+  // Group header (has children, no route)
+  if (hasChildren && !item.route) {
+    if (collapsed) {
+      // In collapsed mode, render children directly
+      return (
+        <>
+          {item.children!.map((child) => (
+            <MenuItemNode
+              key={child.id}
+              item={child}
+              collapsed={collapsed}
+              depth={depth}
+              pathname={pathname}
+              openMap={openMap}
+              toggle={toggle}
+            />
+          ))}
+        </>
+      );
+    }
+
+    return (
+      <div className="py-0.5">
+        <button
+          onClick={() => toggle(item.id)}
+          className="w-full flex items-center justify-between px-3 py-1.5 mb-0.5 group"
+          style={{ paddingLeft: `${12 + depth * 12}px` }}
+        >
+          <span
+            className={`text-[10px] font-semibold uppercase tracking-[0.08em] transition-colors ${
+              isChildActive
+                ? "text-primary/70"
+                : "text-muted-foreground/40 group-hover:text-muted-foreground/60"
+            }`}
+          >
+            {item.name}
+          </span>
+          <ChevronRight
+            className={`w-3 h-3 text-muted-foreground/30 transition-transform duration-200 ${
+              isOpen ? "rotate-90" : ""
+            }`}
+          />
+        </button>
+
+        {isOpen && (
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {item.children!.map((child) => (
+                <MenuItemNode
+                  key={child.id}
+                  item={child}
+                  collapsed={collapsed}
+                  depth={depth + 1}
+                  pathname={pathname}
+                  openMap={openMap}
+                  toggle={toggle}
+                />
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        )}
+      </div>
+    );
+  }
+
+  // Submenu with children AND route — show as expandable link
+  if (hasChildren && item.route) {
+    return (
+      <div>
+        <SidebarMenuItem>
+          <SidebarMenuButton asChild>
+            <div className="flex items-center">
+              <NavLink
+                to={item.route}
+                className={`relative flex-1 flex items-center gap-2.5 px-3 py-1.5 rounded-md text-[13px] transition-all duration-200 ${
+                  isActive
+                    ? "text-primary font-medium bg-primary/[0.08]"
+                    : "text-muted-foreground/70 hover:text-foreground hover:bg-muted/40"
+                }`}
+                activeClassName=""
+                style={{ paddingLeft: `${12 + depth * 12}px` }}
+              >
+                {isActive && (
+                  <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[2px] h-4 rounded-full bg-primary" />
+                )}
+                <DynamicIcon
+                  name={item.icon}
+                  className={`w-[15px] h-[15px] flex-shrink-0 ${isActive ? "text-primary" : ""}`}
+                />
+                {!collapsed && <span>{item.name}</span>}
+              </NavLink>
+              {!collapsed && (
+                <button onClick={() => toggle(item.id)} className="p-1">
+                  <ChevronRight
+                    className={`w-3 h-3 text-muted-foreground/30 transition-transform duration-200 ${
+                      isOpen ? "rotate-90" : ""
+                    }`}
+                  />
+                </button>
+              )}
+            </div>
+          </SidebarMenuButton>
+        </SidebarMenuItem>
+        {isOpen && !collapsed && (
+          <SidebarMenu>
+            {item.children!.map((child) => (
+              <MenuItemNode
+                key={child.id}
+                item={child}
+                collapsed={collapsed}
+                depth={depth + 1}
+                pathname={pathname}
+                openMap={openMap}
+                toggle={toggle}
+              />
+            ))}
+          </SidebarMenu>
+        )}
+      </div>
+    );
+  }
+
+  // Leaf item
+  if (!item.route) return null;
+
+  return (
+    <SidebarMenuItem>
+      <SidebarMenuButton asChild>
+        <NavLink
+          to={item.route}
+          className={`relative flex items-center gap-2.5 px-3 py-1.5 rounded-md text-[13px] transition-all duration-200 ${
+            isActive
+              ? "text-primary font-medium bg-primary/[0.08]"
+              : "text-muted-foreground/70 hover:text-foreground hover:bg-muted/40"
+          }`}
+          activeClassName=""
+          style={{ paddingLeft: `${12 + depth * 12}px` }}
+        >
+          {isActive && (
+            <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[2px] h-4 rounded-full bg-primary" />
+          )}
+          <DynamicIcon
+            name={item.icon}
+            className={`w-[15px] h-[15px] flex-shrink-0 ${isActive ? "text-primary" : ""}`}
+          />
+          {!collapsed && <span>{item.name}</span>}
+        </NavLink>
+      </SidebarMenuButton>
+    </SidebarMenuItem>
+  );
+}
 
 export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const location = useLocation();
+  const { tree, isLoading } = useMenus();
 
-  const initialOpen = sections.reduce((acc, section) => {
-    acc[section.label] = section.items.some((i) => location.pathname === i.url) || section.label === "Cadastros";
-    return acc;
-  }, {} as Record<string, boolean>);
+  // Auto-open sections that contain the active route
+  const findActiveIds = (items: MenuItem[], path: string): string[] => {
+    for (const item of items) {
+      if (item.route === path) return [item.id];
+      if (item.children) {
+        const found = findActiveIds(item.children, path);
+        if (found.length) return [item.id, ...found];
+      }
+    }
+    return [];
+  };
 
-  const [openSections, setOpenSections] = useState<Record<string, boolean>>(initialOpen);
+  const activeIds = findActiveIds(tree, location.pathname);
 
-  const toggleSection = (label: string) => {
-    setOpenSections((prev) => ({ ...prev, [label]: !prev[label] }));
+  const [openMap, setOpenMap] = useState<Record<string, boolean>>(() => {
+    const map: Record<string, boolean> = {};
+    activeIds.forEach((id) => (map[id] = true));
+    // Default open "Cadastros"
+    tree.forEach((t) => {
+      if (t.slug === "cadastros") map[t.id] = true;
+    });
+    return map;
+  });
+
+  const toggle = (id: string) => {
+    setOpenMap((prev) => ({ ...prev, [id]: !prev[id] }));
   };
 
   return (
@@ -88,63 +235,30 @@ export function AppSidebar() {
       </SidebarHeader>
 
       <SidebarContent className="px-2">
-        {sections.map((section) => {
-          const isOpen = openSections[section.label] ?? false;
-          const hasActive = section.items.some((i) => location.pathname === i.url);
-
-          return (
-            <SidebarGroup key={section.label} className="py-0.5">
-              {!collapsed && (
-                <button
-                  onClick={() => toggleSection(section.label)}
-                  className="w-full flex items-center justify-between px-3 py-1.5 mb-0.5 group"
-                >
-                  <span className={`text-[10px] font-semibold uppercase tracking-[0.08em] transition-colors ${
-                    hasActive ? "text-primary/70" : "text-muted-foreground/40 group-hover:text-muted-foreground/60"
-                  }`}>
-                    {section.label}
-                  </span>
-                  <ChevronRight className={`w-3 h-3 text-muted-foreground/30 transition-transform duration-200 ${
-                    isOpen ? "rotate-90" : ""
-                  }`} />
-                </button>
-              )}
-
-              {(isOpen || collapsed) && (
-                <SidebarGroupContent>
-                  <SidebarMenu>
-                    {section.items.map((item) => {
-                      const isActive = location.pathname === item.url;
-                      return (
-                        <SidebarMenuItem key={item.url}>
-                          <SidebarMenuButton asChild>
-                            <NavLink
-                              to={item.url}
-                              className={`relative flex items-center gap-2.5 px-3 py-1.5 rounded-md text-[13px] transition-all duration-200 ${
-                                isActive
-                                  ? "text-primary font-medium bg-primary/[0.08]"
-                                  : "text-muted-foreground/70 hover:text-foreground hover:bg-muted/40"
-                              }`}
-                              activeClassName=""
-                            >
-                              {isActive && (
-                                <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[2px] h-4 rounded-full bg-primary" />
-                              )}
-                              <item.icon className={`w-[15px] h-[15px] flex-shrink-0 ${
-                                isActive ? "text-primary" : ""
-                              }`} />
-                              {!collapsed && <span>{item.title}</span>}
-                            </NavLink>
-                          </SidebarMenuButton>
-                        </SidebarMenuItem>
-                      );
-                    })}
-                  </SidebarMenu>
-                </SidebarGroupContent>
-              )}
-            </SidebarGroup>
-          );
-        })}
+        {isLoading ? (
+          <div className="space-y-2 p-3">
+            {[1, 2, 3, 4, 5].map((i) => (
+              <Skeleton key={i} className="h-6 w-full" />
+            ))}
+          </div>
+        ) : (
+          <SidebarGroup className="py-0.5">
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {tree.map((item) => (
+                  <MenuItemNode
+                    key={item.id}
+                    item={item}
+                    collapsed={collapsed}
+                    pathname={location.pathname}
+                    openMap={openMap}
+                    toggle={toggle}
+                  />
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
       </SidebarContent>
     </Sidebar>
   );
