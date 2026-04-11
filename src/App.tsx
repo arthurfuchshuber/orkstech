@@ -24,6 +24,7 @@ import CentrosDeCusto from "./pages/app/CentrosDeCusto";
 import ContasBancarias from "./pages/app/ContasBancarias";
 import FormasDePagamento from "./pages/app/FormasDePagamento";
 import GerenciarMenu from "./pages/app/GerenciarMenu";
+import ContasAPagar from "./pages/app/ContasAPagar";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -49,7 +50,7 @@ const App = () => (
                 <Route path="clientes" element={<Clientes />} />
                 <Route path="fornecedores" element={<Fornecedores />} />
                 <Route path="inventario" element={<PlaceholderPage />} />
-                <Route path="financas/pagar" element={<PlaceholderPage />} />
+                <Route path="financas/pagar" element={<ContasAPagar />} />
                 <Route path="financas/receber" element={<PlaceholderPage />} />
                 <Route path="financas/fluxo" element={<PlaceholderPage />} />
                 <Route path="financas/dre" element={<PlaceholderPage />} />

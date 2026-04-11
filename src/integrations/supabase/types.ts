@@ -14,6 +14,170 @@ export type Database = {
   }
   public: {
     Tables: {
+      accounts_payable: {
+        Row: {
+          amount: number
+          attachment_url: string | null
+          bank_account_id: string | null
+          category_id: string | null
+          cost_center_id: string | null
+          created_at: string
+          description: string
+          document_number: string | null
+          due_date: string
+          id: string
+          installment_number: number | null
+          installment_total: number | null
+          is_recurring: boolean
+          issue_date: string | null
+          notes: string | null
+          payment_date: string | null
+          payment_method_id: string | null
+          recurrence_interval:
+            | Database["public"]["Enums"]["recurrence_interval"]
+            | null
+          status: Database["public"]["Enums"]["payable_status"]
+          supplier_name: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount?: number
+          attachment_url?: string | null
+          bank_account_id?: string | null
+          category_id?: string | null
+          cost_center_id?: string | null
+          created_at?: string
+          description: string
+          document_number?: string | null
+          due_date: string
+          id?: string
+          installment_number?: number | null
+          installment_total?: number | null
+          is_recurring?: boolean
+          issue_date?: string | null
+          notes?: string | null
+          payment_date?: string | null
+          payment_method_id?: string | null
+          recurrence_interval?:
+            | Database["public"]["Enums"]["recurrence_interval"]
+            | null
+          status?: Database["public"]["Enums"]["payable_status"]
+          supplier_name?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          attachment_url?: string | null
+          bank_account_id?: string | null
+          category_id?: string | null
+          cost_center_id?: string | null
+          created_at?: string
+          description?: string
+          document_number?: string | null
+          due_date?: string
+          id?: string
+          installment_number?: number | null
+          installment_total?: number | null
+          is_recurring?: boolean
+          issue_date?: string | null
+          notes?: string | null
+          payment_date?: string | null
+          payment_method_id?: string | null
+          recurrence_interval?:
+            | Database["public"]["Enums"]["recurrence_interval"]
+            | null
+          status?: Database["public"]["Enums"]["payable_status"]
+          supplier_name?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "accounts_payable_bank_account_id_fkey"
+            columns: ["bank_account_id"]
+            isOneToOne: false
+            referencedRelation: "contas_bancarias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "accounts_payable_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categorias_financeiras"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "accounts_payable_cost_center_id_fkey"
+            columns: ["cost_center_id"]
+            isOneToOne: false
+            referencedRelation: "centros_custo"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "accounts_payable_payment_method_id_fkey"
+            columns: ["payment_method_id"]
+            isOneToOne: false
+            referencedRelation: "formas_pagamento"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cash_transactions: {
+        Row: {
+          account_payable_id: string | null
+          amount: number
+          bank_account_id: string | null
+          created_at: string
+          description: string | null
+          id: string
+          transaction_date: string
+          type: Database["public"]["Enums"]["cash_transaction_type"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          account_payable_id?: string | null
+          amount?: number
+          bank_account_id?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          transaction_date?: string
+          type: Database["public"]["Enums"]["cash_transaction_type"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          account_payable_id?: string | null
+          amount?: number
+          bank_account_id?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          transaction_date?: string
+          type?: Database["public"]["Enums"]["cash_transaction_type"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cash_transactions_account_payable_id_fkey"
+            columns: ["account_payable_id"]
+            isOneToOne: false
+            referencedRelation: "accounts_payable"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cash_transactions_bank_account_id_fkey"
+            columns: ["bank_account_id"]
+            isOneToOne: false
+            referencedRelation: "contas_bancarias"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       categorias_financeiras: {
         Row: {
           ativo: boolean
@@ -559,7 +723,10 @@ export type Database = {
       seed_default_menus: { Args: { p_user_id: string }; Returns: undefined }
     }
     Enums: {
+      cash_transaction_type: "income" | "expense"
+      payable_status: "pending" | "paid" | "overdue" | "cancelled"
       pessoa_tipo: "pf" | "pj"
+      recurrence_interval: "monthly" | "weekly" | "yearly"
       tipo_conta_bancaria:
         | "corrente"
         | "poupanca"
@@ -711,7 +878,10 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      cash_transaction_type: ["income", "expense"],
+      payable_status: ["pending", "paid", "overdue", "cancelled"],
       pessoa_tipo: ["pf", "pj"],
+      recurrence_interval: ["monthly", "weekly", "yearly"],
       tipo_conta_bancaria: [
         "corrente",
         "poupanca",
