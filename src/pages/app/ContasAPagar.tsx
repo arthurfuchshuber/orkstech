@@ -274,6 +274,7 @@ export default function ContasAPagar() {
       records.push({
         user_id: user!.id,
         description: form.installments > 1 ? `${form.description} (${i + 1}/${form.installments})` : form.description,
+        supplier_id: form.supplier_id || null,
         supplier_name: form.supplier_name || null,
         document_number: form.document_number || null,
         amount: i === form.installments - 1 ? totalAmount - installmentAmount * (form.installments - 1) : installmentAmount,
