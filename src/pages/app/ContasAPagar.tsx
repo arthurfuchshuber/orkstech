@@ -23,6 +23,7 @@ import { CategoriaFinanceiraModal } from "@/components/modals/CategoriaFinanceir
 import { CentroCustoModal } from "@/components/modals/CentroCustoModal";
 import { ContaBancariaModal } from "@/components/modals/ContaBancariaModal";
 import { FormaPagamentoModal } from "@/components/modals/FormaPagamentoModal";
+import { FornecedorModal } from "@/components/modals/FornecedorModal";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
@@ -111,6 +112,8 @@ export default function ContasAPagar() {
   const [cbEditingId, setCbEditingId] = useState<string | null>(null);
   const [fpModalOpen, setFpModalOpen] = useState(false);
   const [fpEditingId, setFpEditingId] = useState<string | null>(null);
+  const [fornModalOpen, setFornModalOpen] = useState(false);
+  const [fornEditingId, setFornEditingId] = useState<string | null>(null);
 
   // Fetch data
   const { data: payables = [], isLoading } = useQuery({
