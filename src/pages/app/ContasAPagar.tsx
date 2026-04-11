@@ -316,6 +316,7 @@ export default function ContasAPagar() {
       is_recurring: item.is_recurring,
       recurrence_interval: item.recurrence_interval || "",
       notes: item.notes || "",
+      pessoa_tipo: item.pessoa_tipo || "pj",
     });
     setShowForm(true);
   };
