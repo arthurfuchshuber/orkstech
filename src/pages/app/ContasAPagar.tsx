@@ -17,6 +17,10 @@ import { DateInput } from "@/components/inputs/DateInput";
 import { ManagedSelectInput } from "@/components/inputs/ManagedSelectInput";
 
 import { useManagedSelect } from "@/hooks/useManagedSelect";
+import { CategoriaFinanceiraModal } from "@/components/modals/CategoriaFinanceiraModal";
+import { CentroCustoModal } from "@/components/modals/CentroCustoModal";
+import { ContaBancariaModal } from "@/components/modals/ContaBancariaModal";
+import { FormaPagamentoModal } from "@/components/modals/FormaPagamentoModal";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
@@ -91,6 +95,16 @@ export default function ContasAPagar() {
   const centrosCrud = useManagedSelect("centros_custo");
   const contasCrud = useManagedSelect("contas_bancarias");
   const formasCrud = useManagedSelect("formas_pagamento");
+
+  // Entity modal states
+  const [catModalOpen, setCatModalOpen] = useState(false);
+  const [catEditingId, setCatEditingId] = useState<string | null>(null);
+  const [ccModalOpen, setCcModalOpen] = useState(false);
+  const [ccEditingId, setCcEditingId] = useState<string | null>(null);
+  const [cbModalOpen, setCbModalOpen] = useState(false);
+  const [cbEditingId, setCbEditingId] = useState<string | null>(null);
+  const [fpModalOpen, setFpModalOpen] = useState(false);
+  const [fpEditingId, setFpEditingId] = useState<string | null>(null);
 
   // Fetch data
   const { data: payables = [], isLoading } = useQuery({
@@ -517,8 +531,8 @@ export default function ContasAPagar() {
               options={bankAccounts.map((b: any) => ({ value: b.id, label: `${b.nome}${b.banco ? ` - ${b.banco}` : ""}` }))}
               placeholder="Selecione a conta..."
               icon={<Landmark className="w-4 h-4" />}
-              onAdd={contasCrud.onAdd}
-              onEdit={contasCrud.onEdit}
+              onAddModal={() => { setCbEditingId(null); setCbModalOpen(true); }}
+              onEditModal={(id) => { setCbEditingId(id); setCbModalOpen(true); }}
               onDelete={contasCrud.onDelete}
               addLabel="Nova conta bancária"
             />
@@ -568,8 +582,8 @@ export default function ContasAPagar() {
                 options={categories.map((c: any) => ({ value: c.id, label: c.nome }))}
                 placeholder="Selecione..."
                 icon={<FolderTree className="w-4 h-4" />}
-                onAdd={categoriasCrud.onAdd}
-                onEdit={categoriasCrud.onEdit}
+                onAddModal={() => { setCatEditingId(null); setCatModalOpen(true); }}
+                onEditModal={(id) => { setCatEditingId(id); setCatModalOpen(true); }}
                 onDelete={categoriasCrud.onDelete}
                 onReorder={categoriasCrud.onReorder}
                 addLabel="Nova categoria"
@@ -581,8 +595,8 @@ export default function ContasAPagar() {
                 options={costCenters.map((c: any) => ({ value: c.id, label: c.nome }))}
                 placeholder="Selecione..."
                 icon={<Target className="w-4 h-4" />}
-                onAdd={centrosCrud.onAdd}
-                onEdit={centrosCrud.onEdit}
+                onAddModal={() => { setCcEditingId(null); setCcModalOpen(true); }}
+                onEditModal={(id) => { setCcEditingId(id); setCcModalOpen(true); }}
                 onDelete={centrosCrud.onDelete}
                 addLabel="Novo centro de custo"
               />
@@ -595,8 +609,8 @@ export default function ContasAPagar() {
                 options={bankAccounts.map((b: any) => ({ value: b.id, label: `${b.nome}${b.banco ? ` - ${b.banco}` : ""}` }))}
                 placeholder="Selecione..."
                 icon={<Landmark className="w-4 h-4" />}
-                onAdd={contasCrud.onAdd}
-                onEdit={contasCrud.onEdit}
+                onAddModal={() => { setCbEditingId(null); setCbModalOpen(true); }}
+                onEditModal={(id) => { setCbEditingId(id); setCbModalOpen(true); }}
                 onDelete={contasCrud.onDelete}
                 addLabel="Nova conta bancária"
               />
@@ -607,8 +621,8 @@ export default function ContasAPagar() {
                 options={paymentMethods.map((p: any) => ({ value: p.id, label: p.nome }))}
                 placeholder="Selecione..."
                 icon={<CreditCard className="w-4 h-4" />}
-                onAdd={formasCrud.onAdd}
-                onEdit={formasCrud.onEdit}
+                onAddModal={() => { setFpEditingId(null); setFpModalOpen(true); }}
+                onEditModal={(id) => { setFpEditingId(id); setFpModalOpen(true); }}
                 onDelete={formasCrud.onDelete}
                 addLabel="Nova forma de pagamento"
               />
@@ -677,6 +691,33 @@ export default function ContasAPagar() {
           </div>
         </div>
       </FormModal>
+
+      {/* Entity modals */}
+      <CategoriaFinanceiraModal
+        open={catModalOpen}
+        onOpenChange={setCatModalOpen}
+        editingId={catEditingId}
+        defaultTipo="despesa"
+        onSaved={(id) => updateField("category_id", id)}
+      />
+      <CentroCustoModal
+        open={ccModalOpen}
+        onOpenChange={setCcModalOpen}
+        editingId={ccEditingId}
+        onSaved={(id) => updateField("cost_center_id", id)}
+      />
+      <ContaBancariaModal
+        open={cbModalOpen}
+        onOpenChange={setCbModalOpen}
+        editingId={cbEditingId}
+        onSaved={(id) => updateField("bank_account_id", id)}
+      />
+      <FormaPagamentoModal
+        open={fpModalOpen}
+        onOpenChange={setFpModalOpen}
+        editingId={fpEditingId}
+        onSaved={(id) => updateField("payment_method_id", id)}
+      />
     </div>
   );
 }

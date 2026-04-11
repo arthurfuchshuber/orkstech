@@ -5,14 +5,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
-} from "@/components/ui/dialog";
-import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from "@/components/ui/select";
+import { ContaBancariaModal } from "@/components/modals/ContaBancariaModal";
 import { Plus, Pencil, Trash2, Power, Landmark, Wallet, PiggyBank, Banknote } from "lucide-react";
 
 type TipoConta = "corrente" | "poupanca" | "caixa" | "carteira_digital";
@@ -45,7 +39,7 @@ export default function ContasBancarias() {
   const qc = useQueryClient();
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [form, setForm] = useState({ nome: "", banco: "", tipo: "corrente" as TipoConta, saldo_inicial: "0" });
+  
 
   const { data: items = [], isLoading } = useQuery({
     queryKey: ["contas_bancarias"],
@@ -59,30 +53,6 @@ export default function ContasBancarias() {
       return data as ContaBancaria[];
     },
     enabled: !!user,
-  });
-
-  const saveMutation = useMutation({
-    mutationFn: async () => {
-      const payload = {
-        nome: form.nome,
-        banco: form.banco || null,
-        tipo: form.tipo,
-        saldo_inicial: parseFloat(form.saldo_inicial) || 0,
-      };
-      if (editingId) {
-        const { error } = await supabase.from("contas_bancarias").update(payload).eq("id", editingId);
-        if (error) throw error;
-      } else {
-        const { error } = await supabase.from("contas_bancarias").insert({ ...payload, user_id: user!.id });
-        if (error) throw error;
-      }
-    },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["contas_bancarias"] });
-      toast.success(editingId ? "Conta atualizada" : "Conta criada");
-      closeModal();
-    },
-    onError: () => toast.error("Erro ao salvar"),
   });
 
   const deleteMutation = useMutation({
@@ -104,13 +74,8 @@ export default function ContasBancarias() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["contas_bancarias"] }),
   });
 
-  const closeModal = () => { setModalOpen(false); setEditingId(null); setForm({ nome: "", banco: "", tipo: "corrente", saldo_inicial: "0" }); };
-  const openNew = () => { setEditingId(null); setForm({ nome: "", banco: "", tipo: "corrente", saldo_inicial: "0" }); setModalOpen(true); };
-  const openEdit = (item: ContaBancaria) => {
-    setEditingId(item.id);
-    setForm({ nome: item.nome, banco: item.banco || "", tipo: item.tipo, saldo_inicial: String(item.saldo_inicial) });
-    setModalOpen(true);
-  };
+  const openNew = () => { setEditingId(null); setModalOpen(true); };
+  const openEdit = (item: ContaBancaria) => { setEditingId(item.id); setModalOpen(true); };
 
   const formatCurrency = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
@@ -164,43 +129,11 @@ export default function ContasBancarias() {
         })}
       </div>
 
-      <Dialog open={modalOpen} onOpenChange={(v) => !v && closeModal()}>
-        <DialogContent>
-          <DialogHeader><DialogTitle>{editingId ? "Editar Conta" : "Nova Conta Bancária"}</DialogTitle></DialogHeader>
-          <div className="space-y-4 py-2">
-            <div>
-              <label className="text-sm font-medium text-foreground mb-1.5 block">Nome da Conta</label>
-              <Input value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} placeholder="Ex: Conta Principal" />
-            </div>
-            <div>
-              <label className="text-sm font-medium text-foreground mb-1.5 block">Banco</label>
-              <Input value={form.banco} onChange={(e) => setForm({ ...form, banco: e.target.value })} placeholder="Ex: Banco do Brasil" />
-            </div>
-            <div>
-              <label className="text-sm font-medium text-foreground mb-1.5 block">Tipo</label>
-              <Select value={form.tipo} onValueChange={(v) => setForm({ ...form, tipo: v as TipoConta })}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="corrente">Corrente</SelectItem>
-                  <SelectItem value="poupanca">Poupança</SelectItem>
-                  <SelectItem value="caixa">Caixa</SelectItem>
-                  <SelectItem value="carteira_digital">Carteira Digital</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <label className="text-sm font-medium text-foreground mb-1.5 block">Saldo Inicial (R$)</label>
-              <Input type="number" step="0.01" value={form.saldo_inicial} onChange={(e) => setForm({ ...form, saldo_inicial: e.target.value })} />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={closeModal}>Cancelar</Button>
-            <Button onClick={() => saveMutation.mutate()} disabled={!form.nome.trim() || saveMutation.isPending}>
-              {saveMutation.isPending ? "Salvando..." : "Salvar"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <ContaBancariaModal
+        open={modalOpen}
+        onOpenChange={setModalOpen}
+        editingId={editingId}
+      />
     </div>
   );
 }

@@ -5,14 +5,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
-} from "@/components/ui/dialog";
-import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from "@/components/ui/select";
+import { FormaPagamentoModal } from "@/components/modals/FormaPagamentoModal";
 import { Plus, Pencil, Trash2, Power, CreditCard, QrCode, FileBarChart, ArrowLeftRight, Banknote } from "lucide-react";
 
 type TipoForma = "pix" | "boleto" | "cartao" | "transferencia" | "dinheiro";
@@ -45,7 +39,7 @@ export default function FormasDePagamento() {
   const qc = useQueryClient();
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [form, setForm] = useState({ nome: "", tipo: "pix" as TipoForma });
+  
 
   const { data: items = [], isLoading } = useQuery({
     queryKey: ["formas_pagamento"],
@@ -59,24 +53,6 @@ export default function FormasDePagamento() {
       return data as FormaPagamento[];
     },
     enabled: !!user,
-  });
-
-  const saveMutation = useMutation({
-    mutationFn: async () => {
-      if (editingId) {
-        const { error } = await supabase.from("formas_pagamento").update({ nome: form.nome, tipo: form.tipo }).eq("id", editingId);
-        if (error) throw error;
-      } else {
-        const { error } = await supabase.from("formas_pagamento").insert({ nome: form.nome, tipo: form.tipo, user_id: user!.id });
-        if (error) throw error;
-      }
-    },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["formas_pagamento"] });
-      toast.success(editingId ? "Forma de pagamento atualizada" : "Forma de pagamento criada");
-      closeModal();
-    },
-    onError: () => toast.error("Erro ao salvar"),
   });
 
   const deleteMutation = useMutation({
@@ -98,9 +74,8 @@ export default function FormasDePagamento() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["formas_pagamento"] }),
   });
 
-  const closeModal = () => { setModalOpen(false); setEditingId(null); setForm({ nome: "", tipo: "pix" }); };
-  const openNew = () => { setEditingId(null); setForm({ nome: "", tipo: "pix" }); setModalOpen(true); };
-  const openEdit = (item: FormaPagamento) => { setEditingId(item.id); setForm({ nome: item.nome, tipo: item.tipo }); setModalOpen(true); };
+  const openNew = () => { setEditingId(null); setModalOpen(true); };
+  const openEdit = (item: FormaPagamento) => { setEditingId(item.id); setModalOpen(true); };
 
   return (
     <div className="space-y-6">
@@ -146,36 +121,11 @@ export default function FormasDePagamento() {
         })}
       </Card>
 
-      <Dialog open={modalOpen} onOpenChange={(v) => !v && closeModal()}>
-        <DialogContent>
-          <DialogHeader><DialogTitle>{editingId ? "Editar Forma de Pagamento" : "Nova Forma de Pagamento"}</DialogTitle></DialogHeader>
-          <div className="space-y-4 py-2">
-            <div>
-              <label className="text-sm font-medium text-foreground mb-1.5 block">Nome</label>
-              <Input value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} placeholder="Ex: PIX Banco do Brasil" />
-            </div>
-            <div>
-              <label className="text-sm font-medium text-foreground mb-1.5 block">Tipo</label>
-              <Select value={form.tipo} onValueChange={(v) => setForm({ ...form, tipo: v as TipoForma })}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="pix">PIX</SelectItem>
-                  <SelectItem value="boleto">Boleto</SelectItem>
-                  <SelectItem value="cartao">Cartão</SelectItem>
-                  <SelectItem value="transferencia">Transferência</SelectItem>
-                  <SelectItem value="dinheiro">Dinheiro</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={closeModal}>Cancelar</Button>
-            <Button onClick={() => saveMutation.mutate()} disabled={!form.nome.trim() || saveMutation.isPending}>
-              {saveMutation.isPending ? "Salvando..." : "Salvar"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <FormaPagamentoModal
+        open={modalOpen}
+        onOpenChange={setModalOpen}
+        editingId={editingId}
+      />
     </div>
   );
 }

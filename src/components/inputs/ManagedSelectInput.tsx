@@ -24,12 +24,15 @@ interface ManagedSelectInputProps {
   error?: string;
   placeholder?: string;
   icon?: React.ReactNode;
-  // CRUD callbacks
-  onAdd?: (label: string) => Promise<string | null>; // returns new id or null
+  // CRUD callbacks (inline mode)
+  onAdd?: (label: string) => Promise<string | null>;
   onEdit?: (id: string, label: string) => Promise<boolean>;
   onDelete?: (id: string) => Promise<boolean>;
   onReorder?: (orderedIds: string[]) => Promise<boolean>;
-  /** Label for the "add new" input */
+  /** Modal-based add/edit — when provided, these replace inline forms */
+  onAddModal?: () => void;
+  onEditModal?: (id: string) => void;
+  /** Label for the "add new" input/button */
   addLabel?: string;
 }
 
@@ -45,6 +48,8 @@ export function ManagedSelectInput({
   onEdit,
   onDelete,
   onReorder,
+  onAddModal,
+  onEditModal,
   addLabel = "Novo item",
 }: ManagedSelectInputProps) {
   const [open, setOpen] = useState(false);
@@ -72,12 +77,22 @@ export function ManagedSelectInput({
     : localOptions;
 
   const startAdd = () => {
+    if (onAddModal) {
+      setOpen(false);
+      onAddModal();
+      return;
+    }
     setInputValue("");
     setMode("add");
   };
 
   const startEdit = (opt: ManagedOption, e: React.MouseEvent) => {
     e.stopPropagation();
+    if (onEditModal) {
+      setOpen(false);
+      onEditModal(opt.value);
+      return;
+    }
     setEditingId(opt.value);
     setInputValue(opt.label);
     setMode("edit");
@@ -139,7 +154,9 @@ export function ManagedSelectInput({
     }
   };
 
-  const hasManagement = onAdd || onEdit || onDelete || onReorder;
+  const hasManagement = onAdd || onEdit || onDelete || onReorder || onAddModal || onEditModal;
+  const hasAdd = onAdd || onAddModal;
+  const hasEdit = onEdit || onEditModal;
 
   return (
     <div className="space-y-1.5">
@@ -258,7 +275,7 @@ export function ManagedSelectInput({
                     {/* Action buttons */}
                     {hasManagement && mode === "select" && (
                       <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                        {onEdit && (
+                        {hasEdit && (
                           <button
                             type="button"
                             className="p-1 rounded hover:bg-muted"
@@ -285,7 +302,7 @@ export function ManagedSelectInput({
           </ScrollArea>
 
           {/* Add button */}
-          {onAdd && mode === "select" && (
+          {hasAdd && mode === "select" && (
             <div className="border-t border-border/50 p-1">
               <button
                 type="button"
