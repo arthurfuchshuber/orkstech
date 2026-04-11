@@ -670,7 +670,7 @@ export default function ContasAPagar() {
                 type="button"
                 onClick={() => {
                   setIsPickingScanFile(true);
-                  scanInputRef.current?.click();
+                  window.setTimeout(() => scanInputRef.current?.click(), 0);
                 }}
                 disabled={scanning}
                 className="flex items-center gap-3 w-full p-4 rounded-xl border-2 border-dashed border-primary/30 bg-primary/[0.03] hover:bg-primary/[0.06] hover:border-primary/50 transition-all duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-wait"
@@ -693,15 +693,6 @@ export default function ContasAPagar() {
                   </p>
                 </div>
               </button>
-              <input
-                ref={scanInputRef}
-                type="file"
-                accept=".pdf,.jpg,.jpeg,.png,.webp"
-                onChange={handleScanBoleto}
-                onClick={() => setIsPickingScanFile(true)}
-                onBlur={() => setTimeout(() => setIsPickingScanFile(false), 150)}
-                className="hidden"
-              />
             </div>
           )}
 
