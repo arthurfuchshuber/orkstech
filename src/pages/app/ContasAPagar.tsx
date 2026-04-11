@@ -96,6 +96,16 @@ export default function ContasAPagar() {
   const contasCrud = useManagedSelect("contas_bancarias");
   const formasCrud = useManagedSelect("formas_pagamento");
 
+  // Entity modal states
+  const [catModalOpen, setCatModalOpen] = useState(false);
+  const [catEditingId, setCatEditingId] = useState<string | null>(null);
+  const [ccModalOpen, setCcModalOpen] = useState(false);
+  const [ccEditingId, setCcEditingId] = useState<string | null>(null);
+  const [cbModalOpen, setCbModalOpen] = useState(false);
+  const [cbEditingId, setCbEditingId] = useState<string | null>(null);
+  const [fpModalOpen, setFpModalOpen] = useState(false);
+  const [fpEditingId, setFpEditingId] = useState<string | null>(null);
+
   // Fetch data
   const { data: payables = [], isLoading } = useQuery({
     queryKey: ["accounts-payable"],
