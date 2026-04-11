@@ -19,6 +19,10 @@ import Fornecedores from "./pages/app/Fornecedores";
 import Automacoes from "./pages/app/Automacoes";
 import Configuracoes from "./pages/app/Configuracoes";
 import PlaceholderPage from "./pages/app/PlaceholderPage";
+import PlanoDeContas from "./pages/app/PlanoDeContas";
+import CentrosDeCusto from "./pages/app/CentrosDeCusto";
+import ContasBancarias from "./pages/app/ContasBancarias";
+import FormasDePagamento from "./pages/app/FormasDePagamento";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -47,6 +51,10 @@ const App = () => (
                 <Route path="financas/receber" element={<PlaceholderPage />} />
                 <Route path="financas/fluxo" element={<PlaceholderPage />} />
                 <Route path="financas/dre" element={<PlaceholderPage />} />
+                <Route path="financas/plano-de-contas" element={<PlanoDeContas />} />
+                <Route path="financas/centros-de-custo" element={<CentrosDeCusto />} />
+                <Route path="financas/contas-bancarias" element={<ContasBancarias />} />
+                <Route path="financas/formas-de-pagamento" element={<FormasDePagamento />} />
                 <Route path="automacoes/workflows" element={<Automacoes />} />
                 <Route path="automacoes/integracoes" element={<PlaceholderPage />} />
                 <Route path="automacoes/notificacoes" element={<PlaceholderPage />} />
