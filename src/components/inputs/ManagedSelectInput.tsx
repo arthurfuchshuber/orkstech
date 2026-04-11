@@ -275,7 +275,7 @@ export function ManagedSelectInput({
                     {/* Action buttons */}
                     {hasManagement && mode === "select" && (
                       <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                        {onEdit && (
+                        {hasEdit && (
                           <button
                             type="button"
                             className="p-1 rounded hover:bg-muted"
@@ -302,7 +302,7 @@ export function ManagedSelectInput({
           </ScrollArea>
 
           {/* Add button */}
-          {onAdd && mode === "select" && (
+          {hasAdd && mode === "select" && (
             <div className="border-t border-border/50 p-1">
               <button
                 type="button"
