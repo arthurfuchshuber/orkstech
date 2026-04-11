@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { eventBus } from "@/lib/events";
 import { Truck, Plus, Building2, UserRound, Check, Mail, MapPin, Home, Info, DollarSign, FileText, Clock, ShoppingCart, Tag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { StatCard } from "@/components/StatCard";
@@ -41,6 +42,7 @@ export default function Fornecedores() {
   };
 
   const handleSubmit = () => {
+    eventBus.emit({ type: "fornecedor.criado", data: { nome: form.nome, descricao: `Fornecedor ${form.nome} cadastrado` }, moduloOrigem: "fornecedores", registroId: crypto.randomUUID() });
     toast.success("Fornecedor cadastrado com sucesso!");
     setShowForm(false);
   };
