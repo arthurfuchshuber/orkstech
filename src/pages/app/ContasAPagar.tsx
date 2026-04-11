@@ -691,6 +691,33 @@ export default function ContasAPagar() {
           </div>
         </div>
       </FormModal>
+
+      {/* Entity modals */}
+      <CategoriaFinanceiraModal
+        open={catModalOpen}
+        onOpenChange={setCatModalOpen}
+        editingId={catEditingId}
+        defaultTipo="despesa"
+        onSaved={(id) => updateField("category_id", id)}
+      />
+      <CentroCustoModal
+        open={ccModalOpen}
+        onOpenChange={setCcModalOpen}
+        editingId={ccEditingId}
+        onSaved={(id) => updateField("cost_center_id", id)}
+      />
+      <ContaBancariaModal
+        open={cbModalOpen}
+        onOpenChange={setCbModalOpen}
+        editingId={cbEditingId}
+        onSaved={(id) => updateField("bank_account_id", id)}
+      />
+      <FormaPagamentoModal
+        open={fpModalOpen}
+        onOpenChange={setFpModalOpen}
+        editingId={fpEditingId}
+        onSaved={(id) => updateField("payment_method_id", id)}
+      />
     </div>
   );
 }
