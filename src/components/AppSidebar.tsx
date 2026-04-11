@@ -61,19 +61,12 @@ function MenuItemNode({
           <SidebarMenuButton asChild>
             <button
               onClick={() => toggle(item.id)}
-              className={`relative w-full flex items-center gap-2.5 px-3 py-1.5 rounded-md text-[13px] transition-all duration-200 ${
-                isChildActive
-                  ? "text-primary font-medium bg-primary/[0.08]"
-                  : "text-muted-foreground/70 hover:text-foreground hover:bg-muted/40"
-              }`}
+              className={`relative w-full flex items-center gap-2.5 px-3 py-1.5 rounded-md text-[13px] transition-all duration-200 text-muted-foreground/70 hover:text-foreground hover:bg-muted/40`}
               style={{ paddingLeft: `${12 + depth * 12}px` }}
             >
-              {isChildActive && (
-                <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[2px] h-4 rounded-full bg-primary" />
-              )}
               <DynamicIcon
                 name={item.icon}
-                className={`w-[15px] h-[15px] flex-shrink-0 ${isChildActive ? "text-primary" : ""}`}
+                className="w-[15px] h-[15px] flex-shrink-0"
               />
               <span className="flex-1 text-left">{item.name}</span>
               <ChevronRight
