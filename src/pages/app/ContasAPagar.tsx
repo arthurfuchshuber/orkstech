@@ -53,6 +53,7 @@ interface PayableForm {
   recurrence_interval: string;
   notes: string;
   pessoa_tipo: "pj" | "pf";
+  attachment_url: string | null;
 }
 
 const initialForm: PayableForm = {
@@ -71,6 +72,7 @@ const initialForm: PayableForm = {
   recurrence_interval: "",
   notes: "",
   pessoa_tipo: "pj",
+  attachment_url: null,
 };
 
 const statusConfig: Record<string, { label: string; color: string; icon: typeof Clock }> = {
