@@ -8,3 +8,5 @@ export { DateInput } from "./DateInput";
 export { TextInput } from "./TextInput";
 export { SelectInput } from "./SelectInput";
 export { TextareaInput } from "./TextareaInput";
+export { ManagedSelectInput } from "./ManagedSelectInput";
+export type { ManagedOption } from "./ManagedSelectInput";

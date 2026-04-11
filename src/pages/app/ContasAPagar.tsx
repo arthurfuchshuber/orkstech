@@ -14,7 +14,9 @@ import { TextInput } from "@/components/inputs/TextInput";
 import { TextareaInput } from "@/components/inputs/TextareaInput";
 import { CurrencyInput } from "@/components/inputs/CurrencyInput";
 import { DateInput } from "@/components/inputs/DateInput";
-import { SelectInput } from "@/components/inputs/SelectInput";
+import { ManagedSelectInput } from "@/components/inputs/ManagedSelectInput";
+
+import { useManagedSelect } from "@/hooks/useManagedSelect";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
@@ -83,6 +85,12 @@ export default function ContasAPagar() {
   const [payingId, setPayingId] = useState<string | null>(null);
   const [paymentBankAccount, setPaymentBankAccount] = useState("");
   const [paymentDate, setPaymentDate] = useState<Date | undefined>(new Date());
+
+  // Managed select hooks
+  const categoriasCrud = useManagedSelect("categorias_financeiras", { insertDefaults: { tipo: "despesa" } });
+  const centrosCrud = useManagedSelect("centros_custo");
+  const contasCrud = useManagedSelect("contas_bancarias");
+  const formasCrud = useManagedSelect("formas_pagamento");
 
   // Fetch data
   const { data: payables = [], isLoading } = useQuery({
@@ -502,13 +510,17 @@ export default function ContasAPagar() {
           </DialogHeader>
           <div className="space-y-4 pt-2">
             <DateInput label="Data do pagamento" value={paymentDate} onValueChange={setPaymentDate} />
-            <SelectInput
+            <ManagedSelectInput
               label="Conta bancária"
               value={paymentBankAccount}
               onValueChange={setPaymentBankAccount}
               options={bankAccounts.map((b: any) => ({ value: b.id, label: `${b.nome}${b.banco ? ` - ${b.banco}` : ""}` }))}
               placeholder="Selecione a conta..."
               icon={<Landmark className="w-4 h-4" />}
+              onAdd={contasCrud.onAdd}
+              onEdit={contasCrud.onEdit}
+              onDelete={contasCrud.onDelete}
+              addLabel="Nova conta bancária"
             />
             <div className="flex justify-end gap-3 pt-2">
               <Button variant="outline" onClick={() => setShowPaymentDialog(false)} className="rounded-lg">Cancelar</Button>
@@ -549,39 +561,56 @@ export default function ContasAPagar() {
           <div className="space-y-4">
             <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Classificação</p>
             <div className="grid grid-cols-2 gap-4">
-              <SelectInput
+              <ManagedSelectInput
                 label="Categoria (Plano de Contas)"
                 value={form.category_id}
                 onValueChange={(v) => updateField("category_id", v)}
                 options={categories.map((c: any) => ({ value: c.id, label: c.nome }))}
                 placeholder="Selecione..."
                 icon={<FolderTree className="w-4 h-4" />}
+                onAdd={categoriasCrud.onAdd}
+                onEdit={categoriasCrud.onEdit}
+                onDelete={categoriasCrud.onDelete}
+                onReorder={categoriasCrud.onReorder}
+                addLabel="Nova categoria"
               />
-              <SelectInput
+              <ManagedSelectInput
                 label="Centro de Custo"
                 value={form.cost_center_id}
                 onValueChange={(v) => updateField("cost_center_id", v)}
                 options={costCenters.map((c: any) => ({ value: c.id, label: c.nome }))}
                 placeholder="Selecione..."
                 icon={<Target className="w-4 h-4" />}
+                onAdd={centrosCrud.onAdd}
+                onEdit={centrosCrud.onEdit}
+                onDelete={centrosCrud.onDelete}
+                addLabel="Novo centro de custo"
               />
             </div>
             <div className="grid grid-cols-2 gap-4">
-              <SelectInput
+              <ManagedSelectInput
                 label="Conta Bancária"
                 value={form.bank_account_id}
                 onValueChange={(v) => updateField("bank_account_id", v)}
                 options={bankAccounts.map((b: any) => ({ value: b.id, label: `${b.nome}${b.banco ? ` - ${b.banco}` : ""}` }))}
                 placeholder="Selecione..."
                 icon={<Landmark className="w-4 h-4" />}
+                onAdd={contasCrud.onAdd}
+                onEdit={contasCrud.onEdit}
+                onDelete={contasCrud.onDelete}
+                addLabel="Nova conta bancária"
               />
-              <SelectInput
+              <ManagedSelectInput
                 label="Forma de Pagamento"
                 value={form.payment_method_id}
                 onValueChange={(v) => updateField("payment_method_id", v)}
                 options={paymentMethods.map((p: any) => ({ value: p.id, label: p.nome }))}
                 placeholder="Selecione..."
                 icon={<CreditCard className="w-4 h-4" />}
+                onAdd={formasCrud.onAdd}
+                onEdit={formasCrud.onEdit}
+                onDelete={formasCrud.onDelete}
+                addLabel="Nova forma de pagamento"
               />
             </div>
           </div>
@@ -619,7 +648,7 @@ export default function ContasAPagar() {
                     <span className="text-sm font-medium text-foreground">Conta recorrente</span>
                   </label>
                   {form.is_recurring && (
-                    <SelectInput
+                    <ManagedSelectInput
                       value={form.recurrence_interval}
                       onValueChange={(v) => updateField("recurrence_interval", v)}
                       options={[
