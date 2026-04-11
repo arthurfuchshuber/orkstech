@@ -613,7 +613,24 @@ export default function ContasAPagar() {
           <TextInput label="Título da despesa" placeholder="Ex: Aluguel do escritório" value={form.description} onChange={(e) => updateField("description", e.target.value)} error={errors.description} />
 
           {/* Fornecedor */}
-          <TextInput label="Fornecedor" placeholder="Nome do fornecedor" value={form.supplier_name} onChange={(e) => updateField("supplier_name", e.target.value)} icon={<Building2 className="w-4 h-4" />} />
+          <ManagedSelectInput
+            label="Fornecedor"
+            value={form.supplier_id}
+            onValueChange={(v) => {
+              updateField("supplier_id", v);
+              const forn = fornecedores.find((f: any) => f.id === v);
+              if (forn) {
+                const name = forn.tipo === "pj" ? (forn.nome_fantasia || forn.razao_social || "") : (forn.nome_completo || "");
+                updateField("supplier_name", name);
+              }
+            }}
+            options={fornecedorOptions}
+            placeholder="Selecione o fornecedor..."
+            icon={<Building2 className="w-4 h-4" />}
+            onAddModal={() => { setFornEditingId(null); setFornModalOpen(true); }}
+            onEditModal={(id) => { setFornEditingId(id); setFornModalOpen(true); }}
+            addLabel="Novo fornecedor"
+          />
 
           {/* Nº Documento */}
           <TextInput label="Nº Documento" placeholder="NF, boleto, recibo..." value={form.document_number} onChange={(e) => updateField("document_number", e.target.value)} icon={<FileText className="w-4 h-4" />} />
