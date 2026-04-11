@@ -217,6 +217,7 @@ export default function ContasAPagar() {
     setEditingId(null);
     setForm(initialForm);
     setErrors({});
+    setIsPickingScanFile(false);
   };
 
   const updateField = <K extends keyof PayableForm>(key: K, value: PayableForm[K]) => {
@@ -656,11 +657,13 @@ export default function ContasAPagar() {
       {/* Create/Edit Form */}
       <FormModal
         open={showForm}
-        onOpenChange={(open) => { if (!open && !scanning && !isPickingScanFile) resetForm(); else setShowForm(true); }}
+        onOpenChange={(open) => {
+          if (open) setShowForm(true);
+        }}
         title={editingId ? "Editar Conta" : "Nova Conta a Pagar"}
         description="Preencha os dados da despesa"
         size="md"
-        preventOutsideClose={scanning || isPickingScanFile}
+        preventOutsideClose
       >
         <div className="space-y-4">
           {/* Scanner de Boleto */}
@@ -670,7 +673,7 @@ export default function ContasAPagar() {
                 type="button"
                 onClick={() => {
                   setIsPickingScanFile(true);
-                  scanInputRef.current?.click();
+                  window.setTimeout(() => scanInputRef.current?.click(), 0);
                 }}
                 disabled={scanning}
                 className="flex items-center gap-3 w-full p-4 rounded-xl border-2 border-dashed border-primary/30 bg-primary/[0.03] hover:bg-primary/[0.06] hover:border-primary/50 transition-all duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-wait"
@@ -693,15 +696,6 @@ export default function ContasAPagar() {
                   </p>
                 </div>
               </button>
-              <input
-                ref={scanInputRef}
-                type="file"
-                accept=".pdf,.jpg,.jpeg,.png,.webp"
-                onChange={handleScanBoleto}
-                onClick={() => setIsPickingScanFile(true)}
-                onBlur={() => setTimeout(() => setIsPickingScanFile(false), 150)}
-                className="hidden"
-              />
             </div>
           )}
 
@@ -893,6 +887,14 @@ export default function ContasAPagar() {
           </div>
         </div>
       </FormModal>
+
+      <input
+        ref={scanInputRef}
+        type="file"
+        accept=".pdf,.jpg,.jpeg,.png,.webp"
+        onChange={handleScanBoleto}
+        className="hidden"
+      />
 
       {/* Entity modals */}
       <CategoriaFinanceiraModal
