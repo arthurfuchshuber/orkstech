@@ -807,6 +807,15 @@ export default function ContasAPagar() {
         editingId={fpEditingId}
         onSaved={(id) => updateField("payment_method_id", id)}
       />
+      <FornecedorModal
+        open={fornModalOpen}
+        onOpenChange={setFornModalOpen}
+        editingId={fornEditingId}
+        onSaved={(id) => {
+          updateField("supplier_id", id);
+          queryClient.invalidateQueries({ queryKey: ["fornecedores"] });
+        }}
+      />
     </div>
   );
 }
