@@ -24,12 +24,15 @@ interface ManagedSelectInputProps {
   error?: string;
   placeholder?: string;
   icon?: React.ReactNode;
-  // CRUD callbacks
-  onAdd?: (label: string) => Promise<string | null>; // returns new id or null
+  // CRUD callbacks (inline mode)
+  onAdd?: (label: string) => Promise<string | null>;
   onEdit?: (id: string, label: string) => Promise<boolean>;
   onDelete?: (id: string) => Promise<boolean>;
   onReorder?: (orderedIds: string[]) => Promise<boolean>;
-  /** Label for the "add new" input */
+  /** Modal-based add/edit — when provided, these replace inline forms */
+  onAddModal?: () => void;
+  onEditModal?: (id: string) => void;
+  /** Label for the "add new" input/button */
   addLabel?: string;
 }
 
