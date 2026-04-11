@@ -42,8 +42,10 @@ export function EmpresaProvider({ children }: { children: ReactNode }) {
   );
 }
 
-export function useEmpresa() {
+export function useEmpresa(): EmpresaContextType {
   const context = useContext(EmpresaContext);
-  if (!context) throw new Error("useEmpresa must be used within EmpresaProvider");
+  if (context === undefined) {
+    throw new Error("useEmpresa must be used within EmpresaProvider");
+  }
   return context;
 }
