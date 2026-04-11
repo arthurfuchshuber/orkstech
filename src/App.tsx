@@ -44,7 +44,8 @@ const App = () => (
               <Route path="/reset-password" element={<ResetPassword />} />
               <Route path="/app/onboarding" element={<OnboardingRoute><Onboarding /></OnboardingRoute>} />
               <Route path="/app" element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
-                <Route index element={<Navigate to="/app/clientes" replace />} />
+                <Route index element={<Navigate to="/app/dashboard" replace />} />
+                <Route path="dashboard" element={<PlaceholderPage />} />
                 <Route path="clientes" element={<Clientes />} />
                 <Route path="fornecedores" element={<Fornecedores />} />
                 <Route path="inventario" element={<PlaceholderPage />} />
@@ -60,6 +61,9 @@ const App = () => (
                 <Route path="automacoes/integracoes" element={<PlaceholderPage />} />
                 <Route path="automacoes/notificacoes" element={<PlaceholderPage />} />
                 <Route path="config" element={<Configuracoes />} />
+                <Route path="config/usuarios" element={<PlaceholderPage />} />
+                <Route path="config/permissoes" element={<PlaceholderPage />} />
+                <Route path="config/menus" element={<GerenciarMenu />} />
               </Route>
               <Route path="*" element={<NotFound />} />
             </Routes>
