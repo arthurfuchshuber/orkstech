@@ -17,6 +17,10 @@ import { DateInput } from "@/components/inputs/DateInput";
 import { ManagedSelectInput } from "@/components/inputs/ManagedSelectInput";
 
 import { useManagedSelect } from "@/hooks/useManagedSelect";
+import { CategoriaFinanceiraModal } from "@/components/modals/CategoriaFinanceiraModal";
+import { CentroCustoModal } from "@/components/modals/CentroCustoModal";
+import { ContaBancariaModal } from "@/components/modals/ContaBancariaModal";
+import { FormaPagamentoModal } from "@/components/modals/FormaPagamentoModal";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
