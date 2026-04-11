@@ -121,24 +121,8 @@ export default function GerenciarMenu() {
                       <DynamicIcon name={item.icon} className="w-4 h-4 text-muted-foreground flex-shrink-0" />
                       <span className="flex-1 text-sm font-medium text-foreground">{item.name}</span>
 
-                      {item.route && (
-                        <span className="text-[10px] text-muted-foreground/60 font-mono max-w-[120px] truncate">
-                          {item.route}
-                        </span>
-                      )}
 
-                      <Badge
-                        variant={item.is_active ? "default" : "secondary"}
-                        className="text-[10px] h-5"
-                      >
-                        {item.is_active ? "Ativo" : "Inativo"}
-                      </Badge>
 
-                      {!item.is_visible && (
-                        <Badge variant="outline" className="text-[10px] h-5 gap-1">
-                          <EyeOff className="w-2.5 h-2.5" /> Oculto
-                        </Badge>
-                      )}
 
                       {hasChildren && (
                         <button
