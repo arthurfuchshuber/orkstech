@@ -16,6 +16,7 @@ import { CurrencyInput } from "@/components/inputs/CurrencyInput";
 import { DateInput } from "@/components/inputs/DateInput";
 import { ManagedSelectInput } from "@/components/inputs/ManagedSelectInput";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { FileAttachment } from "@/components/inputs/FileAttachment";
 
 import { useManagedSelect } from "@/hooks/useManagedSelect";
 import { CategoriaFinanceiraModal } from "@/components/modals/CategoriaFinanceiraModal";
@@ -52,6 +53,7 @@ interface PayableForm {
   recurrence_interval: string;
   notes: string;
   pessoa_tipo: "pj" | "pf";
+  attachment_url: string | null;
 }
 
 const initialForm: PayableForm = {
@@ -70,6 +72,7 @@ const initialForm: PayableForm = {
   recurrence_interval: "",
   notes: "",
   pessoa_tipo: "pj",
+  attachment_url: null,
 };
 
 const statusConfig: Record<string, { label: string; color: string; icon: typeof Clock }> = {
@@ -234,6 +237,7 @@ export default function ContasAPagar() {
           recurrence_interval: form.is_recurring && form.recurrence_interval ? form.recurrence_interval : null,
           notes: form.notes || null,
           pessoa_tipo: form.pessoa_tipo,
+          attachment_url: form.attachment_url,
         },
       });
       return;
@@ -266,6 +270,7 @@ export default function ContasAPagar() {
         recurrence_interval: form.is_recurring && form.recurrence_interval ? form.recurrence_interval as any : null,
         notes: form.notes || null,
         pessoa_tipo: form.pessoa_tipo,
+        attachment_url: form.attachment_url,
       });
     }
 
@@ -290,6 +295,7 @@ export default function ContasAPagar() {
       recurrence_interval: item.recurrence_interval || "",
       notes: item.notes || "",
       pessoa_tipo: item.pessoa_tipo || "pj",
+      attachment_url: item.attachment_url || null,
     });
     setShowForm(true);
   };
@@ -319,6 +325,7 @@ export default function ContasAPagar() {
       recurrence_interval: item.recurrence_interval || "",
       notes: item.notes || "",
       pessoa_tipo: item.pessoa_tipo || "pj",
+      attachment_url: null,
     });
     setShowForm(true);
   };
@@ -562,99 +569,98 @@ export default function ContasAPagar() {
         description="Preencha os dados da despesa"
         size="xl"
       >
-        <div className="space-y-6">
-          <div className="space-y-4">
-            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Dados da Conta</p>
-            <div>
-              <label className="text-sm font-medium text-foreground mb-1.5 block">Pessoa</label>
-              <RadioGroup value={form.pessoa_tipo} onValueChange={(v) => updateField("pessoa_tipo", v as "pj" | "pf")} className="flex gap-4">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <RadioGroupItem value="pj" />
-                  <span className="text-sm">Pessoa Jurídica (PJ)</span>
+        <div className="space-y-5">
+          {/* Row 1: PJ/PF + Título */}
+          <div className="flex items-end gap-4">
+            <div className="shrink-0">
+              <label className="text-sm font-medium text-foreground mb-1.5 block">Tipo</label>
+              <RadioGroup value={form.pessoa_tipo} onValueChange={(v) => updateField("pessoa_tipo", v as "pj" | "pf")} className="flex gap-3">
+                <label className="flex items-center gap-1.5 cursor-pointer text-sm">
+                  <RadioGroupItem value="pj" /> PJ
                 </label>
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <RadioGroupItem value="pf" />
-                  <span className="text-sm">Pessoa Física (PF)</span>
+                <label className="flex items-center gap-1.5 cursor-pointer text-sm">
+                  <RadioGroupItem value="pf" /> PF
                 </label>
               </RadioGroup>
             </div>
-            <TextInput label="Título da despesa" placeholder="Título da despesa" value={form.description} onChange={(e) => updateField("description", e.target.value)} error={errors.description} />
-            <div className="grid grid-cols-2 gap-4">
-              <TextInput label="Fornecedor" placeholder="Nome do fornecedor" value={form.supplier_name} onChange={(e) => updateField("supplier_name", e.target.value)} icon={<Building2 className="w-4 h-4" />} />
-              <TextInput label="Nº do Documento" placeholder="Nota fiscal, boleto..." value={form.document_number} onChange={(e) => updateField("document_number", e.target.value)} icon={<FileText className="w-4 h-4" />} />
-            </div>
-            <div className="grid grid-cols-3 gap-4">
-              <CurrencyInput label="Valor" value={form.amount} onValueChange={(v) => updateField("amount", v)} error={errors.amount} />
-              <DateInput label="Data de emissão" value={form.issue_date} onValueChange={(d) => updateField("issue_date", d)} />
-              <DateInput label="Data de vencimento" value={form.due_date} onValueChange={(d) => updateField("due_date", d)} error={errors.due_date} />
+            <div className="flex-1">
+              <TextInput label="Título da despesa" placeholder="Ex: Aluguel do escritório" value={form.description} onChange={(e) => updateField("description", e.target.value)} error={errors.description} />
             </div>
           </div>
 
-          <div className="h-px bg-border/30" />
-
-          <div className="space-y-4">
-            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Classificação</p>
-            <div className="grid grid-cols-2 gap-4">
-              <ManagedSelectInput
-                label="Categoria (Plano de Contas)"
-                value={form.category_id}
-                onValueChange={(v) => updateField("category_id", v)}
-                options={categories.map((c: any) => ({ value: c.id, label: c.nome }))}
-                placeholder="Selecione..."
-                icon={<FolderTree className="w-4 h-4" />}
-                onAddModal={() => { setCatEditingId(null); setCatModalOpen(true); }}
-                onEditModal={(id) => { setCatEditingId(id); setCatModalOpen(true); }}
-                onDelete={categoriasCrud.onDelete}
-                onReorder={categoriasCrud.onReorder}
-                addLabel="Nova categoria"
-              />
-              <ManagedSelectInput
-                label="Centro de Custo"
-                value={form.cost_center_id}
-                onValueChange={(v) => updateField("cost_center_id", v)}
-                options={costCenters.map((c: any) => ({ value: c.id, label: c.nome }))}
-                placeholder="Selecione..."
-                icon={<Target className="w-4 h-4" />}
-                onAddModal={() => { setCcEditingId(null); setCcModalOpen(true); }}
-                onEditModal={(id) => { setCcEditingId(id); setCcModalOpen(true); }}
-                onDelete={centrosCrud.onDelete}
-                addLabel="Novo centro de custo"
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <ManagedSelectInput
-                label="Conta Bancária"
-                value={form.bank_account_id}
-                onValueChange={(v) => updateField("bank_account_id", v)}
-                options={bankAccounts.map((b: any) => ({ value: b.id, label: `${b.nome}${b.banco ? ` - ${b.banco}` : ""}` }))}
-                placeholder="Selecione..."
-                icon={<Landmark className="w-4 h-4" />}
-                onAddModal={() => { setCbEditingId(null); setCbModalOpen(true); }}
-                onEditModal={(id) => { setCbEditingId(id); setCbModalOpen(true); }}
-                onDelete={contasCrud.onDelete}
-                addLabel="Nova conta bancária"
-              />
-              <ManagedSelectInput
-                label="Forma de Pagamento"
-                value={form.payment_method_id}
-                onValueChange={(v) => updateField("payment_method_id", v)}
-                options={paymentMethods.map((p: any) => ({ value: p.id, label: p.nome }))}
-                placeholder="Selecione..."
-                icon={<CreditCard className="w-4 h-4" />}
-                onAddModal={() => { setFpEditingId(null); setFpModalOpen(true); }}
-                onEditModal={(id) => { setFpEditingId(id); setFpModalOpen(true); }}
-                onDelete={formasCrud.onDelete}
-                addLabel="Nova forma de pagamento"
-              />
-            </div>
+          {/* Row 2: Fornecedor + Documento + Valor */}
+          <div className="grid grid-cols-3 gap-3">
+            <TextInput label="Fornecedor" placeholder="Nome do fornecedor" value={form.supplier_name} onChange={(e) => updateField("supplier_name", e.target.value)} icon={<Building2 className="w-4 h-4" />} />
+            <TextInput label="Nº Documento" placeholder="NF, boleto..." value={form.document_number} onChange={(e) => updateField("document_number", e.target.value)} icon={<FileText className="w-4 h-4" />} />
+            <CurrencyInput label="Valor" value={form.amount} onValueChange={(v) => updateField("amount", v)} error={errors.amount} />
           </div>
 
-          <div className="h-px bg-border/30" />
+          {/* Row 3: Datas */}
+          <div className="grid grid-cols-2 gap-3">
+            <DateInput label="Emissão" value={form.issue_date} onValueChange={(d) => updateField("issue_date", d)} />
+            <DateInput label="Vencimento" value={form.due_date} onValueChange={(d) => updateField("due_date", d)} error={errors.due_date} />
+          </div>
 
+          <div className="h-px bg-border/20" />
+
+          {/* Row 4: Classificação - 2x2 grid */}
+          <div className="grid grid-cols-2 gap-3">
+            <ManagedSelectInput
+              label="Categoria"
+              value={form.category_id}
+              onValueChange={(v) => updateField("category_id", v)}
+              options={categories.map((c: any) => ({ value: c.id, label: c.nome }))}
+              placeholder="Selecione..."
+              icon={<FolderTree className="w-4 h-4" />}
+              onAddModal={() => { setCatEditingId(null); setCatModalOpen(true); }}
+              onEditModal={(id) => { setCatEditingId(id); setCatModalOpen(true); }}
+              onDelete={categoriasCrud.onDelete}
+              onReorder={categoriasCrud.onReorder}
+              addLabel="Nova categoria"
+            />
+            <ManagedSelectInput
+              label="Centro de Custo"
+              value={form.cost_center_id}
+              onValueChange={(v) => updateField("cost_center_id", v)}
+              options={costCenters.map((c: any) => ({ value: c.id, label: c.nome }))}
+              placeholder="Selecione..."
+              icon={<Target className="w-4 h-4" />}
+              onAddModal={() => { setCcEditingId(null); setCcModalOpen(true); }}
+              onEditModal={(id) => { setCcEditingId(id); setCcModalOpen(true); }}
+              onDelete={centrosCrud.onDelete}
+              addLabel="Novo centro de custo"
+            />
+            <ManagedSelectInput
+              label="Conta Bancária"
+              value={form.bank_account_id}
+              onValueChange={(v) => updateField("bank_account_id", v)}
+              options={bankAccounts.map((b: any) => ({ value: b.id, label: `${b.nome}${b.banco ? ` - ${b.banco}` : ""}` }))}
+              placeholder="Selecione..."
+              icon={<Landmark className="w-4 h-4" />}
+              onAddModal={() => { setCbEditingId(null); setCbModalOpen(true); }}
+              onEditModal={(id) => { setCbEditingId(id); setCbModalOpen(true); }}
+              onDelete={contasCrud.onDelete}
+              addLabel="Nova conta bancária"
+            />
+            <ManagedSelectInput
+              label="Forma de Pagamento"
+              value={form.payment_method_id}
+              onValueChange={(v) => updateField("payment_method_id", v)}
+              options={paymentMethods.map((p: any) => ({ value: p.id, label: p.nome }))}
+              placeholder="Selecione..."
+              icon={<CreditCard className="w-4 h-4" />}
+              onAddModal={() => { setFpEditingId(null); setFpModalOpen(true); }}
+              onEditModal={(id) => { setFpEditingId(id); setFpModalOpen(true); }}
+              onDelete={formasCrud.onDelete}
+              addLabel="Nova forma de pagamento"
+            />
+          </div>
+
+          {/* Row 5: Parcelamento */}
           {!editingId && (
-            <div className="space-y-4">
-              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Parcelamento e Recorrência</p>
-              <div className="grid grid-cols-2 gap-4">
+            <>
+              <div className="h-px bg-border/20" />
+              <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
                   <label className="text-sm font-medium text-foreground">Parcelas</label>
                   <Input
@@ -695,12 +701,16 @@ export default function ContasAPagar() {
                   )}
                 </div>
               </div>
-            </div>
+            </>
           )}
 
-          <TextareaInput label="Observações" placeholder="Observações..." value={form.notes} onChange={(e) => updateField("notes", e.target.value)} />
+          <div className="h-px bg-border/20" />
 
-          <div className="h-px bg-border/30" />
+          {/* Row 6: Observações + Anexo */}
+          <div className="grid grid-cols-2 gap-3">
+            <TextareaInput label="Observações" placeholder="Observações..." value={form.notes} onChange={(e) => updateField("notes", e.target.value)} />
+            <FileAttachment value={form.attachment_url} onValueChange={(url) => updateField("attachment_url", url)} folder="contas-pagar" />
+          </div>
 
           <div className="flex justify-end gap-3 pt-1">
             <Button variant="outline" onClick={resetForm} className="rounded-lg">Cancelar</Button>

@@ -11,6 +11,7 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
+import { FileAttachment } from "@/components/inputs/FileAttachment";
 
 type TipoFinanceiro = "receita" | "despesa" | "custo" | "ajuste";
 
@@ -18,7 +19,6 @@ interface CategoriaFinanceiraModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   editingId?: string | null;
-  /** Default tipo when creating new */
   defaultTipo?: TipoFinanceiro;
   onSaved?: (id: string) => void;
 }
@@ -26,7 +26,7 @@ interface CategoriaFinanceiraModalProps {
 export function CategoriaFinanceiraModal({ open, onOpenChange, editingId, defaultTipo = "despesa", onSaved }: CategoriaFinanceiraModalProps) {
   const { user } = useAuth();
   const qc = useQueryClient();
-  const [form, setForm] = useState({ nome: "", tipo: defaultTipo as TipoFinanceiro, categoria_pai_id: null as string | null });
+  const [form, setForm] = useState({ nome: "", tipo: defaultTipo as TipoFinanceiro, categoria_pai_id: null as string | null, attachment_url: null as string | null });
 
   const { data: existing } = useQuery({
     queryKey: ["categorias_financeiras_edit", editingId],
@@ -50,9 +50,9 @@ export function CategoriaFinanceiraModal({ open, onOpenChange, editingId, defaul
 
   useEffect(() => {
     if (existing && editingId) {
-      setForm({ nome: existing.nome, tipo: existing.tipo as TipoFinanceiro, categoria_pai_id: existing.categoria_pai_id });
+      setForm({ nome: existing.nome, tipo: existing.tipo as TipoFinanceiro, categoria_pai_id: existing.categoria_pai_id, attachment_url: null });
     } else if (!editingId && open) {
-      setForm({ nome: "", tipo: defaultTipo, categoria_pai_id: null });
+      setForm({ nome: "", tipo: defaultTipo, categoria_pai_id: null, attachment_url: null });
     }
   }, [existing, editingId, open, defaultTipo]);
 
@@ -121,6 +121,7 @@ export function CategoriaFinanceiraModal({ open, onOpenChange, editingId, defaul
               </SelectContent>
             </Select>
           </div>
+          <FileAttachment value={form.attachment_url} onValueChange={(url) => setForm({ ...form, attachment_url: url })} folder="categorias" />
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
