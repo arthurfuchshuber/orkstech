@@ -14,7 +14,315 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      clientes: {
+        Row: {
+          ativo: boolean
+          bairro: string | null
+          cep: string | null
+          cidade: string | null
+          cnpj: string | null
+          cpf: string | null
+          created_at: string
+          data_nascimento: string | null
+          email: string | null
+          estado: string | null
+          id: string
+          inscricao_estadual: string | null
+          inscricao_municipal: string | null
+          logradouro: string | null
+          nome_completo: string | null
+          nome_fantasia: string | null
+          observacoes: string | null
+          razao_social: string | null
+          telefone: string | null
+          tipo: Database["public"]["Enums"]["pessoa_tipo"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          ativo?: boolean
+          bairro?: string | null
+          cep?: string | null
+          cidade?: string | null
+          cnpj?: string | null
+          cpf?: string | null
+          created_at?: string
+          data_nascimento?: string | null
+          email?: string | null
+          estado?: string | null
+          id?: string
+          inscricao_estadual?: string | null
+          inscricao_municipal?: string | null
+          logradouro?: string | null
+          nome_completo?: string | null
+          nome_fantasia?: string | null
+          observacoes?: string | null
+          razao_social?: string | null
+          telefone?: string | null
+          tipo?: Database["public"]["Enums"]["pessoa_tipo"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          ativo?: boolean
+          bairro?: string | null
+          cep?: string | null
+          cidade?: string | null
+          cnpj?: string | null
+          cpf?: string | null
+          created_at?: string
+          data_nascimento?: string | null
+          email?: string | null
+          estado?: string | null
+          id?: string
+          inscricao_estadual?: string | null
+          inscricao_municipal?: string | null
+          logradouro?: string | null
+          nome_completo?: string | null
+          nome_fantasia?: string | null
+          observacoes?: string | null
+          razao_social?: string | null
+          telefone?: string | null
+          tipo?: Database["public"]["Enums"]["pessoa_tipo"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      colaboradores: {
+        Row: {
+          ativo: boolean
+          cargo: string | null
+          cpf: string
+          created_at: string
+          data_admissao: string | null
+          departamento: string | null
+          email: string | null
+          id: string
+          nome: string
+          observacoes: string | null
+          salario: number | null
+          telefone: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          ativo?: boolean
+          cargo?: string | null
+          cpf: string
+          created_at?: string
+          data_admissao?: string | null
+          departamento?: string | null
+          email?: string | null
+          id?: string
+          nome: string
+          observacoes?: string | null
+          salario?: number | null
+          telefone?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          ativo?: boolean
+          cargo?: string | null
+          cpf?: string
+          created_at?: string
+          data_admissao?: string | null
+          departamento?: string | null
+          email?: string | null
+          id?: string
+          nome?: string
+          observacoes?: string | null
+          salario?: number | null
+          telefone?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      empresas: {
+        Row: {
+          bairro: string | null
+          cep: string | null
+          cidade: string | null
+          cnpj: string
+          created_at: string
+          email: string | null
+          estado: string | null
+          id: string
+          inscricao_estadual: string | null
+          inscricao_municipal: string | null
+          logradouro: string | null
+          nome_fantasia: string | null
+          observacoes: string | null
+          razao_social: string
+          telefone: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          bairro?: string | null
+          cep?: string | null
+          cidade?: string | null
+          cnpj: string
+          created_at?: string
+          email?: string | null
+          estado?: string | null
+          id?: string
+          inscricao_estadual?: string | null
+          inscricao_municipal?: string | null
+          logradouro?: string | null
+          nome_fantasia?: string | null
+          observacoes?: string | null
+          razao_social: string
+          telefone?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          bairro?: string | null
+          cep?: string | null
+          cidade?: string | null
+          cnpj?: string
+          created_at?: string
+          email?: string | null
+          estado?: string | null
+          id?: string
+          inscricao_estadual?: string | null
+          inscricao_municipal?: string | null
+          logradouro?: string | null
+          nome_fantasia?: string | null
+          observacoes?: string | null
+          razao_social?: string
+          telefone?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      fornecedores: {
+        Row: {
+          ativo: boolean
+          bairro: string | null
+          cep: string | null
+          cidade: string | null
+          cnpj: string | null
+          cpf: string | null
+          created_at: string
+          email: string | null
+          estado: string | null
+          id: string
+          inscricao_estadual: string | null
+          inscricao_municipal: string | null
+          logradouro: string | null
+          nome_completo: string | null
+          nome_fantasia: string | null
+          observacoes: string | null
+          razao_social: string | null
+          telefone: string | null
+          tipo: Database["public"]["Enums"]["pessoa_tipo"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          ativo?: boolean
+          bairro?: string | null
+          cep?: string | null
+          cidade?: string | null
+          cnpj?: string | null
+          cpf?: string | null
+          created_at?: string
+          email?: string | null
+          estado?: string | null
+          id?: string
+          inscricao_estadual?: string | null
+          inscricao_municipal?: string | null
+          logradouro?: string | null
+          nome_completo?: string | null
+          nome_fantasia?: string | null
+          observacoes?: string | null
+          razao_social?: string | null
+          telefone?: string | null
+          tipo?: Database["public"]["Enums"]["pessoa_tipo"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          ativo?: boolean
+          bairro?: string | null
+          cep?: string | null
+          cidade?: string | null
+          cnpj?: string | null
+          cpf?: string | null
+          created_at?: string
+          email?: string | null
+          estado?: string | null
+          id?: string
+          inscricao_estadual?: string | null
+          inscricao_municipal?: string | null
+          logradouro?: string | null
+          nome_completo?: string | null
+          nome_fantasia?: string | null
+          observacoes?: string | null
+          razao_social?: string | null
+          telefone?: string | null
+          tipo?: Database["public"]["Enums"]["pessoa_tipo"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      produtos: {
+        Row: {
+          ativo: boolean
+          categoria: string | null
+          created_at: string
+          descricao: string | null
+          estoque_atual: number | null
+          estoque_minimo: number | null
+          id: string
+          nome: string
+          preco_custo: number | null
+          preco_venda: number | null
+          sku: string | null
+          unidade: Database["public"]["Enums"]["unidade_medida"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          ativo?: boolean
+          categoria?: string | null
+          created_at?: string
+          descricao?: string | null
+          estoque_atual?: number | null
+          estoque_minimo?: number | null
+          id?: string
+          nome: string
+          preco_custo?: number | null
+          preco_venda?: number | null
+          sku?: string | null
+          unidade?: Database["public"]["Enums"]["unidade_medida"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          ativo?: boolean
+          categoria?: string | null
+          created_at?: string
+          descricao?: string | null
+          estoque_atual?: number | null
+          estoque_minimo?: number | null
+          id?: string
+          nome?: string
+          preco_custo?: number | null
+          preco_venda?: number | null
+          sku?: string | null
+          unidade?: Database["public"]["Enums"]["unidade_medida"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -23,7 +331,19 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      pessoa_tipo: "pf" | "pj"
+      unidade_medida:
+        | "un"
+        | "kg"
+        | "g"
+        | "l"
+        | "ml"
+        | "m"
+        | "cm"
+        | "cx"
+        | "pc"
+        | "par"
+        | "kit"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +470,21 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      pessoa_tipo: ["pf", "pj"],
+      unidade_medida: [
+        "un",
+        "kg",
+        "g",
+        "l",
+        "ml",
+        "m",
+        "cm",
+        "cx",
+        "pc",
+        "par",
+        "kit",
+      ],
+    },
   },
 } as const
