@@ -128,6 +128,19 @@ export default function ContasAPagar() {
     queryFn: countAccountsPayable,
   });
 
+  const { data: fornecedores = [] } = useQuery({
+    queryKey: ["fornecedores"],
+    queryFn: async () => {
+      const { data } = await supabase.from("fornecedores").select("id, tipo, nome_completo, razao_social, nome_fantasia").eq("ativo", true).order("razao_social");
+      return data ?? [];
+    },
+  });
+
+  const fornecedorOptions = fornecedores.map((f: any) => ({
+    value: f.id,
+    label: f.tipo === "pj" ? (f.nome_fantasia || f.razao_social || "—") : (f.nome_completo || "—"),
+  }));
+
   const { data: categories = [] } = useQuery({
     queryKey: ["categorias-financeiras"],
     queryFn: async () => {
