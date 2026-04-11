@@ -119,7 +119,7 @@ export default function Clientes() {
   };
 
   const handleSubmit = () => {
-    eventBus.emit({ type: "cliente.criado", data: { nome: form.nome || form.razaoSocial, tipo: form.type, descricao: `Cliente ${form.nome || form.razaoSocial} cadastrado` }, moduloOrigem: "clientes", registroId: crypto.randomUUID() });
+    eventBus.emit({ type: "cliente.criado", data: { nome: form.nomeCompleto || form.razaoSocial, tipo: form.type, descricao: `Cliente ${form.nomeCompleto || form.razaoSocial} cadastrado` }, moduloOrigem: "clientes", registroId: crypto.randomUUID() });
     toast.success("Cliente cadastrado com sucesso!");
     setForm(initialForm);
     setShowForm(false);
