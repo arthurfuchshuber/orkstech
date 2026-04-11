@@ -242,6 +242,7 @@ export default function ContasAPagar() {
         id: editingId,
         data: {
           description: form.description,
+          supplier_id: form.supplier_id || null,
           supplier_name: form.supplier_name || null,
           document_number: form.document_number || null,
           amount: form.amount / 100,
