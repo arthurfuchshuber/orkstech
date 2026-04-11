@@ -3,7 +3,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useEmpresa } from "@/hooks/useEmpresa";
 import { Loader2 } from "lucide-react";
 
-export function ProtectedRoute({ children }: { children: React.ReactNode }) {
+export function OnboardingRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
   const { empresa, loading: empresaLoading } = useEmpresa();
 
@@ -19,8 +19,9 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
     return <Navigate to="/login" replace />;
   }
 
-  if (!empresa) {
-    return <Navigate to="/app/onboarding" replace />;
+  // If empresa already exists, redirect to app
+  if (empresa) {
+    return <Navigate to="/app" replace />;
   }
 
   return <>{children}</>;
