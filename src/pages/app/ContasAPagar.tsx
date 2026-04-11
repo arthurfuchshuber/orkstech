@@ -40,6 +40,7 @@ import { format, isPast, addDays, isBefore } from "date-fns";
 
 interface PayableForm {
   description: string;
+  supplier_id: string;
   supplier_name: string;
   document_number: string;
   amount: number;
@@ -59,6 +60,7 @@ interface PayableForm {
 
 const initialForm: PayableForm = {
   description: "",
+  supplier_id: "",
   supplier_name: "",
   document_number: "",
   amount: 0,
