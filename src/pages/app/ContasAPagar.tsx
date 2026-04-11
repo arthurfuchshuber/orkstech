@@ -86,6 +86,12 @@ export default function ContasAPagar() {
   const [paymentBankAccount, setPaymentBankAccount] = useState("");
   const [paymentDate, setPaymentDate] = useState<Date | undefined>(new Date());
 
+  // Managed select hooks
+  const categoriasCrud = useManagedSelect("categorias_financeiras", { insertDefaults: { tipo: "despesa" } });
+  const centrosCrud = useManagedSelect("centros_custo");
+  const contasCrud = useManagedSelect("contas_bancarias");
+  const formasCrud = useManagedSelect("formas_pagamento");
+
   // Fetch data
   const { data: payables = [], isLoading } = useQuery({
     queryKey: ["accounts-payable"],
