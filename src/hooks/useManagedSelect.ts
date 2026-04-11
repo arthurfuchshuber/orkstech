@@ -37,6 +37,17 @@ const configs: Record<string, TableConfig> = {
     queryKey: "formas-pagamento",
     labelField: "nome",
   },
+  "tipos_forma_pagamento": {
+    table: "tipos_forma_pagamento" as any,
+    queryKey: "tipos-forma-pagamento",
+    labelField: "nome",
+  },
+  "bancos": {
+    table: "bancos" as any,
+    queryKey: "bancos",
+    labelField: "nome",
+    extraLabel: (row: any) => row.codigo ? `${row.codigo} - ${row.nome}` : row.nome,
+  },
 };
 
 export function useManagedSelect(

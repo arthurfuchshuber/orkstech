@@ -33,6 +33,7 @@ export type Database = {
           notes: string | null
           payment_date: string | null
           payment_method_id: string | null
+          pessoa_tipo: Database["public"]["Enums"]["pessoa_tipo"]
           recurrence_interval:
             | Database["public"]["Enums"]["recurrence_interval"]
             | null
@@ -59,6 +60,7 @@ export type Database = {
           notes?: string | null
           payment_date?: string | null
           payment_method_id?: string | null
+          pessoa_tipo?: Database["public"]["Enums"]["pessoa_tipo"]
           recurrence_interval?:
             | Database["public"]["Enums"]["recurrence_interval"]
             | null
@@ -85,6 +87,7 @@ export type Database = {
           notes?: string | null
           payment_date?: string | null
           payment_method_id?: string | null
+          pessoa_tipo?: Database["public"]["Enums"]["pessoa_tipo"]
           recurrence_interval?:
             | Database["public"]["Enums"]["recurrence_interval"]
             | null
@@ -123,6 +126,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      bancos: {
+        Row: {
+          ativo: boolean
+          codigo: string
+          created_at: string
+          id: string
+          nome: string
+          ordem: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          ativo?: boolean
+          codigo?: string
+          created_at?: string
+          id?: string
+          nome: string
+          ordem?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          ativo?: boolean
+          codigo?: string
+          created_at?: string
+          id?: string
+          nome?: string
+          ordem?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       cash_transactions: {
         Row: {
@@ -382,9 +418,11 @@ export type Database = {
         Row: {
           ativo: boolean
           banco: string | null
+          banco_id: string | null
           created_at: string
           id: string
           nome: string
+          pessoa_tipo: Database["public"]["Enums"]["pessoa_tipo"]
           saldo_inicial: number
           tipo: Database["public"]["Enums"]["tipo_conta_bancaria"]
           updated_at: string
@@ -393,9 +431,11 @@ export type Database = {
         Insert: {
           ativo?: boolean
           banco?: string | null
+          banco_id?: string | null
           created_at?: string
           id?: string
           nome: string
+          pessoa_tipo?: Database["public"]["Enums"]["pessoa_tipo"]
           saldo_inicial?: number
           tipo?: Database["public"]["Enums"]["tipo_conta_bancaria"]
           updated_at?: string
@@ -404,15 +444,25 @@ export type Database = {
         Update: {
           ativo?: boolean
           banco?: string | null
+          banco_id?: string | null
           created_at?: string
           id?: string
           nome?: string
+          pessoa_tipo?: Database["public"]["Enums"]["pessoa_tipo"]
           saldo_inicial?: number
           tipo?: Database["public"]["Enums"]["tipo_conta_bancaria"]
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "contas_bancarias_banco_id_fkey"
+            columns: ["banco_id"]
+            isOneToOne: false
+            referencedRelation: "bancos"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       empresas: {
         Row: {
@@ -480,7 +530,9 @@ export type Database = {
           created_at: string
           id: string
           nome: string
+          numero_cartao: string | null
           tipo: Database["public"]["Enums"]["tipo_forma_pagamento"]
+          tipo_id: string | null
           updated_at: string
           user_id: string
         }
@@ -489,7 +541,9 @@ export type Database = {
           created_at?: string
           id?: string
           nome: string
+          numero_cartao?: string | null
           tipo?: Database["public"]["Enums"]["tipo_forma_pagamento"]
+          tipo_id?: string | null
           updated_at?: string
           user_id: string
         }
@@ -498,11 +552,21 @@ export type Database = {
           created_at?: string
           id?: string
           nome?: string
+          numero_cartao?: string | null
           tipo?: Database["public"]["Enums"]["tipo_forma_pagamento"]
+          tipo_id?: string | null
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "formas_pagamento_tipo_id_fkey"
+            columns: ["tipo_id"]
+            isOneToOne: false
+            referencedRelation: "tipos_forma_pagamento"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       fornecedores: {
         Row: {
@@ -715,12 +779,47 @@ export type Database = {
         }
         Relationships: []
       }
+      tipos_forma_pagamento: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          id: string
+          nome: string
+          ordem: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          nome: string
+          ordem?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          nome?: string
+          ordem?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      seed_default_bancos: { Args: { p_user_id: string }; Returns: undefined }
       seed_default_menus: { Args: { p_user_id: string }; Returns: undefined }
+      seed_default_tipos_pagamento: {
+        Args: { p_user_id: string }
+        Returns: undefined
+      }
     }
     Enums: {
       cash_transaction_type: "income" | "expense"

@@ -18,6 +18,7 @@ export type AccountPayableInsert = {
   recurrence_interval?: string | null;
   notes?: string | null;
   attachment_url?: string | null;
+  pessoa_tipo?: "pj" | "pf";
 };
 
 export async function fetchAccountsPayable() {
