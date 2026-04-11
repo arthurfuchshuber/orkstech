@@ -217,6 +217,7 @@ export default function ContasAPagar() {
     setEditingId(null);
     setForm(initialForm);
     setErrors({});
+    setIsPickingScanFile(false);
   };
 
   const updateField = <K extends keyof PayableForm>(key: K, value: PayableForm[K]) => {
@@ -656,11 +657,13 @@ export default function ContasAPagar() {
       {/* Create/Edit Form */}
       <FormModal
         open={showForm}
-        onOpenChange={(open) => { if (!open && !scanning && !isPickingScanFile) resetForm(); else setShowForm(true); }}
+        onOpenChange={(open) => {
+          if (open) setShowForm(true);
+        }}
         title={editingId ? "Editar Conta" : "Nova Conta a Pagar"}
         description="Preencha os dados da despesa"
         size="md"
-        preventOutsideClose={scanning || isPickingScanFile}
+        preventOutsideClose
       >
         <div className="space-y-4">
           {/* Scanner de Boleto */}
@@ -884,6 +887,14 @@ export default function ContasAPagar() {
           </div>
         </div>
       </FormModal>
+
+      <input
+        ref={scanInputRef}
+        type="file"
+        accept=".pdf,.jpg,.jpeg,.png,.webp"
+        onChange={handleScanBoleto}
+        className="hidden"
+      />
 
       {/* Entity modals */}
       <CategoriaFinanceiraModal
