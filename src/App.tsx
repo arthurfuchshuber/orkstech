@@ -23,6 +23,7 @@ import PlanoDeContas from "./pages/app/PlanoDeContas";
 import CentrosDeCusto from "./pages/app/CentrosDeCusto";
 import ContasBancarias from "./pages/app/ContasBancarias";
 import FormasDePagamento from "./pages/app/FormasDePagamento";
+import GerenciarMenu from "./pages/app/GerenciarMenu";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
