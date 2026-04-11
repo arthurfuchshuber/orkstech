@@ -4,16 +4,16 @@ import {
   Building2, Truck, Package, FileSearch,
   Zap, Workflow, Webhook, Bell,
   Settings, Shield, Palette, User, Database,
-  ChevronDown,
+  ChevronDown, ChevronRight,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
+import { useState } from "react";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent,
-  SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem,
+  SidebarMenu, SidebarMenuButton, SidebarMenuItem,
   SidebarHeader, useSidebar,
 } from "@/components/ui/sidebar";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 const sections = [
   {
@@ -75,51 +75,87 @@ export function AppSidebar() {
   const collapsed = state === "collapsed";
   const location = useLocation();
 
+  const initialOpen = sections.reduce((acc, section) => {
+    acc[section.label] = section.items.some((i) => location.pathname === i.url) || section.label === "Geral";
+    return acc;
+  }, {} as Record<string, boolean>);
+
+  const [openSections, setOpenSections] = useState<Record<string, boolean>>(initialOpen);
+
+  const toggleSection = (label: string) => {
+    setOpenSections((prev) => ({ ...prev, [label]: !prev[label] }));
+  };
+
   return (
     <Sidebar collapsible="icon">
-      <SidebarHeader className="p-4">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-primary/20 flex items-center justify-center flex-shrink-0">
-            <Zap className="w-4 h-4 text-primary" />
+      <SidebarHeader className="px-4 py-5">
+        <div className="flex items-center gap-2.5">
+          <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center flex-shrink-0">
+            <Zap className="w-3.5 h-3.5 text-primary-foreground" />
           </div>
-          {!collapsed && <span className="text-base font-bold text-foreground">NexusOS</span>}
+          {!collapsed && (
+            <span className="text-sm font-semibold tracking-tight text-foreground">NexusOS</span>
+          )}
         </div>
       </SidebarHeader>
-      <SidebarContent>
+
+      <SidebarContent className="px-2">
         {sections.map((section) => {
-          const isActive = section.items.some((i) => location.pathname === i.url);
+          const isOpen = openSections[section.label] ?? false;
+          const hasActive = section.items.some((i) => location.pathname === i.url);
+
           return (
-            <Collapsible key={section.label} defaultOpen={isActive || section.label === "Geral"}>
-              <SidebarGroup>
-                <CollapsibleTrigger asChild>
-                  <SidebarGroupLabel className="cursor-pointer flex items-center justify-between text-xs uppercase tracking-wider text-muted-foreground/60 hover:text-muted-foreground transition-colors">
-                    {!collapsed && <span>{section.label}</span>}
-                    {!collapsed && <ChevronDown className="w-3 h-3" />}
-                  </SidebarGroupLabel>
-                </CollapsibleTrigger>
-                <CollapsibleContent>
-                  <SidebarGroupContent>
-                    <SidebarMenu>
-                      {section.items.map((item) => (
+            <SidebarGroup key={section.label} className="py-0.5">
+              {!collapsed && (
+                <button
+                  onClick={() => toggleSection(section.label)}
+                  className="w-full flex items-center justify-between px-3 py-1.5 mb-0.5 group"
+                >
+                  <span className={`text-[10px] font-semibold uppercase tracking-[0.08em] transition-colors ${
+                    hasActive ? "text-primary/70" : "text-muted-foreground/40 group-hover:text-muted-foreground/60"
+                  }`}>
+                    {section.label}
+                  </span>
+                  <ChevronRight className={`w-3 h-3 text-muted-foreground/30 transition-transform duration-200 ${
+                    isOpen ? "rotate-90" : ""
+                  }`} />
+                </button>
+              )}
+
+              {(isOpen || collapsed) && (
+                <SidebarGroupContent>
+                  <SidebarMenu>
+                    {section.items.map((item) => {
+                      const isActive = location.pathname === item.url;
+                      return (
                         <SidebarMenuItem key={item.url}>
                           <SidebarMenuButton asChild>
                             <NavLink
                               to={item.url}
                               end={item.url === "/app"}
-                              className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
-                              activeClassName="bg-primary/10 text-primary font-medium"
+                              className={`relative flex items-center gap-2.5 px-3 py-1.5 rounded-md text-[13px] transition-all duration-200 ${
+                                isActive
+                                  ? "text-primary font-medium bg-primary/[0.08]"
+                                  : "text-muted-foreground/70 hover:text-foreground hover:bg-muted/40"
+                              }`}
+                              activeClassName=""
                             >
-                              <item.icon className="w-4 h-4 flex-shrink-0" />
+                              {isActive && (
+                                <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[2px] h-4 rounded-full bg-primary" />
+                              )}
+                              <item.icon className={`w-[15px] h-[15px] flex-shrink-0 ${
+                                isActive ? "text-primary" : ""
+                              }`} />
                               {!collapsed && <span>{item.title}</span>}
                             </NavLink>
                           </SidebarMenuButton>
                         </SidebarMenuItem>
-                      ))}
-                    </SidebarMenu>
-                  </SidebarGroupContent>
-                </CollapsibleContent>
-              </SidebarGroup>
-            </Collapsible>
+                      );
+                    })}
+                  </SidebarMenu>
+                </SidebarGroupContent>
+              )}
+            </SidebarGroup>
           );
         })}
       </SidebarContent>
