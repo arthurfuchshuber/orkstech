@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { NavLink } from "@/components/NavLink";
 import { DynamicIcon } from "@/components/DynamicIcon";
 import { useMenus, type MenuItem } from "@/hooks/useMenus";
