@@ -8,6 +8,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ContaBancariaModal } from "@/components/modals/ContaBancariaModal";
 import { Plus, Pencil, Trash2, Power, Landmark, Wallet, PiggyBank, Banknote } from "lucide-react";
+import { PluggyConnectButton } from "@/components/PluggyConnectButton";
 
 type TipoConta = "corrente" | "poupanca" | "caixa" | "carteira_digital";
 
