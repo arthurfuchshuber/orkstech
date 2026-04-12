@@ -4,11 +4,14 @@ import { Outlet, useNavigate } from "react-router-dom";
 import { Search, User, LogOut } from "lucide-react";
 import { NotificationDropdown } from "@/components/NotificationDropdown";
 import { useAuth } from "@/hooks/useAuth";
+import { useBankNotifications } from "@/hooks/useBankNotifications";
 import { toast } from "sonner";
 
 export default function AppLayout() {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
+  // Initialize bank notifications (realtime listener)
+  useBankNotifications();
 
   const handleSignOut = async () => {
     await signOut();

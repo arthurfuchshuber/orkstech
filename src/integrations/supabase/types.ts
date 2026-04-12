@@ -839,6 +839,47 @@ export type Database = {
         }
         Relationships: []
       }
+      pluggy_notifications: {
+        Row: {
+          created_at: string
+          descricao: string
+          id: string
+          lida: boolean
+          tipo: string
+          titulo: string
+          user_id: string
+          webhook_log_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          descricao: string
+          id?: string
+          lida?: boolean
+          tipo?: string
+          titulo: string
+          user_id: string
+          webhook_log_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          descricao?: string
+          id?: string
+          lida?: boolean
+          tipo?: string
+          titulo?: string
+          user_id?: string
+          webhook_log_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pluggy_notifications_webhook_log_id_fkey"
+            columns: ["webhook_log_id"]
+            isOneToOne: false
+            referencedRelation: "pluggy_webhooks_log"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pluggy_transactions: {
         Row: {
           amount: number
