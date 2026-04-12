@@ -803,21 +803,21 @@ export default function ContasAPagar() {
           />
 
           {/* CNPJ/CPF do fornecedor selecionado */}
-          {form.supplier_id && (() => {
-            const forn = fornecedores.find((f: any) => f.id === form.supplier_id);
-            if (!forn) return null;
-            const doc = forn.tipo === "pj" ? forn.cnpj : forn.cpf;
-            const docLabel = forn.tipo === "pj" ? "CNPJ" : "CPF";
+          {(() => {
+            const forn = form.supplier_id ? fornecedores.find((f: any) => f.id === form.supplier_id) : null;
+            const isPj = forn ? forn.tipo === "pj" : form.pessoa_tipo === "pj";
+            const docLabel = isPj ? "CNPJ" : "CPF";
+            const doc = forn ? (isPj ? forn.cnpj : forn.cpf) : null;
             const formatted = doc
-              ? forn.tipo === "pj"
+              ? isPj
                 ? doc.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, "$1.$2.$3/$4-$5")
                 : doc.replace(/^(\d{3})(\d{3})(\d{3})(\d{2})$/, "$1.$2.$3-$4")
-              : "Não informado";
+              : "";
             return (
               <div className="space-y-1.5">
                 <label className="text-sm font-medium text-foreground">{docLabel} do Fornecedor</label>
-                <div className="flex h-10 w-full items-center rounded-lg border border-input bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
-                  {formatted}
+                <div className="flex h-10 w-full items-center rounded-lg border border-input bg-muted/30 px-3 py-2 text-sm text-muted-foreground cursor-not-allowed">
+                  {formatted || <span className="text-muted-foreground/50">Selecione um fornecedor</span>}
                 </div>
               </div>
             );
