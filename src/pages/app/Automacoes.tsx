@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Workflow, Zap, CheckCircle, Plus, Trash2 } from "lucide-react";
+import { Workflow, Zap, CheckCircle, Plus, Trash2, ListChecks } from "lucide-react";
 import { StatCard } from "@/components/StatCard";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -11,6 +11,16 @@ import { useAutomacoes } from "@/hooks/useAutomacoes";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const eventLabels: Record<string, string> = {
   "cliente.criado": "Cliente criado",
@@ -37,6 +47,7 @@ const actionLabels: Record<string, string> = {
 export default function Automacoes() {
   const { automacoes, isLoading, add, toggle, remove, isAdding } = useAutomacoes();
   const [showForm, setShowForm] = useState(false);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
   const [form, setForm] = useState({
     nome: "",
     descricao: "",
@@ -44,7 +55,7 @@ export default function Automacoes() {
     acaoTipo: "criar_notificacao",
   });
 
-  const activeCount = automacoes.filter(a => a.ativo).length;
+  const activeCount = automacoes.filter((a) => a.ativo).length;
   const totalExec = automacoes.reduce((s, a) => s + a.executado_count, 0);
 
   const handleSave = async () => {
@@ -69,12 +80,15 @@ export default function Automacoes() {
     }
   };
 
-  const handleRemove = async (id: string) => {
+  const handleConfirmDelete = async () => {
+    if (!deleteId) return;
     try {
-      await remove(id);
+      await remove(deleteId);
       toast.success("Automação excluída");
     } catch {
       toast.error("Erro ao excluir");
+    } finally {
+      setDeleteId(null);
     }
   };
 
@@ -90,8 +104,8 @@ export default function Automacoes() {
     <div className="space-y-6 animate-fade-in max-w-6xl">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground tracking-tight">Automações</h1>
-          <p className="text-muted-foreground text-sm mt-0.5">Workflows e eventos inteligentes do sistema</p>
+          <h1 className="text-2xl font-bold text-foreground tracking-tight">Regras de Automação</h1>
+          <p className="text-muted-foreground text-sm mt-0.5">Gerencie suas automações e eventos do sistema</p>
         </div>
         <Button onClick={() => setShowForm(true)} className="rounded-lg gap-2 shadow-sm">
           <Plus className="w-4 h-4" /> Nova Automação
@@ -99,9 +113,9 @@ export default function Automacoes() {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <StatCard icon={Workflow} title="Automações Ativas" value={String(activeCount)} />
+        <StatCard icon={ListChecks} title="Total de Regras" value={String(automacoes.length)} />
+        <StatCard icon={Workflow} title="Regras Ativas" value={String(activeCount)} />
         <StatCard icon={CheckCircle} title="Execuções Totais" value={String(totalExec)} />
-        <StatCard icon={Zap} title="Eventos Disponíveis" value={String(Object.keys(eventLabels).length)} />
       </div>
 
       <div className="space-y-3">
@@ -111,8 +125,16 @@ export default function Automacoes() {
           ))
         ) : automacoes.length === 0 ? (
           <Card className="border-border/50 shadow-sm">
-            <CardContent className="p-8 text-center text-muted-foreground text-sm">
-              Nenhuma automação cadastrada. Clique em "Nova Automação" para começar.
+            <CardContent className="p-10 flex flex-col items-center gap-3 text-center">
+              <div className="w-12 h-12 rounded-xl bg-muted/30 flex items-center justify-center">
+                <Zap className="w-5 h-5 text-muted-foreground/40" />
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Nenhuma automação cadastrada.
+              </p>
+              <Button variant="outline" size="sm" onClick={() => setShowForm(true)} className="rounded-lg gap-2">
+                <Plus className="w-3.5 h-3.5" /> Criar primeira automação
+              </Button>
             </CardContent>
           </Card>
         ) : (
@@ -120,9 +142,11 @@ export default function Automacoes() {
             <Card key={auto.id} className="border-border/50 shadow-sm overflow-hidden">
               <CardContent className="p-0">
                 <div className="flex items-center gap-4 p-4">
-                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${
-                    auto.ativo ? "bg-primary/10" : "bg-muted/30"
-                  }`}>
+                  <div
+                    className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${
+                      auto.ativo ? "bg-primary/10" : "bg-muted/30"
+                    }`}
+                  >
                     <Zap className={`w-4 h-4 ${auto.ativo ? "text-primary" : "text-muted-foreground/40"}`} />
                   </div>
                   <div className="flex-1 min-w-0">
@@ -137,7 +161,9 @@ export default function Automacoes() {
                   <div className="flex items-center gap-6 flex-shrink-0">
                     <div className="text-right hidden sm:block">
                       <p className="text-xs text-muted-foreground">Gatilho</p>
-                      <p className="text-xs font-medium text-foreground">{eventLabels[auto.evento_gatilho] || auto.evento_gatilho}</p>
+                      <p className="text-xs font-medium text-foreground">
+                        {eventLabels[auto.evento_gatilho] || auto.evento_gatilho}
+                      </p>
                     </div>
                     <div className="text-right hidden sm:block">
                       <p className="text-xs text-muted-foreground">Execuções</p>
@@ -148,7 +174,7 @@ export default function Automacoes() {
                       variant="ghost"
                       size="icon"
                       className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                      onClick={() => handleRemove(auto.id)}
+                      onClick={() => setDeleteId(auto.id)}
                     >
                       <Trash2 className="w-4 h-4" />
                     </Button>
@@ -168,6 +194,25 @@ export default function Automacoes() {
         )}
       </div>
 
+      {/* Confirm delete */}
+      <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir automação?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação é permanente e não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Create form */}
       <FormModal open={showForm} onOpenChange={setShowForm} title="Nova Automação" description="Configure evento gatilho e ações automáticas" size="lg">
         <div className="space-y-5">
           <TextInput label="Nome" placeholder="Ex: Boas-vindas ao cliente" value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} />
@@ -176,7 +221,9 @@ export default function Automacoes() {
             <div className="space-y-1.5">
               <label className="text-sm font-medium text-foreground">Evento Gatilho</label>
               <Select value={form.eventoGatilho} onValueChange={(v) => setForm({ ...form, eventoGatilho: v })}>
-                <SelectTrigger className="rounded-lg h-10"><SelectValue placeholder="Selecione o evento" /></SelectTrigger>
+                <SelectTrigger className="rounded-lg h-10">
+                  <SelectValue placeholder="Selecione o evento" />
+                </SelectTrigger>
                 <SelectContent>
                   {Object.entries(eventLabels).map(([key, label]) => (
                     <SelectItem key={key} value={key}>{label}</SelectItem>
@@ -187,7 +234,9 @@ export default function Automacoes() {
             <div className="space-y-1.5">
               <label className="text-sm font-medium text-foreground">Ação</label>
               <Select value={form.acaoTipo} onValueChange={(v) => setForm({ ...form, acaoTipo: v })}>
-                <SelectTrigger className="rounded-lg h-10"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="rounded-lg h-10">
+                  <SelectValue />
+                </SelectTrigger>
                 <SelectContent>
                   {Object.entries(actionLabels).map(([key, label]) => (
                     <SelectItem key={key} value={key}>{label}</SelectItem>
@@ -198,7 +247,9 @@ export default function Automacoes() {
           </div>
           <div className="h-px bg-border/30" />
           <div className="flex justify-end gap-3">
-            <Button variant="outline" onClick={() => setShowForm(false)} className="rounded-lg">Cancelar</Button>
+            <Button variant="outline" onClick={() => setShowForm(false)} className="rounded-lg">
+              Cancelar
+            </Button>
             <Button onClick={handleSave} disabled={isAdding} className="rounded-lg gap-2 shadow-sm">
               <CheckCircle className="w-4 h-4" /> Criar Automação
             </Button>
