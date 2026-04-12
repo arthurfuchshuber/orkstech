@@ -1077,6 +1077,47 @@ export default function ContasAPagar() {
           queryClient.invalidateQueries({ queryKey: ["fornecedores"] });
         }}
       />
+
+      {/* Duplicate detection alert */}
+      <AlertDialog open={showDuplicateAlert} onOpenChange={setShowDuplicateAlert}>
+        <AlertDialogContent className="max-w-lg">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 text-amber-600">
+              <AlertTriangle className="w-5 h-5" />
+              Possível duplicidade detectada
+            </AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3">
+                <p>Foram encontrados registros semelhantes ao que você está tentando salvar:</p>
+                <div className="max-h-48 overflow-y-auto space-y-2">
+                  {duplicateMatches.map((dup: any, idx: number) => (
+                    <div key={idx} className="rounded-md border border-border bg-muted/30 p-3 text-sm">
+                      <p className="font-medium text-foreground">{dup.description}</p>
+                      <p className="text-muted-foreground">
+                        Valor: R$ {Number(dup.amount).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                        {dup.document_number && ` • Doc: ${dup.document_number}`}
+                        {dup.supplier_name && ` • ${dup.supplier_name}`}
+                      </p>
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {dup._dupReasons?.map((r: string, i: number) => (
+                          <Badge key={i} variant="outline" className="text-xs border-amber-300 text-amber-600">{r}</Badge>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <p className="text-sm">Deseja continuar mesmo assim?</p>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={proceedWithSave} className="bg-amber-600 hover:bg-amber-700">
+              Salvar mesmo assim
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
