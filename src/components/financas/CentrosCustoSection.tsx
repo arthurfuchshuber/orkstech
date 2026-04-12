@@ -1,0 +1,109 @@
+import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { CentroCustoModal } from "@/components/modals/CentroCustoModal";
+import { Plus, Pencil, Trash2, Power, Target } from "lucide-react";
+
+interface CentroCusto {
+  id: string;
+  nome: string;
+  descricao: string | null;
+  ativo: boolean;
+}
+
+export function CentrosCustoSection() {
+  const { user } = useAuth();
+  const qc = useQueryClient();
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
+
+  const { data: items = [], isLoading } = useQuery({
+    queryKey: ["centros_custo"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("centros_custo")
+        .select("*")
+        .eq("user_id", user!.id)
+        .order("nome");
+      if (error) throw error;
+      return data as CentroCusto[];
+    },
+    enabled: !!user,
+  });
+
+  const filtered = items.filter((i) => i.nome.toLowerCase().includes(search.toLowerCase()));
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("centros_custo").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["centros_custo"] });
+      toast.success("Centro de custo excluído");
+    },
+  });
+
+  const toggleMutation = useMutation({
+    mutationFn: async ({ id, ativo }: { id: string; ativo: boolean }) => {
+      const { error } = await supabase.from("centros_custo").update({ ativo }).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["centros_custo"] }),
+  });
+
+  const openNew = () => { setEditingId(null); setModalOpen(true); };
+  const openEdit = (item: CentroCusto) => { setEditingId(item.id); setModalOpen(true); };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <Target className="w-5 h-5 text-primary" />
+          <div>
+            <h2 className="text-base font-semibold text-foreground">Centros de Custo</h2>
+            <p className="text-xs text-muted-foreground">Gerencie os centros de custo da empresa</p>
+          </div>
+        </div>
+        <Button onClick={openNew} size="sm" className="gap-2"><Plus className="w-3.5 h-3.5" /> Novo Centro</Button>
+      </div>
+
+      <Input placeholder="Buscar centro de custo..." value={search} onChange={(e) => setSearch(e.target.value)} className="max-w-sm h-9 text-sm" />
+
+      <Card className="divide-y divide-border/50">
+        {isLoading ? (
+          <div className="py-8 text-center text-muted-foreground text-sm">Carregando...</div>
+        ) : filtered.length === 0 ? (
+          <div className="py-8 text-center text-muted-foreground text-sm">Nenhum centro de custo encontrado.</div>
+        ) : filtered.map((item) => (
+          <div key={item.id} className={`flex items-center gap-3 px-4 py-3 hover:bg-muted/30 transition-colors group ${!item.ativo ? "opacity-50" : ""}`}>
+            <Target className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-foreground">{item.nome}</p>
+              {item.descricao && <p className="text-xs text-muted-foreground truncate">{item.descricao}</p>}
+            </div>
+            <Badge variant="outline" className={item.ativo ? "text-emerald-400 border-emerald-500/20" : "text-muted-foreground"}>
+              {item.ativo ? "Ativo" : "Inativo"}
+            </Badge>
+            <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEdit(item)}><Pencil className="w-3.5 h-3.5" /></Button>
+              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => toggleMutation.mutate({ id: item.id, ativo: !item.ativo })}>
+                <Power className={`w-3.5 h-3.5 ${item.ativo ? "text-emerald-400" : ""}`} />
+              </Button>
+              <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => deleteMutation.mutate(item.id)}><Trash2 className="w-3.5 h-3.5" /></Button>
+            </div>
+          </div>
+        ))}
+      </Card>
+
+      <CentroCustoModal open={modalOpen} onOpenChange={setModalOpen} editingId={editingId} />
+    </div>
+  );
+}
