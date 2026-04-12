@@ -26,6 +26,8 @@ import FormasDePagamento from "./pages/app/FormasDePagamento";
 import GerenciarMenu from "./pages/app/GerenciarMenu";
 import ContasAPagar from "./pages/app/ContasAPagar";
 import NotFound from "./pages/NotFound";
+import ExtratoBancario from "./pages/app/ExtratoBancario";
+import Conciliacao from "./pages/app/Conciliacao";
 
 const queryClient = new QueryClient();
 
