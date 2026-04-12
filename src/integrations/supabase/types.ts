@@ -738,6 +738,36 @@ export type Database = {
           },
         ]
       }
+      niveis_permissao: {
+        Row: {
+          created_at: string
+          descricao: string | null
+          id: string
+          is_system: boolean
+          nome: string
+          ordem: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          is_system?: boolean
+          nome: string
+          ordem?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          is_system?: boolean
+          nome?: string
+          ordem?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       pluggy_bank_accounts: {
         Row: {
           balance: number
@@ -1019,6 +1049,50 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      profiles: {
+        Row: {
+          cpf: string | null
+          created_at: string
+          data_nascimento: string | null
+          id: string
+          nivel_permissao_id: string | null
+          nome: string | null
+          telefone: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          cpf?: string | null
+          created_at?: string
+          data_nascimento?: string | null
+          id?: string
+          nivel_permissao_id?: string | null
+          nome?: string | null
+          telefone?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          cpf?: string | null
+          created_at?: string
+          data_nascimento?: string | null
+          id?: string
+          nivel_permissao_id?: string | null
+          nome?: string | null
+          telefone?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profiles_nivel_permissao_id_fkey"
+            columns: ["nivel_permissao_id"]
+            isOneToOne: false
+            referencedRelation: "niveis_permissao"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       tipos_forma_pagamento: {
         Row: {
