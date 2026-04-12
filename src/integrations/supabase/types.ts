@@ -20,6 +20,7 @@ export type Database = {
           attachment_url: string | null
           bank_account_id: string | null
           category_id: string | null
+          cliente_id: string | null
           cost_center_id: string | null
           created_at: string
           description: string
@@ -48,6 +49,7 @@ export type Database = {
           attachment_url?: string | null
           bank_account_id?: string | null
           category_id?: string | null
+          cliente_id?: string | null
           cost_center_id?: string | null
           created_at?: string
           description: string
@@ -76,6 +78,7 @@ export type Database = {
           attachment_url?: string | null
           bank_account_id?: string | null
           category_id?: string | null
+          cliente_id?: string | null
           cost_center_id?: string | null
           created_at?: string
           description?: string
@@ -112,6 +115,13 @@ export type Database = {
             columns: ["category_id"]
             isOneToOne: false
             referencedRelation: "categorias_financeiras"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "accounts_payable_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
             referencedColumns: ["id"]
           },
           {
