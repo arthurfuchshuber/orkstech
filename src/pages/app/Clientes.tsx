@@ -232,7 +232,7 @@ export default function Clientes() {
   const totalPF = clientes.filter((c) => c.tipo === "pf").length;
 
   return (
-    <div className="space-y-6 animate-fade-in max-w-7xl">
+    <div className="space-y-6 animate-fade-in">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>

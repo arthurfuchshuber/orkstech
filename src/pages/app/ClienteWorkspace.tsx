@@ -74,7 +74,7 @@ export default function ClienteWorkspace() {
   const industry = tags && tags.length > 0 ? tags[0] : null;
 
   return (
-    <div className="space-y-5 animate-fade-in max-w-7xl">
+    <div className="space-y-5 animate-fade-in">
       {/* Back */}
       <button
         onClick={() => navigate("/app/clientes")}
