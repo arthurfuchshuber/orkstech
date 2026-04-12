@@ -1118,7 +1118,7 @@ export default function ContasAPagar() {
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction onClick={proceedWithSave} className="bg-amber-600 hover:bg-amber-700">
-              Salvar mesmo assim
+              Continuar mesmo assim
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
