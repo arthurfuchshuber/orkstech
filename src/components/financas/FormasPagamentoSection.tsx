@@ -56,7 +56,7 @@ export function FormasPagamentoSection() {
   const openEdit = (item: FormaPagamento) => { setEditingId(item.id); setModalOpen(true); };
 
   return (
-    <Card className="border-border/40 shadow-sm">
+    <Card className="border-border/40 shadow-sm flex flex-col">
       <CardHeader className="pb-3 pt-4 px-4 flex-row items-center justify-between space-y-0">
         <div className="flex items-center gap-2.5">
           <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center">
