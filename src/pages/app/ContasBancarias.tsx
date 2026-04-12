@@ -8,6 +8,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ContaBancariaModal } from "@/components/modals/ContaBancariaModal";
 import { Plus, Pencil, Trash2, Power, Landmark, Wallet, PiggyBank, Banknote } from "lucide-react";
+import { PluggyConnectButton } from "@/components/PluggyConnectButton";
 
 type TipoConta = "corrente" | "poupanca" | "caixa" | "carteira_digital";
 
@@ -91,6 +92,8 @@ export default function ContasBancarias() {
         </div>
         <Button onClick={openNew} className="gap-2"><Plus className="w-4 h-4" /> Nova Conta</Button>
       </div>
+
+      <PluggyConnectButton />
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {isLoading ? (

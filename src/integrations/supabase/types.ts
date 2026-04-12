@@ -738,6 +738,39 @@ export type Database = {
           },
         ]
       }
+      pluggy_connections: {
+        Row: {
+          connector_name: string | null
+          created_at: string
+          id: string
+          last_sync_at: string | null
+          pluggy_item_id: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          connector_name?: string | null
+          created_at?: string
+          id?: string
+          last_sync_at?: string | null
+          pluggy_item_id: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          connector_name?: string | null
+          created_at?: string
+          id?: string
+          last_sync_at?: string | null
+          pluggy_item_id?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       produtos: {
         Row: {
           ativo: boolean
