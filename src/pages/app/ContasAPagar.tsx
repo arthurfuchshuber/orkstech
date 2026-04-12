@@ -298,7 +298,6 @@ export default function ContasAPagar() {
   const proceedWithSave = () => {
     setShowDuplicateAlert(false);
     setDuplicateMatches([]);
-    doSave();
   };
 
   const handleSubmit = async () => {
