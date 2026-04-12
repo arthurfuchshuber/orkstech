@@ -255,13 +255,70 @@ export default function ContasAPagar() {
     }
   };
 
-  const handleSubmit = () => {
+  const checkDuplicates = async (): Promise<any[]> => {
+    const matches: any[] = [];
+    const excludeId = editingId;
+
+    for (const existing of payables) {
+      if (excludeId && existing.id === excludeId) continue;
+      if (existing.status === "cancelled") continue;
+
+      const reasons: string[] = [];
+
+      // 1. Nº Documento
+      if (form.document_number.trim() && existing.document_number &&
+          form.document_number.replace(/\D/g, "") === existing.document_number.replace(/\D/g, "")) {
+        reasons.push("Nº Documento igual");
+      }
+
+      // 2. Valor
+      const formAmount = form.amount / 100;
+      if (formAmount > 0 && Math.abs(formAmount - existing.amount) < 0.01) {
+        reasons.push("Mesmo valor");
+      }
+
+      // 3. CNPJ/CPF do fornecedor
+      if (form.supplier_id && existing.supplier_id && form.supplier_id === existing.supplier_id) {
+        reasons.push("Mesmo fornecedor");
+      }
+
+      // 4. Nome do fornecedor (fallback)
+      if (!form.supplier_id && form.supplier_name.trim() && existing.supplier_name &&
+          form.supplier_name.trim().toLowerCase() === existing.supplier_name.trim().toLowerCase()) {
+        reasons.push("Mesmo nome de fornecedor");
+      }
+
+      if (reasons.length >= 2) {
+        matches.push({ ...existing, _dupReasons: reasons });
+      }
+    }
+
+    return matches;
+  };
+
+  const proceedWithSave = () => {
+    setShowDuplicateAlert(false);
+    setDuplicateMatches([]);
+    doSave();
+  };
+
+  const handleSubmit = async () => {
     if (!validate()) {
       toast.error("Corrija os campos destacados");
       return;
     }
 
-    if (editingId) {
+    const dups = await checkDuplicates();
+    if (dups.length > 0) {
+      setDuplicateMatches(dups);
+      setShowDuplicateAlert(true);
+      return;
+    }
+
+    doSave();
+  };
+
+  const doSave = () => {
       updateMutation.mutate({
         id: editingId,
         data: {
