@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Building2, Users, Trash2 } from "lucide-react";
+import { Building2, Users, Trash2, Pencil } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -14,6 +14,9 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+} from "@/components/ui/dialog";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
@@ -141,6 +144,9 @@ interface UserRow {
   email: string;
   created_at: string;
   nome: string | null;
+  cpf: string | null;
+  telefone: string | null;
+  data_nascimento: string | null;
   nivel_permissao_id: string | null;
   nivel_nome: string;
   ativo: boolean;
@@ -154,6 +160,8 @@ interface NivelPermissao {
 function UsuariosTab() {
   const { user } = useAuth();
   const qc = useQueryClient();
+  const [editingUser, setEditingUser] = useState<UserRow | null>(null);
+  const [editForm, setEditForm] = useState({ nome: "", cpf: "", telefone: "", data_nascimento: "" });
 
   const { data, isLoading } = useQuery({
     queryKey: ["manage-users"],
@@ -168,6 +176,16 @@ function UsuariosTab() {
 
   const users = data?.users ?? [];
   const niveis = data?.niveis ?? [];
+
+  const openEdit = (u: UserRow) => {
+    setEditingUser(u);
+    setEditForm({
+      nome: u.nome ?? "",
+      cpf: u.cpf ?? "",
+      telefone: u.telefone ?? "",
+      data_nascimento: u.data_nascimento ?? "",
+    });
+  };
 
   const updateRole = useMutation({
     mutationFn: async ({ user_id, nivel_permissao_id }: { user_id: string; nivel_permissao_id: string }) => {
@@ -214,6 +232,30 @@ function UsuariosTab() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const updateProfile = useMutation({
+    mutationFn: async () => {
+      if (!editingUser) return;
+      const { data, error } = await supabase.functions.invoke("manage-users", {
+        body: {
+          action: "update_profile",
+          user_id: editingUser.id,
+          nome: editForm.nome || null,
+          cpf: editForm.cpf || null,
+          telefone: editForm.telefone || null,
+          data_nascimento: editForm.data_nascimento || null,
+        },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+    },
+    onSuccess: () => {
+      toast.success("Dados atualizados");
+      setEditingUser(null);
+      qc.invalidateQueries({ queryKey: ["manage-users"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   if (isLoading) return <p className="text-sm text-muted-foreground py-8 text-center">Carregando...</p>;
 
   return (
@@ -228,7 +270,7 @@ function UsuariosTab() {
               <TableHead className="w-[130px]">Criado em</TableHead>
               <TableHead className="w-[180px]">Nível de Acesso</TableHead>
               <TableHead className="w-[80px] text-center">Ativo</TableHead>
-              <TableHead className="w-[60px]" />
+              <TableHead className="w-[90px]" />
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -276,32 +318,42 @@ function UsuariosTab() {
                       />
                     </TableCell>
                     <TableCell>
-                      {!isSelf && (
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive">
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>Excluir usuário</AlertDialogTitle>
-                              <AlertDialogDescription>
-                                Tem certeza que deseja excluir <strong>{u.email}</strong>? Esta ação é irreversível.
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                              <AlertDialogAction
-                                onClick={() => deleteUser.mutate(u.id)}
-                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                              >
-                                Excluir
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
-                      )}
+                      <div className="flex items-center gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={() => openEdit(u)}
+                        >
+                          <Pencil className="w-4 h-4" />
+                        </Button>
+                        {!isSelf && (
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive">
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Excluir usuário</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Tem certeza que deseja excluir <strong>{u.email}</strong>? Esta ação é irreversível.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={() => deleteUser.mutate(u.id)}
+                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                >
+                                  Excluir
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        )}
+                      </div>
                     </TableCell>
                   </TableRow>
                 );
@@ -310,6 +362,63 @@ function UsuariosTab() {
           </TableBody>
         </Table>
       </Card>
+
+      {/* Edit Profile Dialog */}
+      <Dialog open={!!editingUser} onOpenChange={(open) => !open && setEditingUser(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Editar Usuário</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <label className="text-xs font-medium text-muted-foreground mb-1 block">E-mail</label>
+              <Input value={editingUser?.email ?? ""} disabled className="h-9 text-sm opacity-60" />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-muted-foreground mb-1 block">Nome</label>
+              <Input
+                value={editForm.nome}
+                onChange={(e) => setEditForm({ ...editForm, nome: e.target.value })}
+                className="h-9 text-sm"
+                placeholder="Nome completo"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-muted-foreground mb-1 block">CPF</label>
+              <Input
+                value={editForm.cpf}
+                onChange={(e) => setEditForm({ ...editForm, cpf: e.target.value })}
+                className="h-9 text-sm"
+                placeholder="000.000.000-00"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-muted-foreground mb-1 block">Telefone</label>
+              <Input
+                value={editForm.telefone}
+                onChange={(e) => setEditForm({ ...editForm, telefone: e.target.value })}
+                className="h-9 text-sm"
+                placeholder="(00) 00000-0000"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-muted-foreground mb-1 block">Data de Nascimento</label>
+              <Input
+                type="date"
+                value={editForm.data_nascimento}
+                onChange={(e) => setEditForm({ ...editForm, data_nascimento: e.target.value })}
+                className="h-9 text-sm"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditingUser(null)}>Cancelar</Button>
+            <Button onClick={() => updateProfile.mutate()} disabled={updateProfile.isPending}>
+              {updateProfile.isPending ? "Salvando..." : "Salvar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

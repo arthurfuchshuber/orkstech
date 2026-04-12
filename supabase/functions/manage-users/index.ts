@@ -60,7 +60,7 @@ serve(async (req) => {
 
       const { data: profiles } = await supabaseAdmin
         .from("profiles")
-        .select("user_id, nome, nivel_permissao_id, ativo");
+        .select("user_id, nome, cpf, telefone, data_nascimento, nivel_permissao_id, ativo");
 
       const { data: niveis } = await supabaseAdmin
         .from("niveis_permissao")
@@ -75,6 +75,9 @@ serve(async (req) => {
           email: u.email,
           created_at: u.created_at,
           nome: profile?.nome ?? null,
+          cpf: profile?.cpf ?? null,
+          telefone: profile?.telefone ?? null,
+          data_nascimento: profile?.data_nascimento ?? null,
           nivel_permissao_id: profile?.nivel_permissao_id ?? null,
           nivel_nome: nivel?.nome ?? "Sem nível",
           ativo: profile?.ativo ?? true,
@@ -130,6 +133,32 @@ serve(async (req) => {
         .from("profiles")
         .update({ ativo: parsed.data.ativo })
         .eq("user_id", parsed.data.user_id);
+      if (error) throw error;
+
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (action === "update_profile") {
+      const schema = z.object({
+        user_id: z.string().uuid(),
+        nome: z.string().max(255).nullable().optional(),
+        cpf: z.string().max(20).nullable().optional(),
+        telefone: z.string().max(20).nullable().optional(),
+        data_nascimento: z.string().nullable().optional(),
+      });
+      const parsed = schema.safeParse(body);
+      if (!parsed.success) {
+        return new Response(JSON.stringify({ error: "Dados inválidos" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const { user_id, ...fields } = parsed.data;
+      const { error } = await supabaseAdmin
+        .from("profiles")
+        .update(fields)
+        .eq("user_id", user_id);
       if (error) throw error;
 
       return new Response(JSON.stringify({ success: true }), {
