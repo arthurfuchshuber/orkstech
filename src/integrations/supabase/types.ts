@@ -137,6 +137,48 @@ export type Database = {
           },
         ]
       }
+      automacoes: {
+        Row: {
+          acoes: Json
+          ativo: boolean
+          condicoes: Json
+          created_at: string
+          descricao: string | null
+          evento_gatilho: string
+          executado_count: number
+          id: string
+          nome: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          acoes?: Json
+          ativo?: boolean
+          condicoes?: Json
+          created_at?: string
+          descricao?: string | null
+          evento_gatilho: string
+          executado_count?: number
+          id?: string
+          nome: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          acoes?: Json
+          ativo?: boolean
+          condicoes?: Json
+          created_at?: string
+          descricao?: string | null
+          evento_gatilho?: string
+          executado_count?: number
+          id?: string
+          nome?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       bancos: {
         Row: {
           ativo: boolean
