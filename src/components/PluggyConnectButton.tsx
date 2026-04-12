@@ -8,6 +8,27 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Link2, RefreshCw, Trash2, Loader2 } from "lucide-react";
 
+declare global {
+  interface Window {
+    PluggyConnect?: any;
+  }
+}
+
+function loadPluggyScript(): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (document.getElementById("pluggy-connect-script")) {
+      resolve();
+      return;
+    }
+    const script = document.createElement("script");
+    script.id = "pluggy-connect-script";
+    script.src = "https://cdn.pluggy.ai/pluggy-connect/v2.8.1/pluggy-connect.js";
+    script.onload = () => resolve();
+    script.onerror = () => reject(new Error("Failed to load Pluggy Connect SDK"));
+    document.head.appendChild(script);
+  });
+}
+
 export function PluggyConnectButton() {
   const { user } = useAuth();
   const qc = useQueryClient();
@@ -42,31 +63,24 @@ export function PluggyConnectButton() {
     if (!user) return;
     setLoading(true);
     try {
+      // 1. Get connect token from edge function
       const { data, error } = await supabase.functions.invoke("pluggy-connect-token", {
         method: "POST",
         body: {},
       });
 
       if (error) throw error;
-
       const connectToken = data.connectToken;
       if (!connectToken) throw new Error("Token não recebido");
 
-      // Open Pluggy Connect widget
-      const pluggyWidget = window.open(
-        `https://connect.pluggy.ai/?connect_token=${connectToken}`,
-        "pluggy_connect",
-        "width=500,height=700,left=200,top=100"
-      );
+      // 2. Load Pluggy Connect SDK
+      await loadPluggyScript();
 
-      // Listen for message from widget
-      const handleMessage = async (event: MessageEvent) => {
-        if (event.origin !== "https://connect.pluggy.ai") return;
-        
-        if (event.data?.type === "pluggy-connect" && event.data?.item) {
-          const item = event.data.item;
-          
-          // Save connection
+      // 3. Open widget
+      const pluggyConnect = new window.PluggyConnect({
+        connectToken,
+        onSuccess: async (itemData: { item: { id: string; connector?: { name?: string } } }) => {
+          const item = itemData.item;
           const { error: insertError } = await supabase.from("pluggy_connections" as any).insert({
             user_id: user.id,
             pluggy_item_id: item.id,
@@ -81,21 +95,19 @@ export function PluggyConnectButton() {
             toast.success(`${item.connector?.name || "Banco"} conectado com sucesso!`);
             qc.invalidateQueries({ queryKey: ["pluggy_connections"] });
           }
-
-          window.removeEventListener("message", handleMessage);
-        }
-      };
-
-      window.addEventListener("message", handleMessage);
-
-      // Cleanup if window closed without completing
-      const checkClosed = setInterval(() => {
-        if (pluggyWidget?.closed) {
-          clearInterval(checkClosed);
-          window.removeEventListener("message", handleMessage);
           setLoading(false);
-        }
-      }, 1000);
+        },
+        onError: (err: any) => {
+          console.error("Pluggy error:", err);
+          toast.error("Erro na conexão bancária");
+          setLoading(false);
+        },
+        onClose: () => {
+          setLoading(false);
+        },
+      });
+
+      pluggyConnect.init();
     } catch (err) {
       console.error("Pluggy connect error:", err);
       toast.error("Erro ao conectar banco");
@@ -105,12 +117,6 @@ export function PluggyConnectButton() {
 
   const handleSync = async (itemId: string) => {
     try {
-      const { data, error } = await supabase.functions.invoke("pluggy-sync", {
-        method: "GET",
-        headers: {},
-        body: undefined,
-      });
-      // For GET we need to use query params - use fetch directly
       const session = await supabase.auth.getSession();
       const token = session.data.session?.access_token;
       const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
@@ -119,11 +125,9 @@ export function PluggyConnectButton() {
         { headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' } }
       );
       if (!res.ok) throw new Error("Sync failed");
-      const result = await res.json();
       
       toast.success("Sincronizado com sucesso!");
       qc.invalidateQueries({ queryKey: ["pluggy_connections"] });
-      console.log("Pluggy sync result:", result);
     } catch (err) {
       console.error("Sync error:", err);
       toast.error("Erro ao sincronizar");
