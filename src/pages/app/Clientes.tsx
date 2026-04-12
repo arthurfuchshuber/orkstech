@@ -17,6 +17,7 @@ import { TextInput } from "@/components/inputs/TextInput";
 import { TextareaInput } from "@/components/inputs/TextareaInput";
 import { DateInput } from "@/components/inputs/DateInput";
 import { validateClientForm, type ClientFormData, type FormErrors } from "@/lib/validators";
+import { refreshQueries } from "@/lib/query-refresh";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -124,8 +125,8 @@ export default function Clientes() {
       if (error) throw error;
       return result;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["clientes"] });
+    onSuccess: async () => {
+      await refreshQueries(queryClient, [["clientes"]]);
       toast.success("Cliente cadastrado com sucesso!");
       setForm(initialForm);
       setErrors({});

@@ -30,6 +30,7 @@ import { Input } from "@/components/ui/input";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { useAuth } from "@/hooks/useAuth";
+import { refreshQueries } from "@/lib/query-refresh";
 import {
   fetchAccountsPayable, createAccountPayable, updateAccountPayable,
   countAccountsPayable, registerPayment, type AccountPayableInsert
@@ -184,9 +185,8 @@ export default function ContasAPagar() {
   // Mutations
   const createMutation = useMutation({
     mutationFn: createAccountPayable,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["accounts-payable"] });
-      queryClient.invalidateQueries({ queryKey: ["accounts-payable-counts"] });
+    onSuccess: async () => {
+      await refreshQueries(queryClient, [["accounts-payable"], ["accounts-payable-counts"]]);
       toast.success(editingId ? "Conta atualizada!" : "Conta(s) criada(s) com sucesso!");
       resetForm();
     },
@@ -195,9 +195,8 @@ export default function ContasAPagar() {
 
   const updateMutation = useMutation({
     mutationFn: ({ id, data }: { id: string; data: any }) => updateAccountPayable(id, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["accounts-payable"] });
-      queryClient.invalidateQueries({ queryKey: ["accounts-payable-counts"] });
+    onSuccess: async () => {
+      await refreshQueries(queryClient, [["accounts-payable"], ["accounts-payable-counts"]]);
       toast.success("Conta atualizada!");
       resetForm();
     },
@@ -207,9 +206,8 @@ export default function ContasAPagar() {
   const paymentMutation = useMutation({
     mutationFn: ({ id, bankAccountId, paymentDate }: { id: string; bankAccountId: string; paymentDate: string }) =>
       registerPayment(id, bankAccountId, paymentDate, user!.id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["accounts-payable"] });
-      queryClient.invalidateQueries({ queryKey: ["accounts-payable-counts"] });
+    onSuccess: async () => {
+      await refreshQueries(queryClient, [["accounts-payable"], ["accounts-payable-counts"]]);
       toast.success("Pagamento registrado!");
       setShowPaymentDialog(false);
       setPayingId(null);
