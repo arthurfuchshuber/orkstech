@@ -180,7 +180,7 @@ export function ManagedSelectInput({
         </PopoverTrigger>
         <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
           {/* Search */}
-          {localOptions.length > 5 && mode === "select" && (
+          {mode === "select" && (
             <div className="p-2 border-b border-border/50">
               <Input
                 placeholder="Buscar..."
