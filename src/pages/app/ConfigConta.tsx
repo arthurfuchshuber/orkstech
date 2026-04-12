@@ -1,5 +1,8 @@
 import { useState } from "react";
 import { Building2, Users, Trash2, Pencil } from "lucide-react";
+import { DocumentInput } from "@/components/inputs/DocumentInput";
+import { PhoneInput } from "@/components/inputs/PhoneInput";
+import { DateInput } from "@/components/inputs/DateInput";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -384,38 +387,67 @@ function UsuariosTab() {
               />
             </div>
             <div>
-              <label className="text-xs font-medium text-muted-foreground mb-1 block">CPF</label>
-              <Input
+              <DocumentInput
+                type="cpf"
                 value={editForm.cpf}
-                onChange={(e) => setEditForm({ ...editForm, cpf: e.target.value })}
-                className="h-9 text-sm"
-                placeholder="000.000.000-00"
+                onValueChange={(raw) => setEditForm({ ...editForm, cpf: raw })}
+                label="CPF"
               />
             </div>
             <div>
-              <label className="text-xs font-medium text-muted-foreground mb-1 block">Telefone</label>
-              <Input
+              <PhoneInput
                 value={editForm.telefone}
-                onChange={(e) => setEditForm({ ...editForm, telefone: e.target.value })}
-                className="h-9 text-sm"
-                placeholder="(00) 00000-0000"
+                onValueChange={(raw) => setEditForm({ ...editForm, telefone: raw })}
+                label="Telefone"
               />
             </div>
             <div>
-              <label className="text-xs font-medium text-muted-foreground mb-1 block">Data de Nascimento</label>
-              <Input
-                type="date"
-                value={editForm.data_nascimento}
-                onChange={(e) => setEditForm({ ...editForm, data_nascimento: e.target.value })}
-                className="h-9 text-sm"
+              <DateInput
+                value={editForm.data_nascimento ? new Date(editForm.data_nascimento + "T12:00:00") : undefined}
+                onValueChange={(date) => setEditForm({ ...editForm, data_nascimento: date ? date.toISOString().split("T")[0] : "" })}
+                label="Data de Nascimento"
               />
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setEditingUser(null)}>Cancelar</Button>
-            <Button onClick={() => updateProfile.mutate()} disabled={updateProfile.isPending}>
-              {updateProfile.isPending ? "Salvando..." : "Salvar"}
-            </Button>
+          <DialogFooter className="flex !justify-between">
+            {editingUser && editingUser.id !== user?.id ? (
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="destructive" size="sm" className="gap-1.5">
+                    <Trash2 className="w-3.5 h-3.5" />
+                    Excluir usuário
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Excluir usuário</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Tem certeza que deseja excluir <strong>{editingUser.email}</strong>? Esta ação é irreversível.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={() => {
+                        deleteUser.mutate(editingUser.id);
+                        setEditingUser(null);
+                      }}
+                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    >
+                      Excluir
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            ) : (
+              <div />
+            )}
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setEditingUser(null)}>Cancelar</Button>
+              <Button onClick={() => updateProfile.mutate()} disabled={updateProfile.isPending}>
+                {updateProfile.isPending ? "Salvando..." : "Salvar"}
+              </Button>
+            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>
