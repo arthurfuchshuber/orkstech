@@ -35,13 +35,18 @@ serve(async (req) => {
 Analise a imagem/PDF do boleto e extraia as seguintes informações:
 - description: descrição/finalidade do boleto
 - supplier_name: nome do beneficiário/cedente (empresa que vai receber o pagamento)
+- supplier_cnpj: CNPJ do beneficiário/cedente (apenas números, 14 dígitos)
+- supplier_phone: telefone do beneficiário se disponível (apenas números)
+- supplier_email: email do beneficiário se disponível
+- supplier_address: endereço completo do beneficiário se disponível
 - document_number: número do documento ou nosso número
 - amount: valor do boleto em centavos (ex: R$ 150,00 = 15000). IMPORTANTE: retorne em centavos como número inteiro.
 - due_date: data de vencimento no formato YYYY-MM-DD
 - barcode: código de barras ou linha digitável completa
 
 Se algum campo não for encontrado, retorne null para ele.
-IMPORTANTE: O amount DEVE ser em centavos (inteiro). Ex: R$ 1.234,56 = 123456`;
+IMPORTANTE: O amount DEVE ser em centavos (inteiro). Ex: R$ 1.234,56 = 123456
+IMPORTANTE: O supplier_cnpj deve conter APENAS os 14 dígitos numéricos, sem pontuação.`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -64,7 +69,7 @@ IMPORTANTE: O amount DEVE ser em centavos (inteiro). Ex: R$ 1.234,56 = 123456`;
               },
               {
                 type: "text",
-                text: "Extraia todos os dados deste boleto bancário.",
+                text: "Extraia todos os dados deste boleto bancário, incluindo dados do beneficiário/cedente como CNPJ, telefone, email e endereço.",
               },
             ],
           },
@@ -80,6 +85,10 @@ IMPORTANTE: O amount DEVE ser em centavos (inteiro). Ex: R$ 1.234,56 = 123456`;
                 properties: {
                   description: { type: "string", description: "Descrição ou finalidade do pagamento" },
                   supplier_name: { type: "string", description: "Nome do beneficiário/cedente" },
+                  supplier_cnpj: { type: "string", description: "CNPJ do beneficiário (apenas 14 dígitos numéricos)" },
+                  supplier_phone: { type: "string", description: "Telefone do beneficiário (apenas números)" },
+                  supplier_email: { type: "string", description: "Email do beneficiário" },
+                  supplier_address: { type: "string", description: "Endereço completo do beneficiário" },
                   document_number: { type: "string", description: "Número do documento ou nosso número" },
                   amount: { type: "integer", description: "Valor em centavos (ex: R$ 150,00 = 15000)" },
                   due_date: { type: "string", description: "Data de vencimento no formato YYYY-MM-DD" },
