@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -6,33 +6,14 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { PluggyConnect } from "react-pluggy-connect";
 import { Link2, RefreshCw, Trash2, Loader2 } from "lucide-react";
-
-declare global {
-  interface Window {
-    PluggyConnect?: any;
-  }
-}
-
-function loadPluggyScript(): Promise<void> {
-  return new Promise((resolve, reject) => {
-    if (document.getElementById("pluggy-connect-script")) {
-      resolve();
-      return;
-    }
-    const script = document.createElement("script");
-    script.id = "pluggy-connect-script";
-    script.src = "https://cdn.pluggy.ai/pluggy-connect/v2.8.1/pluggy-connect.js";
-    script.onload = () => resolve();
-    script.onerror = () => reject(new Error("Failed to load Pluggy Connect SDK"));
-    document.head.appendChild(script);
-  });
-}
 
 export function PluggyConnectButton() {
   const { user } = useAuth();
   const qc = useQueryClient();
   const [loading, setLoading] = useState(false);
+  const [connectToken, setConnectToken] = useState<string | null>(null);
 
   const { data: connections = [] } = useQuery({
     queryKey: ["pluggy_connections"],
@@ -63,57 +44,57 @@ export function PluggyConnectButton() {
     if (!user) return;
     setLoading(true);
     try {
-      // 1. Get connect token from edge function
       const { data, error } = await supabase.functions.invoke("pluggy-connect-token", {
         method: "POST",
         body: {},
       });
 
       if (error) throw error;
-      const connectToken = data.connectToken;
-      if (!connectToken) throw new Error("Token não recebido");
+      const token = data.connectToken;
+      if (!token) throw new Error("Token não recebido");
 
-      // 2. Load Pluggy Connect SDK
-      await loadPluggyScript();
-
-      // 3. Open widget
-      const pluggyConnect = new window.PluggyConnect({
-        connectToken,
-        onSuccess: async (itemData: { item: { id: string; connector?: { name?: string } } }) => {
-          const item = itemData.item;
-          const { error: insertError } = await supabase.from("pluggy_connections" as any).insert({
-            user_id: user.id,
-            pluggy_item_id: item.id,
-            connector_name: item.connector?.name || "Banco conectado",
-            status: "connected",
-          });
-
-          if (insertError) {
-            console.error("Insert error:", insertError);
-            toast.error("Erro ao salvar conexão");
-          } else {
-            toast.success(`${item.connector?.name || "Banco"} conectado com sucesso!`);
-            qc.invalidateQueries({ queryKey: ["pluggy_connections"] });
-          }
-          setLoading(false);
-        },
-        onError: (err: any) => {
-          console.error("Pluggy error:", err);
-          toast.error("Erro na conexão bancária");
-          setLoading(false);
-        },
-        onClose: () => {
-          setLoading(false);
-        },
-      });
-
-      pluggyConnect.init();
+      setConnectToken(token);
     } catch (err) {
       console.error("Pluggy connect error:", err);
-      toast.error("Erro ao conectar banco");
+      toast.error("Erro ao gerar token de conexão");
       setLoading(false);
     }
   };
+
+  const onSuccess = useCallback(async (itemData: { item: { id: string; connector?: { name?: string } } }) => {
+    if (!user) return;
+    const item = itemData.item;
+
+    const { error: insertError } = await supabase.from("pluggy_connections" as any).insert({
+      user_id: user.id,
+      pluggy_item_id: item.id,
+      connector_name: item.connector?.name || "Banco conectado",
+      status: "connected",
+    });
+
+    if (insertError) {
+      console.error("Insert error:", insertError);
+      toast.error("Erro ao salvar conexão");
+    } else {
+      toast.success(`${item.connector?.name || "Banco"} conectado com sucesso!`);
+      qc.invalidateQueries({ queryKey: ["pluggy_connections"] });
+    }
+
+    setConnectToken(null);
+    setLoading(false);
+  }, [user, qc]);
+
+  const onError = useCallback((error: any) => {
+    console.error("Pluggy widget error:", error);
+    toast.error("Erro na conexão bancária");
+    setConnectToken(null);
+    setLoading(false);
+  }, []);
+
+  const onClose = useCallback(() => {
+    setConnectToken(null);
+    setLoading(false);
+  }, []);
 
   const handleSync = async (itemId: string) => {
     try {
@@ -122,10 +103,13 @@ export function PluggyConnectButton() {
       const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
       const res = await fetch(
         `https://${projectId}.supabase.co/functions/v1/pluggy-sync?itemId=${itemId}&action=summary`,
-        { headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' } }
+        { headers: { Authorization: `Bearer ${token}` } }
       );
-      if (!res.ok) throw new Error("Sync failed");
-      
+      if (!res.ok) {
+        await res.text();
+        throw new Error("Sync failed");
+      }
+      await res.json();
       toast.success("Sincronizado com sucesso!");
       qc.invalidateQueries({ queryKey: ["pluggy_connections"] });
     } catch (err) {
@@ -140,6 +124,16 @@ export function PluggyConnectButton() {
         {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Link2 className="w-4 h-4" />}
         Conectar Banco via Open Finance
       </Button>
+
+      {/* Pluggy Connect Widget */}
+      {connectToken && (
+        <PluggyConnect
+          connectToken={connectToken}
+          onSuccess={onSuccess}
+          onError={onError}
+          onClose={onClose}
+        />
+      )}
 
       {connections.length > 0 && (
         <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
