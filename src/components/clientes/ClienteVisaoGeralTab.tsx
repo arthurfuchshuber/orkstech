@@ -5,7 +5,6 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { TextInput } from "@/components/inputs/TextInput";
 import { supabase } from "@/integrations/supabase/client";
@@ -46,7 +45,7 @@ const tipoColors: Record<string, string> = {
   contrato: "text-rose-400",
 };
 
-export function ClienteVisaoGeralTab({ cliente, onEdit }: Props) {
+export function ClienteVisaoGeralTab({ cliente, onEdit: _onEdit }: Props) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [showForm, setShowForm] = useState(false);

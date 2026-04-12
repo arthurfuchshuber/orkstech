@@ -57,7 +57,7 @@ export function ClienteDocumentosTab({ clienteId }: Props) {
       return;
     }
 
-    isContract ? setUploadingContract(true) : setUploading(true);
+    if (isContract) { setUploadingContract(true); } else { setUploading(true); }
     try {
       const path = `${user.id}/${clienteId}/${Date.now()}_${file.name}`;
       const { error: uploadError } = await supabase.storage
@@ -82,7 +82,7 @@ export function ClienteDocumentosTab({ clienteId }: Props) {
     } catch {
       toast.error("Erro ao enviar arquivo");
     } finally {
-      isContract ? setUploadingContract(false) : setUploading(false);
+      if (isContract) { setUploadingContract(false); } else { setUploading(false); }
       if (fileRef.current) fileRef.current.value = "";
       if (contractRef.current) contractRef.current.value = "";
     }
