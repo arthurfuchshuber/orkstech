@@ -1,5 +1,8 @@
 import { useState } from "react";
 import { Building2, Users, Trash2, Pencil } from "lucide-react";
+import { DocumentInput } from "@/components/inputs/DocumentInput";
+import { PhoneInput } from "@/components/inputs/PhoneInput";
+import { DateInput } from "@/components/inputs/DateInput";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
