@@ -319,7 +319,7 @@ export function AppSidebar() {
           <SidebarGroup className="py-0.5">
             <SidebarGroupContent>
               <SidebarMenu>
-                {tree.map((item) => (
+                {filteredTree.map((item) => (
                   <MenuItemNode
                     key={item.id}
                     item={item}
