@@ -31,6 +31,7 @@ export function ClienteFinanceiroTab({ clienteId }: Props) {
       const { data, error } = await supabase
         .from("accounts_payable")
         .select("*")
+        .eq("cliente_id", clienteId)
         .order("due_date", { ascending: false })
         .limit(50);
       if (error) throw error;
