@@ -387,25 +387,25 @@ function UsuariosTab() {
               />
             </div>
             <div>
-              <label className="text-xs font-medium text-muted-foreground mb-1 block">CPF</label>
               <DocumentInput
+                type="cpf"
                 value={editForm.cpf}
-                onChange={(v) => setEditForm({ ...editForm, cpf: v })}
-                tipo="pf"
+                onValueChange={(raw) => setEditForm({ ...editForm, cpf: raw })}
+                label="CPF"
               />
             </div>
             <div>
-              <label className="text-xs font-medium text-muted-foreground mb-1 block">Telefone</label>
               <PhoneInput
                 value={editForm.telefone}
-                onChange={(v) => setEditForm({ ...editForm, telefone: v })}
+                onValueChange={(raw) => setEditForm({ ...editForm, telefone: raw })}
+                label="Telefone"
               />
             </div>
             <div>
-              <label className="text-xs font-medium text-muted-foreground mb-1 block">Data de Nascimento</label>
               <DateInput
-                value={editForm.data_nascimento}
-                onChange={(v) => setEditForm({ ...editForm, data_nascimento: v })}
+                value={editForm.data_nascimento ? new Date(editForm.data_nascimento + "T12:00:00") : undefined}
+                onValueChange={(date) => setEditForm({ ...editForm, data_nascimento: date ? date.toISOString().split("T")[0] : "" })}
+                label="Data de Nascimento"
               />
             </div>
           </div>
