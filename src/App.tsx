@@ -59,6 +59,8 @@ const App = () => (
                 <Route path="financas/plano-de-contas" element={<PlanoDeContas />} />
                 <Route path="financas/centros-de-custo" element={<CentrosDeCusto />} />
                 <Route path="financas/contas-bancarias" element={<ContasBancarias />} />
+                <Route path="financas/extrato" element={<ExtratoBancario />} />
+                <Route path="financas/conciliacao" element={<Conciliacao />} />
                 <Route path="financas/formas-de-pagamento" element={<FormasDePagamento />} />
                 <Route path="automacoes/workflows" element={<Automacoes />} />
                 <Route path="automacoes/integracoes" element={<PlaceholderPage />} />
