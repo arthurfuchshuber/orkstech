@@ -28,6 +28,8 @@ import ContasAPagar from "./pages/app/ContasAPagar";
 import NotFound from "./pages/NotFound";
 import ExtratoBancario from "./pages/app/ExtratoBancario";
 import Conciliacao from "./pages/app/Conciliacao";
+import ConfigConta from "./pages/app/ConfigConta";
+import ConfigPlanos from "./pages/app/ConfigPlanos";
 
 const queryClient = new QueryClient();
 
@@ -66,8 +68,9 @@ const App = () => (
                 <Route path="automacoes/integracoes" element={<PlaceholderPage />} />
                 <Route path="automacoes/notificacoes" element={<PlaceholderPage />} />
                 <Route path="config" element={<Configuracoes />} />
-                <Route path="config/usuarios" element={<PlaceholderPage />} />
-                <Route path="config/permissoes" element={<PlaceholderPage />} />
+                <Route path="config/geral" element={<PlaceholderPage />} />
+                <Route path="config/conta" element={<ConfigConta />} />
+                <Route path="config/planos" element={<ConfigPlanos />} />
                 <Route path="config/menus" element={<GerenciarMenu />} />
               </Route>
               <Route path="*" element={<NotFound />} />
