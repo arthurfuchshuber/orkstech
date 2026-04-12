@@ -2,86 +2,15 @@ import { useState } from "react";
 import { DragDropContext } from "@hello-pangea/dnd";
 import { useMenus, type MenuItem } from "@/hooks/useMenus";
 import { DynamicIcon } from "@/components/DynamicIcon";
-import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Switch } from "@/components/ui/switch";
-import { Badge } from "@/components/ui/badge";
-import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
-} from "@/components/ui/dialog";
-import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from "@/components/ui/select";
-import {
-  ChevronRight, ChevronDown, Pencil, GripVertical, Menu, Eye, EyeOff,
-} from "lucide-react";
+import { ChevronRight, ChevronDown, GripVertical, Menu } from "lucide-react";
 import { Droppable, Draggable, type DropResult } from "@hello-pangea/dnd";
 
-const ICON_OPTIONS = [
-  "LayoutDashboard", "DollarSign", "Receipt", "TrendingUp", "PiggyBank", "FileText",
-  "Settings", "FolderTree", "Target", "Landmark", "CreditCard", "Users", "Truck",
-  "Package", "Zap", "Workflow", "Webhook", "Bell", "Building2", "UserCog", "Shield",
-  "Menu", "Circle", "Star", "Heart", "Home", "Mail", "Phone", "Search",
-];
-
-interface EditFormData {
-  name: string;
-  icon: string;
-  route: string;
-  is_visible: boolean;
-  is_active: boolean;
-}
-
 export default function GerenciarMenu() {
-  const { tree, flatMenus, isLoading, updateMenu, reorder } = useMenus();
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [form, setForm] = useState<EditFormData>({ name: "", icon: "Circle", route: "", is_visible: true, is_active: true });
+  const { tree, flatMenus, isLoading, reorder } = useMenus();
   const [openMap, setOpenMap] = useState<Record<string, boolean>>({});
 
   const toggle = (id: string) => setOpenMap((p) => ({ ...p, [id]: !p[id] }));
-
-  const openEdit = (item: MenuItem) => {
-    setEditingId(item.id);
-    setForm({
-      name: item.name,
-      icon: item.icon,
-      route: item.route || "",
-      is_visible: item.is_visible,
-      is_active: item.is_active,
-    });
-    setDialogOpen(true);
-  };
-
-  const handleSave = async () => {
-    if (!form.name) {
-      toast.error("Nome é obrigatório");
-      return;
-    }
-    try {
-      if (editingId) {
-        const existing = flatMenus.find((m) => m.id === editingId);
-        await updateMenu.mutateAsync({
-          id: editingId,
-          name: form.name,
-          icon: form.icon,
-          route: form.route || null,
-          is_visible: form.is_visible,
-          is_active: form.is_active,
-          // preserve existing fields
-          slug: existing?.slug,
-          module: existing?.module,
-          parent_id: existing?.parent_id,
-        } as any);
-        toast.success("Menu atualizado");
-      }
-      setDialogOpen(false);
-    } catch (e: any) {
-      toast.error(e.message);
-    }
-  };
 
   const handleDragEnd = (result: DropResult) => {
     if (!result.destination) return;
@@ -96,7 +25,7 @@ export default function GerenciarMenu() {
     reorder.mutate(updates);
   };
 
-  const renderDroppable = (items: MenuItem[], droppableId: string, depth = 0) => (
+  const renderDroppable = (items: MenuItem[], droppableId: string) => (
     <Droppable droppableId={droppableId}>
       {(provided) => (
         <div ref={provided.innerRef} {...provided.droppableProps} className="space-y-1">
@@ -121,9 +50,6 @@ export default function GerenciarMenu() {
                       <DynamicIcon name={item.icon} className="w-4 h-4 text-muted-foreground flex-shrink-0" />
                       <span className="flex-1 text-sm font-medium text-foreground">{item.name}</span>
 
-
-
-
                       {hasChildren && (
                         <button
                           onClick={() => toggle(item.id)}
@@ -136,14 +62,11 @@ export default function GerenciarMenu() {
                           )}
                         </button>
                       )}
-
-
-
                     </div>
 
                     {isOpen && hasChildren && (
                       <div className="ml-6 mt-1 pl-3 border-l-2 border-border/30 space-y-1">
-                        {renderDroppable(item.children!, item.id, depth + 1)}
+                        {renderDroppable(item.children!, item.id)}
                       </div>
                     )}
                   </div>
@@ -163,15 +86,13 @@ export default function GerenciarMenu() {
 
   return (
     <div className="space-y-6 max-w-4xl animate-fade-in">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Menu className="w-5 h-5 text-primary" />
-          <div>
-            <h1 className="text-xl font-bold text-foreground">Gerenciar Menu</h1>
-            <p className="text-sm text-muted-foreground mt-0.5">
-              Reordene e configure os itens de navegação do sistema
-            </p>
-          </div>
+      <div className="flex items-center gap-3">
+        <Menu className="w-5 h-5 text-primary" />
+        <div>
+          <h1 className="text-xl font-bold text-foreground">Gerenciar Menu</h1>
+          <p className="text-sm text-muted-foreground mt-0.5">
+            Arraste para reordenar os itens de navegação do sistema
+          </p>
         </div>
       </div>
 
@@ -186,61 +107,6 @@ export default function GerenciarMenu() {
           </DragDropContext>
         )}
       </Card>
-
-      {/* Edit Dialog */}
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Editar Menu</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <label className="text-sm font-medium text-foreground mb-1.5 block">Nome</label>
-              <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
-            </div>
-            <div>
-              <label className="text-sm font-medium text-foreground mb-1.5 block">Rota</label>
-              <Input
-                value={form.route}
-                onChange={(e) => setForm({ ...form, route: e.target.value })}
-                placeholder="/app/modulo/pagina"
-              />
-            </div>
-            <div>
-              <label className="text-sm font-medium text-foreground mb-1.5 block">Ícone</label>
-              <Select value={form.icon} onValueChange={(v) => setForm({ ...form, icon: v })}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {ICON_OPTIONS.map((ic) => (
-                    <SelectItem key={ic} value={ic}>
-                      <div className="flex items-center gap-2">
-                        <DynamicIcon name={ic} className="w-4 h-4" />
-                        <span>{ic}</span>
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex items-center gap-6">
-              <div className="flex items-center gap-2">
-                <Switch checked={form.is_active} onCheckedChange={(v) => setForm({ ...form, is_active: v })} />
-                <label className="text-sm text-foreground">Ativo</label>
-              </div>
-              <div className="flex items-center gap-2">
-                <Switch checked={form.is_visible} onCheckedChange={(v) => setForm({ ...form, is_visible: v })} />
-                <label className="text-sm text-foreground">Visível</label>
-              </div>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancelar</Button>
-            <Button onClick={handleSave}>Salvar</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
