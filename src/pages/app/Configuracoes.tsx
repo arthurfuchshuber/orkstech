@@ -1,4 +1,4 @@
-import { Settings, ChevronRight, Building2, CreditCard, Menu } from "lucide-react";
+import { ChevronRight, Building2, CreditCard, Menu } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import type { LucideIcon } from "lucide-react";
 
