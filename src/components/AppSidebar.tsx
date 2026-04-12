@@ -1,8 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import { NavLink } from "@/components/NavLink";
 import { DynamicIcon } from "@/components/DynamicIcon";
 import { useMenus, type MenuItem } from "@/hooks/useMenus";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 import { ChevronRight, Zap } from "lucide-react";
 import {
   Sidebar,
@@ -204,7 +207,34 @@ export function AppSidebar() {
   const collapsed = state === "collapsed";
   const location = useLocation();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const { tree, flatMenus, isLoading } = useMenus();
+
+  // Check if user has open finance connections
+  const { data: hasOpenFinance } = useQuery({
+    queryKey: ["pluggy_connections_exist", user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      const { count } = await supabase
+        .from("pluggy_connections")
+        .select("id", { count: "exact", head: true })
+        .eq("status", "connected");
+      return (count ?? 0) > 0;
+    },
+  });
+
+  // Filter tree: hide "extrato-bancario" if no open finance connections
+  const filteredTree = useMemo(() => {
+    if (hasOpenFinance) return tree;
+    const filterItems = (items: MenuItem[]): MenuItem[] =>
+      items
+        .filter((item) => item.slug !== "extrato-bancario")
+        .map((item) => ({
+          ...item,
+          children: item.children ? filterItems(item.children) : [],
+        }));
+    return filterItems(tree);
+  }, [tree, hasOpenFinance]);
 
   const findActiveIds = (items: MenuItem[], path: string): string[] => {
     for (const item of items) {
@@ -217,12 +247,12 @@ export function AppSidebar() {
     return [];
   };
 
-  const activeIdsKey = findActiveIds(tree, location.pathname).join("|");
+  const activeIdsKey = findActiveIds(filteredTree, location.pathname).join("|");
 
   const [openMap, setOpenMap] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
-    const ids = findActiveIds(tree, location.pathname);
+    const ids = findActiveIds(filteredTree, location.pathname);
     const nextOpenMap: Record<string, boolean> = {};
     ids.forEach((id) => {
       nextOpenMap[id] = true;
@@ -289,7 +319,7 @@ export function AppSidebar() {
           <SidebarGroup className="py-0.5">
             <SidebarGroupContent>
               <SidebarMenu>
-                {tree.map((item) => (
+                {filteredTree.map((item) => (
                   <MenuItemNode
                     key={item.id}
                     item={item}
