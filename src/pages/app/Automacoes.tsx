@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Workflow, Zap, CheckCircle, Plus, ArrowRight, Trash2 } from "lucide-react";
+import { Workflow, Zap, CheckCircle, Plus, Trash2 } from "lucide-react";
 import { StatCard } from "@/components/StatCard";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
