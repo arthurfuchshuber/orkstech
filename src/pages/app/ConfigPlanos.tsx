@@ -100,11 +100,13 @@ export default function ConfigPlanos() {
       )}
 
       {/* Stripe Pricing Table */}
-      <div
-        dangerouslySetInnerHTML={{
-          __html: `<stripe-pricing-table pricing-table-id="prctbl_1TLE55J633HWAlBjLIDqdzsi" publishable-key="pk_test_51TFifCJ633HWAlBjiOg67fgb2hPnc0MO5gFCWvNqUE3yXPLQUNPzF9kCwFPt0ZZkNGfez75GX0WAQHVDzwiZ3dy200apPUxMmQ"></stripe-pricing-table>`,
-        }}
-      />
+      <Card className="p-5">
+        <div
+          dangerouslySetInnerHTML={{
+            __html: `<stripe-pricing-table pricing-table-id="prctbl_1TLE55J633HWAlBjLIDqdzsi" publishable-key="pk_test_51TFifCJ633HWAlBjiOg67fgb2hPnc0MO5gFCWvNqUE3yXPLQUNPzF9kCwFPt0ZZkNGfez75GX0WAQHVDzwiZ3dy200apPUxMmQ"></stripe-pricing-table>`,
+          }}
+        />
+      </Card>
 
       <Card className="p-5">
         <div className="flex items-center gap-3 mb-3">
