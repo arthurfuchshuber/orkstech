@@ -100,6 +100,8 @@ export default function ContasAPagar() {
   const [payingId, setPayingId] = useState<string | null>(null);
   const [paymentBankAccount, setPaymentBankAccount] = useState("");
   const [paymentDate, setPaymentDate] = useState<Date | undefined>(new Date());
+  const [showDuplicateAlert, setShowDuplicateAlert] = useState(false);
+  const [duplicateMatches, setDuplicateMatches] = useState<any[]>([]);
 
   // Managed select hooks
   const categoriasCrud = useManagedSelect("categorias_financeiras", { insertDefaults: { tipo: "despesa" } });
