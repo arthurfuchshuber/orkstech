@@ -68,7 +68,7 @@ const App = () => (
                 <Route path="automacoes/integracoes" element={<PlaceholderPage />} />
                 <Route path="automacoes/notificacoes" element={<PlaceholderPage />} />
                 <Route path="config" element={<Configuracoes />} />
-                <Route path="config/geral" element={<PlaceholderPage />} />
+                
                 <Route path="config/conta" element={<ConfigConta />} />
                 <Route path="config/planos" element={<ConfigPlanos />} />
                 <Route path="config/menus" element={<GerenciarMenu />} />
