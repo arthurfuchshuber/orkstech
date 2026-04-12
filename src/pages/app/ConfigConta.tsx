@@ -15,6 +15,9 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+} from "@/components/ui/dialog";
+import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { useEmpresa } from "@/hooks/useEmpresa";
@@ -141,6 +144,9 @@ interface UserRow {
   email: string;
   created_at: string;
   nome: string | null;
+  cpf: string | null;
+  telefone: string | null;
+  data_nascimento: string | null;
   nivel_permissao_id: string | null;
   nivel_nome: string;
   ativo: boolean;
