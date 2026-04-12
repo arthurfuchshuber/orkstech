@@ -23,7 +23,7 @@ import { CategoriaFinanceiraModal } from "@/components/modals/CategoriaFinanceir
 import { CentroCustoModal } from "@/components/modals/CentroCustoModal";
 import { ContaBancariaModal } from "@/components/modals/ContaBancariaModal";
 import { FormaPagamentoModal } from "@/components/modals/FormaPagamentoModal";
-import { FornecedorModal } from "@/components/modals/FornecedorModal";
+import { FornecedorModal, type FornecedorPrefill } from "@/components/modals/FornecedorModal";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
@@ -45,7 +45,6 @@ interface PayableForm {
   document_number: string;
   amount: number;
   due_date?: Date;
-  issue_date?: Date;
   category_id: string;
   cost_center_id: string;
   bank_account_id: string;
@@ -65,7 +64,6 @@ const initialForm: PayableForm = {
   document_number: "",
   amount: 0,
   due_date: undefined,
-  issue_date: undefined,
   category_id: "",
   cost_center_id: "",
   bank_account_id: "",
@@ -116,6 +114,7 @@ export default function ContasAPagar() {
   const [fpEditingId, setFpEditingId] = useState<string | null>(null);
   const [fornModalOpen, setFornModalOpen] = useState(false);
   const [fornEditingId, setFornEditingId] = useState<string | null>(null);
+  const [fornPrefill, setFornPrefill] = useState<FornecedorPrefill | null>(null);
   const [scanning, setScanning] = useState(false);
   const [isPickingScanFile, setIsPickingScanFile] = useState(false);
   const scanInputRef = useRef<HTMLInputElement>(null);
@@ -134,7 +133,7 @@ export default function ContasAPagar() {
   const { data: fornecedores = [] } = useQuery({
     queryKey: ["fornecedores"],
     queryFn: async () => {
-      const { data } = await supabase.from("fornecedores").select("id, tipo, nome_completo, razao_social, nome_fantasia").eq("ativo", true).order("razao_social");
+      const { data } = await supabase.from("fornecedores").select("id, tipo, nome_completo, razao_social, nome_fantasia, cnpj, cpf").eq("ativo", true).order("razao_social");
       return data ?? [];
     },
   });
@@ -235,6 +234,21 @@ export default function ContasAPagar() {
     return Object.keys(errs).length === 0;
   };
 
+  // Upload the scanned file to storage and return the public URL
+  const uploadScanFile = async (file: File): Promise<string | null> => {
+    if (!user) return null;
+    try {
+      const ext = file.name.split(".").pop();
+      const path = `${user.id}/contas-pagar/${Date.now()}.${ext}`;
+      const { error: uploadError } = await supabase.storage.from("attachments").upload(path, file);
+      if (uploadError) throw uploadError;
+      const { data: urlData } = supabase.storage.from("attachments").getPublicUrl(path);
+      return urlData.publicUrl;
+    } catch {
+      return null;
+    }
+  };
+
   const handleSubmit = () => {
     if (!validate()) {
       toast.error("Corrija os campos destacados");
@@ -251,7 +265,6 @@ export default function ContasAPagar() {
           document_number: form.document_number || null,
           amount: form.amount / 100,
           due_date: form.due_date!.toISOString().split("T")[0],
-          issue_date: form.issue_date ? form.issue_date.toISOString().split("T")[0] : null,
           category_id: form.category_id || null,
           cost_center_id: form.cost_center_id || null,
           bank_account_id: form.bank_account_id || null,
@@ -283,7 +296,6 @@ export default function ContasAPagar() {
         document_number: form.document_number || null,
         amount: i === form.installments - 1 ? totalAmount - installmentAmount * (form.installments - 1) : installmentAmount,
         due_date: dueDate.toISOString().split("T")[0],
-        issue_date: form.issue_date ? form.issue_date.toISOString().split("T")[0] : null,
         category_id: form.category_id || null,
         cost_center_id: form.cost_center_id || null,
         bank_account_id: form.bank_account_id || null,
@@ -310,7 +322,6 @@ export default function ContasAPagar() {
       document_number: item.document_number || "",
       amount: Math.round(item.amount * 100),
       due_date: new Date(item.due_date),
-      issue_date: item.issue_date ? new Date(item.issue_date) : undefined,
       category_id: item.category_id || "",
       cost_center_id: item.cost_center_id || "",
       bank_account_id: item.bank_account_id || "",
@@ -341,7 +352,6 @@ export default function ContasAPagar() {
       document_number: "",
       amount: Math.round(item.amount * 100),
       due_date: undefined,
-      issue_date: undefined,
       category_id: item.category_id || "",
       cost_center_id: item.cost_center_id || "",
       bank_account_id: item.bank_account_id || "",
@@ -374,6 +384,9 @@ export default function ContasAPagar() {
 
     setScanning(true);
     try {
+      // Upload file to storage for attachment (in parallel with AI scan)
+      const uploadPromise = uploadScanFile(file);
+
       const reader = new FileReader();
       const base64 = await new Promise<string>((resolve, reject) => {
         reader.onload = () => {
@@ -384,9 +397,12 @@ export default function ContasAPagar() {
         reader.readAsDataURL(file);
       });
 
-      const { data, error } = await supabase.functions.invoke("scan-boleto", {
-        body: { file_base64: base64, file_type: file.type },
-      });
+      const [{ data, error }, attachmentUrl] = await Promise.all([
+        supabase.functions.invoke("scan-boleto", {
+          body: { file_base64: base64, file_type: file.type },
+        }),
+        uploadPromise,
+      ]);
 
       if (error) throw error;
       if (data?.error) {
@@ -400,20 +416,66 @@ export default function ContasAPagar() {
         return;
       }
 
-      setForm((prev) => ({
-        ...prev,
-        description: extracted.description || prev.description,
-        supplier_name: extracted.supplier_name || prev.supplier_name,
-        document_number: extracted.document_number || prev.document_number,
-        amount: extracted.amount || prev.amount,
-        due_date: extracted.due_date ? new Date(extracted.due_date + "T12:00:00") : prev.due_date,
-        notes: extracted.barcode
-          ? `Linha digitável: ${extracted.barcode}${prev.notes ? `\n${prev.notes}` : ""}`
-          : prev.notes,
-      }));
+      // 1. Clear previous form data before applying new scan
+      const newForm: PayableForm = {
+        ...initialForm,
+        description: extracted.description || "",
+        supplier_name: extracted.supplier_name || "",
+        document_number: extracted.document_number || "",
+        amount: extracted.amount || 0,
+        due_date: extracted.due_date ? new Date(extracted.due_date + "T12:00:00") : undefined,
+        notes: extracted.barcode ? `Linha digitável: ${extracted.barcode}` : "",
+        attachment_url: attachmentUrl || null,
+      };
 
+      // Try to match supplier by name or CNPJ
+      let matchedSupplierId = "";
+      const supplierCnpj = extracted.supplier_cnpj?.replace(/\D/g, "") || "";
+      
+      if (supplierCnpj) {
+        const match = fornecedores.find((f: any) => f.cnpj?.replace(/\D/g, "") === supplierCnpj);
+        if (match) {
+          matchedSupplierId = match.id;
+          newForm.supplier_id = match.id;
+          newForm.supplier_name = match.tipo === "pj" ? (match.nome_fantasia || match.razao_social || "") : (match.nome_completo || "");
+        }
+      }
+      
+      if (!matchedSupplierId && extracted.supplier_name) {
+        const nameLower = extracted.supplier_name.toLowerCase();
+        const match = fornecedores.find((f: any) => {
+          const rz = (f.razao_social || "").toLowerCase();
+          const nf = (f.nome_fantasia || "").toLowerCase();
+          const nc = (f.nome_completo || "").toLowerCase();
+          return rz === nameLower || nf === nameLower || nc === nameLower;
+        });
+        if (match) {
+          matchedSupplierId = match.id;
+          newForm.supplier_id = match.id;
+          newForm.supplier_name = match.tipo === "pj" ? (match.nome_fantasia || match.razao_social || "") : (match.nome_completo || "");
+        }
+      }
+
+      setForm(newForm);
       setShowForm(true);
-      toast.success("Dados do boleto extraídos! Confira e ajuste os campos antes de salvar.");
+
+      // 2. If supplier not found, open FornecedorModal with prefill data
+      if (!matchedSupplierId && extracted.supplier_name) {
+        setFornEditingId(null);
+        setFornPrefill({
+          type: "empresa",
+          nome: extracted.supplier_name || "",
+          cpfCnpj: supplierCnpj || "",
+          telefone: extracted.supplier_phone || "",
+          email: extracted.supplier_email || "",
+          endereco: extracted.supplier_address ? { logradouro: extracted.supplier_address } : undefined,
+        });
+        // Small delay to ensure the form modal renders first
+        setTimeout(() => setFornModalOpen(true), 300);
+        toast.success("Dados extraídos! Fornecedor não encontrado — cadastre-o agora.");
+      } else {
+        toast.success("Dados do boleto extraídos! Confira e ajuste os campos antes de salvar.");
+      }
     } catch (err) {
       console.error("Scan error:", err);
       toast.error("Erro ao escanear boleto");
@@ -734,8 +796,8 @@ export default function ContasAPagar() {
             options={fornecedorOptions}
             placeholder="Selecione o fornecedor..."
             icon={<Building2 className="w-4 h-4" />}
-            onAddModal={() => { setFornEditingId(null); setFornModalOpen(true); }}
-            onEditModal={(id) => { setFornEditingId(id); setFornModalOpen(true); }}
+            onAddModal={() => { setFornEditingId(null); setFornPrefill(null); setFornModalOpen(true); }}
+            onEditModal={(id) => { setFornEditingId(id); setFornPrefill(null); setFornModalOpen(true); }}
             addLabel="Novo fornecedor"
           />
 
@@ -745,11 +807,8 @@ export default function ContasAPagar() {
           {/* Valor */}
           <CurrencyInput label="Valor" value={form.amount} onValueChange={(v) => updateField("amount", v)} error={errors.amount} />
 
-          {/* Datas lado a lado (exceção para economizar espaço vertical) */}
-          <div className="grid grid-cols-2 gap-3">
-            <DateInput label="Data de emissão" value={form.issue_date} onValueChange={(d) => updateField("issue_date", d)} />
-            <DateInput label="Vencimento" value={form.due_date} onValueChange={(d) => updateField("due_date", d)} error={errors.due_date} />
-          </div>
+          {/* Vencimento */}
+          <DateInput label="Vencimento" value={form.due_date} onValueChange={(d) => updateField("due_date", d)} error={errors.due_date} />
 
           {/* Separador com label */}
           <div className="flex items-center gap-3 pt-1">
@@ -926,6 +985,7 @@ export default function ContasAPagar() {
         open={fornModalOpen}
         onOpenChange={setFornModalOpen}
         editingId={fornEditingId}
+        prefill={fornPrefill}
         onSaved={(id) => {
           updateField("supplier_id", id);
           queryClient.invalidateQueries({ queryKey: ["fornecedores"] });
