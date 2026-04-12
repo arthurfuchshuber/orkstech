@@ -11,7 +11,6 @@ import {
 import { ManagedSelectInput } from "@/components/inputs/ManagedSelectInput";
 import { TipoFormaPagamentoModal } from "./TipoFormaPagamentoModal";
 import { useManagedSelect } from "@/hooks/useManagedSelect";
-import { FileAttachment } from "@/components/inputs/FileAttachment";
 import { CreditCard } from "lucide-react";
 
 interface FormaPagamentoModalProps {
@@ -24,7 +23,7 @@ interface FormaPagamentoModalProps {
 export function FormaPagamentoModal({ open, onOpenChange, editingId, onSaved }: FormaPagamentoModalProps) {
   const { user } = useAuth();
   const qc = useQueryClient();
-  const [form, setForm] = useState({ nome: "", tipo_id: "", numero_cartao: "", attachment_url: null as string | null });
+  const [form, setForm] = useState({ nome: "", tipo_id: "", numero_cartao: "" });
   const [tipoModalOpen, setTipoModalOpen] = useState(false);
   const [tipoEditingId, setTipoEditingId] = useState<string | null>(null);
 
@@ -63,10 +62,9 @@ export function FormaPagamentoModal({ open, onOpenChange, editingId, onSaved }: 
         nome: existing.nome,
         tipo_id: existing.tipo_id || "",
         numero_cartao: existing.numero_cartao || "",
-        attachment_url: null,
       });
     } else if (!editingId && open) {
-      setForm({ nome: "", tipo_id: "", numero_cartao: "", attachment_url: null });
+      setForm({ nome: "", tipo_id: "", numero_cartao: "" });
     }
   }, [existing, editingId, open]);
 
@@ -136,7 +134,6 @@ export function FormaPagamentoModal({ open, onOpenChange, editingId, onSaved }: 
                 <p className="text-xs text-muted-foreground mt-1">Últimos 4 dígitos para identificação</p>
               </div>
             )}
-            <FileAttachment value={form.attachment_url} onValueChange={(url) => setForm({ ...form, attachment_url: url })} folder="formas-pagamento" />
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>

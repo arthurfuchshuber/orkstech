@@ -9,7 +9,6 @@ import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
-import { FileAttachment } from "@/components/inputs/FileAttachment";
 
 interface CentroCustoModalProps {
   open: boolean;
@@ -21,7 +20,7 @@ interface CentroCustoModalProps {
 export function CentroCustoModal({ open, onOpenChange, editingId, onSaved }: CentroCustoModalProps) {
   const { user } = useAuth();
   const qc = useQueryClient();
-  const [form, setForm] = useState({ nome: "", descricao: "", attachment_url: null as string | null });
+  const [form, setForm] = useState({ nome: "", descricao: "" });
 
   const { data: existing } = useQuery({
     queryKey: ["centros_custo_edit", editingId],
@@ -35,9 +34,9 @@ export function CentroCustoModal({ open, onOpenChange, editingId, onSaved }: Cen
 
   useEffect(() => {
     if (existing && editingId) {
-      setForm({ nome: existing.nome, descricao: existing.descricao || "", attachment_url: null });
+      setForm({ nome: existing.nome, descricao: existing.descricao || "" });
     } else if (!editingId && open) {
-      setForm({ nome: "", descricao: "", attachment_url: null });
+      setForm({ nome: "", descricao: "" });
     }
   }, [existing, editingId, open]);
 
@@ -76,7 +75,6 @@ export function CentroCustoModal({ open, onOpenChange, editingId, onSaved }: Cen
             <label className="text-sm font-medium text-foreground mb-1.5 block">Descrição</label>
             <Textarea value={form.descricao} onChange={(e) => setForm({ ...form, descricao: e.target.value })} placeholder="Descrição do centro de custo..." rows={3} />
           </div>
-          <FileAttachment value={form.attachment_url} onValueChange={(url) => setForm({ ...form, attachment_url: url })} folder="centros-custo" />
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
