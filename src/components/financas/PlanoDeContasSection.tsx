@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -174,28 +174,32 @@ export function PlanoDeContasSection() {
   const parentOptions = categorias.filter((c) => c.id !== editingId);
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <FolderTree className="w-5 h-5 text-primary" />
+    <Card className="border-border/40 shadow-sm flex flex-col">
+      <CardHeader className="pb-3 pt-4 px-4 flex-row items-center justify-between space-y-0">
+        <div className="flex items-center gap-2.5">
+          <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center">
+            <FolderTree className="w-3.5 h-3.5 text-primary" />
+          </div>
           <div>
-            <h2 className="text-base font-semibold text-foreground">Plano de Contas</h2>
-            <p className="text-xs text-muted-foreground">Categorias financeiras — arraste para reordenar</p>
+            <CardTitle className="text-sm font-semibold">Plano de Contas</CardTitle>
+            <p className="text-[11px] text-muted-foreground mt-0.5">Arraste para reordenar</p>
           </div>
         </div>
-        <Button onClick={() => openNew()} size="sm" className="gap-2"><Plus className="w-3.5 h-3.5" /> Nova Categoria</Button>
-      </div>
+        <Button onClick={() => openNew()} size="sm" variant="outline" className="h-7 text-xs gap-1.5 rounded-md">
+          <Plus className="w-3 h-3" /> Nova
+        </Button>
+      </CardHeader>
 
-      <Card className="p-4">
+      <CardContent className="px-2 pb-3 flex-1 overflow-auto max-h-[420px]">
         {isLoading ? (
-          <div className="py-8 text-center text-muted-foreground text-sm">Carregando...</div>
+          <div className="py-8 text-center text-muted-foreground text-xs">Carregando...</div>
         ) : tree.length === 0 ? (
-          <div className="py-8 text-center text-muted-foreground text-sm">Nenhuma categoria cadastrada.</div>
+          <div className="py-8 text-center text-muted-foreground text-xs">Nenhuma categoria cadastrada.</div>
         ) : (
           <DragDropContext onDragEnd={handleDragEnd}>
             <Droppable droppableId="plano-de-contas">
               {(provided) => (
-                <div ref={provided.innerRef} {...provided.droppableProps} className="divide-y divide-border/50">
+                <div ref={provided.innerRef} {...provided.droppableProps}>
                   {visibleItems.map((item, index) => {
                     const node = item.node;
                     const hasChildren = node.children && node.children.length > 0;
@@ -206,23 +210,23 @@ export function PlanoDeContasSection() {
                         {(provided, snapshot) => (
                           <div
                             ref={provided.innerRef} {...provided.draggableProps}
-                            className={`flex items-center gap-2 py-2 px-3 rounded-md transition-colors group ${!node.ativo ? "opacity-50" : ""} ${snapshot.isDragging ? "bg-muted/60 shadow-lg" : "hover:bg-muted/40"}`}
-                            style={{ ...provided.draggableProps.style, paddingLeft: `${item.level * 24 + 12}px` }}
+                            className={`flex items-center gap-1.5 py-1.5 px-2 rounded-md transition-colors group ${!node.ativo ? "opacity-40" : ""} ${snapshot.isDragging ? "bg-muted/60 shadow-lg" : "hover:bg-muted/30"}`}
+                            style={{ ...provided.draggableProps.style, paddingLeft: `${item.level * 18 + 8}px` }}
                           >
                             <div {...provided.dragHandleProps} className="cursor-grab active:cursor-grabbing flex-shrink-0">
-                              <GripVertical className="w-4 h-4 text-muted-foreground/40" />
+                              <GripVertical className="w-3 h-3 text-muted-foreground/30" />
                             </div>
-                            <button onClick={() => toggleCollapse(node.id)} className="w-5 h-5 flex items-center justify-center flex-shrink-0">
-                              {hasChildren ? (isCollapsed ? <ChevronRight className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />) : <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground/30" />}
+                            <button onClick={() => toggleCollapse(node.id)} className="w-4 h-4 flex items-center justify-center flex-shrink-0">
+                              {hasChildren ? (isCollapsed ? <ChevronRight className="w-3 h-3 text-muted-foreground" /> : <ChevronDown className="w-3 h-3 text-muted-foreground" />) : <div className="w-1 h-1 rounded-full bg-muted-foreground/25" />}
                             </button>
-                            <Icon className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-                            <span className="text-sm font-medium text-foreground flex-1">{node.nome}</span>
-                            <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${tipoColors[node.tipo]}`}>{tipoLabels[node.tipo]}</Badge>
-                            <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openNew(node.id, node.tipo)}><Plus className="w-3.5 h-3.5" /></Button>
-                              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEdit(node)}><Pencil className="w-3.5 h-3.5" /></Button>
-                              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => toggleMutation.mutate({ id: node.id, ativo: !node.ativo })}><Power className={`w-3.5 h-3.5 ${node.ativo ? "text-emerald-400" : "text-muted-foreground"}`} /></Button>
-                              {!hasChildren && <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => deleteMutation.mutate(node.id)}><Trash2 className="w-3.5 h-3.5" /></Button>}
+                            <Icon className="w-3 h-3 text-muted-foreground/60 flex-shrink-0" />
+                            <span className="text-xs font-medium text-foreground flex-1 truncate">{node.nome}</span>
+                            <Badge variant="outline" className={`text-[9px] px-1 py-0 leading-4 ${tipoColors[node.tipo]}`}>{tipoLabels[node.tipo]}</Badge>
+                            <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => openNew(node.id, node.tipo)}><Plus className="w-2.5 h-2.5" /></Button>
+                              <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => openEdit(node)}><Pencil className="w-2.5 h-2.5" /></Button>
+                              <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => toggleMutation.mutate({ id: node.id, ativo: !node.ativo })}><Power className={`w-2.5 h-2.5 ${node.ativo ? "text-emerald-400" : "text-muted-foreground"}`} /></Button>
+                              {!hasChildren && <Button variant="ghost" size="icon" className="h-5 w-5 text-destructive" onClick={() => deleteMutation.mutate(node.id)}><Trash2 className="w-2.5 h-2.5" /></Button>}
                             </div>
                           </div>
                         )}
@@ -235,7 +239,7 @@ export function PlanoDeContasSection() {
             </Droppable>
           </DragDropContext>
         )}
-      </Card>
+      </CardContent>
 
       <Dialog open={modalOpen} onOpenChange={(v) => !v && closeModal()}>
         <DialogContent>
@@ -276,6 +280,6 @@ export function PlanoDeContasSection() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </Card>
   );
 }

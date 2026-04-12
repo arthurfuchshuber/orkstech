@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { FormaPagamentoModal } from "@/components/modals/FormaPagamentoModal";
 import { Plus, Pencil, Trash2, Power, CreditCard, QrCode, FileBarChart, ArrowLeftRight, Banknote } from "lucide-react";
@@ -56,50 +56,58 @@ export function FormasPagamentoSection() {
   const openEdit = (item: FormaPagamento) => { setEditingId(item.id); setModalOpen(true); };
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <CreditCard className="w-5 h-5 text-primary" />
+    <Card className="border-border/40 shadow-sm">
+      <CardHeader className="pb-3 pt-4 px-4 flex-row items-center justify-between space-y-0">
+        <div className="flex items-center gap-2.5">
+          <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center">
+            <CreditCard className="w-3.5 h-3.5 text-primary" />
+          </div>
           <div>
-            <h2 className="text-base font-semibold text-foreground">Formas de Pagamento</h2>
-            <p className="text-xs text-muted-foreground">Gerencie as formas de pagamento disponíveis</p>
+            <CardTitle className="text-sm font-semibold">Formas de Pagamento</CardTitle>
+            <p className="text-[11px] text-muted-foreground mt-0.5">Meios aceitos para lançamentos</p>
           </div>
         </div>
-        <Button onClick={openNew} size="sm" className="gap-2"><Plus className="w-3.5 h-3.5" /> Nova Forma</Button>
-      </div>
+        <Button onClick={openNew} size="sm" variant="outline" className="h-7 text-xs gap-1.5 rounded-md">
+          <Plus className="w-3 h-3" /> Nova
+        </Button>
+      </CardHeader>
 
-      <Card className="divide-y divide-border/50">
+      <CardContent className="px-2 pb-3">
         {isLoading ? (
-          <div className="py-8 text-center text-muted-foreground text-sm">Carregando...</div>
+          <div className="py-6 text-center text-muted-foreground text-xs">Carregando...</div>
         ) : items.length === 0 ? (
-          <div className="py-8 text-center text-muted-foreground text-sm">Nenhuma forma de pagamento cadastrada.</div>
-        ) : items.map((item) => {
-          const Icon = tipoIcons[item.tipo];
-          return (
-            <div key={item.id} className={`flex items-center gap-3 px-4 py-3 hover:bg-muted/30 transition-colors group ${!item.ativo ? "opacity-50" : ""}`}>
-              <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
-                <Icon className="w-4 h-4 text-primary" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-foreground">{item.nome}</p>
-              </div>
-              <Badge variant="outline" className="text-[10px]">{tipoLabels[item.tipo]}</Badge>
-              <Badge variant="outline" className={item.ativo ? "text-emerald-400 border-emerald-500/20" : "text-muted-foreground"}>
-                {item.ativo ? "Ativo" : "Inativo"}
-              </Badge>
-              <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEdit(item)}><Pencil className="w-3.5 h-3.5" /></Button>
-                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => toggleMutation.mutate({ id: item.id, ativo: !item.ativo })}>
-                  <Power className={`w-3.5 h-3.5 ${item.ativo ? "text-emerald-400" : ""}`} />
-                </Button>
-                <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => deleteMutation.mutate(item.id)}><Trash2 className="w-3.5 h-3.5" /></Button>
-              </div>
-            </div>
-          );
-        })}
-      </Card>
+          <div className="py-6 text-center text-muted-foreground text-xs">Nenhuma forma cadastrada.</div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-1.5">
+            {items.map((item) => {
+              const Icon = tipoIcons[item.tipo];
+              return (
+                <div
+                  key={item.id}
+                  className={`flex items-center gap-2.5 px-3 py-2.5 rounded-lg border border-border/30 hover:bg-muted/20 transition-colors group ${!item.ativo ? "opacity-40" : ""}`}
+                >
+                  <div className="w-7 h-7 rounded-md bg-muted/40 flex items-center justify-center flex-shrink-0">
+                    <Icon className="w-3.5 h-3.5 text-muted-foreground" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-medium text-foreground truncate">{item.nome}</p>
+                    <p className="text-[10px] text-muted-foreground">{tipoLabels[item.tipo]}</p>
+                  </div>
+                  <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => openEdit(item)}><Pencil className="w-2.5 h-2.5" /></Button>
+                    <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => toggleMutation.mutate({ id: item.id, ativo: !item.ativo })}>
+                      <Power className={`w-2.5 h-2.5 ${item.ativo ? "text-emerald-400" : ""}`} />
+                    </Button>
+                    <Button variant="ghost" size="icon" className="h-5 w-5 text-destructive" onClick={() => deleteMutation.mutate(item.id)}><Trash2 className="w-2.5 h-2.5" /></Button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </CardContent>
 
       <FormaPagamentoModal open={modalOpen} onOpenChange={setModalOpen} editingId={editingId} />
-    </div>
+    </Card>
   );
 }
