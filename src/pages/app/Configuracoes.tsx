@@ -1,8 +1,12 @@
-import { Settings, ChevronRight } from "lucide-react";
+import { Settings, ChevronRight, Building2, CreditCard, Menu } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import type { LucideIcon } from "lucide-react";
 
-const sections = [
-  { icon: Settings, title: "Geral", description: "Nome da empresa, fuso horário, moeda e preferências gerais", url: "/app/config" },
+const sections: { icon: LucideIcon; title: string; description: string; url: string }[] = [
+  { icon: Settings, title: "Geral", description: "Preferências gerais do sistema, fuso horário e moeda", url: "/app/config/geral" },
+  { icon: Building2, title: "Conta e Acessos", description: "Dados da empresa, usuários e permissões de acesso", url: "/app/config/conta" },
+  { icon: CreditCard, title: "Planos e Assinatura", description: "Gerencie seu plano, faturamento e métodos de pagamento", url: "/app/config/planos" },
+  { icon: Menu, title: "Gerenciar Menu", description: "Reordene e configure os itens de navegação do sistema", url: "/app/config/menus" },
 ];
 
 export default function Configuracoes() {
