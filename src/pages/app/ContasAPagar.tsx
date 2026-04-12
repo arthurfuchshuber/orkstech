@@ -572,8 +572,15 @@ export default function ContasAPagar() {
 
   // Filter and search
   const filtered = useMemo(() => {
+    const todayStr = new Date().toISOString().split("T")[0];
     let list = payables;
-    if (filterStatus !== "all") list = list.filter((p: any) => p.status === filterStatus);
+    if (filterStatus === "open") {
+      list = list.filter((p: any) => p.status === "pending" || p.status === "overdue");
+    } else if (filterStatus === "upcoming") {
+      list = list.filter((p: any) => p.status === "pending" && p.due_date >= todayStr);
+    } else if (filterStatus !== "all") {
+      list = list.filter((p: any) => p.status === filterStatus);
+    }
     if (searchTerm) {
       const term = searchTerm.toLowerCase();
       list = list.filter((p: any) =>
@@ -652,17 +659,27 @@ export default function ContasAPagar() {
             />
           </div>
           <div className="flex gap-2">
-            {["all", "pending", "overdue", "paid", "cancelled"].map((s) => (
-              <Button
-                key={s}
-                size="sm"
-                variant={filterStatus === s ? "default" : "outline"}
-                onClick={() => setFilterStatus(s)}
-                className="rounded-lg text-xs"
-              >
-                {s === "all" ? "Todos" : statusConfig[s]?.label}
-              </Button>
-            ))}
+            {["all", "open", "upcoming", "overdue", "paid", "cancelled"].map((s) => {
+              const labels: Record<string, string> = {
+                all: "Todos",
+                open: "Em Aberto",
+                upcoming: "A Vencer",
+                overdue: "Vencido",
+                paid: "Pago",
+                cancelled: "Cancelado",
+              };
+              return (
+                <Button
+                  key={s}
+                  size="sm"
+                  variant={filterStatus === s ? "default" : "outline"}
+                  onClick={() => setFilterStatus(s)}
+                  className="rounded-lg text-xs"
+                >
+                  {labels[s]}
+                </Button>
+              );
+            })}
           </div>
         </div>
       </Card>
