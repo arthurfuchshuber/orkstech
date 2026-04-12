@@ -412,6 +412,88 @@ export type Database = {
         }
         Relationships: []
       }
+      cliente_documentos: {
+        Row: {
+          cliente_id: string
+          created_at: string
+          id: string
+          nome: string
+          tamanho: number | null
+          tipo: string | null
+          updated_at: string
+          url: string
+          user_id: string
+        }
+        Insert: {
+          cliente_id: string
+          created_at?: string
+          id?: string
+          nome: string
+          tamanho?: number | null
+          tipo?: string | null
+          updated_at?: string
+          url: string
+          user_id: string
+        }
+        Update: {
+          cliente_id?: string
+          created_at?: string
+          id?: string
+          nome?: string
+          tamanho?: number | null
+          tipo?: string | null
+          updated_at?: string
+          url?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cliente_documentos_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cliente_interacoes: {
+        Row: {
+          cliente_id: string
+          created_at: string
+          descricao: string
+          id: string
+          tipo: string
+          user_id: string
+          usuario_nome: string | null
+        }
+        Insert: {
+          cliente_id: string
+          created_at?: string
+          descricao: string
+          id?: string
+          tipo?: string
+          user_id: string
+          usuario_nome?: string | null
+        }
+        Update: {
+          cliente_id?: string
+          created_at?: string
+          descricao?: string
+          id?: string
+          tipo?: string
+          user_id?: string
+          usuario_nome?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cliente_interacoes_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clientes: {
         Row: {
           ativo: boolean
@@ -419,6 +501,7 @@ export type Database = {
           cep: string | null
           cidade: string | null
           cnpj: string | null
+          complemento: string | null
           cpf: string | null
           created_at: string
           data_nascimento: string | null
@@ -430,12 +513,16 @@ export type Database = {
           logradouro: string | null
           nome_completo: string | null
           nome_fantasia: string | null
+          numero: string | null
           observacoes: string | null
           razao_social: string | null
+          responsavel_interno: string | null
+          tags: string[] | null
           telefone: string | null
           tipo: Database["public"]["Enums"]["pessoa_tipo"]
           updated_at: string
           user_id: string
+          whatsapp: string | null
         }
         Insert: {
           ativo?: boolean
@@ -443,6 +530,7 @@ export type Database = {
           cep?: string | null
           cidade?: string | null
           cnpj?: string | null
+          complemento?: string | null
           cpf?: string | null
           created_at?: string
           data_nascimento?: string | null
@@ -454,12 +542,16 @@ export type Database = {
           logradouro?: string | null
           nome_completo?: string | null
           nome_fantasia?: string | null
+          numero?: string | null
           observacoes?: string | null
           razao_social?: string | null
+          responsavel_interno?: string | null
+          tags?: string[] | null
           telefone?: string | null
           tipo?: Database["public"]["Enums"]["pessoa_tipo"]
           updated_at?: string
           user_id: string
+          whatsapp?: string | null
         }
         Update: {
           ativo?: boolean
@@ -467,6 +559,7 @@ export type Database = {
           cep?: string | null
           cidade?: string | null
           cnpj?: string | null
+          complemento?: string | null
           cpf?: string | null
           created_at?: string
           data_nascimento?: string | null
@@ -478,12 +571,16 @@ export type Database = {
           logradouro?: string | null
           nome_completo?: string | null
           nome_fantasia?: string | null
+          numero?: string | null
           observacoes?: string | null
           razao_social?: string | null
+          responsavel_interno?: string | null
+          tags?: string[] | null
           telefone?: string | null
           tipo?: Database["public"]["Enums"]["pessoa_tipo"]
           updated_at?: string
           user_id?: string
+          whatsapp?: string | null
         }
         Relationships: []
       }

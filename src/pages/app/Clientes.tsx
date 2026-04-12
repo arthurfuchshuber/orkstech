@@ -1,26 +1,34 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Users, Plus, Building2, UserRound, Check, Loader2, Mail, MapPin, Home, Info, FileSearch, DollarSign, FileText, Phone, Clock, Calendar } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import {
+  Users, Plus, Search, Building2, UserRound, Check, Loader2,
+  Mail, MapPin, Home, Filter, X
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { StatCard } from "@/components/StatCard";
 import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 import { FormModal } from "@/components/FormModal";
-import { ModuleTabs } from "@/components/ModuleTabs";
 import { DocumentInput } from "@/components/inputs/DocumentInput";
 import { PhoneInput } from "@/components/inputs/PhoneInput";
 import { CepInput } from "@/components/inputs/CepInput";
 import { TextInput } from "@/components/inputs/TextInput";
 import { TextareaInput } from "@/components/inputs/TextareaInput";
 import { DateInput } from "@/components/inputs/DateInput";
-import { RelatedContracts } from "@/components/modules/RelatedContracts";
-import { RelatedFinancial } from "@/components/modules/RelatedFinancial";
-import { RelatedDocuments } from "@/components/modules/RelatedDocuments";
-import { RelatedActivities } from "@/components/modules/RelatedActivities";
-import { RelatedHistory } from "@/components/modules/RelatedHistory";
 import { validateClientForm, type ClientFormData, type FormErrors } from "@/lib/validators";
 import { useAuth } from "@/hooks/useAuth";
-import { fetchClientes, createCliente, countClientes, checkClienteDuplicidade } from "@/lib/supabase-helpers";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import {
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+} from "@/components/ui/table";
+import {
+  Popover, PopoverContent, PopoverTrigger,
+} from "@/components/ui/popover";
+import { Checkbox } from "@/components/ui/checkbox";
 
 const initialForm: ClientFormData = {
   type: "pf",
@@ -38,33 +46,86 @@ const initialForm: ClientFormData = {
   endereco: { logradouro: "", bairro: "", cidade: "", estado: "", cep: "" },
 };
 
-const clientTabs = [
-  { id: "info", label: "Informações", icon: Info },
-  { id: "contratos", label: "Contratos", icon: FileSearch, count: 0 },
-  { id: "financeiro", label: "Financeiro", icon: DollarSign, count: 0 },
-  { id: "documentos", label: "Documentos", icon: FileText, count: 0 },
-  { id: "atividades", label: "Atividades", icon: Phone, count: 0 },
-  { id: "historico", label: "Histórico", icon: Clock, count: 0 },
-];
+function formatDoc(tipo: string, cpf?: string | null, cnpj?: string | null) {
+  if (tipo === "pf" && cpf) {
+    return cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4");
+  }
+  if (tipo === "pj" && cnpj) {
+    return cnpj.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, "$1.$2.$3/$4-$5");
+  }
+  return "—";
+}
+
+function formatPhone(phone?: string | null) {
+  if (!phone) return "—";
+  const raw = phone.replace(/\D/g, "");
+  if (raw.length === 11) return raw.replace(/(\d{2})(\d{5})(\d{4})/, "($1) $2-$3");
+  if (raw.length === 10) return raw.replace(/(\d{2})(\d{4})(\d{4})/, "($1) $2-$3");
+  return phone;
+}
 
 export default function Clientes() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState<ClientFormData>(initialForm);
   const [errors, setErrors] = useState<FormErrors>({});
   const [loadingCnpj, setLoadingCnpj] = useState(false);
   const [cnpjMessage, setCnpjMessage] = useState("");
-  const [activeTab, setActiveTab] = useState("info");
+  const [search, setSearch] = useState("");
+  const [filterStatus, setFilterStatus] = useState<string[]>([]);
+  const [filterTipo, setFilterTipo] = useState<string[]>([]);
 
-  const { data: clientes = [] } = useQuery({ queryKey: ["clientes"], queryFn: fetchClientes });
-  const { data: counts = { total: 0, pj: 0, pf: 0 } } = useQuery({ queryKey: ["clientes-counts"], queryFn: countClientes });
+  const { data: clientes = [], isLoading } = useQuery({
+    queryKey: ["clientes"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("clientes")
+        .select("*")
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const filtered = useMemo(() => {
+    let list = clientes;
+    if (search) {
+      const q = search.toLowerCase();
+      list = list.filter((c) =>
+        (c.nome_completo?.toLowerCase().includes(q)) ||
+        (c.razao_social?.toLowerCase().includes(q)) ||
+        (c.nome_fantasia?.toLowerCase().includes(q)) ||
+        (c.cpf?.includes(q)) ||
+        (c.cnpj?.includes(q)) ||
+        (c.email?.toLowerCase().includes(q)) ||
+        (c.telefone?.includes(q))
+      );
+    }
+    if (filterStatus.length > 0) {
+      list = list.filter((c) => {
+        if (filterStatus.includes("ativo") && c.ativo) return true;
+        if (filterStatus.includes("inativo") && !c.ativo) return true;
+        return false;
+      });
+    }
+    if (filterTipo.length > 0) {
+      list = list.filter((c) => filterTipo.includes(c.tipo));
+    }
+    return list;
+  }, [clientes, search, filterStatus, filterTipo]);
+
+  const hasFilters = filterStatus.length > 0 || filterTipo.length > 0;
 
   const mutation = useMutation({
-    mutationFn: createCliente,
+    mutationFn: async (data: any) => {
+      const { data: result, error } = await supabase.from("clientes").insert(data).select().single();
+      if (error) throw error;
+      return result;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["clientes"] });
-      queryClient.invalidateQueries({ queryKey: ["clientes-counts"] });
       toast.success("Cliente cadastrado com sucesso!");
       setForm(initialForm);
       setErrors({});
@@ -72,8 +133,8 @@ export default function Clientes() {
       setCnpjMessage("");
     },
     onError: (err: any) => {
-      if (err?.message?.includes("clientes_cpf_unique")) toast.error("CPF já cadastrado no sistema");
-      else if (err?.message?.includes("clientes_cnpj_unique")) toast.error("CNPJ já cadastrado no sistema");
+      if (err?.message?.includes("clientes_cpf_unique")) toast.error("CPF já cadastrado");
+      else if (err?.message?.includes("clientes_cnpj_unique")) toast.error("CNPJ já cadastrado");
       else toast.error("Erro ao cadastrar cliente");
     },
   });
@@ -96,21 +157,13 @@ export default function Clientes() {
     setLoadingCnpj(true);
     setCnpjMessage("");
     try {
-      // Check duplicidade no banco
-      const exists = await checkClienteDuplicidade("pj", raw);
-      if (exists) {
-        setErrors((prev) => ({ ...prev, cnpj: "CNPJ já cadastrado no sistema" }));
-        setLoadingCnpj(false);
-        return;
-      }
-
+      const exists = clientes.some((c) => c.cnpj === raw);
+      if (exists) { setErrors((prev) => ({ ...prev, cnpj: "CNPJ já cadastrado" })); setLoadingCnpj(false); return; }
       const res = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${raw}`);
       if (res.ok) {
         const data = await res.json();
         if (data.descricao_situacao_cadastral && data.descricao_situacao_cadastral !== "ATIVA") {
-          setErrors((prev) => ({ ...prev, cnpj: "CNPJ inválido ou empresa não ativa na Receita Federal." }));
-          setLoadingCnpj(false);
-          return;
+          setErrors((prev) => ({ ...prev, cnpj: "Empresa não ativa na Receita Federal" })); setLoadingCnpj(false); return;
         }
         setForm((prev) => ({
           ...prev,
@@ -126,13 +179,11 @@ export default function Clientes() {
         }));
         setCnpjMessage("Dados da empresa encontrados automaticamente");
         setErrors((prev) => { const n = { ...prev }; delete n.cnpj; return n; });
-        toast.success("Dados da empresa preenchidos automaticamente");
+        toast.success("Dados preenchidos automaticamente");
       } else {
-        setErrors((prev) => ({ ...prev, cnpj: "CNPJ não encontrado na Receita Federal." }));
+        setErrors((prev) => ({ ...prev, cnpj: "CNPJ não encontrado na Receita Federal" }));
       }
-    } catch { /* silent */ } finally {
-      setLoadingCnpj(false);
-    }
+    } catch { /* silent */ } finally { setLoadingCnpj(false); }
   };
 
   const handleAddressFound = (address: { logradouro: string; bairro: string; cidade: string; estado: string }) => {
@@ -144,16 +195,7 @@ export default function Clientes() {
     const validationErrors = validateClientForm(form);
     if (Object.keys(validationErrors).length > 0) {
       setErrors(validationErrors);
-      toast.error("Corrija os campos destacados antes de salvar");
-      return;
-    }
-
-    // Verificar duplicidade antes de salvar
-    const doc = form.type === "pf" ? form.cpf.replace(/\D/g, "") : form.cnpj.replace(/\D/g, "");
-    const exists = await checkClienteDuplicidade(form.type, doc);
-    if (exists) {
-      setErrors((prev) => ({ ...prev, [form.type === "pf" ? "cpf" : "cnpj"]: `${form.type === "pf" ? "CPF" : "CNPJ"} já cadastrado` }));
-      toast.error(`${form.type === "pf" ? "CPF" : "CNPJ"} já cadastrado no sistema`);
+      toast.error("Corrija os campos destacados");
       return;
     }
 
@@ -184,51 +226,197 @@ export default function Clientes() {
     if (!open) { setForm(initialForm); setErrors({}); setCnpjMessage(""); }
   };
 
-  const renderTabContent = () => {
-    switch (activeTab) {
-      case "info":
-        return (
-          <div className="py-12 flex flex-col items-center justify-center text-center">
-            <div className="w-11 h-11 rounded-xl bg-muted/30 flex items-center justify-center mb-3">
-              <Users className="w-5 h-5 text-muted-foreground/30" />
-            </div>
-            <p className="text-sm text-muted-foreground font-medium">
-              {clientes.length === 0 ? "Nenhum cliente cadastrado ainda" : "Selecione um cliente para ver detalhes"}
-            </p>
-          </div>
-        );
-      case "contratos": return <RelatedContracts />;
-      case "financeiro": return <RelatedFinancial />;
-      case "documentos": return <RelatedDocuments />;
-      case "atividades": return <RelatedActivities />;
-      case "historico": return <RelatedHistory />;
-      default: return null;
-    }
-  };
+  const totalAtivos = clientes.filter((c) => c.ativo).length;
+  const totalPJ = clientes.filter((c) => c.tipo === "pj").length;
+  const totalPF = clientes.filter((c) => c.tipo === "pf").length;
 
   return (
-    <div className="space-y-6 animate-fade-in max-w-6xl">
+    <div className="space-y-6 animate-fade-in max-w-7xl">
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground tracking-tight">Clientes</h1>
-          <p className="text-muted-foreground text-sm mt-0.5">Gerencie sua base de clientes</p>
+          <p className="text-muted-foreground text-sm mt-0.5">Cadastro mestre de clientes da empresa</p>
         </div>
         <Button onClick={() => setShowForm(true)} className="rounded-lg gap-2 shadow-sm">
           <Plus className="w-4 h-4" /> Novo Cliente
         </Button>
       </div>
 
+      {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <StatCard icon={Users} title="Total de Clientes" value={String(counts.total)} />
-        <StatCard icon={Building2} title="Pessoa Jurídica" value={String(counts.pj)} />
-        <StatCard icon={UserRound} title="Pessoa Física" value={String(counts.pf)} />
+        <Card className="p-4 border-border/50 shadow-sm">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Total Ativos</span>
+            <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+              <Users className="w-3.5 h-3.5 text-primary" />
+            </div>
+          </div>
+          <div className="text-2xl font-bold text-foreground">{totalAtivos}</div>
+        </Card>
+        <Card className="p-4 border-border/50 shadow-sm">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Pessoa Jurídica</span>
+            <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+              <Building2 className="w-3.5 h-3.5 text-primary" />
+            </div>
+          </div>
+          <div className="text-2xl font-bold text-foreground">{totalPJ}</div>
+        </Card>
+        <Card className="p-4 border-border/50 shadow-sm">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Pessoa Física</span>
+            <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+              <UserRound className="w-3.5 h-3.5 text-primary" />
+            </div>
+          </div>
+          <div className="text-2xl font-bold text-foreground">{totalPF}</div>
+        </Card>
       </div>
 
+      {/* Search + Filters */}
+      <div className="flex items-center gap-3">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input
+            placeholder="Buscar por nome, documento, email ou telefone..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-9 bg-card border-border/50"
+          />
+        </div>
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button variant="outline" size="sm" className={`gap-2 rounded-lg ${hasFilters ? "border-primary text-primary" : ""}`}>
+              <Filter className="w-4 h-4" />
+              Filtros
+              {hasFilters && (
+                <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs">{filterStatus.length + filterTipo.length}</Badge>
+              )}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-56 p-4" align="end">
+            <div className="space-y-4">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Status</p>
+                <div className="space-y-2">
+                  {[{ value: "ativo", label: "Ativo" }, { value: "inativo", label: "Inativo" }].map((item) => (
+                    <label key={item.value} className="flex items-center gap-2 text-sm cursor-pointer">
+                      <Checkbox
+                        checked={filterStatus.includes(item.value)}
+                        onCheckedChange={(checked) => {
+                          setFilterStatus((prev) =>
+                            checked ? [...prev, item.value] : prev.filter((v) => v !== item.value)
+                          );
+                        }}
+                      />
+                      {item.label}
+                    </label>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Tipo</p>
+                <div className="space-y-2">
+                  {[{ value: "pf", label: "Pessoa Física" }, { value: "pj", label: "Pessoa Jurídica" }].map((item) => (
+                    <label key={item.value} className="flex items-center gap-2 text-sm cursor-pointer">
+                      <Checkbox
+                        checked={filterTipo.includes(item.value)}
+                        onCheckedChange={(checked) => {
+                          setFilterTipo((prev) =>
+                            checked ? [...prev, item.value] : prev.filter((v) => v !== item.value)
+                          );
+                        }}
+                      />
+                      {item.label}
+                    </label>
+                  ))}
+                </div>
+              </div>
+              {hasFilters && (
+                <Button variant="ghost" size="sm" className="w-full text-xs" onClick={() => { setFilterStatus([]); setFilterTipo([]); }}>
+                  <X className="w-3 h-3 mr-1" /> Limpar filtros
+                </Button>
+              )}
+            </div>
+          </PopoverContent>
+        </Popover>
+      </div>
+
+      {/* Table */}
       <Card className="border-border/50 shadow-sm overflow-hidden">
-        <ModuleTabs tabs={clientTabs} activeTab={activeTab} onTabChange={setActiveTab} />
-        <div className="p-4">{renderTabContent()}</div>
+        <Table>
+          <TableHeader>
+            <TableRow className="hover:bg-transparent border-border/30">
+              <TableHead className="text-xs font-semibold uppercase tracking-wider">Nome / Razão Social</TableHead>
+              <TableHead className="text-xs font-semibold uppercase tracking-wider">Tipo</TableHead>
+              <TableHead className="text-xs font-semibold uppercase tracking-wider">Documento</TableHead>
+              <TableHead className="text-xs font-semibold uppercase tracking-wider">Telefone</TableHead>
+              <TableHead className="text-xs font-semibold uppercase tracking-wider">Email</TableHead>
+              <TableHead className="text-xs font-semibold uppercase tracking-wider">Cidade</TableHead>
+              <TableHead className="text-xs font-semibold uppercase tracking-wider">Status</TableHead>
+              <TableHead className="text-xs font-semibold uppercase tracking-wider">Criado em</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {isLoading ? (
+              <TableRow>
+                <TableCell colSpan={8} className="text-center py-12">
+                  <Loader2 className="w-5 h-5 animate-spin mx-auto text-muted-foreground" />
+                </TableCell>
+              </TableRow>
+            ) : filtered.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={8} className="text-center py-12">
+                  <div className="flex flex-col items-center gap-2">
+                    <Users className="w-8 h-8 text-muted-foreground/30" />
+                    <p className="text-sm text-muted-foreground">
+                      {search || hasFilters ? "Nenhum cliente encontrado" : "Nenhum cliente cadastrado"}
+                    </p>
+                  </div>
+                </TableCell>
+              </TableRow>
+            ) : (
+              filtered.map((c) => (
+                <TableRow
+                  key={c.id}
+                  className="cursor-pointer hover:bg-muted/50 transition-colors border-border/20"
+                  onClick={() => navigate(`/app/clientes/${c.id}`)}
+                >
+                  <TableCell className="font-medium text-foreground">
+                    {c.tipo === "pf" ? c.nome_completo : (c.nome_fantasia || c.razao_social) || "—"}
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="outline" className="text-xs font-medium">
+                      {c.tipo === "pf" ? "PF" : "PJ"}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-muted-foreground text-sm font-mono">
+                    {formatDoc(c.tipo, c.cpf, c.cnpj)}
+                  </TableCell>
+                  <TableCell className="text-muted-foreground text-sm">
+                    {formatPhone(c.telefone)}
+                  </TableCell>
+                  <TableCell className="text-muted-foreground text-sm">{c.email || "—"}</TableCell>
+                  <TableCell className="text-muted-foreground text-sm">
+                    {c.cidade ? `${c.cidade}${c.estado ? `/${c.estado}` : ""}` : "—"}
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant={c.ativo ? "default" : "secondary"} className="text-xs">
+                      {c.ativo ? "Ativo" : "Inativo"}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-muted-foreground text-sm">
+                    {format(new Date(c.created_at), "dd/MM/yyyy", { locale: ptBR })}
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
       </Card>
 
+      {/* Modal Novo Cliente */}
       <FormModal open={showForm} onOpenChange={handleOpenChange} title="Novo Cliente" description="Preencha os dados do cliente. CNPJ e CEP preenchem dados automaticamente." size="xl">
         <div className="space-y-6">
           <div className="space-y-2">
@@ -259,7 +447,7 @@ export default function Clientes() {
             <div className="space-y-4">
               <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Dados pessoais</p>
               <div className="grid grid-cols-2 gap-4">
-                <TextInput label="Nome completo" placeholder="Nome completo do cliente" value={form.nomeCompleto} onChange={(e) => updateField("nomeCompleto", e.target.value)} icon={<UserRound className="w-4 h-4" />} error={errors.nomeCompleto} />
+                <TextInput label="Nome completo" placeholder="Nome completo" value={form.nomeCompleto} onChange={(e) => updateField("nomeCompleto", e.target.value)} icon={<UserRound className="w-4 h-4" />} error={errors.nomeCompleto} />
                 <DocumentInput type="cpf" value={form.cpf} onValueChange={(raw) => updateField("cpf", raw)} error={errors.cpf} />
               </div>
               <div className="grid grid-cols-2 gap-4">
@@ -280,7 +468,7 @@ export default function Clientes() {
               )}
               <div className="grid grid-cols-2 gap-4">
                 <DocumentInput type="cnpj" value={form.cnpj} onValueChange={(raw) => updateField("cnpj", raw)} onBlur={handleCnpjBlur} error={errors.cnpj} />
-                <TextInput label="Razão Social" placeholder="Razão social da empresa" value={form.razaoSocial} onChange={(e) => updateField("razaoSocial", e.target.value)} icon={<Building2 className="w-4 h-4" />} error={errors.razaoSocial} />
+                <TextInput label="Razão Social" placeholder="Razão social" value={form.razaoSocial} onChange={(e) => updateField("razaoSocial", e.target.value)} icon={<Building2 className="w-4 h-4" />} error={errors.razaoSocial} />
                 <TextInput label="Nome Fantasia" placeholder="Nome fantasia" value={form.nomeFantasia} onChange={(e) => updateField("nomeFantasia", e.target.value)} />
                 <TextInput label="Inscrição Estadual" placeholder="Inscrição estadual" value={form.inscricaoEstadual} onChange={(e) => updateField("inscricaoEstadual", e.target.value)} />
                 <TextInput label="Inscrição Municipal" placeholder="Inscrição municipal" value={form.inscricaoMunicipal} onChange={(e) => updateField("inscricaoMunicipal", e.target.value)} />
