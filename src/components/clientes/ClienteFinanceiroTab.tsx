@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { DollarSign, TrendingUp, AlertCircle, Receipt, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
@@ -25,47 +25,43 @@ const statusMap: Record<string, { label: string; variant: "default" | "secondary
 };
 
 export function ClienteFinanceiroTab({ clienteId }: Props) {
-  // For now, show accounts_payable linked to this client via supplier_id
-  // In a real scenario this would be accounts_receivable
   const { data: financeiro = [], isLoading } = useQuery({
     queryKey: ["cliente-financeiro", clienteId],
     queryFn: async () => {
-      // Query accounts payable where supplier_id matches (as placeholder)
-      // This will be replaced with proper client financial when accounts_receivable exists
       const { data, error } = await supabase
         .from("accounts_payable")
         .select("*")
         .order("due_date", { ascending: false })
         .limit(50);
       if (error) throw error;
-      // Filter client-related in the future
       return data || [];
     },
   });
 
-  const totalFaturado = financeiro.reduce((sum, f) => sum + (f.amount || 0), 0);
-  const totalPago = financeiro.filter((f) => f.status === "paid").reduce((sum, f) => sum + (f.amount || 0), 0);
-  const emAberto = financeiro.filter((f) => f.status === "pending" || f.status === "overdue").reduce((sum, f) => sum + (f.amount || 0), 0);
-  const ticketMedio = financeiro.length > 0 ? totalFaturado / financeiro.length : 0;
+  const pendente = financeiro
+    .filter((f) => f.status === "pending" || f.status === "overdue")
+    .reduce((sum, f) => sum + (f.amount || 0), 0);
+  const totalPago = financeiro
+    .filter((f) => f.status === "paid")
+    .reduce((sum, f) => sum + (f.amount || 0), 0);
+  const totalRegistros = financeiro.length;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {[
-          { label: "Total Faturado", value: currency(totalFaturado), icon: DollarSign },
-          { label: "Total Pago", value: currency(totalPago), icon: TrendingUp },
-          { label: "Em Aberto", value: currency(emAberto), icon: AlertCircle },
-          { label: "Ticket Médio", value: currency(ticketMedio), icon: Receipt },
-        ].map((stat) => (
-          <Card key={stat.label} className="p-4 border-border/50 shadow-sm">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{stat.label}</span>
-              <stat.icon className="w-4 h-4 text-primary" />
-            </div>
-            <p className="text-lg font-bold text-foreground">{stat.value}</p>
-          </Card>
-        ))}
+      <div className="grid grid-cols-3 gap-4">
+        <Card className="p-5 border-amber-500/20 bg-amber-500/[0.04] shadow-sm">
+          <p className="text-xs font-medium text-amber-400 uppercase tracking-wider mb-1">Pendente</p>
+          <p className="text-2xl font-bold text-amber-400">{currency(pendente)}</p>
+        </Card>
+        <Card className="p-5 border-emerald-500/20 bg-emerald-500/[0.04] shadow-sm">
+          <p className="text-xs font-medium text-emerald-400 uppercase tracking-wider mb-1">Total Pago</p>
+          <p className="text-2xl font-bold text-emerald-400">{currency(totalPago)}</p>
+        </Card>
+        <Card className="p-5 border-border/50 shadow-sm">
+          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Total de Registros</p>
+          <p className="text-2xl font-bold text-foreground">{totalRegistros}</p>
+        </Card>
       </div>
 
       {/* Table */}
@@ -73,11 +69,11 @@ export function ClienteFinanceiroTab({ clienteId }: Props) {
         <Table>
           <TableHeader>
             <TableRow className="hover:bg-transparent border-border/30">
-              <TableHead className="text-xs font-semibold uppercase tracking-wider">Descrição</TableHead>
-              <TableHead className="text-xs font-semibold uppercase tracking-wider">Valor</TableHead>
-              <TableHead className="text-xs font-semibold uppercase tracking-wider">Status</TableHead>
-              <TableHead className="text-xs font-semibold uppercase tracking-wider">Vencimento</TableHead>
-              <TableHead className="text-xs font-semibold uppercase tracking-wider">Pagamento</TableHead>
+              <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Descrição</TableHead>
+              <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Vencimento</TableHead>
+              <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Valor</TableHead>
+              <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Status</TableHead>
+              <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground text-right">Ação</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -90,11 +86,7 @@ export function ClienteFinanceiroTab({ clienteId }: Props) {
             ) : financeiro.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={5} className="text-center py-12">
-                  <div className="flex flex-col items-center gap-2">
-                    <DollarSign className="w-8 h-8 text-muted-foreground/30" />
-                    <p className="text-sm text-muted-foreground">Nenhum registro financeiro</p>
-                    <p className="text-xs text-muted-foreground/70">Registros financeiros vinculados ao cliente aparecerão aqui</p>
-                  </div>
+                  <p className="text-sm text-muted-foreground">Nenhum registro financeiro</p>
                 </TableCell>
               </TableRow>
             ) : (
@@ -103,15 +95,17 @@ export function ClienteFinanceiroTab({ clienteId }: Props) {
                 return (
                   <TableRow key={f.id} className="border-border/20">
                     <TableCell className="font-medium text-foreground">{f.description}</TableCell>
-                    <TableCell className="text-sm font-mono">{currency(f.amount)}</TableCell>
-                    <TableCell>
-                      <Badge variant={st.variant} className="text-xs">{st.label}</Badge>
-                    </TableCell>
                     <TableCell className="text-sm text-muted-foreground">
                       {format(new Date(f.due_date), "dd/MM/yyyy", { locale: ptBR })}
                     </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">
-                      {f.payment_date ? format(new Date(f.payment_date), "dd/MM/yyyy", { locale: ptBR }) : "—"}
+                    <TableCell className="text-sm font-mono text-foreground">{currency(f.amount)}</TableCell>
+                    <TableCell>
+                      <Badge variant={st.variant} className="text-xs">{st.label}</Badge>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <span className="text-xs text-muted-foreground">
+                        {f.payment_date ? format(new Date(f.payment_date), "dd/MM/yyyy", { locale: ptBR }) : "—"}
+                      </span>
                     </TableCell>
                   </TableRow>
                 );
