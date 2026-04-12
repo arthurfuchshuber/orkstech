@@ -15,11 +15,21 @@ import {
   Building2, UserRound, Check, Loader2, Mail, MapPin, Home,
 } from "lucide-react";
 
+export interface FornecedorPrefill {
+  type?: "empresa" | "pessoa";
+  nome?: string;
+  cpfCnpj?: string;
+  telefone?: string;
+  email?: string;
+  endereco?: { logradouro?: string; bairro?: string; cidade?: string; estado?: string; cep?: string };
+}
+
 interface FornecedorModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   editingId?: string | null;
   onSaved?: (id: string) => void;
+  prefill?: FornecedorPrefill | null;
 }
 
 interface FornecedorForm {
@@ -44,7 +54,7 @@ const initialForm: FornecedorForm = {
   endereco: { cep: "", logradouro: "", bairro: "", cidade: "", estado: "" },
 };
 
-export function FornecedorModal({ open, onOpenChange, editingId, onSaved }: FornecedorModalProps) {
+export function FornecedorModal({ open, onOpenChange, editingId, onSaved, prefill }: FornecedorModalProps) {
   const { user } = useAuth();
   const qc = useQueryClient();
   const [form, setForm] = useState<FornecedorForm>(initialForm);
@@ -80,10 +90,29 @@ export function FornecedorModal({ open, onOpenChange, editingId, onSaved }: Forn
         },
       });
     } else if (!editingId && open) {
-      setForm(initialForm);
+      // Apply prefill if provided
+      if (prefill) {
+        setForm({
+          ...initialForm,
+          type: prefill.type || "empresa",
+          nome: prefill.nome || "",
+          cpfCnpj: prefill.cpfCnpj || "",
+          telefone: prefill.telefone || "",
+          email: prefill.email || "",
+          endereco: {
+            cep: prefill.endereco?.cep || "",
+            logradouro: prefill.endereco?.logradouro || "",
+            bairro: prefill.endereco?.bairro || "",
+            cidade: prefill.endereco?.cidade || "",
+            estado: prefill.endereco?.estado || "",
+          },
+        });
+      } else {
+        setForm(initialForm);
+      }
       setErrors({});
     }
-  }, [existing, editingId, open]);
+  }, [existing, editingId, open, prefill]);
 
   const update = (key: string, value: string) => {
     setForm((p) => ({ ...p, [key]: value }));
@@ -120,6 +149,16 @@ export function FornecedorModal({ open, onOpenChange, editingId, onSaved }: Forn
       setLoadingCnpj(false);
     }
   };
+
+  // Auto-fetch CNPJ data when prefill has CNPJ
+  useEffect(() => {
+    if (open && !editingId && prefill?.cpfCnpj && prefill.type !== "pessoa") {
+      const raw = prefill.cpfCnpj.replace(/\D/g, "");
+      if (raw.length === 14) {
+        handleCnpjBlur();
+      }
+    }
+  }, [open, prefill]);
 
   const handleAddressFound = (addr: { logradouro: string; bairro: string; cidade: string; estado: string }) => {
     setForm((p) => ({ ...p, endereco: { ...p.endereco, ...addr } }));
