@@ -207,15 +207,21 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Persist notifications in webhooks log for frontend consumption
-    if (logEntry && notifications.length > 0) {
-      await supabase.from('pluggy_webhooks_log')
-        .update({
-          processed: true,
-          payload: { ...body, notifications },
-        })
-        .eq('id', logEntry.id)
-    } else if (logEntry) {
+    // Persist notifications in dedicated table
+    if (notifications.length > 0) {
+      const notifRows = notifications.map((n) => ({
+        user_id: userId,
+        tipo: n.tipo,
+        titulo: n.titulo,
+        descricao: n.descricao,
+        webhook_log_id: logEntry?.id || null,
+      }))
+      const { error: notifError } = await supabase.from('pluggy_notifications').insert(notifRows)
+      if (notifError) console.error('Failed to insert notifications:', notifError)
+    }
+
+    // Mark webhook as processed
+    if (logEntry) {
       await supabase.from('pluggy_webhooks_log')
         .update({ processed: true })
         .eq('id', logEntry.id)
