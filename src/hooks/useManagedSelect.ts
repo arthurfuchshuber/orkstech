@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import type { ManagedOption } from "@/components/inputs/ManagedSelectInput";
 
-type TableName = "categorias_financeiras" | "centros_custo" | "contas_bancarias" | "formas_pagamento";
+type TableName = "categorias_financeiras" | "centros_custo" | "contas_bancarias" | "formas_pagamento" | "cliente_interacao_tipos";
 
 interface TableConfig {
   table: TableName;
@@ -47,6 +47,11 @@ const configs: Record<string, TableConfig> = {
     queryKey: "bancos",
     labelField: "nome",
     extraLabel: (row: any) => row.codigo ? `${row.codigo} - ${row.nome}` : row.nome,
+  },
+  "cliente_interacao_tipos": {
+    table: "cliente_interacao_tipos" as any,
+    queryKey: "cliente-interacao-tipos",
+    labelField: "nome",
   },
 };
 
