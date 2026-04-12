@@ -555,8 +555,8 @@ export default function ContasAPagar() {
 
       {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-        <StatCard icon={Receipt} title="Total" value={String(counts.total)} />
-        <StatCard icon={Clock} title="Pendentes" value={String(counts.pending)} />
+        <StatCard icon={Receipt} title="Total em Aberto" value={String(counts.openTotal)} />
+        <StatCard icon={Clock} title="A Vencer" value={String(counts.upcoming)} />
         <StatCard icon={AlertTriangle} title="Vencidas" value={String(counts.overdue)} />
         <StatCard icon={Check} title="Pagas" value={String(counts.paid)} />
       </div>
