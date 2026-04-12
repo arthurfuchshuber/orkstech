@@ -93,6 +93,8 @@ export default function ContasBancarias() {
         <Button onClick={openNew} className="gap-2"><Plus className="w-4 h-4" /> Nova Conta</Button>
       </div>
 
+      <PluggyConnectButton />
+
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {isLoading ? (
           <div className="col-span-full py-12 text-center text-muted-foreground text-sm">Carregando...</div>
