@@ -168,40 +168,6 @@ export default function Automacoes() {
         )}
       </div>
 
-      {/* Event flow visualization */}
-      <Card className="border-border/50 shadow-sm">
-        <CardContent className="p-5">
-          <h3 className="text-sm font-semibold text-foreground mb-4">Fluxo de Eventos</h3>
-          <div className="grid sm:grid-cols-3 gap-4">
-            <div className="space-y-2">
-              <p className="text-[10px] text-muted-foreground/60 uppercase tracking-wider font-semibold mb-2">Eventos</p>
-              {Object.entries(eventLabels).slice(0, 5).map(([key, label]) => (
-                <div key={key} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-muted/20 border border-border/20">
-                  <div className="w-1.5 h-1.5 rounded-full bg-primary/60" />
-                  <span className="text-xs text-foreground">{label}</span>
-                </div>
-              ))}
-            </div>
-            <div className="flex items-center justify-center">
-              <div className="flex flex-col items-center gap-2 text-muted-foreground/40">
-                <ArrowRight className="w-6 h-6" />
-                <span className="text-[10px] uppercase tracking-wider">Automação</span>
-                <ArrowRight className="w-6 h-6" />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <p className="text-[10px] text-muted-foreground/60 uppercase tracking-wider font-semibold mb-2">Ações</p>
-              {Object.entries(actionLabels).map(([key, label]) => (
-                <div key={key} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-muted/20 border border-border/20">
-                  <div className="w-1.5 h-1.5 rounded-full bg-success/60" />
-                  <span className="text-xs text-foreground">{label}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
       <FormModal open={showForm} onOpenChange={setShowForm} title="Nova Automação" description="Configure evento gatilho e ações automáticas" size="lg">
         <div className="space-y-5">
           <TextInput label="Nome" placeholder="Ex: Boas-vindas ao cliente" value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} />
