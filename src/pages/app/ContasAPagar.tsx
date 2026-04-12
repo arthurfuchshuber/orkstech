@@ -319,6 +319,7 @@ export default function ContasAPagar() {
   };
 
   const doSave = () => {
+    if (editingId) {
       updateMutation.mutate({
         id: editingId,
         data: {
