@@ -1,6 +1,5 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Zap, Target, Play } from "lucide-react";
-import { RegrasTab } from "@/components/automacoes/RegrasTab";
+import { Target, Play } from "lucide-react";
 import { GatilhosTab } from "@/components/automacoes/GatilhosTab";
 import { AcoesTab } from "@/components/automacoes/AcoesTab";
 
@@ -9,14 +8,11 @@ export default function Automacoes() {
     <div className="space-y-6 animate-fade-in max-w-6xl">
       <div>
         <h1 className="text-2xl font-bold text-foreground tracking-tight">Automações</h1>
-        <p className="text-muted-foreground text-sm mt-0.5">Gerencie regras, gatilhos e ações do sistema</p>
+        <p className="text-muted-foreground text-sm mt-0.5">Gerencie gatilhos e ações do sistema</p>
       </div>
 
-      <Tabs defaultValue="regras" className="space-y-6">
+      <Tabs defaultValue="gatilhos" className="space-y-6">
         <TabsList className="bg-muted/30 border border-border/30">
-          <TabsTrigger value="regras" className="gap-2 data-[state=active]:bg-background">
-            <Zap className="w-3.5 h-3.5" /> Regras
-          </TabsTrigger>
           <TabsTrigger value="gatilhos" className="gap-2 data-[state=active]:bg-background">
             <Target className="w-3.5 h-3.5" /> Gatilhos
           </TabsTrigger>
@@ -25,9 +21,6 @@ export default function Automacoes() {
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="regras">
-          <RegrasTab />
-        </TabsContent>
         <TabsContent value="gatilhos">
           <GatilhosTab />
         </TabsContent>
