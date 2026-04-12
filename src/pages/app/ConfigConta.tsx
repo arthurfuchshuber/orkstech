@@ -458,7 +458,7 @@ function UsuariosTab() {
 /* ─── Page ─── */
 export default function ConfigConta() {
   return (
-    <div className="space-y-6 max-w-4xl animate-fade-in">
+    <div className="space-y-6 animate-fade-in">
       <div>
         <h1 className="text-xl font-bold text-foreground tracking-tight">Empresa e Usuários</h1>
         <p className="text-sm text-muted-foreground mt-0.5">

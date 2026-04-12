@@ -5,7 +5,7 @@ import { AcoesTab } from "@/components/automacoes/AcoesTab";
 
 export default function Automacoes() {
   return (
-    <div className="space-y-6 animate-fade-in max-w-6xl">
+    <div className="space-y-6 animate-fade-in">
       <div>
         <h1 className="text-2xl font-bold text-foreground tracking-tight">Automações</h1>
         <p className="text-muted-foreground text-sm mt-0.5">Gerencie gatilhos e ações do sistema</p>

@@ -85,7 +85,7 @@ export default function GerenciarMenu() {
   }
 
   return (
-    <div className="space-y-6 max-w-4xl animate-fade-in">
+    <div className="space-y-6 animate-fade-in">
       <div className="flex items-center gap-3">
         <Menu className="w-5 h-5 text-primary" />
         <div>
