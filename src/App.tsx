@@ -57,6 +57,12 @@ const App = () => (
                 <Route path="financas/fluxo" element={<PlaceholderPage />} />
                 <Route path="financas/dre" element={<PlaceholderPage />} />
                 <Route path="financas/cadastros" element={<CadastrosFinanceiros />} />
+                <Route path="financas/plano-de-contas" element={<CadastrosFinanceiros />} />
+                <Route path="financas/centros-de-custo" element={<CadastrosFinanceiros />} />
+                <Route path="financas/formas-de-pagamento" element={<CadastrosFinanceiros />} />
+                <Route path="financas/contas-bancarias" element={<ContasBancarias />} />
+                <Route path="financas/extrato" element={<ExtratoBancario />} />
+                <Route path="financas/conciliacao" element={<Conciliacao />} />
                 <Route path="automacoes/workflows" element={<Automacoes />} />
                 <Route path="automacoes/integracoes" element={<PlaceholderPage />} />
                 <Route path="automacoes/notificacoes" element={<PlaceholderPage />} />
