@@ -63,7 +63,8 @@ const App = () => (
                 <Route path="financas/contas-bancarias" element={<ContasBancarias />} />
                 <Route path="financas/extrato" element={<ExtratoBancario />} />
                 <Route path="financas/conciliacao" element={<Conciliacao />} />
-                <Route path="automacoes/workflows" element={<Automacoes />} />
+                <Route path="automacoes/config" element={<Automacoes />} />
+                <Route path="automacoes/workflows" element={<Navigate to="/app/automacoes/config" replace />} />
                 <Route path="automacoes/integracoes" element={<PlaceholderPage />} />
                 <Route path="automacoes/notificacoes" element={<PlaceholderPage />} />
                 <Route path="config" element={<Configuracoes />} />
