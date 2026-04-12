@@ -1,15 +1,18 @@
-import { useState } from "react";
-import { Building2, Users, Shield } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Building2, Users } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
 import { useEmpresa } from "@/hooks/useEmpresa";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 /* ─── Tab: Empresa ─── */
 function EmpresaTab() {
@@ -124,58 +127,226 @@ function Field({ label, value, editing, onChange }: { label: string; value: stri
 }
 
 /* ─── Tab: Usuários ─── */
-function UsuariosTab() {
-  const { user } = useAuth();
-
-  return (
-    <div className="space-y-4">
-      <p className="text-sm text-muted-foreground">Gerencie os usuários com acesso ao sistema.</p>
-      <Card className="p-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-full bg-primary/15 flex items-center justify-center">
-              <Users className="w-4 h-4 text-primary" />
-            </div>
-            <div>
-              <p className="text-sm font-medium text-foreground">{user?.email}</p>
-              <p className="text-xs text-muted-foreground">Proprietário</p>
-            </div>
-          </div>
-          <Badge variant="secondary" className="text-xs">Admin</Badge>
-        </div>
-      </Card>
-      <p className="text-xs text-muted-foreground italic">
-        O convite de novos usuários e gestão de equipe estará disponível em breve.
-      </p>
-    </div>
-  );
+interface NivelPermissao {
+  id: string;
+  nome: string;
+  descricao: string | null;
 }
 
-/* ─── Tab: Permissões ─── */
-function PermissoesTab() {
+interface ProfileData {
+  id: string;
+  user_id: string;
+  nome: string | null;
+  cpf: string | null;
+  telefone: string | null;
+  data_nascimento: string | null;
+  nivel_permissao_id: string | null;
+}
+
+function UsuariosTab() {
+  const { user } = useAuth();
+  const qc = useQueryClient();
+
+  const { data: niveis = [] } = useQuery({
+    queryKey: ["niveis_permissao"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("niveis_permissao")
+        .select("*")
+        .order("ordem");
+      if (error) throw error;
+      return data as NivelPermissao[];
+    },
+  });
+
+  const { data: profile, isLoading } = useQuery({
+    queryKey: ["profile", user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("user_id", user!.id)
+        .maybeSingle();
+      if (error) throw error;
+      return data as ProfileData | null;
+    },
+  });
+
+  const [editing, setEditing] = useState(false);
+  const [form, setForm] = useState({
+    nome: "",
+    cpf: "",
+    telefone: "",
+    data_nascimento: "",
+    nivel_permissao_id: "",
+  });
+
+  useEffect(() => {
+    if (profile) {
+      setForm({
+        nome: profile.nome ?? "",
+        cpf: profile.cpf ?? "",
+        telefone: profile.telefone ?? "",
+        data_nascimento: profile.data_nascimento ?? "",
+        nivel_permissao_id: profile.nivel_permissao_id ?? "",
+      });
+    }
+  }, [profile]);
+
+  const updateProfile = useMutation({
+    mutationFn: async () => {
+      if (!user) throw new Error("Usuário não autenticado");
+
+      const payload = {
+        nome: form.nome || null,
+        cpf: form.cpf || null,
+        telefone: form.telefone || null,
+        data_nascimento: form.data_nascimento || null,
+        nivel_permissao_id: form.nivel_permissao_id || null,
+      };
+
+      if (profile) {
+        const { error } = await supabase
+          .from("profiles")
+          .update(payload)
+          .eq("user_id", user.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from("profiles")
+          .insert({ ...payload, user_id: user.id });
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      toast.success("Perfil atualizado com sucesso");
+      setEditing(false);
+      qc.invalidateQueries({ queryKey: ["profile"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const currentNivel = niveis.find((n) => n.id === (profile?.nivel_permissao_id ?? form.nivel_permissao_id));
+
+  if (isLoading) return <p className="text-sm text-muted-foreground py-8 text-center">Carregando...</p>;
+
   return (
     <div className="space-y-4">
-      <p className="text-sm text-muted-foreground">Configure os papéis e permissões de acesso ao sistema.</p>
-
-      <Card className="p-4 space-y-3">
-        {[
-          { role: "Admin", desc: "Acesso total ao sistema, incluindo configurações e gestão de usuários." },
-          { role: "Financeiro", desc: "Acesso a contas a pagar, conciliação, extratos e relatórios financeiros." },
-          { role: "Operacional", desc: "Acesso a cadastros de clientes, fornecedores e produtos." },
-          { role: "Visualizador", desc: "Acesso somente leitura a dashboards e relatórios." },
-        ].map((p) => (
-          <div key={p.role} className="flex items-start gap-3 py-2 border-b border-border/30 last:border-0">
-            <Shield className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
-            <div>
-              <p className="text-sm font-medium text-foreground">{p.role}</p>
-              <p className="text-xs text-muted-foreground">{p.desc}</p>
-            </div>
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-muted-foreground">Informações e permissões do usuário logado.</p>
+        {!editing ? (
+          <Button size="sm" variant="outline" onClick={() => setEditing(true)}>Editar</Button>
+        ) : (
+          <div className="flex gap-2">
+            <Button size="sm" variant="ghost" onClick={() => {
+              setEditing(false);
+              if (profile) {
+                setForm({
+                  nome: profile.nome ?? "",
+                  cpf: profile.cpf ?? "",
+                  telefone: profile.telefone ?? "",
+                  data_nascimento: profile.data_nascimento ?? "",
+                  nivel_permissao_id: profile.nivel_permissao_id ?? "",
+                });
+              }
+            }}>Cancelar</Button>
+            <Button size="sm" onClick={() => updateProfile.mutate()} disabled={updateProfile.isPending}>
+              {updateProfile.isPending ? "Salvando..." : "Salvar"}
+            </Button>
           </div>
-        ))}
+        )}
+      </div>
+
+      <Card className="p-5">
+        <div className="flex items-center gap-3 mb-5">
+          <div className="w-10 h-10 rounded-full bg-primary/15 flex items-center justify-center">
+            <Users className="w-5 h-5 text-primary" />
+          </div>
+          <div>
+            <p className="text-sm font-medium text-foreground">{user?.email}</p>
+            <Badge variant="secondary" className="text-[10px] mt-0.5">
+              {currentNivel?.nome ?? "Sem nível"}
+            </Badge>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {!editing ? (
+            <>
+              <div>
+                <p className="text-xs font-medium text-muted-foreground mb-1">Nome</p>
+                <p className="text-sm text-foreground">{form.nome || "—"}</p>
+              </div>
+              <div>
+                <p className="text-xs font-medium text-muted-foreground mb-1">E-mail</p>
+                <p className="text-sm text-foreground">{user?.email ?? "—"}</p>
+              </div>
+              <div>
+                <p className="text-xs font-medium text-muted-foreground mb-1">CPF</p>
+                <p className="text-sm text-foreground">{form.cpf || "—"}</p>
+              </div>
+              <div>
+                <p className="text-xs font-medium text-muted-foreground mb-1">Telefone</p>
+                <p className="text-sm text-foreground">{form.telefone || "—"}</p>
+              </div>
+              <div>
+                <p className="text-xs font-medium text-muted-foreground mb-1">Data de Nascimento</p>
+                <p className="text-sm text-foreground">{form.data_nascimento || "—"}</p>
+              </div>
+              <div>
+                <p className="text-xs font-medium text-muted-foreground mb-1">Nível de Permissão</p>
+                <p className="text-sm text-foreground">{currentNivel?.nome ?? "—"}</p>
+              </div>
+            </>
+          ) : (
+            <>
+              <div>
+                <label className="text-xs font-medium text-muted-foreground mb-1 block">Nome</label>
+                <Input value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} className="h-9 text-sm" />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-muted-foreground mb-1 block">E-mail</label>
+                <Input value={user?.email ?? ""} disabled className="h-9 text-sm opacity-60" />
+                <p className="text-[10px] text-muted-foreground mt-1">O e-mail não pode ser alterado aqui.</p>
+              </div>
+              <div>
+                <label className="text-xs font-medium text-muted-foreground mb-1 block">CPF</label>
+                <Input value={form.cpf} onChange={(e) => setForm({ ...form, cpf: e.target.value })} className="h-9 text-sm" placeholder="000.000.000-00" />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-muted-foreground mb-1 block">Telefone</label>
+                <Input value={form.telefone} onChange={(e) => setForm({ ...form, telefone: e.target.value })} className="h-9 text-sm" placeholder="(00) 00000-0000" />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-muted-foreground mb-1 block">Data de Nascimento</label>
+                <Input type="date" value={form.data_nascimento} onChange={(e) => setForm({ ...form, data_nascimento: e.target.value })} className="h-9 text-sm" />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-muted-foreground mb-1 block">Nível de Permissão</label>
+                <Select value={form.nivel_permissao_id} onValueChange={(v) => setForm({ ...form, nivel_permissao_id: v })}>
+                  <SelectTrigger className="h-9 text-sm">
+                    <SelectValue placeholder="Selecione um nível" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {niveis.map((n) => (
+                      <SelectItem key={n.id} value={n.id}>
+                        <div>
+                          <span className="font-medium">{n.nome}</span>
+                          {n.descricao && <span className="text-muted-foreground ml-2 text-xs">— {n.descricao}</span>}
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </>
+          )}
+        </div>
       </Card>
 
       <p className="text-xs text-muted-foreground italic">
-        A configuração avançada de permissões por módulo estará disponível em breve.
+        O convite de novos usuários e gestão de equipe estará disponível em breve.
       </p>
     </div>
   );
@@ -186,9 +357,9 @@ export default function ConfigConta() {
   return (
     <div className="space-y-6 max-w-4xl animate-fade-in">
       <div>
-        <h1 className="text-xl font-bold text-foreground tracking-tight">Conta e Acessos</h1>
+        <h1 className="text-xl font-bold text-foreground tracking-tight">Empresa e Usuários</h1>
         <p className="text-sm text-muted-foreground mt-0.5">
-          Gerencie os dados da empresa, usuários e permissões
+          Gerencie os dados da empresa e informações dos usuários
         </p>
       </div>
 
@@ -202,10 +373,6 @@ export default function ConfigConta() {
             <Users className="w-3.5 h-3.5" />
             Usuários
           </TabsTrigger>
-          <TabsTrigger value="permissoes" className="gap-1.5">
-            <Shield className="w-3.5 h-3.5" />
-            Permissões
-          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="empresa" className="mt-4">
@@ -213,9 +380,6 @@ export default function ConfigConta() {
         </TabsContent>
         <TabsContent value="usuarios" className="mt-4">
           <UsuariosTab />
-        </TabsContent>
-        <TabsContent value="permissoes" className="mt-4">
-          <PermissoesTab />
         </TabsContent>
       </Tabs>
     </div>
