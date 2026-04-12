@@ -571,8 +571,8 @@ export default function ContasAPagar() {
   };
 
   // Filter and search
-  const today = new Date().toISOString().split("T")[0];
   const filtered = useMemo(() => {
+    const todayStr = new Date().toISOString().split("T")[0];
     let list = payables;
     if (filterStatus === "open") {
       list = list.filter((p: any) => p.status === "pending" || p.status === "overdue");
