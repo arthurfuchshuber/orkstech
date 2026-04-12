@@ -427,6 +427,7 @@ export type Database = {
           cliente_id: string
           created_at: string
           id: string
+          interacao_id: string | null
           nome: string
           tamanho: number | null
           tipo: string | null
@@ -438,6 +439,7 @@ export type Database = {
           cliente_id: string
           created_at?: string
           id?: string
+          interacao_id?: string | null
           nome: string
           tamanho?: number | null
           tipo?: string | null
@@ -449,6 +451,7 @@ export type Database = {
           cliente_id?: string
           created_at?: string
           id?: string
+          interacao_id?: string | null
           nome?: string
           tamanho?: number | null
           tipo?: string | null
@@ -462,6 +465,13 @@ export type Database = {
             columns: ["cliente_id"]
             isOneToOne: false
             referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cliente_documentos_interacao_id_fkey"
+            columns: ["interacao_id"]
+            isOneToOne: false
+            referencedRelation: "cliente_interacoes"
             referencedColumns: ["id"]
           },
         ]

@@ -8,6 +8,7 @@ import { Card } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { TextInput } from "@/components/inputs/TextInput";
 import { ManagedSelectInput, type ManagedOption } from "@/components/inputs/ManagedSelectInput";
+import { MultiFileAttachment, type UploadedFile } from "@/components/inputs/MultiFileAttachment";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useManagedSelect } from "@/hooks/useManagedSelect";
@@ -47,7 +48,6 @@ const defaultTipos = [
   { nome: "Contrato", ordem: 5 },
 ];
 
-// Parse title and description from stored descricao
 const parseInteracao = (descricao: string) => {
   const dotIndex = descricao.indexOf(". ");
   if (dotIndex > 0 && dotIndex < 60) {
@@ -63,11 +63,13 @@ export function ClienteVisaoGeralTab({ cliente, onEdit: _onEdit }: Props) {
   const [tipoId, setTipoId] = useState("");
   const [titulo, setTitulo] = useState("");
   const [descricao, setDescricao] = useState("");
+  const [files, setFiles] = useState<UploadedFile[]>([]);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editTipoId, setEditTipoId] = useState("");
   const [editTitulo, setEditTitulo] = useState("");
   const [editDescricao, setEditDescricao] = useState("");
+  const [editFiles, setEditFiles] = useState<UploadedFile[]>([]);
 
   // Fetch tipos from DB
   const { data: tipos = [], isLoading: tiposLoading } = useQuery({
@@ -86,10 +88,7 @@ export function ClienteVisaoGeralTab({ cliente, onEdit: _onEdit }: Props) {
   useEffect(() => {
     if (!tiposLoading && tipos.length === 0 && user) {
       const seedDefaults = async () => {
-        const records = defaultTipos.map((t) => ({
-          ...t,
-          user_id: user.id,
-        }));
+        const records = defaultTipos.map((t) => ({ ...t, user_id: user.id }));
         await supabase.from("cliente_interacao_tipos" as any).insert(records);
         queryClient.invalidateQueries({ queryKey: ["cliente-interacao-tipos"] });
       };
@@ -103,15 +102,13 @@ export function ClienteVisaoGeralTab({ cliente, onEdit: _onEdit }: Props) {
 
   const managed = useManagedSelect("cliente_interacao_tipos");
 
-  // Get tipo label by id
   const getTipoLabel = (tipoValue: string) => {
-    // Try to find by id first (new records)
     const byId = tipos.find((t: any) => t.id === tipoValue);
     if (byId) return byId.nome;
-    // Fallback for legacy records stored as slug
     return tipoValue;
   };
 
+  // Fetch interações with linked documents
   const { data: interacoes = [], isLoading } = useQuery({
     queryKey: ["cliente-interacoes", cliente.id],
     queryFn: async () => {
@@ -125,39 +122,92 @@ export function ClienteVisaoGeralTab({ cliente, onEdit: _onEdit }: Props) {
     },
   });
 
+  // Fetch docs linked to interações for display
+  const interacaoIds = interacoes.map((i) => i.id);
+  const { data: interacaoDocs = [] } = useQuery({
+    queryKey: ["cliente-interacao-docs", cliente.id, interacaoIds],
+    queryFn: async () => {
+      if (interacaoIds.length === 0) return [];
+      const { data, error } = await supabase
+        .from("cliente_documentos")
+        .select("*")
+        .in("interacao_id", interacaoIds);
+      if (error) throw error;
+      return data;
+    },
+    enabled: interacaoIds.length > 0,
+  });
+
+  const getDocsForInteracao = (interacaoId: string) =>
+    interacaoDocs.filter((d) => d.interacao_id === interacaoId);
+
+  // Save files as cliente_documentos linked to an interacao
+  const saveFilesToDocs = async (interacaoId: string, uploadedFiles: UploadedFile[], isContract: boolean) => {
+    if (!user || uploadedFiles.length === 0) return;
+    const records = uploadedFiles.map((f) => ({
+      user_id: user.id,
+      cliente_id: cliente.id,
+      interacao_id: interacaoId,
+      nome: f.name,
+      tipo: isContract ? "contract" : f.type,
+      url: f.url,
+      tamanho: f.size,
+    }));
+    await supabase.from("cliente_documentos").insert(records);
+  };
+
   const createMutation = useMutation({
     mutationFn: async () => {
       const tipoLabel = getTipoLabel(tipoId);
-      const { error } = await supabase.from("cliente_interacoes").insert({
+      const { data, error } = await supabase.from("cliente_interacoes").insert({
         user_id: user!.id,
         cliente_id: cliente.id,
         tipo: tipoLabel,
         descricao: `${titulo ? titulo + ". " : ""}${descricao}`,
         usuario_nome: user?.email || "Usuário",
-      });
+      }).select("id").single();
       if (error) throw error;
+
+      // Save files linked to this interação + Documentos tab
+      const isContract = tipoLabel.toLowerCase() === "contrato";
+      await saveFilesToDocs(data.id, files, isContract);
     },
     onSuccess: async () => {
-      await refreshQueries(queryClient, [["cliente-interacoes", cliente.id]]);
+      await refreshQueries(queryClient, [
+        ["cliente-interacoes", cliente.id],
+        ["cliente-documentos", cliente.id],
+        ["cliente-interacao-docs", cliente.id],
+      ]);
       toast.success("Atividade registrada");
       setTitulo("");
       setDescricao("");
       setTipoId("");
+      setFiles([]);
       setShowForm(false);
     },
   });
 
   const updateMutation = useMutation({
-    mutationFn: async ({ id, tipo, descricao }: { id: string; tipo: string; descricao: string }) => {
+    mutationFn: async ({ id, tipo, descricao, newFiles }: { id: string; tipo: string; descricao: string; newFiles: UploadedFile[] }) => {
       const tipoLabel = getTipoLabel(tipo);
       const { error } = await supabase
         .from("cliente_interacoes")
         .update({ tipo: tipoLabel, descricao })
         .eq("id", id);
       if (error) throw error;
+
+      // Save any new files
+      if (newFiles.length > 0) {
+        const isContract = tipoLabel.toLowerCase() === "contrato";
+        await saveFilesToDocs(id, newFiles, isContract);
+      }
     },
     onSuccess: async () => {
-      await refreshQueries(queryClient, [["cliente-interacoes", cliente.id]]);
+      await refreshQueries(queryClient, [
+        ["cliente-interacoes", cliente.id],
+        ["cliente-documentos", cliente.id],
+        ["cliente-interacao-docs", cliente.id],
+      ]);
       toast.success("Atividade atualizada");
       setEditingId(null);
     },
@@ -169,7 +219,10 @@ export function ClienteVisaoGeralTab({ cliente, onEdit: _onEdit }: Props) {
       if (error) throw error;
     },
     onSuccess: async () => {
-      await refreshQueries(queryClient, [["cliente-interacoes", cliente.id]]);
+      await refreshQueries(queryClient, [
+        ["cliente-interacoes", cliente.id],
+        ["cliente-documentos", cliente.id],
+      ]);
       toast.success("Atividade excluída");
       setDeleteId(null);
     },
@@ -177,18 +230,28 @@ export function ClienteVisaoGeralTab({ cliente, onEdit: _onEdit }: Props) {
 
   const startEdit = (item: any) => {
     const { title, body } = parseInteracao(item.descricao);
-    // Try to find matching tipo by label
     const matchingTipo = tipos.find((t: any) => t.nome === item.tipo);
     setEditingId(item.id);
     setEditTipoId(matchingTipo ? matchingTipo.id : "");
     setEditTitulo(title);
     setEditDescricao(body);
+    // Load existing files for display (read-only, new files can be added)
+    const existingDocs = getDocsForInteracao(item.id);
+    setEditFiles(existingDocs.map((d) => ({
+      name: d.nome,
+      url: d.url,
+      size: d.tamanho || 0,
+      type: d.tipo || "",
+    })));
   };
 
   const saveEdit = () => {
     if (!editingId) return;
     const fullDesc = `${editTitulo ? editTitulo + ". " : ""}${editDescricao}`;
-    updateMutation.mutate({ id: editingId, tipo: editTipoId, descricao: fullDesc });
+    // Only send truly new files (not already saved)
+    const existingUrls = new Set(getDocsForInteracao(editingId).map((d) => d.url));
+    const newFiles = editFiles.filter((f) => !existingUrls.has(f.url));
+    updateMutation.mutate({ id: editingId, tipo: editTipoId, descricao: fullDesc, newFiles });
   };
 
   // Smart summary
@@ -196,7 +259,6 @@ export function ClienteVisaoGeralTab({ cliente, onEdit: _onEdit }: Props) {
     ? "Nenhum dado suficiente ainda."
     : `${interacoes.length} interações registradas. Última atividade ${formatDistanceToNow(new Date(interacoes[0].created_at), { locale: ptBR, addSuffix: true })}.`;
 
-  // Generate AI-like insight
   const getInsight = (item: any) => {
     const desc = (item.descricao || "").toLowerCase();
     if (desc.includes("insatisfa")) return "Cliente expressou insatisfação com o produto adquirido.";
@@ -265,8 +327,14 @@ export function ClienteVisaoGeralTab({ cliente, onEdit: _onEdit }: Props) {
               className="min-h-[80px] text-sm"
             />
           </div>
+          <MultiFileAttachment
+            files={files}
+            onFilesChange={setFiles}
+            label="Anexos (opcional)"
+            folder={`clientes/${cliente.id}/atividades`}
+          />
           <div className="flex justify-end gap-2">
-            <Button variant="ghost" size="sm" onClick={() => setShowForm(false)}>Cancelar</Button>
+            <Button variant="ghost" size="sm" onClick={() => { setShowForm(false); setFiles([]); }}>Cancelar</Button>
             <Button
               size="sm"
               className="gap-2"
@@ -300,7 +368,7 @@ export function ClienteVisaoGeralTab({ cliente, onEdit: _onEdit }: Props) {
             const { title, body } = parseInteracao(item.descricao);
             const insight = getInsight(item);
             const colorClass = tipoColors[item.tipo] || "text-muted-foreground";
-            const hasAttachment = item.tipo === "Contrato" || item.tipo === "Documento";
+            const linkedDocs = getDocsForInteracao(item.id);
 
             return (
               <div key={item.id} className="relative pb-6 last:pb-0 group">
@@ -313,7 +381,11 @@ export function ClienteVisaoGeralTab({ cliente, onEdit: _onEdit }: Props) {
                       <div>
                         <div className="flex items-center gap-2">
                           <span className="text-sm font-semibold text-foreground">{title}</span>
-                          {hasAttachment && <Paperclip className="w-3.5 h-3.5 text-muted-foreground" />}
+                          {linkedDocs.length > 0 && (
+                            <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                              <Paperclip className="w-3 h-3" /> {linkedDocs.length}
+                            </span>
+                          )}
                         </div>
                         <span className="text-xs text-muted-foreground">{item.tipo}</span>
                       </div>
@@ -340,6 +412,24 @@ export function ClienteVisaoGeralTab({ cliente, onEdit: _onEdit }: Props) {
 
                   {body && <p className="text-sm text-muted-foreground mt-2">{body}</p>}
 
+                  {/* Attached files preview */}
+                  {linkedDocs.length > 0 && (
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {linkedDocs.map((doc) => (
+                        <a
+                          key={doc.id}
+                          href={doc.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-muted/30 border border-border/40 text-xs text-foreground hover:bg-muted/50 transition-colors"
+                        >
+                          <Paperclip className="w-3 h-3 text-muted-foreground" />
+                          <span className="truncate max-w-[120px]">{doc.nome}</span>
+                        </a>
+                      ))}
+                    </div>
+                  )}
+
                   {insight && (
                     <div className="mt-3 px-3 py-2 rounded-lg bg-primary/[0.06] border border-primary/10">
                       <p className="text-xs text-primary flex items-center gap-1.5">
@@ -361,8 +451,8 @@ export function ClienteVisaoGeralTab({ cliente, onEdit: _onEdit }: Props) {
       )}
 
       {/* Edit modal */}
-      <Dialog open={!!editingId} onOpenChange={(open) => !open && setEditingId(null)}>
-        <DialogContent className="sm:max-w-md">
+      <Dialog open={!!editingId} onOpenChange={(open) => { if (!open) { setEditingId(null); setEditFiles([]); } }}>
+        <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Editar Atividade</DialogTitle>
           </DialogHeader>
@@ -395,9 +485,15 @@ export function ClienteVisaoGeralTab({ cliente, onEdit: _onEdit }: Props) {
                 className="min-h-[100px] text-sm"
               />
             </div>
+            <MultiFileAttachment
+              files={editFiles}
+              onFilesChange={setEditFiles}
+              label="Anexos"
+              folder={`clientes/${cliente.id}/atividades`}
+            />
           </div>
           <DialogFooter>
-            <Button variant="ghost" size="sm" onClick={() => setEditingId(null)}>Cancelar</Button>
+            <Button variant="ghost" size="sm" onClick={() => { setEditingId(null); setEditFiles([]); }}>Cancelar</Button>
             <Button
               size="sm"
               className="gap-2"
