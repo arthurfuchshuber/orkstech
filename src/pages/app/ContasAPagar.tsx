@@ -125,7 +125,7 @@ export default function ContasAPagar() {
     queryFn: fetchAccountsPayable,
   });
 
-  const { data: counts = { total: 0, pending: 0, overdue: 0, paid: 0 } } = useQuery({
+  const { data: counts = { openTotal: 0, upcoming: 0, overdue: 0, paid: 0 } } = useQuery({
     queryKey: ["accounts-payable-counts"],
     queryFn: countAccountsPayable,
   });
