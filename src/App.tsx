@@ -15,6 +15,7 @@ import ResetPassword from "./pages/ResetPassword";
 import AppLayout from "./components/AppLayout";
 import Onboarding from "./pages/app/Onboarding";
 import Clientes from "./pages/app/Clientes";
+import ClienteWorkspace from "./pages/app/ClienteWorkspace";
 import Fornecedores from "./pages/app/Fornecedores";
 import Automacoes from "./pages/app/Automacoes";
 import Configuracoes from "./pages/app/Configuracoes";
