@@ -256,8 +256,144 @@ export function ClienteVisaoGeralTab({ cliente, onEdit: _onEdit }: Props) {
             const insight = getInsight(item);
             const colorClass = tipoColors[item.tipo] || "text-rose-400";
             const hasAttachment = item.tipo === "contrato" || item.tipo === "documento_anexado";
-            
 
+            return (
+              <div key={item.id} className="relative pb-6 last:pb-0 group">
+                {/* Timeline dot */}
+                <div className="absolute -left-[13px] top-3 w-3 h-3 rounded-full border-2 border-border bg-card" />
+
+                <Card className="ml-4 p-5 border-border/40 shadow-sm hover:border-border/60 transition-colors">
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className={`text-base ${colorClass}`}>📌</span>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-semibold text-foreground">{title}</span>
+                          {hasAttachment && <Paperclip className="w-3.5 h-3.5 text-muted-foreground" />}
+                        </div>
+                        <span className="text-xs text-muted-foreground">
+                          {tipoLabels[item.tipo] || item.tipo}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                        onClick={() => startEdit(item)}
+                      >
+                        <Pencil className="w-3.5 h-3.5" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 text-destructive hover:text-destructive"
+                        onClick={() => setDeleteId(item.id)}
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </Button>
+                    </div>
+                  </div>
+
+                  {body && (
+                    <p className="text-sm text-muted-foreground mt-2">{body}</p>
+                  )}
+
+                  {/* AI insight */}
+                  {insight && (
+                    <div className="mt-3 px-3 py-2 rounded-lg bg-primary/[0.06] border border-primary/10">
+                      <p className="text-xs text-primary flex items-center gap-1.5">
+                        <Sparkles className="w-3 h-3" />
+                        {insight}
+                      </p>
+                    </div>
+                  )}
+
+                  <p className="text-xs text-muted-foreground/60 mt-3">
+                    {format(new Date(item.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                    {item.usuario_nome && ` por ${item.usuario_nome}`}
+                  </p>
+                </Card>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Edit modal */}
+      <Dialog open={!!editingId} onOpenChange={(open) => !open && setEditingId(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Editar Atividade</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="grid grid-cols-2 gap-3">
+              <TextInput
+                label="Título"
+                value={editTitulo}
+                onChange={(e) => setEditTitulo(e.target.value)}
+                placeholder="Ex: Insatisfação"
+              />
+              <div>
+                <label className="text-sm font-medium text-foreground mb-1.5 block">Tipo</label>
+                <Select value={editTipo} onValueChange={setEditTipo}>
+                  <SelectTrigger className="text-sm">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(tipoLabels).map(([k, v]) => (
+                      <SelectItem key={k} value={k}>{v}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div>
+              <label className="text-sm font-medium text-foreground mb-1.5 block">Descrição</label>
+              <Textarea
+                value={editDescricao}
+                onChange={(e) => setEditDescricao(e.target.value)}
+                className="min-h-[100px] text-sm"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" size="sm" onClick={() => setEditingId(null)}>Cancelar</Button>
+            <Button
+              size="sm"
+              className="gap-2"
+              onClick={saveEdit}
+              disabled={updateMutation.isPending}
+            >
+              {updateMutation.isPending && <Loader2 className="w-3 h-3 animate-spin" />}
+              Salvar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete dialog */}
+      <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir atividade?</AlertDialogTitle>
+            <AlertDialogDescription>Esta ação não pode ser desfeita.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => deleteId && deleteMutation.mutate(deleteId)}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
+  );
+}
             return (
               <div key={item.id} className="relative pb-6 last:pb-0 group">
                 {/* Timeline dot */}
