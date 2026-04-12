@@ -256,7 +256,7 @@ export function ClienteVisaoGeralTab({ cliente, onEdit: _onEdit }: Props) {
             const insight = getInsight(item);
             const colorClass = tipoColors[item.tipo] || "text-rose-400";
             const hasAttachment = item.tipo === "contrato" || item.tipo === "documento_anexado";
-            const isEditing = editingId === item.id;
+            
 
             return (
               <div key={item.id} className="relative pb-6 last:pb-0 group">
