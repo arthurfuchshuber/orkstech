@@ -9,7 +9,7 @@ import { useEmpresa } from "@/hooks/useEmpresa";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { DocumentInput, PhoneInput, CepInput } from "@/components/inputs";
+
 
 /* ─── Tab: Empresa ─── */
 function EmpresaTab() {
@@ -42,7 +42,20 @@ function EmpresaTab() {
     setSaving(true);
     const { error } = await supabase
       .from("empresas")
-      .update(form)
+      .update({
+        razao_social: form.razao_social,
+        nome_fantasia: form.nome_fantasia,
+        cnpj: form.cnpj,
+        email: form.email,
+        telefone: form.telefone,
+        cep: form.cep,
+        logradouro: form.logradouro,
+        bairro: form.bairro,
+        cidade: form.cidade,
+        estado: form.estado,
+        inscricao_estadual: form.inscricao_estadual,
+        inscricao_municipal: form.inscricao_municipal,
+      })
       .eq("id", empresa.id);
     setSaving(false);
     if (error) {
@@ -93,7 +106,7 @@ function EmpresaTab() {
   );
 }
 
-function Field({ label, value, editing, onChange, mask }: { label: string; value: string; editing: boolean; onChange?: (v: string) => void; mask?: string }) {
+function Field({ label, value, editing, onChange }: { label: string; value: string; editing: boolean; onChange?: (v: string) => void }) {
   if (!editing) {
     return (
       <div>
