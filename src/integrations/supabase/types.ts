@@ -692,6 +692,50 @@ export type Database = {
         }
         Relationships: []
       }
+      historico_sistema: {
+        Row: {
+          automacao_id: string | null
+          contexto: Json | null
+          created_at: string
+          descricao: string | null
+          entidade_id: string | null
+          entidade_tipo: string | null
+          evento: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          automacao_id?: string | null
+          contexto?: Json | null
+          created_at?: string
+          descricao?: string | null
+          entidade_id?: string | null
+          entidade_tipo?: string | null
+          evento: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          automacao_id?: string | null
+          contexto?: Json | null
+          created_at?: string
+          descricao?: string | null
+          entidade_id?: string | null
+          entidade_tipo?: string | null
+          evento?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "historico_sistema_automacao_id_fkey"
+            columns: ["automacao_id"]
+            isOneToOne: false
+            referencedRelation: "automacoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       menu_permissions: {
         Row: {
           can_view: boolean
@@ -809,6 +853,53 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      notificacoes_sistema: {
+        Row: {
+          automacao_id: string | null
+          created_at: string
+          descricao: string | null
+          entidade_id: string | null
+          entidade_tipo: string | null
+          id: string
+          lida: boolean
+          tipo: string
+          titulo: string
+          user_id: string
+        }
+        Insert: {
+          automacao_id?: string | null
+          created_at?: string
+          descricao?: string | null
+          entidade_id?: string | null
+          entidade_tipo?: string | null
+          id?: string
+          lida?: boolean
+          tipo?: string
+          titulo: string
+          user_id: string
+        }
+        Update: {
+          automacao_id?: string | null
+          created_at?: string
+          descricao?: string | null
+          entidade_id?: string | null
+          entidade_tipo?: string | null
+          id?: string
+          lida?: boolean
+          tipo?: string
+          titulo?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notificacoes_sistema_automacao_id_fkey"
+            columns: ["automacao_id"]
+            isOneToOne: false
+            referencedRelation: "automacoes"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       pluggy_bank_accounts: {
         Row: {
@@ -1174,6 +1265,16 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      processar_automacoes: {
+        Args: {
+          p_contexto?: Json
+          p_entidade_id?: string
+          p_entidade_tipo?: string
+          p_evento: string
+          p_user_id: string
+        }
+        Returns: undefined
+      }
       seed_default_bancos: { Args: { p_user_id: string }; Returns: undefined }
       seed_default_menus: { Args: { p_user_id: string }; Returns: undefined }
       seed_default_tipos_pagamento: {

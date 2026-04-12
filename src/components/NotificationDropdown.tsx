@@ -1,33 +1,43 @@
-import { Bell, Check, AlertTriangle, Clock, Info } from "lucide-react";
+import { Bell, Check, AlertTriangle, Clock, Info, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useNotifications } from "@/hooks/useEventBus";
+import { useNotificacoesSistema } from "@/hooks/useNotificacoesSistema";
 import {
   Popover, PopoverContent, PopoverTrigger,
 } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
-const iconMap = {
+const iconMap: Record<string, typeof Info> = {
   alerta: AlertTriangle,
+  erro: AlertTriangle,
+  sucesso: CheckCircle,
+  info: Info,
   lembrete: Clock,
   informacao: Info,
 };
 
-const colorMap = {
+const colorMap: Record<string, string> = {
   alerta: "text-destructive",
+  erro: "text-destructive",
+  sucesso: "text-success",
+  info: "text-primary",
   lembrete: "text-warning",
   informacao: "text-primary",
 };
 
-const bgMap = {
+const bgMap: Record<string, string> = {
   alerta: "bg-destructive/10",
+  erro: "bg-destructive/10",
+  sucesso: "bg-success/10",
+  info: "bg-primary/10",
   lembrete: "bg-warning/10",
   informacao: "bg-primary/10",
 };
 
 export function NotificationDropdown() {
-  const { notifications, unreadCount, markRead, markAllRead } = useNotifications();
+  const { notificacoes, unreadCount, markRead, markAllRead } = useNotificacoesSistema();
 
-  const formatTime = (d: Date) => {
+  const formatTime = (dateStr: string) => {
+    const d = new Date(dateStr);
     const now = new Date();
     const diff = Math.floor((now.getTime() - d.getTime()) / 1000);
     if (diff < 60) return "agora";
@@ -58,15 +68,15 @@ export function NotificationDropdown() {
           )}
         </div>
         <ScrollArea className="max-h-80">
-          {notifications.length === 0 ? (
+          {notificacoes.length === 0 ? (
             <div className="py-8 text-center">
               <Bell className="w-8 h-8 text-muted-foreground/20 mx-auto mb-2" />
               <p className="text-xs text-muted-foreground">Nenhuma notificação</p>
             </div>
           ) : (
             <div className="divide-y divide-border/20">
-              {notifications.slice(0, 20).map((n) => {
-                const Icon = iconMap[n.tipo];
+              {notificacoes.slice(0, 20).map((n) => {
+                const Icon = iconMap[n.tipo] || Info;
                 return (
                   <button
                     key={n.id}
@@ -75,8 +85,8 @@ export function NotificationDropdown() {
                       !n.lida ? "bg-primary/[0.03]" : ""
                     }`}
                   >
-                    <div className={`w-8 h-8 rounded-lg ${bgMap[n.tipo]} flex items-center justify-center flex-shrink-0 mt-0.5`}>
-                      <Icon className={`w-3.5 h-3.5 ${colorMap[n.tipo]}`} />
+                    <div className={`w-8 h-8 rounded-lg ${bgMap[n.tipo] || "bg-primary/10"} flex items-center justify-center flex-shrink-0 mt-0.5`}>
+                      <Icon className={`w-3.5 h-3.5 ${colorMap[n.tipo] || "text-primary"}`} />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
@@ -84,7 +94,7 @@ export function NotificationDropdown() {
                         {!n.lida && <span className="w-1.5 h-1.5 rounded-full bg-primary flex-shrink-0" />}
                       </div>
                       <p className="text-[11px] text-muted-foreground mt-0.5 line-clamp-2">{n.descricao}</p>
-                      <span className="text-[10px] text-muted-foreground/50 mt-1 block">{formatTime(n.timestamp)}</span>
+                      <span className="text-[10px] text-muted-foreground/50 mt-1 block">{formatTime(n.created_at)}</span>
                     </div>
                   </button>
                 );
