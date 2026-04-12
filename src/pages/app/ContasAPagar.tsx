@@ -802,7 +802,28 @@ export default function ContasAPagar() {
             addLabel="Novo fornecedor"
           />
 
-          {/* Nº Documento */}
+          {/* CNPJ/CPF do fornecedor selecionado */}
+          {form.supplier_id && (() => {
+            const forn = fornecedores.find((f: any) => f.id === form.supplier_id);
+            if (!forn) return null;
+            const doc = forn.tipo === "pj" ? forn.cnpj : forn.cpf;
+            const docLabel = forn.tipo === "pj" ? "CNPJ" : "CPF";
+            const formatted = doc
+              ? forn.tipo === "pj"
+                ? doc.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, "$1.$2.$3/$4-$5")
+                : doc.replace(/^(\d{3})(\d{3})(\d{3})(\d{2})$/, "$1.$2.$3-$4")
+              : "Não informado";
+            return (
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-foreground">{docLabel} do Fornecedor</label>
+                <div className="flex h-10 w-full items-center rounded-lg border border-input bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
+                  {formatted}
+                </div>
+              </div>
+            );
+          })()}
+
+
           <TextInput label="Nº Documento" placeholder="NF, boleto, recibo..." value={form.document_number} onChange={(e) => updateField("document_number", e.target.value)} icon={<FileText className="w-4 h-4" />} />
 
           {/* Valor */}

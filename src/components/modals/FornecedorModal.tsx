@@ -10,7 +10,6 @@ import { TextareaInput } from "@/components/inputs/TextareaInput";
 import { DocumentInput } from "@/components/inputs/DocumentInput";
 import { PhoneInput } from "@/components/inputs/PhoneInput";
 import { CepInput } from "@/components/inputs/CepInput";
-import { FileAttachment } from "@/components/inputs/FileAttachment";
 import {
   Building2, UserRound, Check, Loader2, Mail, MapPin, Home,
 } from "lucide-react";
@@ -39,7 +38,6 @@ interface FornecedorForm {
   telefone: string;
   email: string;
   observacoes: string;
-  attachment_url: string | null;
   endereco: { cep: string; logradouro: string; bairro: string; cidade: string; estado: string };
 }
 
@@ -50,7 +48,6 @@ const initialForm: FornecedorForm = {
   telefone: "",
   email: "",
   observacoes: "",
-  attachment_url: null,
   endereco: { cep: "", logradouro: "", bairro: "", cidade: "", estado: "" },
 };
 
@@ -80,7 +77,6 @@ export function FornecedorModal({ open, onOpenChange, editingId, onSaved, prefil
         telefone: existing.telefone || "",
         email: existing.email || "",
         observacoes: existing.observacoes || "",
-        attachment_url: null,
         endereco: {
           cep: existing.cep || "",
           logradouro: existing.logradouro || "",
@@ -90,7 +86,6 @@ export function FornecedorModal({ open, onOpenChange, editingId, onSaved, prefil
         },
       });
     } else if (!editingId && open) {
-      // Apply prefill if provided
       if (prefill) {
         setForm({
           ...initialForm,
@@ -150,7 +145,6 @@ export function FornecedorModal({ open, onOpenChange, editingId, onSaved, prefil
     }
   };
 
-  // Auto-fetch CNPJ data when prefill has CNPJ
   useEffect(() => {
     if (open && !editingId && prefill?.cpfCnpj && prefill.type !== "pessoa") {
       const raw = prefill.cpfCnpj.replace(/\D/g, "");
@@ -300,7 +294,6 @@ export function FornecedorModal({ open, onOpenChange, editingId, onSaved, prefil
         </div>
 
         <TextareaInput label="Observações" placeholder="Observações sobre o fornecedor..." value={form.observacoes} onChange={(e) => update("observacoes", e.target.value)} />
-        <FileAttachment value={form.attachment_url} onValueChange={(url) => setForm((p) => ({ ...p, attachment_url: url }))} folder="fornecedores" />
 
         <div className="flex justify-end gap-3 pt-3 border-t border-border/20">
           <Button variant="outline" onClick={() => onOpenChange(false)} className="rounded-lg">Cancelar</Button>
