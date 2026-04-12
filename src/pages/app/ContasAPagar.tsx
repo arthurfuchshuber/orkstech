@@ -37,6 +37,10 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { format, isPast, addDays, isBefore } from "date-fns";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface PayableForm {
   description: string;
@@ -96,6 +100,8 @@ export default function ContasAPagar() {
   const [payingId, setPayingId] = useState<string | null>(null);
   const [paymentBankAccount, setPaymentBankAccount] = useState("");
   const [paymentDate, setPaymentDate] = useState<Date | undefined>(new Date());
+  const [showDuplicateAlert, setShowDuplicateAlert] = useState(false);
+  const [duplicateMatches, setDuplicateMatches] = useState<any[]>([]);
 
   // Managed select hooks
   const categoriasCrud = useManagedSelect("categorias_financeiras", { insertDefaults: { tipo: "despesa" } });
@@ -249,12 +255,70 @@ export default function ContasAPagar() {
     }
   };
 
-  const handleSubmit = () => {
+  const checkDuplicates = async (): Promise<any[]> => {
+    const matches: any[] = [];
+    const excludeId = editingId;
+
+    for (const existing of payables) {
+      if (excludeId && existing.id === excludeId) continue;
+      if (existing.status === "cancelled") continue;
+
+      const reasons: string[] = [];
+
+      // 1. Nº Documento
+      if (form.document_number.trim() && existing.document_number &&
+          form.document_number.replace(/\D/g, "") === existing.document_number.replace(/\D/g, "")) {
+        reasons.push("Nº Documento igual");
+      }
+
+      // 2. Valor
+      const formAmount = form.amount / 100;
+      if (formAmount > 0 && Math.abs(formAmount - existing.amount) < 0.01) {
+        reasons.push("Mesmo valor");
+      }
+
+      // 3. CNPJ/CPF do fornecedor
+      if (form.supplier_id && existing.supplier_id && form.supplier_id === existing.supplier_id) {
+        reasons.push("Mesmo fornecedor");
+      }
+
+      // 4. Nome do fornecedor (fallback)
+      if (!form.supplier_id && form.supplier_name.trim() && existing.supplier_name &&
+          form.supplier_name.trim().toLowerCase() === existing.supplier_name.trim().toLowerCase()) {
+        reasons.push("Mesmo nome de fornecedor");
+      }
+
+      if (reasons.length >= 2) {
+        matches.push({ ...existing, _dupReasons: reasons });
+      }
+    }
+
+    return matches;
+  };
+
+  const proceedWithSave = () => {
+    setShowDuplicateAlert(false);
+    setDuplicateMatches([]);
+    doSave();
+  };
+
+  const handleSubmit = async () => {
     if (!validate()) {
       toast.error("Corrija os campos destacados");
       return;
     }
 
+    const dups = await checkDuplicates();
+    if (dups.length > 0) {
+      setDuplicateMatches(dups);
+      setShowDuplicateAlert(true);
+      return;
+    }
+
+    doSave();
+  };
+
+  const doSave = () => {
     if (editingId) {
       updateMutation.mutate({
         id: editingId,
@@ -1013,6 +1077,47 @@ export default function ContasAPagar() {
           queryClient.invalidateQueries({ queryKey: ["fornecedores"] });
         }}
       />
+
+      {/* Duplicate detection alert */}
+      <AlertDialog open={showDuplicateAlert} onOpenChange={setShowDuplicateAlert}>
+        <AlertDialogContent className="max-w-lg">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 text-amber-600">
+              <AlertTriangle className="w-5 h-5" />
+              Possível duplicidade detectada
+            </AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3">
+                <p>Foram encontrados registros semelhantes ao que você está tentando salvar:</p>
+                <div className="max-h-48 overflow-y-auto space-y-2">
+                  {duplicateMatches.map((dup: any, idx: number) => (
+                    <div key={idx} className="rounded-md border border-border bg-muted/30 p-3 text-sm">
+                      <p className="font-medium text-foreground">{dup.description}</p>
+                      <p className="text-muted-foreground">
+                        Valor: R$ {Number(dup.amount).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                        {dup.document_number && ` • Doc: ${dup.document_number}`}
+                        {dup.supplier_name && ` • ${dup.supplier_name}`}
+                      </p>
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {dup._dupReasons?.map((r: string, i: number) => (
+                          <Badge key={i} variant="outline" className="text-xs border-amber-300 text-amber-600">{r}</Badge>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <p className="text-sm">Deseja continuar mesmo assim?</p>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={proceedWithSave} className="bg-amber-600 hover:bg-amber-700">
+              Salvar mesmo assim
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
