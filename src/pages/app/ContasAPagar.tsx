@@ -652,17 +652,27 @@ export default function ContasAPagar() {
             />
           </div>
           <div className="flex gap-2">
-            {["all", "pending", "overdue", "paid", "cancelled"].map((s) => (
-              <Button
-                key={s}
-                size="sm"
-                variant={filterStatus === s ? "default" : "outline"}
-                onClick={() => setFilterStatus(s)}
-                className="rounded-lg text-xs"
-              >
-                {s === "all" ? "Todos" : statusConfig[s]?.label}
-              </Button>
-            ))}
+            {["all", "open", "upcoming", "overdue", "paid", "cancelled"].map((s) => {
+              const labels: Record<string, string> = {
+                all: "Todos",
+                open: "Em Aberto",
+                upcoming: "A Vencer",
+                overdue: "Vencido",
+                paid: "Pago",
+                cancelled: "Cancelado",
+              };
+              return (
+                <Button
+                  key={s}
+                  size="sm"
+                  variant={filterStatus === s ? "default" : "outline"}
+                  onClick={() => setFilterStatus(s)}
+                  className="rounded-lg text-xs"
+                >
+                  {labels[s]}
+                </Button>
+              );
+            })}
           </div>
         </div>
       </Card>
