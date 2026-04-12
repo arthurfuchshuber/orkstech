@@ -1,13 +1,22 @@
-import { useState, useEffect } from "react";
-import { Building2, Users } from "lucide-react";
+import { useState } from "react";
+import { Building2, Users, Trash2 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import {
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+} from "@/components/ui/table";
 import { useEmpresa } from "@/hooks/useEmpresa";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -127,227 +136,180 @@ function Field({ label, value, editing, onChange }: { label: string; value: stri
 }
 
 /* ─── Tab: Usuários ─── */
+interface UserRow {
+  id: string;
+  email: string;
+  created_at: string;
+  nome: string | null;
+  nivel_permissao_id: string | null;
+  nivel_nome: string;
+  ativo: boolean;
+}
+
 interface NivelPermissao {
   id: string;
   nome: string;
-  descricao: string | null;
-}
-
-interface ProfileData {
-  id: string;
-  user_id: string;
-  nome: string | null;
-  cpf: string | null;
-  telefone: string | null;
-  data_nascimento: string | null;
-  nivel_permissao_id: string | null;
 }
 
 function UsuariosTab() {
   const { user } = useAuth();
   const qc = useQueryClient();
 
-  const { data: niveis = [] } = useQuery({
-    queryKey: ["niveis_permissao"],
+  const { data, isLoading } = useQuery({
+    queryKey: ["manage-users"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("niveis_permissao")
-        .select("*")
-        .order("ordem");
-      if (error) throw error;
-      return data as NivelPermissao[];
-    },
-  });
-
-  const { data: profile, isLoading } = useQuery({
-    queryKey: ["profile", user?.id],
-    enabled: !!user,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("user_id", user!.id)
-        .maybeSingle();
-      if (error) throw error;
-      return data as ProfileData | null;
-    },
-  });
-
-  const [editing, setEditing] = useState(false);
-  const [form, setForm] = useState({
-    nome: "",
-    cpf: "",
-    telefone: "",
-    data_nascimento: "",
-    nivel_permissao_id: "",
-  });
-
-  useEffect(() => {
-    if (profile) {
-      setForm({
-        nome: profile.nome ?? "",
-        cpf: profile.cpf ?? "",
-        telefone: profile.telefone ?? "",
-        data_nascimento: profile.data_nascimento ?? "",
-        nivel_permissao_id: profile.nivel_permissao_id ?? "",
+      const { data, error } = await supabase.functions.invoke("manage-users", {
+        body: { action: "list" },
       });
-    }
-  }, [profile]);
+      if (error) throw error;
+      return data as { users: UserRow[]; niveis: NivelPermissao[] };
+    },
+  });
 
-  const updateProfile = useMutation({
-    mutationFn: async () => {
-      if (!user) throw new Error("Usuário não autenticado");
+  const users = data?.users ?? [];
+  const niveis = data?.niveis ?? [];
 
-      const payload = {
-        nome: form.nome || null,
-        cpf: form.cpf || null,
-        telefone: form.telefone || null,
-        data_nascimento: form.data_nascimento || null,
-        nivel_permissao_id: form.nivel_permissao_id || null,
-      };
-
-      if (profile) {
-        const { error } = await supabase
-          .from("profiles")
-          .update(payload)
-          .eq("user_id", user.id);
-        if (error) throw error;
-      } else {
-        const { error } = await supabase
-          .from("profiles")
-          .insert({ ...payload, user_id: user.id });
-        if (error) throw error;
-      }
+  const updateRole = useMutation({
+    mutationFn: async ({ user_id, nivel_permissao_id }: { user_id: string; nivel_permissao_id: string }) => {
+      const { data, error } = await supabase.functions.invoke("manage-users", {
+        body: { action: "update_role", user_id, nivel_permissao_id },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
     },
     onSuccess: () => {
-      toast.success("Perfil atualizado com sucesso");
-      setEditing(false);
-      qc.invalidateQueries({ queryKey: ["profile"] });
+      toast.success("Nível de acesso atualizado");
+      qc.invalidateQueries({ queryKey: ["manage-users"] });
     },
     onError: (e: Error) => toast.error(e.message),
   });
 
-  const currentNivel = niveis.find((n) => n.id === (profile?.nivel_permissao_id ?? form.nivel_permissao_id));
+  const toggleActive = useMutation({
+    mutationFn: async ({ user_id, ativo }: { user_id: string; ativo: boolean }) => {
+      const { data, error } = await supabase.functions.invoke("manage-users", {
+        body: { action: "toggle_active", user_id, ativo },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+    },
+    onSuccess: () => {
+      toast.success("Status atualizado");
+      qc.invalidateQueries({ queryKey: ["manage-users"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const deleteUser = useMutation({
+    mutationFn: async (user_id: string) => {
+      const { data, error } = await supabase.functions.invoke("manage-users", {
+        body: { action: "delete", user_id },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+    },
+    onSuccess: () => {
+      toast.success("Usuário excluído");
+      qc.invalidateQueries({ queryKey: ["manage-users"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
 
   if (isLoading) return <p className="text-sm text-muted-foreground py-8 text-center">Carregando...</p>;
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <p className="text-sm text-muted-foreground">Informações e permissões do usuário logado.</p>
-        {!editing ? (
-          <Button size="sm" variant="outline" onClick={() => setEditing(true)}>Editar</Button>
-        ) : (
-          <div className="flex gap-2">
-            <Button size="sm" variant="ghost" onClick={() => {
-              setEditing(false);
-              if (profile) {
-                setForm({
-                  nome: profile.nome ?? "",
-                  cpf: profile.cpf ?? "",
-                  telefone: profile.telefone ?? "",
-                  data_nascimento: profile.data_nascimento ?? "",
-                  nivel_permissao_id: profile.nivel_permissao_id ?? "",
-                });
-              }
-            }}>Cancelar</Button>
-            <Button size="sm" onClick={() => updateProfile.mutate()} disabled={updateProfile.isPending}>
-              {updateProfile.isPending ? "Salvando..." : "Salvar"}
-            </Button>
-          </div>
-        )}
-      </div>
+      <p className="text-sm text-muted-foreground">Gerencie os usuários do sistema, seus níveis de acesso e status.</p>
 
-      <Card className="p-5">
-        <div className="flex items-center gap-3 mb-5">
-          <div className="w-10 h-10 rounded-full bg-primary/15 flex items-center justify-center">
-            <Users className="w-5 h-5 text-primary" />
-          </div>
-          <div>
-            <p className="text-sm font-medium text-foreground">{user?.email}</p>
-            <Badge variant="secondary" className="text-[10px] mt-0.5">
-              {currentNivel?.nome ?? "Sem nível"}
-            </Badge>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {!editing ? (
-            <>
-              <div>
-                <p className="text-xs font-medium text-muted-foreground mb-1">Nome</p>
-                <p className="text-sm text-foreground">{form.nome || "—"}</p>
-              </div>
-              <div>
-                <p className="text-xs font-medium text-muted-foreground mb-1">E-mail</p>
-                <p className="text-sm text-foreground">{user?.email ?? "—"}</p>
-              </div>
-              <div>
-                <p className="text-xs font-medium text-muted-foreground mb-1">CPF</p>
-                <p className="text-sm text-foreground">{form.cpf || "—"}</p>
-              </div>
-              <div>
-                <p className="text-xs font-medium text-muted-foreground mb-1">Telefone</p>
-                <p className="text-sm text-foreground">{form.telefone || "—"}</p>
-              </div>
-              <div>
-                <p className="text-xs font-medium text-muted-foreground mb-1">Data de Nascimento</p>
-                <p className="text-sm text-foreground">{form.data_nascimento || "—"}</p>
-              </div>
-              <div>
-                <p className="text-xs font-medium text-muted-foreground mb-1">Nível de Permissão</p>
-                <p className="text-sm text-foreground">{currentNivel?.nome ?? "—"}</p>
-              </div>
-            </>
-          ) : (
-            <>
-              <div>
-                <label className="text-xs font-medium text-muted-foreground mb-1 block">Nome</label>
-                <Input value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} className="h-9 text-sm" />
-              </div>
-              <div>
-                <label className="text-xs font-medium text-muted-foreground mb-1 block">E-mail</label>
-                <Input value={user?.email ?? ""} disabled className="h-9 text-sm opacity-60" />
-                <p className="text-[10px] text-muted-foreground mt-1">O e-mail não pode ser alterado aqui.</p>
-              </div>
-              <div>
-                <label className="text-xs font-medium text-muted-foreground mb-1 block">CPF</label>
-                <Input value={form.cpf} onChange={(e) => setForm({ ...form, cpf: e.target.value })} className="h-9 text-sm" placeholder="000.000.000-00" />
-              </div>
-              <div>
-                <label className="text-xs font-medium text-muted-foreground mb-1 block">Telefone</label>
-                <Input value={form.telefone} onChange={(e) => setForm({ ...form, telefone: e.target.value })} className="h-9 text-sm" placeholder="(00) 00000-0000" />
-              </div>
-              <div>
-                <label className="text-xs font-medium text-muted-foreground mb-1 block">Data de Nascimento</label>
-                <Input type="date" value={form.data_nascimento} onChange={(e) => setForm({ ...form, data_nascimento: e.target.value })} className="h-9 text-sm" />
-              </div>
-              <div>
-                <label className="text-xs font-medium text-muted-foreground mb-1 block">Nível de Permissão</label>
-                <Select value={form.nivel_permissao_id} onValueChange={(v) => setForm({ ...form, nivel_permissao_id: v })}>
-                  <SelectTrigger className="h-9 text-sm">
-                    <SelectValue placeholder="Selecione um nível" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {niveis.map((n) => (
-                      <SelectItem key={n.id} value={n.id}>
-                        <div>
-                          <span className="font-medium">{n.nome}</span>
-                          {n.descricao && <span className="text-muted-foreground ml-2 text-xs">— {n.descricao}</span>}
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </>
-          )}
-        </div>
+      <Card className="overflow-hidden">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>E-mail</TableHead>
+              <TableHead className="w-[130px]">Criado em</TableHead>
+              <TableHead className="w-[180px]">Nível de Acesso</TableHead>
+              <TableHead className="w-[80px] text-center">Ativo</TableHead>
+              <TableHead className="w-[60px]" />
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {users.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                  Nenhum usuário encontrado
+                </TableCell>
+              </TableRow>
+            ) : (
+              users.map((u) => {
+                const isSelf = u.id === user?.id;
+                return (
+                  <TableRow key={u.id} className={!u.ativo ? "opacity-50" : ""}>
+                    <TableCell className="text-sm">
+                      <div className="flex items-center gap-2">
+                        {u.email}
+                        {isSelf && <Badge variant="secondary" className="text-[10px]">Você</Badge>}
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-xs text-muted-foreground">
+                      {new Date(u.created_at).toLocaleDateString("pt-BR")}
+                    </TableCell>
+                    <TableCell>
+                      <Select
+                        value={u.nivel_permissao_id ?? ""}
+                        onValueChange={(v) => updateRole.mutate({ user_id: u.id, nivel_permissao_id: v })}
+                        disabled={isSelf}
+                      >
+                        <SelectTrigger className="h-8 text-xs">
+                          <SelectValue placeholder="Selecione" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {niveis.map((n) => (
+                            <SelectItem key={n.id} value={n.id}>{n.nome}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <Switch
+                        checked={u.ativo}
+                        onCheckedChange={(v) => toggleActive.mutate({ user_id: u.id, ativo: v })}
+                        disabled={isSelf}
+                      />
+                    </TableCell>
+                    <TableCell>
+                      {!isSelf && (
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive">
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Excluir usuário</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Tem certeza que deseja excluir <strong>{u.email}</strong>? Esta ação é irreversível.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={() => deleteUser.mutate(u.id)}
+                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                              >
+                                Excluir
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                );
+              })
+            )}
+          </TableBody>
+        </Table>
       </Card>
-
-      <p className="text-xs text-muted-foreground italic">
-        O convite de novos usuários e gestão de equipe estará disponível em breve.
-      </p>
     </div>
   );
 }
