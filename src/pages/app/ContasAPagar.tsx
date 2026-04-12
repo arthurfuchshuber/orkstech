@@ -255,9 +255,8 @@ export default function ContasAPagar() {
     }
   };
 
-  const checkDuplicates = async (): Promise<any[]> => {
+  const checkDuplicatesFromForm = (formData: PayableForm, excludeId?: string | null): any[] => {
     const matches: any[] = [];
-    const excludeId = editingId;
 
     for (const existing of payables) {
       if (excludeId && existing.id === excludeId) continue;
@@ -266,25 +265,25 @@ export default function ContasAPagar() {
       const reasons: string[] = [];
 
       // 1. Nº Documento
-      if (form.document_number.trim() && existing.document_number &&
-          form.document_number.replace(/\D/g, "") === existing.document_number.replace(/\D/g, "")) {
+      if (formData.document_number.trim() && existing.document_number &&
+          formData.document_number.replace(/\D/g, "") === existing.document_number.replace(/\D/g, "")) {
         reasons.push("Nº Documento igual");
       }
 
       // 2. Valor
-      const formAmount = form.amount / 100;
+      const formAmount = formData.amount / 100;
       if (formAmount > 0 && Math.abs(formAmount - existing.amount) < 0.01) {
         reasons.push("Mesmo valor");
       }
 
       // 3. CNPJ/CPF do fornecedor
-      if (form.supplier_id && existing.supplier_id && form.supplier_id === existing.supplier_id) {
+      if (formData.supplier_id && existing.supplier_id && formData.supplier_id === existing.supplier_id) {
         reasons.push("Mesmo fornecedor");
       }
 
       // 4. Nome do fornecedor (fallback)
-      if (!form.supplier_id && form.supplier_name.trim() && existing.supplier_name &&
-          form.supplier_name.trim().toLowerCase() === existing.supplier_name.trim().toLowerCase()) {
+      if (!formData.supplier_id && formData.supplier_name.trim() && existing.supplier_name &&
+          formData.supplier_name.trim().toLowerCase() === existing.supplier_name.trim().toLowerCase()) {
         reasons.push("Mesmo nome de fornecedor");
       }
 
@@ -308,7 +307,7 @@ export default function ContasAPagar() {
       return;
     }
 
-    const dups = await checkDuplicates();
+    const dups = checkDuplicatesFromForm(form, editingId);
     if (dups.length > 0) {
       setDuplicateMatches(dups);
       setShowDuplicateAlert(true);
