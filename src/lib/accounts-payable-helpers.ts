@@ -79,11 +79,14 @@ export async function updateAccountPayable(id: string, updates: any) {
 }
 
 export async function countAccountsPayable() {
-  const { count: total } = await supabase.from("accounts_payable").select("*", { count: "exact", head: true });
-  const { count: pending } = await supabase.from("accounts_payable").select("*", { count: "exact", head: true }).eq("status", "pending");
+  const today = new Date().toISOString().split("T")[0];
+  // Total em aberto = pending + overdue (não pagos, não cancelados)
+  const { count: openTotal } = await supabase.from("accounts_payable").select("*", { count: "exact", head: true }).in("status", ["pending", "overdue"]);
+  // A vencer = pending com vencimento >= hoje
+  const { count: upcoming } = await supabase.from("accounts_payable").select("*", { count: "exact", head: true }).eq("status", "pending").gte("due_date", today);
   const { count: overdue } = await supabase.from("accounts_payable").select("*", { count: "exact", head: true }).eq("status", "overdue");
   const { count: paid } = await supabase.from("accounts_payable").select("*", { count: "exact", head: true }).eq("status", "paid");
-  return { total: total ?? 0, pending: pending ?? 0, overdue: overdue ?? 0, paid: paid ?? 0 };
+  return { openTotal: openTotal ?? 0, upcoming: upcoming ?? 0, overdue: overdue ?? 0, paid: paid ?? 0 };
 }
 
 export async function registerPayment(id: string, bankAccountId: string, paymentDate: string, userId: string) {
