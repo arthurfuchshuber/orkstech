@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Workflow, Zap, Clock, CheckCircle, Plus, Play, Pause, Settings, ChevronRight, AlertTriangle, Info, ArrowRight, Trash2 } from "lucide-react";
+import { Workflow, Zap, CheckCircle, Plus, ArrowRight, Trash2 } from "lucide-react";
 import { StatCard } from "@/components/StatCard";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -7,10 +7,10 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { FormModal } from "@/components/FormModal";
 import { TextInput } from "@/components/inputs/TextInput";
-import { useAutomations } from "@/hooks/useEventBus";
+import { useAutomacoes } from "@/hooks/useAutomacoes";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import type { EventType, AutomationAction } from "@/lib/events";
 import { toast } from "sonner";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const eventLabels: Record<string, string> = {
   "cliente.criado": "Cliente criado",
@@ -35,34 +35,55 @@ const actionLabels: Record<string, string> = {
 };
 
 export default function Automacoes() {
-  const { automations, toggle, add, remove } = useAutomations();
+  const { automacoes, isLoading, add, toggle, remove, isAdding } = useAutomacoes();
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({
     nome: "",
     descricao: "",
-    eventoGatilho: "" as EventType | "",
-    acaoTipo: "criar_notificacao" as AutomationAction["tipo"],
+    eventoGatilho: "",
+    acaoTipo: "criar_notificacao",
   });
 
-  const activeCount = automations.filter(a => a.ativo).length;
-  const totalExec = automations.reduce((s, a) => s + a.executadoCount, 0);
+  const activeCount = automacoes.filter(a => a.ativo).length;
+  const totalExec = automacoes.reduce((s, a) => s + a.executado_count, 0);
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!form.nome || !form.eventoGatilho) {
       toast.error("Preencha nome e evento gatilho");
       return;
     }
-    add({
-      nome: form.nome,
-      descricao: form.descricao,
-      ativo: true,
-      eventoGatilho: form.eventoGatilho as EventType,
-      condicoes: [],
-      acoes: [{ tipo: form.acaoTipo, config: { titulo: form.nome, descricao: form.descricao } }],
-    });
-    toast.success("Automação criada!");
-    setShowForm(false);
-    setForm({ nome: "", descricao: "", eventoGatilho: "", acaoTipo: "criar_notificacao" });
+    try {
+      await add({
+        nome: form.nome,
+        descricao: form.descricao,
+        ativo: true,
+        evento_gatilho: form.eventoGatilho,
+        condicoes: [],
+        acoes: [{ tipo: form.acaoTipo, config: { titulo: form.nome, descricao: form.descricao } }],
+      });
+      toast.success("Automação criada!");
+      setShowForm(false);
+      setForm({ nome: "", descricao: "", eventoGatilho: "", acaoTipo: "criar_notificacao" });
+    } catch {
+      toast.error("Erro ao criar automação");
+    }
+  };
+
+  const handleRemove = async (id: string) => {
+    try {
+      await remove(id);
+      toast.success("Automação excluída");
+    } catch {
+      toast.error("Erro ao excluir");
+    }
+  };
+
+  const handleToggle = async (id: string, currentAtivo: boolean) => {
+    try {
+      await toggle(id, currentAtivo);
+    } catch {
+      toast.error("Erro ao alterar status");
+    }
   };
 
   return (
@@ -84,58 +105,67 @@ export default function Automacoes() {
       </div>
 
       <div className="space-y-3">
-        {automations.map((auto) => (
-          <Card key={auto.id} className="border-border/50 shadow-sm overflow-hidden">
-            <CardContent className="p-0">
-              <div className="flex items-center gap-4 p-4">
-                <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${
-                  auto.ativo ? "bg-primary/10" : "bg-muted/30"
-                }`}>
-                  <Zap className={`w-4 h-4 ${auto.ativo ? "text-primary" : "text-muted-foreground/40"}`} />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <h3 className="text-sm font-semibold text-foreground">{auto.nome}</h3>
-                    <Badge variant={auto.ativo ? "default" : "secondary"} className="text-[10px] px-1.5 py-0">
-                      {auto.ativo ? "Ativo" : "Inativo"}
-                    </Badge>
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-0.5 truncate">{auto.descricao}</p>
-                </div>
-                <div className="flex items-center gap-6 flex-shrink-0">
-                  <div className="text-right hidden sm:block">
-                    <p className="text-xs text-muted-foreground">Gatilho</p>
-                    <p className="text-xs font-medium text-foreground">{eventLabels[auto.eventoGatilho] || auto.eventoGatilho}</p>
-                  </div>
-                  <div className="text-right hidden sm:block">
-                    <p className="text-xs text-muted-foreground">Execuções</p>
-                    <p className="text-sm font-semibold text-foreground">{auto.executadoCount}</p>
-                  </div>
-                  <Switch checked={auto.ativo} onCheckedChange={() => toggle(auto.id)} />
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                    onClick={() => {
-                      remove(auto.id);
-                      toast.success("Automação excluída");
-                    }}
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                </div>
-              </div>
-              <div className="px-4 pb-3 flex items-center gap-2 flex-wrap">
-                <span className="text-[10px] text-muted-foreground/60 uppercase tracking-wider font-medium">Ações:</span>
-                {auto.acoes.map((a, i) => (
-                  <Badge key={i} variant="outline" className="text-[10px] px-2 py-0 border-border/40 text-muted-foreground">
-                    {actionLabels[a.tipo] || a.tipo}
-                  </Badge>
-                ))}
-              </div>
+        {isLoading ? (
+          Array.from({ length: 3 }).map((_, i) => (
+            <Skeleton key={i} className="h-24 w-full rounded-lg" />
+          ))
+        ) : automacoes.length === 0 ? (
+          <Card className="border-border/50 shadow-sm">
+            <CardContent className="p-8 text-center text-muted-foreground text-sm">
+              Nenhuma automação cadastrada. Clique em "Nova Automação" para começar.
             </CardContent>
           </Card>
-        ))}
+        ) : (
+          automacoes.map((auto) => (
+            <Card key={auto.id} className="border-border/50 shadow-sm overflow-hidden">
+              <CardContent className="p-0">
+                <div className="flex items-center gap-4 p-4">
+                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${
+                    auto.ativo ? "bg-primary/10" : "bg-muted/30"
+                  }`}>
+                    <Zap className={`w-4 h-4 ${auto.ativo ? "text-primary" : "text-muted-foreground/40"}`} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-sm font-semibold text-foreground">{auto.nome}</h3>
+                      <Badge variant={auto.ativo ? "default" : "secondary"} className="text-[10px] px-1.5 py-0">
+                        {auto.ativo ? "Ativo" : "Inativo"}
+                      </Badge>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-0.5 truncate">{auto.descricao}</p>
+                  </div>
+                  <div className="flex items-center gap-6 flex-shrink-0">
+                    <div className="text-right hidden sm:block">
+                      <p className="text-xs text-muted-foreground">Gatilho</p>
+                      <p className="text-xs font-medium text-foreground">{eventLabels[auto.evento_gatilho] || auto.evento_gatilho}</p>
+                    </div>
+                    <div className="text-right hidden sm:block">
+                      <p className="text-xs text-muted-foreground">Execuções</p>
+                      <p className="text-sm font-semibold text-foreground">{auto.executado_count}</p>
+                    </div>
+                    <Switch checked={auto.ativo} onCheckedChange={() => handleToggle(auto.id, auto.ativo)} />
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                      onClick={() => handleRemove(auto.id)}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+                <div className="px-4 pb-3 flex items-center gap-2 flex-wrap">
+                  <span className="text-[10px] text-muted-foreground/60 uppercase tracking-wider font-medium">Ações:</span>
+                  {(auto.acoes as { tipo: string }[]).map((a, i) => (
+                    <Badge key={i} variant="outline" className="text-[10px] px-2 py-0 border-border/40 text-muted-foreground">
+                      {actionLabels[a.tipo] || a.tipo}
+                    </Badge>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          ))
+        )}
       </div>
 
       {/* Event flow visualization */}
@@ -179,7 +209,7 @@ export default function Automacoes() {
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <label className="text-sm font-medium text-foreground">Evento Gatilho</label>
-              <Select value={form.eventoGatilho} onValueChange={(v) => setForm({ ...form, eventoGatilho: v as EventType })}>
+              <Select value={form.eventoGatilho} onValueChange={(v) => setForm({ ...form, eventoGatilho: v })}>
                 <SelectTrigger className="rounded-lg h-10"><SelectValue placeholder="Selecione o evento" /></SelectTrigger>
                 <SelectContent>
                   {Object.entries(eventLabels).map(([key, label]) => (
@@ -190,7 +220,7 @@ export default function Automacoes() {
             </div>
             <div className="space-y-1.5">
               <label className="text-sm font-medium text-foreground">Ação</label>
-              <Select value={form.acaoTipo} onValueChange={(v) => setForm({ ...form, acaoTipo: v as AutomationAction["tipo"] })}>
+              <Select value={form.acaoTipo} onValueChange={(v) => setForm({ ...form, acaoTipo: v })}>
                 <SelectTrigger className="rounded-lg h-10"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {Object.entries(actionLabels).map(([key, label]) => (
@@ -203,7 +233,9 @@ export default function Automacoes() {
           <div className="h-px bg-border/30" />
           <div className="flex justify-end gap-3">
             <Button variant="outline" onClick={() => setShowForm(false)} className="rounded-lg">Cancelar</Button>
-            <Button onClick={handleSave} className="rounded-lg gap-2 shadow-sm"><CheckCircle className="w-4 h-4" /> Criar Automação</Button>
+            <Button onClick={handleSave} disabled={isAdding} className="rounded-lg gap-2 shadow-sm">
+              <CheckCircle className="w-4 h-4" /> Criar Automação
+            </Button>
           </div>
         </div>
       </FormModal>
