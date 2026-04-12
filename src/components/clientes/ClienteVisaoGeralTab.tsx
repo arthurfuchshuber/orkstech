@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Sparkles, Plus, Loader2, Trash2, Paperclip, Pencil
@@ -7,15 +7,14 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { TextInput } from "@/components/inputs/TextInput";
+import { ManagedSelectInput, type ManagedOption } from "@/components/inputs/ManagedSelectInput";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useManagedSelect } from "@/hooks/useManagedSelect";
 import { refreshQueries } from "@/lib/query-refresh";
 import { toast } from "sonner";
 import { format, formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from "@/components/ui/select";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -30,23 +29,23 @@ interface Props {
   onEdit: () => void;
 }
 
-const tipoLabels: Record<string, string> = {
-  atualizacao_cadastral: "Atualização",
-  documento_anexado: "Documento",
-  interacao: "Nota",
-  evento_financeiro: "Financeiro",
-  observacao: "Observação",
-  contrato: "Contrato",
+const tipoColors: Record<string, string> = {
+  "Atualização": "text-blue-400",
+  "Documento": "text-violet-400",
+  "Nota": "text-rose-400",
+  "Financeiro": "text-emerald-400",
+  "Observação": "text-amber-400",
+  "Contrato": "text-rose-400",
 };
 
-const tipoColors: Record<string, string> = {
-  atualizacao_cadastral: "text-blue-400",
-  documento_anexado: "text-violet-400",
-  interacao: "text-rose-400",
-  evento_financeiro: "text-emerald-400",
-  observacao: "text-amber-400",
-  contrato: "text-rose-400",
-};
+const defaultTipos = [
+  { nome: "Atualização", ordem: 0 },
+  { nome: "Documento", ordem: 1 },
+  { nome: "Nota", ordem: 2 },
+  { nome: "Financeiro", ordem: 3 },
+  { nome: "Observação", ordem: 4 },
+  { nome: "Contrato", ordem: 5 },
+];
 
 // Parse title and description from stored descricao
 const parseInteracao = (descricao: string) => {
@@ -61,14 +60,57 @@ export function ClienteVisaoGeralTab({ cliente, onEdit: _onEdit }: Props) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [showForm, setShowForm] = useState(false);
-  const [tipo, setTipo] = useState("interacao");
+  const [tipoId, setTipoId] = useState("");
   const [titulo, setTitulo] = useState("");
   const [descricao, setDescricao] = useState("");
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [editTipo, setEditTipo] = useState("");
+  const [editTipoId, setEditTipoId] = useState("");
   const [editTitulo, setEditTitulo] = useState("");
   const [editDescricao, setEditDescricao] = useState("");
+
+  // Fetch tipos from DB
+  const { data: tipos = [], isLoading: tiposLoading } = useQuery({
+    queryKey: ["cliente-interacao-tipos"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("cliente_interacao_tipos" as any)
+        .select("*")
+        .order("ordem", { ascending: true });
+      if (error) throw error;
+      return data as any[];
+    },
+  });
+
+  // Seed default types if none exist
+  useEffect(() => {
+    if (!tiposLoading && tipos.length === 0 && user) {
+      const seedDefaults = async () => {
+        const records = defaultTipos.map((t) => ({
+          ...t,
+          user_id: user.id,
+        }));
+        await supabase.from("cliente_interacao_tipos" as any).insert(records);
+        queryClient.invalidateQueries({ queryKey: ["cliente-interacao-tipos"] });
+      };
+      seedDefaults();
+    }
+  }, [tiposLoading, tipos.length, user, queryClient]);
+
+  const tipoOptions: ManagedOption[] = tipos
+    .filter((t: any) => t.ativo)
+    .map((t: any) => ({ value: t.id, label: t.nome }));
+
+  const managed = useManagedSelect("cliente_interacao_tipos");
+
+  // Get tipo label by id
+  const getTipoLabel = (tipoValue: string) => {
+    // Try to find by id first (new records)
+    const byId = tipos.find((t: any) => t.id === tipoValue);
+    if (byId) return byId.nome;
+    // Fallback for legacy records stored as slug
+    return tipoValue;
+  };
 
   const { data: interacoes = [], isLoading } = useQuery({
     queryKey: ["cliente-interacoes", cliente.id],
@@ -85,10 +127,11 @@ export function ClienteVisaoGeralTab({ cliente, onEdit: _onEdit }: Props) {
 
   const createMutation = useMutation({
     mutationFn: async () => {
+      const tipoLabel = getTipoLabel(tipoId);
       const { error } = await supabase.from("cliente_interacoes").insert({
         user_id: user!.id,
         cliente_id: cliente.id,
-        tipo,
+        tipo: tipoLabel,
         descricao: `${titulo ? titulo + ". " : ""}${descricao}`,
         usuario_nome: user?.email || "Usuário",
       });
@@ -99,15 +142,17 @@ export function ClienteVisaoGeralTab({ cliente, onEdit: _onEdit }: Props) {
       toast.success("Atividade registrada");
       setTitulo("");
       setDescricao("");
+      setTipoId("");
       setShowForm(false);
     },
   });
 
   const updateMutation = useMutation({
     mutationFn: async ({ id, tipo, descricao }: { id: string; tipo: string; descricao: string }) => {
+      const tipoLabel = getTipoLabel(tipo);
       const { error } = await supabase
         .from("cliente_interacoes")
-        .update({ tipo, descricao })
+        .update({ tipo: tipoLabel, descricao })
         .eq("id", id);
       if (error) throw error;
     },
@@ -132,8 +177,10 @@ export function ClienteVisaoGeralTab({ cliente, onEdit: _onEdit }: Props) {
 
   const startEdit = (item: any) => {
     const { title, body } = parseInteracao(item.descricao);
+    // Try to find matching tipo by label
+    const matchingTipo = tipos.find((t: any) => t.nome === item.tipo);
     setEditingId(item.id);
-    setEditTipo(item.tipo);
+    setEditTipoId(matchingTipo ? matchingTipo.id : "");
     setEditTitulo(title);
     setEditDescricao(body);
   };
@@ -141,7 +188,7 @@ export function ClienteVisaoGeralTab({ cliente, onEdit: _onEdit }: Props) {
   const saveEdit = () => {
     if (!editingId) return;
     const fullDesc = `${editTitulo ? editTitulo + ". " : ""}${editDescricao}`;
-    updateMutation.mutate({ id: editingId, tipo: editTipo, descricao: fullDesc });
+    updateMutation.mutate({ id: editingId, tipo: editTipoId, descricao: fullDesc });
   };
 
   // Smart summary
@@ -153,10 +200,10 @@ export function ClienteVisaoGeralTab({ cliente, onEdit: _onEdit }: Props) {
   const getInsight = (item: any) => {
     const desc = (item.descricao || "").toLowerCase();
     if (desc.includes("insatisfa")) return "Cliente expressou insatisfação com o produto adquirido.";
-    if (desc.includes("contrato") || item.tipo === "contrato") return "Novo contrato de parceria estabelecido.";
-    if (desc.includes("pagamento") || item.tipo === "evento_financeiro") return "Evento financeiro registrado no histórico.";
-    if (desc.includes("documento") || item.tipo === "documento_anexado") return "Documento vinculado ao perfil do cliente.";
-    if (desc.includes("atualiza") || item.tipo === "atualizacao_cadastral") return "Dados cadastrais foram atualizados.";
+    if (desc.includes("contrato") || item.tipo === "Contrato") return "Novo contrato de parceria estabelecido.";
+    if (desc.includes("pagamento") || item.tipo === "Financeiro") return "Evento financeiro registrado no histórico.";
+    if (desc.includes("documento") || item.tipo === "Documento") return "Documento vinculado ao perfil do cliente.";
+    if (desc.includes("atualiza") || item.tipo === "Atualização") return "Dados cadastrais foram atualizados.";
     return null;
   };
 
@@ -194,21 +241,20 @@ export function ClienteVisaoGeralTab({ cliente, onEdit: _onEdit }: Props) {
               label="Título"
               value={titulo}
               onChange={(e) => setTitulo(e.target.value)}
-              placeholder="Ex: Insatisfação"
+              placeholder="Ex: Reunião de alinhamento"
             />
-            <div>
-              <label className="text-sm font-medium text-foreground mb-1.5 block">Tipo</label>
-              <Select value={tipo} onValueChange={setTipo}>
-                <SelectTrigger className="text-sm">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {Object.entries(tipoLabels).map(([k, v]) => (
-                    <SelectItem key={k} value={k}>{v}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            <ManagedSelectInput
+              label="Tipo"
+              value={tipoId}
+              onValueChange={setTipoId}
+              options={tipoOptions}
+              placeholder="Selecione o tipo..."
+              onAdd={managed.onAdd}
+              onEdit={managed.onEdit}
+              onDelete={managed.onDelete}
+              onReorder={managed.onReorder}
+              addLabel="Novo tipo"
+            />
           </div>
           <div>
             <label className="text-sm font-medium text-foreground mb-1.5 block">Descrição</label>
@@ -225,7 +271,7 @@ export function ClienteVisaoGeralTab({ cliente, onEdit: _onEdit }: Props) {
               size="sm"
               className="gap-2"
               onClick={() => createMutation.mutate()}
-              disabled={!descricao.trim() || createMutation.isPending}
+              disabled={!descricao.trim() || !tipoId || createMutation.isPending}
             >
               {createMutation.isPending && <Loader2 className="w-3 h-3 animate-spin" />}
               Salvar
@@ -248,14 +294,13 @@ export function ClienteVisaoGeralTab({ cliente, onEdit: _onEdit }: Props) {
         </div>
       ) : (
         <div className="relative pl-6 space-y-0">
-          {/* Timeline line */}
           <div className="absolute left-[11px] top-3 bottom-3 w-px bg-border/40" />
 
           {interacoes.map((item) => {
             const { title, body } = parseInteracao(item.descricao);
             const insight = getInsight(item);
-            const colorClass = tipoColors[item.tipo] || "text-rose-400";
-            const hasAttachment = item.tipo === "contrato" || item.tipo === "documento_anexado";
+            const colorClass = tipoColors[item.tipo] || "text-muted-foreground";
+            const hasAttachment = item.tipo === "Contrato" || item.tipo === "Documento";
 
             return (
               <div key={item.id} className="relative pb-6 last:pb-0 group">
@@ -270,9 +315,7 @@ export function ClienteVisaoGeralTab({ cliente, onEdit: _onEdit }: Props) {
                           <span className="text-sm font-semibold text-foreground">{title}</span>
                           {hasAttachment && <Paperclip className="w-3.5 h-3.5 text-muted-foreground" />}
                         </div>
-                        <span className="text-xs text-muted-foreground">
-                          {tipoLabels[item.tipo] || item.tipo}
-                        </span>
+                        <span className="text-xs text-muted-foreground">{item.tipo}</span>
                       </div>
                     </div>
                     <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -329,21 +372,20 @@ export function ClienteVisaoGeralTab({ cliente, onEdit: _onEdit }: Props) {
                 label="Título"
                 value={editTitulo}
                 onChange={(e) => setEditTitulo(e.target.value)}
-                placeholder="Ex: Insatisfação"
+                placeholder="Ex: Reunião de alinhamento"
               />
-              <div>
-                <label className="text-sm font-medium text-foreground mb-1.5 block">Tipo</label>
-                <Select value={editTipo} onValueChange={setEditTipo}>
-                  <SelectTrigger className="text-sm">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {Object.entries(tipoLabels).map(([k, v]) => (
-                      <SelectItem key={k} value={k}>{v}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              <ManagedSelectInput
+                label="Tipo"
+                value={editTipoId}
+                onValueChange={setEditTipoId}
+                options={tipoOptions}
+                placeholder="Selecione o tipo..."
+                onAdd={managed.onAdd}
+                onEdit={managed.onEdit}
+                onDelete={managed.onDelete}
+                onReorder={managed.onReorder}
+                addLabel="Novo tipo"
+              />
             </div>
             <div>
               <label className="text-sm font-medium text-foreground mb-1.5 block">Descrição</label>
