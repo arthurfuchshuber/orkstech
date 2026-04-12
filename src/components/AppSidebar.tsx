@@ -207,7 +207,34 @@ export function AppSidebar() {
   const collapsed = state === "collapsed";
   const location = useLocation();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const { tree, flatMenus, isLoading } = useMenus();
+
+  // Check if user has open finance connections
+  const { data: hasOpenFinance } = useQuery({
+    queryKey: ["pluggy_connections_exist", user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      const { count } = await supabase
+        .from("pluggy_connections")
+        .select("id", { count: "exact", head: true })
+        .eq("status", "connected");
+      return (count ?? 0) > 0;
+    },
+  });
+
+  // Filter tree: hide "extrato-bancario" if no open finance connections
+  const filteredTree = useMemo(() => {
+    if (hasOpenFinance) return tree;
+    const filterItems = (items: MenuItem[]): MenuItem[] =>
+      items
+        .filter((item) => item.slug !== "extrato-bancario")
+        .map((item) => ({
+          ...item,
+          children: item.children ? filterItems(item.children) : [],
+        }));
+    return filterItems(tree);
+  }, [tree, hasOpenFinance]);
 
   const findActiveIds = (items: MenuItem[], path: string): string[] => {
     for (const item of items) {
