@@ -738,6 +738,74 @@ export type Database = {
           },
         ]
       }
+      pluggy_bank_accounts: {
+        Row: {
+          balance: number
+          bank_data: Json | null
+          connection_id: string | null
+          created_at: string
+          credit_available: number | null
+          credit_bill_amount: number | null
+          credit_bill_due_date: string | null
+          credit_limit: number | null
+          currency_code: string | null
+          id: string
+          name: string
+          pluggy_account_id: string
+          pluggy_item_id: string
+          subtype: string | null
+          type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          balance?: number
+          bank_data?: Json | null
+          connection_id?: string | null
+          created_at?: string
+          credit_available?: number | null
+          credit_bill_amount?: number | null
+          credit_bill_due_date?: string | null
+          credit_limit?: number | null
+          currency_code?: string | null
+          id?: string
+          name: string
+          pluggy_account_id: string
+          pluggy_item_id: string
+          subtype?: string | null
+          type?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          balance?: number
+          bank_data?: Json | null
+          connection_id?: string | null
+          created_at?: string
+          credit_available?: number | null
+          credit_bill_amount?: number | null
+          credit_bill_due_date?: string | null
+          credit_limit?: number | null
+          currency_code?: string | null
+          id?: string
+          name?: string
+          pluggy_account_id?: string
+          pluggy_item_id?: string
+          subtype?: string | null
+          type?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pluggy_bank_accounts_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: false
+            referencedRelation: "pluggy_connections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pluggy_connections: {
         Row: {
           connector_name: string | null
@@ -768,6 +836,95 @@ export type Database = {
           status?: string
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      pluggy_transactions: {
+        Row: {
+          amount: number
+          category: string | null
+          created_at: string
+          date: string
+          description: string | null
+          id: string
+          payment_data: Json | null
+          pluggy_account_id: string
+          pluggy_transaction_id: string
+          reconciled: boolean
+          reconciled_payable_id: string | null
+          type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount?: number
+          category?: string | null
+          created_at?: string
+          date: string
+          description?: string | null
+          id?: string
+          payment_data?: Json | null
+          pluggy_account_id: string
+          pluggy_transaction_id: string
+          reconciled?: boolean
+          reconciled_payable_id?: string | null
+          type?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          category?: string | null
+          created_at?: string
+          date?: string
+          description?: string | null
+          id?: string
+          payment_data?: Json | null
+          pluggy_account_id?: string
+          pluggy_transaction_id?: string
+          reconciled?: boolean
+          reconciled_payable_id?: string | null
+          type?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pluggy_transactions_reconciled_payable_id_fkey"
+            columns: ["reconciled_payable_id"]
+            isOneToOne: false
+            referencedRelation: "accounts_payable"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pluggy_webhooks_log: {
+        Row: {
+          created_at: string
+          error_message: string | null
+          event_type: string
+          id: string
+          item_id: string | null
+          payload: Json
+          processed: boolean
+        }
+        Insert: {
+          created_at?: string
+          error_message?: string | null
+          event_type: string
+          id?: string
+          item_id?: string | null
+          payload?: Json
+          processed?: boolean
+        }
+        Update: {
+          created_at?: string
+          error_message?: string | null
+          event_type?: string
+          id?: string
+          item_id?: string | null
+          payload?: Json
+          processed?: boolean
         }
         Relationships: []
       }
