@@ -577,7 +577,7 @@ export default function ContasAPagar() {
     if (filterStatus === "open") {
       list = list.filter((p: any) => p.status === "pending" || p.status === "overdue");
     } else if (filterStatus === "upcoming") {
-      list = list.filter((p: any) => p.status === "pending" && p.due_date >= today);
+      list = list.filter((p: any) => p.status === "pending" && p.due_date >= todayStr);
     } else if (filterStatus !== "all") {
       list = list.filter((p: any) => p.status === filterStatus);
     }
