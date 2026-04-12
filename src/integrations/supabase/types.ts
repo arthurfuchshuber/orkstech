@@ -1052,6 +1052,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          ativo: boolean
           cpf: string | null
           created_at: string
           data_nascimento: string | null
@@ -1063,6 +1064,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          ativo?: boolean
           cpf?: string | null
           created_at?: string
           data_nascimento?: string | null
@@ -1074,6 +1076,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          ativo?: boolean
           cpf?: string | null
           created_at?: string
           data_nascimento?: string | null
