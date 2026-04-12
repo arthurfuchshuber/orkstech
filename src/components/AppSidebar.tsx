@@ -247,12 +247,12 @@ export function AppSidebar() {
     return [];
   };
 
-  const activeIdsKey = findActiveIds(tree, location.pathname).join("|");
+  const activeIdsKey = findActiveIds(filteredTree, location.pathname).join("|");
 
   const [openMap, setOpenMap] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
-    const ids = findActiveIds(tree, location.pathname);
+    const ids = findActiveIds(filteredTree, location.pathname);
     const nextOpenMap: Record<string, boolean> = {};
     ids.forEach((id) => {
       nextOpenMap[id] = true;
