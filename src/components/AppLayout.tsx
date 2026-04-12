@@ -10,6 +10,8 @@ import { toast } from "sonner";
 export default function AppLayout() {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
+  // Initialize bank notifications (realtime listener)
+  useBankNotifications();
 
   const handleSignOut = async () => {
     await signOut();
