@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
-  Sparkles, Plus, Loader2, Trash2, Paperclip
+  Sparkles, Plus, Loader2, Trash2, Paperclip, Pencil
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -53,6 +53,10 @@ export function ClienteVisaoGeralTab({ cliente, onEdit: _onEdit }: Props) {
   const [titulo, setTitulo] = useState("");
   const [descricao, setDescricao] = useState("");
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editTipo, setEditTipo] = useState("");
+  const [editTitulo, setEditTitulo] = useState("");
+  const [editDescricao, setEditDescricao] = useState("");
 
   const { data: interacoes = [], isLoading } = useQuery({
     queryKey: ["cliente-interacoes", cliente.id],
@@ -87,6 +91,21 @@ export function ClienteVisaoGeralTab({ cliente, onEdit: _onEdit }: Props) {
     },
   });
 
+  const updateMutation = useMutation({
+    mutationFn: async ({ id, tipo, descricao }: { id: string; tipo: string; descricao: string }) => {
+      const { error } = await supabase
+        .from("cliente_interacoes")
+        .update({ tipo, descricao })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: async () => {
+      await refreshQueries(queryClient, [["cliente-interacoes", cliente.id]]);
+      toast.success("Atividade atualizada");
+      setEditingId(null);
+    },
+  });
+
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase.from("cliente_interacoes").delete().eq("id", id);
@@ -98,6 +117,20 @@ export function ClienteVisaoGeralTab({ cliente, onEdit: _onEdit }: Props) {
       setDeleteId(null);
     },
   });
+
+  const startEdit = (item: any) => {
+    const { title, body } = parseInteracao(item.descricao);
+    setEditingId(item.id);
+    setEditTipo(item.tipo);
+    setEditTitulo(title);
+    setEditDescricao(body);
+  };
+
+  const saveEdit = () => {
+    if (!editingId) return;
+    const fullDesc = `${editTitulo ? editTitulo + ". " : ""}${editDescricao}`;
+    updateMutation.mutate({ id: editingId, tipo: editTipo, descricao: fullDesc });
+  };
 
   // Smart summary
   const summaryText = interacoes.length === 0
@@ -220,6 +253,7 @@ export function ClienteVisaoGeralTab({ cliente, onEdit: _onEdit }: Props) {
             const insight = getInsight(item);
             const colorClass = tipoColors[item.tipo] || "text-rose-400";
             const hasAttachment = item.tipo === "contrato" || item.tipo === "documento_anexado";
+            const isEditing = editingId === item.id;
 
             return (
               <div key={item.id} className="relative pb-6 last:pb-0 group">
@@ -227,47 +261,105 @@ export function ClienteVisaoGeralTab({ cliente, onEdit: _onEdit }: Props) {
                 <div className="absolute -left-[13px] top-3 w-3 h-3 rounded-full border-2 border-border bg-card" />
 
                 <Card className="ml-4 p-5 border-border/40 shadow-sm hover:border-border/60 transition-colors">
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className={`text-base ${colorClass}`}>📌</span>
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm font-semibold text-foreground">{title}</span>
-                          {hasAttachment && <Paperclip className="w-3.5 h-3.5 text-muted-foreground" />}
+                  {isEditing ? (
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-2 gap-3">
+                        <TextInput
+                          label="Título"
+                          value={editTitulo}
+                          onChange={(e) => setEditTitulo(e.target.value)}
+                          placeholder="Ex: Insatisfação"
+                        />
+                        <div>
+                          <label className="text-sm font-medium text-foreground mb-1.5 block">Tipo</label>
+                          <Select value={editTipo} onValueChange={setEditTipo}>
+                            <SelectTrigger className="text-sm">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {Object.entries(tipoLabels).map(([k, v]) => (
+                                <SelectItem key={k} value={k}>{v}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                         </div>
-                        <span className="text-xs text-muted-foreground">
-                          {tipoLabels[item.tipo] || item.tipo}
-                        </span>
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-foreground mb-1.5 block">Descrição</label>
+                        <Textarea
+                          value={editDescricao}
+                          onChange={(e) => setEditDescricao(e.target.value)}
+                          className="min-h-[80px] text-sm"
+                        />
+                      </div>
+                      <div className="flex justify-end gap-2">
+                        <Button variant="ghost" size="sm" onClick={() => setEditingId(null)}>Cancelar</Button>
+                        <Button
+                          size="sm"
+                          className="gap-2"
+                          onClick={saveEdit}
+                          disabled={updateMutation.isPending}
+                        >
+                          {updateMutation.isPending && <Loader2 className="w-3 h-3 animate-spin" />}
+                          Salvar
+                        </Button>
                       </div>
                     </div>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity text-destructive hover:text-destructive"
-                      onClick={() => setDeleteId(item.id)}
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </Button>
-                  </div>
+                  ) : (
+                    <>
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-center gap-2">
+                          <span className={`text-base ${colorClass}`}>📌</span>
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm font-semibold text-foreground">{title}</span>
+                              {hasAttachment && <Paperclip className="w-3.5 h-3.5 text-muted-foreground" />}
+                            </div>
+                            <span className="text-xs text-muted-foreground">
+                              {tipoLabels[item.tipo] || item.tipo}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                            onClick={() => startEdit(item)}
+                          >
+                            <Pencil className="w-3.5 h-3.5" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 text-destructive hover:text-destructive"
+                            onClick={() => setDeleteId(item.id)}
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </Button>
+                        </div>
+                      </div>
 
-                  {body && (
-                    <p className="text-sm text-muted-foreground mt-2">{body}</p>
-                  )}
+                      {body && (
+                        <p className="text-sm text-muted-foreground mt-2">{body}</p>
+                      )}
 
-                  {/* AI insight */}
-                  {insight && (
-                    <div className="mt-3 px-3 py-2 rounded-lg bg-primary/[0.06] border border-primary/10">
-                      <p className="text-xs text-primary flex items-center gap-1.5">
-                        <Sparkles className="w-3 h-3" />
-                        {insight}
+                      {/* AI insight */}
+                      {insight && (
+                        <div className="mt-3 px-3 py-2 rounded-lg bg-primary/[0.06] border border-primary/10">
+                          <p className="text-xs text-primary flex items-center gap-1.5">
+                            <Sparkles className="w-3 h-3" />
+                            {insight}
+                          </p>
+                        </div>
+                      )}
+
+                      <p className="text-xs text-muted-foreground/60 mt-3">
+                        {format(new Date(item.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                        {item.usuario_nome && ` por ${item.usuario_nome}`}
                       </p>
-                    </div>
+                    </>
                   )}
-
-                  <p className="text-xs text-muted-foreground/60 mt-3">
-                    {format(new Date(item.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
-                    {item.usuario_nome && ` por ${item.usuario_nome}`}
-                  </p>
                 </Card>
               </div>
             );
