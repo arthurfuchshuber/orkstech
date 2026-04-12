@@ -25,6 +25,7 @@ export function useAutomations() {
     automations,
     toggle: (id: string) => eventBus.toggleAutomation(id),
     add: (automation: Parameters<typeof eventBus.addAutomation>[0]) => eventBus.addAutomation(automation),
+    remove: (id: string) => eventBus.removeAutomation(id),
   };
 }
 

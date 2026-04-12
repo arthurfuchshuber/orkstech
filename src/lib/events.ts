@@ -255,6 +255,11 @@ class EventBus {
     if (changed) this.notifyListeners();
   }
 
+  removeAutomation(id: string) {
+    this.automations = this.automations.filter((a) => a.id !== id);
+    this.notifyListeners();
+  }
+
   addAutomation(automation: Omit<Automation, "id" | "criadoEm" | "executadoCount">) {
     this.automations = [
       ...this.automations,

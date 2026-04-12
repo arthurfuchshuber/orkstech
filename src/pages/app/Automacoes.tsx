@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Workflow, Zap, Clock, CheckCircle, Plus, Play, Pause, Settings, ChevronRight, AlertTriangle, Info, ArrowRight } from "lucide-react";
+import { Workflow, Zap, Clock, CheckCircle, Plus, Play, Pause, Settings, ChevronRight, AlertTriangle, Info, ArrowRight, Trash2 } from "lucide-react";
 import { StatCard } from "@/components/StatCard";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -35,7 +35,7 @@ const actionLabels: Record<string, string> = {
 };
 
 export default function Automacoes() {
-  const { automations, toggle, add } = useAutomations();
+  const { automations, toggle, add, remove } = useAutomations();
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({
     nome: "",
@@ -112,6 +112,17 @@ export default function Automacoes() {
                     <p className="text-sm font-semibold text-foreground">{auto.executadoCount}</p>
                   </div>
                   <Switch checked={auto.ativo} onCheckedChange={() => toggle(auto.id)} />
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                    onClick={() => {
+                      remove(auto.id);
+                      toast.success("Automação excluída");
+                    }}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
                 </div>
               </div>
               <div className="px-4 pb-3 flex items-center gap-2 flex-wrap">
