@@ -523,6 +523,13 @@ export default function ContasAPagar() {
       setForm(newForm);
       setShowForm(true);
 
+      // Check for duplicates right after scan
+      const scanDups = checkDuplicatesFromForm(newForm);
+      if (scanDups.length > 0) {
+        setDuplicateMatches(scanDups);
+        setShowDuplicateAlert(true);
+      }
+
       // 2. If supplier not found, open FornecedorModal with prefill data
       if (!matchedSupplierId && extracted.supplier_name) {
         setFornEditingId(null);
