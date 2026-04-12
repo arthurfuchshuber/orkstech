@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Building2, Users, Trash2 } from "lucide-react";
+import { Building2, Users, Trash2, Pencil } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
