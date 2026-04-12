@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { refreshQueries } from "@/lib/query-refresh";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -61,8 +62,8 @@ export default function ContasBancarias() {
       const { error } = await supabase.from("contas_bancarias").delete().eq("id", id);
       if (error) throw error;
     },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["contas_bancarias"] });
+    onSuccess: async () => {
+      await refreshQueries(qc, [["contas_bancarias"], ["contas-bancarias"]]);
       toast.success("Conta excluída");
     },
   });
@@ -72,7 +73,9 @@ export default function ContasBancarias() {
       const { error } = await supabase.from("contas_bancarias").update({ ativo }).eq("id", id);
       if (error) throw error;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["contas_bancarias"] }),
+    onSuccess: async () => {
+      await refreshQueries(qc, [["contas_bancarias"], ["contas-bancarias"]]);
+    },
   });
 
   const openNew = () => { setEditingId(null); setModalOpen(true); };

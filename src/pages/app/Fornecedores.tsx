@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { refreshQueries } from "@/lib/query-refresh";
 import { toast } from "sonner";
 import {
   Truck, Plus, Building2, UserRound, Check, Mail, MapPin, Home,
@@ -152,8 +153,8 @@ export default function Fornecedores() {
         if (error) throw error;
       }
     },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["fornecedores"] });
+    onSuccess: async () => {
+      await refreshQueries(qc, [["fornecedores"]]);
       toast.success(editingId ? "Fornecedor atualizado!" : "Fornecedor cadastrado!");
       closeForm();
     },
@@ -169,8 +170,8 @@ export default function Fornecedores() {
       const { error } = await supabase.from("fornecedores").delete().eq("id", id);
       if (error) throw error;
     },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["fornecedores"] });
+    onSuccess: async () => {
+      await refreshQueries(qc, [["fornecedores"]]);
       toast.success("Fornecedor excluído");
     },
     onError: () => toast.error("Erro ao excluir fornecedor"),
@@ -181,7 +182,9 @@ export default function Fornecedores() {
       const { error } = await supabase.from("fornecedores").update({ ativo }).eq("id", id);
       if (error) throw error;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["fornecedores"] }),
+    onSuccess: async () => {
+      await refreshQueries(qc, [["fornecedores"]]);
+    },
   });
 
   // ---- Handlers ----
