@@ -83,6 +83,7 @@ export default function Clientes() {
   const [cnpjMessage, setCnpjMessage] = useState("");
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState<string[]>([]);
+  const [filterTipo, setFilterTipo] = useState<string[]>([]);
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
   const { data: clientes = [], isLoading } = useQuery({
