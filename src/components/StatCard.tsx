@@ -27,7 +27,7 @@ export function StatCard({ title, value, subtitle, change, changeType = "neutral
       </div>
       <div className="flex items-baseline gap-2">
         <span className="text-2xl font-bold text-foreground tracking-tight">{value}</span>
-        {subtitle && <span className="text-sm font-medium text-muted-foreground">({subtitle})</span>}
+        {subtitle && <span className="text-sm font-medium text-muted-foreground">{subtitle}</span>}
       </div>
       {change && <span className={`text-xs font-medium mt-1 block ${changeColor}`}>{change}</span>}
     </Card>
