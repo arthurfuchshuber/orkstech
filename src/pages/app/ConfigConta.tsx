@@ -318,9 +318,9 @@ function PermissoesTab() {
 
   const getNivelDescription = (nome: string) => {
     const n = nome.toLowerCase();
-    if (n.includes("super")) return "Acesso total à plataforma, empresas e recursos administrativos do SaaS.";
     if (n.includes("admin")) return "Gerencia operação, usuários e configurações da empresa.";
     if (n.includes("finance")) return "Focado em rotinas financeiras, cadastros estruturais e contas bancárias.";
+    if (n.includes("operac")) return "Acesso às rotinas operacionais do dia a dia.";
     if (n.includes("visual") || n.includes("leitura")) return "Acesso consultivo, ideal para acompanhamento.";
     return "Define o escopo de acesso do usuário dentro do sistema.";
   };
