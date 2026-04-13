@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Building2, Pencil, ShieldCheck, Trash2, UserPlus, Users } from "lucide-react";
+import { Building2, Pencil, Trash2, UserPlus, Users } from "lucide-react";
 import { DocumentInput } from "@/components/inputs/DocumentInput";
 import { PhoneInput } from "@/components/inputs/PhoneInput";
 import { DateInput } from "@/components/inputs/DateInput";
