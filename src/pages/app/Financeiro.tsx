@@ -28,9 +28,9 @@ export default function Financeiro() {
         <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
           <PlanoDeContasSection />
           <CentrosCustoSection />
-          <FormasPagamentoSection />
-          <ContasBancarias embedded />
         </div>
+        <ContasBancarias embedded />
+        <FormasPagamentoSection />
       </section>
     </div>
   );

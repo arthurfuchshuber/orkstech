@@ -190,7 +190,7 @@ export function PlanoDeContasSection() {
         </Button>
       </CardHeader>
 
-      <CardContent className="px-2 pb-3 flex-1 overflow-auto max-h-[420px]">
+      <CardContent className="px-2 pb-3 flex-1 overflow-auto">
         {isLoading ? (
           <div className="py-8 text-center text-muted-foreground text-xs">Carregando...</div>
         ) : tree.length === 0 ? (
