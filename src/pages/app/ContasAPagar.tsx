@@ -278,33 +278,30 @@ export default function ContasAPagar() {
       if (excludeId && existing.id === excludeId) continue;
       if (existing.status === "cancelled") continue;
 
-      const reasons: string[] = [];
-
-      // 1. Nº Documento
-      if (formData.document_number.trim() && existing.document_number &&
-          formData.document_number.replace(/\D/g, "") === existing.document_number.replace(/\D/g, "")) {
-        reasons.push("Nº Documento igual");
+      // Prioridade 1: Nº Documento igual → duplicata imediata
+      const formDoc = formData.document_number.trim().replace(/\D/g, "");
+      const existDoc = (existing.document_number || "").replace(/\D/g, "");
+      if (formDoc && existDoc && formDoc === existDoc) {
+        matches.push({ ...existing, _dupReasons: ["Nº Documento igual"] });
+        continue;
       }
 
-      // 2. Valor
-      const formAmount = formData.amount / 100;
-      if (formAmount > 0 && Math.abs(formAmount - existing.amount) < 0.01) {
-        reasons.push("Mesmo valor");
-      }
+      // Prioridade 2 (só se Nº Documento vazio): Nome do beneficiário + Valor iguais
+      if (!formDoc) {
+        const formAmount = formData.amount / 100;
+        const sameAmount = formAmount > 0 && Math.abs(formAmount - existing.amount) < 0.01;
 
-      // 3. CNPJ/CPF do fornecedor
-      if (formData.supplier_id && existing.supplier_id && formData.supplier_id === existing.supplier_id) {
-        reasons.push("Mesmo fornecedor");
-      }
+        let sameBeneficiary = false;
+        if (formData.supplier_id && existing.supplier_id && formData.supplier_id === existing.supplier_id) {
+          sameBeneficiary = true;
+        } else if (formData.supplier_name.trim() && existing.supplier_name &&
+            formData.supplier_name.trim().toLowerCase() === existing.supplier_name.trim().toLowerCase()) {
+          sameBeneficiary = true;
+        }
 
-      // 4. Nome do fornecedor (fallback)
-      if (!formData.supplier_id && formData.supplier_name.trim() && existing.supplier_name &&
-          formData.supplier_name.trim().toLowerCase() === existing.supplier_name.trim().toLowerCase()) {
-        reasons.push("Mesmo nome de fornecedor");
-      }
-
-      if (reasons.length >= 2) {
-        matches.push({ ...existing, _dupReasons: reasons });
+        if (sameAmount && sameBeneficiary) {
+          matches.push({ ...existing, _dupReasons: ["Mesmo beneficiário", "Mesmo valor"] });
+        }
       }
     }
 

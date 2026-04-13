@@ -136,32 +136,29 @@ export function BulkBoletoScanner({ open, onOpenChange, fornecedores }: BulkBole
     for (const existing of existingPayables) {
       if (existing.status === "cancelled") continue;
 
-      const reasons: string[] = [];
-
-      // 1. Nº Documento
-      if (record.document_number && existing.document_number &&
-          record.document_number.replace(/\D/g, "") === existing.document_number.replace(/\D/g, "")) {
-        reasons.push("Nº Documento igual");
+      // Prioridade 1: Nº Documento igual → duplicata imediata
+      const recDoc = (record.document_number || "").replace(/\D/g, "");
+      const existDoc = (existing.document_number || "").replace(/\D/g, "");
+      if (recDoc && existDoc && recDoc === existDoc) {
+        allMatches.push({ ...existing, _dupReasons: ["Nº Documento igual"] });
+        continue;
       }
 
-      // 2. Valor
-      if (record.amount > 0 && Math.abs(record.amount - existing.amount) < 0.01) {
-        reasons.push("Mesmo valor");
-      }
+      // Prioridade 2 (só se Nº Documento vazio): Nome do beneficiário + Valor iguais
+      if (!recDoc) {
+        const sameAmount = record.amount > 0 && Math.abs(record.amount - existing.amount) < 0.01;
 
-      // 3. Fornecedor (ID)
-      if (record.supplier_id && existing.supplier_id && record.supplier_id === existing.supplier_id) {
-        reasons.push("Mesmo fornecedor");
-      }
+        let sameBeneficiary = false;
+        if (record.supplier_id && existing.supplier_id && record.supplier_id === existing.supplier_id) {
+          sameBeneficiary = true;
+        } else if (record.supplier_name && existing.supplier_name &&
+            record.supplier_name.trim().toLowerCase() === existing.supplier_name.trim().toLowerCase()) {
+          sameBeneficiary = true;
+        }
 
-      // 4. Nome fornecedor (fallback)
-      if (!record.supplier_id && record.supplier_name && existing.supplier_name &&
-          record.supplier_name.trim().toLowerCase() === existing.supplier_name.trim().toLowerCase()) {
-        reasons.push("Mesmo nome de fornecedor");
-      }
-
-      if (reasons.length >= 2) {
-        allMatches.push({ ...existing, _dupReasons: reasons });
+        if (sameAmount && sameBeneficiary) {
+          allMatches.push({ ...existing, _dupReasons: ["Mesmo beneficiário", "Mesmo valor"] });
+        }
       }
     }
 
