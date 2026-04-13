@@ -1108,9 +1108,15 @@ export default function ContasAPagar() {
         onOpenChange={setFornModalOpen}
         editingId={fornEditingId}
         prefill={fornPrefill}
-        onSaved={(id) => {
+        onSaved={async (id) => {
+          await queryClient.invalidateQueries({ queryKey: ["fornecedores"] });
+          // Wait for refetch to complete so the select options include the new supplier
+          await queryClient.refetchQueries({ queryKey: ["fornecedores", empresaId] });
           updateField("supplier_id", id);
-          queryClient.invalidateQueries({ queryKey: ["fornecedores"] });
+          // Also set supplier_name from prefill if available
+          if (fornPrefill?.nome) {
+            updateField("supplier_name", fornPrefill.nome);
+          }
         }}
       />
 
