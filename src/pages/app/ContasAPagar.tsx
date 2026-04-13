@@ -798,7 +798,7 @@ export default function ContasAPagar() {
             </span>
             <div className="flex items-center gap-2">
               <span className="text-xs text-muted-foreground mr-1">Alterar status para:</span>
-              {Object.entries(statusConfig).map(([key, cfg]) => (
+              {Object.entries(statusConfig).filter(([key]) => key !== "cancelled").map(([key, cfg]) => (
                 <Button
                   key={key}
                   size="sm"
@@ -896,7 +896,7 @@ export default function ContasAPagar() {
                           </button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="start">
-                          {Object.entries(statusConfig).map(([key, cfg]) => {
+                          {Object.entries(statusConfig).filter(([key]) => key !== "cancelled").map(([key, cfg]) => {
                             if (key === item.status) return null;
                             return (
                               <DropdownMenuItem key={key} onClick={() => handleChangeStatus(item.id, key)}>
@@ -929,11 +929,6 @@ export default function ContasAPagar() {
                           <DropdownMenuItem onClick={() => handleDuplicate(item)}>
                             <Copy className="w-4 h-4 mr-2" /> Duplicar
                           </DropdownMenuItem>
-                          {item.status !== "cancelled" && item.status !== "paid" && (
-                            <DropdownMenuItem onClick={() => handleCancel(item.id)} className="text-destructive">
-                              <X className="w-4 h-4 mr-2" /> Cancelar
-                            </DropdownMenuItem>
-                          )}
                           <DropdownMenuItem onClick={() => setDeleteId(item.id)} className="text-destructive">
                             <Trash2 className="w-4 h-4 mr-2" /> Excluir
                           </DropdownMenuItem>
