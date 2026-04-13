@@ -20,7 +20,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { FileAttachment } from "@/components/inputs/FileAttachment";
 
 import { useManagedSelect } from "@/hooks/useManagedSelect";
-import { CategoriaFinanceiraModal } from "@/components/modals/CategoriaFinanceiraModal";
+import { CategoriaCadastroModal } from "@/components/modals/CategoriaCadastroModal";
 import { CentroCustoModal } from "@/components/modals/CentroCustoModal";
 import { ContaBancariaModal } from "@/components/modals/ContaBancariaModal";
 import { FormaPagamentoModal } from "@/components/modals/FormaPagamentoModal";
@@ -115,7 +115,7 @@ export default function ContasAPagar() {
   const [dupDetailItem, setDupDetailItem] = useState<any | null>(null);
 
   // Managed select hooks
-  const categoriasCrud = useManagedSelect("categorias_financeiras", { insertDefaults: { tipo: "despesa" } });
+  const categoriasCrud = useManagedSelect("categorias_cadastro");
   const centrosCrud = useManagedSelect("centros_custo");
   const contasCrud = useManagedSelect("contas_bancarias");
   const formasCrud = useManagedSelect("formas_pagamento");
@@ -167,9 +167,9 @@ export default function ContasAPagar() {
   }));
 
   const { data: categories = [] } = useQuery({
-    queryKey: ["categorias-financeiras", empresaId],
+    queryKey: ["categorias_cadastro", empresaId],
     queryFn: async () => {
-      let q = supabase.from("categorias_financeiras").select("id, nome").eq("ativo", true).order("nome");
+      let q = supabase.from("categorias_cadastro").select("id, nome").eq("ativo", true).order("nome");
       if (empresaId) q = q.eq("empresa_id", empresaId);
       const { data } = await q;
       return data ?? [];
@@ -1288,11 +1288,10 @@ export default function ContasAPagar() {
       />
 
       {/* Entity modals */}
-      <CategoriaFinanceiraModal
+      <CategoriaCadastroModal
         open={catModalOpen}
         onOpenChange={setCatModalOpen}
         editingId={catEditingId}
-        defaultTipo="despesa"
         onSaved={(id) => updateField("category_id", id)}
       />
       <CentroCustoModal
