@@ -57,6 +57,21 @@ export default function ConfigPlanos() {
     }
   };
 
+  const handleRequestDeletion = async () => {
+    setDeletionLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("admin-dashboard", {
+        body: { action: "request_account_deletion" },
+      });
+      if (error) throw error;
+      toast.success("Solicitação enviada com sucesso. Nossa equipe entrará em contato.");
+    } catch (e: any) {
+      toast.error("Erro ao enviar solicitação: " + (e.message || "Tente novamente"));
+    } finally {
+      setDeletionLoading(false);
+    }
+  };
+
   const planLabel = currentPlan ? PLANS[currentPlan].name : null;
 
   return (
