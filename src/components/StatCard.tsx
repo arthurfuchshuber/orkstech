@@ -4,12 +4,13 @@ import { Card } from "@/components/ui/card";
 interface StatCardProps {
   title: string;
   value: string;
+  subtitle?: string;
   change?: string;
   changeType?: "positive" | "negative" | "neutral";
   icon: LucideIcon;
 }
 
-export function StatCard({ title, value, change, changeType = "neutral", icon: Icon }: StatCardProps) {
+export function StatCard({ title, value, subtitle, change, changeType = "neutral", icon: Icon }: StatCardProps) {
   const changeColor = {
     positive: "text-success",
     negative: "text-destructive",
@@ -25,6 +26,7 @@ export function StatCard({ title, value, change, changeType = "neutral", icon: I
         </div>
       </div>
       <div className="text-2xl font-bold text-foreground tracking-tight">{value}</div>
+      {subtitle && <span className="text-xs font-medium text-muted-foreground mt-0.5 block">{subtitle}</span>}
       {change && <span className={`text-xs font-medium mt-1 block ${changeColor}`}>{change}</span>}
     </Card>
   );
