@@ -342,7 +342,7 @@ serve(async (req) => {
           supabaseAdmin, parsed.data.user_id, adminLevel?.id, targetEmpresaId
         );
         if (lastAdmin) {
-          return new Response(JSON.stringify({ error: "Não é possível inativar o último administrador da empresa" }), {
+          return new Response(JSON.stringify({ error: "Não é possível inativar o único administrador da empresa." }), {
             status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
           });
         }
@@ -405,7 +405,7 @@ serve(async (req) => {
         supabaseAdmin, parsed.data.user_id, adminLevel?.id, targetEmpresaId
       );
       if (lastAdmin) {
-        return new Response(JSON.stringify({ error: "Não é possível excluir o último administrador da empresa" }), {
+        return new Response(JSON.stringify({ error: "Não é possível excluir o único administrador da empresa." }), {
           status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
