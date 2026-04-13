@@ -929,11 +929,6 @@ export default function ContasAPagar() {
                           <DropdownMenuItem onClick={() => handleDuplicate(item)}>
                             <Copy className="w-4 h-4 mr-2" /> Duplicar
                           </DropdownMenuItem>
-                          {item.status !== "cancelled" && item.status !== "paid" && (
-                            <DropdownMenuItem onClick={() => handleCancel(item.id)} className="text-destructive">
-                              <X className="w-4 h-4 mr-2" /> Cancelar
-                            </DropdownMenuItem>
-                          )}
                           <DropdownMenuItem onClick={() => setDeleteId(item.id)} className="text-destructive">
                             <Trash2 className="w-4 h-4 mr-2" /> Excluir
                           </DropdownMenuItem>
