@@ -128,11 +128,11 @@ export function PlanoDeContasSection() {
   const saveMutation = useMutation({
     mutationFn: async () => {
       if (editingId) {
-        const { error } = await supabase.from("categorias_financeiras").update({ nome: form.nome, tipo: form.tipo, categoria_pai_id: form.categoria_pai_id }).eq("id", editingId);
+        const { error } = await supabase.from("categorias_financeiras").update({ nome: form.nome, tipo: form.tipo as "receita" | "despesa" | "custo" | "ajuste", categoria_pai_id: form.categoria_pai_id }).eq("id", editingId);
         if (error) throw error;
       } else {
         const siblings = categorias.filter((c) => c.categoria_pai_id === form.categoria_pai_id);
-        const { error } = await supabase.from("categorias_financeiras").insert({ nome: form.nome, tipo: form.tipo, categoria_pai_id: form.categoria_pai_id, ordem: siblings.length, user_id: user!.id });
+        const { error } = await supabase.from("categorias_financeiras").insert({ nome: form.nome, tipo: form.tipo as "receita" | "despesa" | "custo" | "ajuste", categoria_pai_id: form.categoria_pai_id, ordem: siblings.length, user_id: user!.id });
         if (error) throw error;
       }
     },
