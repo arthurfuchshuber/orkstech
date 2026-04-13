@@ -4,7 +4,7 @@ import { useEmpresa } from "@/hooks/useEmpresa";
 import {
   Receipt, Plus, Check, Loader2, AlertTriangle, Clock, Ban,
   FileText, Search, CreditCard,
-  Building2, Target, Landmark, FolderTree, X, Copy, Pencil,
+  Building2, Target, Landmark, FolderTree, X, Copy, Pencil, Trash2,
   Banknote, ChevronDown, ScanLine
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
