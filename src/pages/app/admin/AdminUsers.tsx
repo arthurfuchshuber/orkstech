@@ -255,15 +255,15 @@ export default function AdminUsers() {
         {/* Users Tab */}
         <TabsContent value="users" className="mt-4">
           <Card className="overflow-hidden border-border/50">
-            <Table>
+            <Table className="table-fixed w-full">
               <TableHeader>
                 <TableRow>
-                  <TableHead>Usuário</TableHead>
-                  <TableHead>Empresa</TableHead>
-                  <TableHead className="w-[120px]">Nível</TableHead>
-                  <TableHead className="w-[100px]">Criado em</TableHead>
-                  <TableHead className="w-[70px] text-center">Ativo</TableHead>
-                  <TableHead className="w-[80px]" />
+                  <TableHead className="w-[25%]">Usuário</TableHead>
+                  <TableHead className="w-[25%]">Empresa</TableHead>
+                  <TableHead className="w-[15%]">Nível</TableHead>
+                  <TableHead className="w-[13%]">Criado em</TableHead>
+                  <TableHead className="w-[10%] text-center">Ativo</TableHead>
+                  <TableHead className="w-[12%]" />
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -341,14 +341,14 @@ export default function AdminUsers() {
         {/* Companies Tab */}
         <TabsContent value="companies" className="mt-4">
           <Card className="overflow-hidden border-border/50">
-            <Table>
+            <Table className="table-fixed w-full">
               <TableHeader>
                 <TableRow>
-                  <TableHead>Empresa</TableHead>
-                  <TableHead>CNPJ</TableHead>
-                  <TableHead>Proprietário</TableHead>
-                  <TableHead className="w-[100px]">Criado em</TableHead>
-                  <TableHead className="w-[80px]" />
+                  <TableHead className="w-[30%]">Empresa</TableHead>
+                  <TableHead className="w-[20%]">CNPJ</TableHead>
+                  <TableHead className="w-[25%]">Proprietário</TableHead>
+                  <TableHead className="w-[15%]">Criado em</TableHead>
+                  <TableHead className="w-[10%]" />
                 </TableRow>
               </TableHeader>
               <TableBody>
