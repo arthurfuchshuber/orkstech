@@ -306,6 +306,24 @@ function UsuariosTab() {
     ...nivel,
     count: users.filter((u) => u.nivel_permissao_id === nivel.id).length,
   }));
+  const adminNivelId = niveis.find((n) => n.nome === "Admin")?.id;
+  const activeAdminCount = users.filter((u) => u.ativo && u.nivel_permissao_id === adminNivelId).length;
+
+  const isOnlyActiveAdmin = (targetUser: UserRow) => (
+    !!adminNivelId
+    && targetUser.ativo
+    && targetUser.nivel_permissao_id === adminNivelId
+    && activeAdminCount === 1
+  );
+
+  const handleRoleChange = (targetUser: UserRow, nextNivelId: string) => {
+    if (isOnlyActiveAdmin(targetUser) && nextNivelId !== adminNivelId) {
+      toast.error("Não é possível remover o nível Admin do último administrador da empresa");
+      return;
+    }
+
+    updateRole.mutate({ user_id: targetUser.id, nivel_permissao_id: nextNivelId });
+  };
 
   return (
     <div className="space-y-4">
@@ -358,7 +376,7 @@ function UsuariosTab() {
                   </TableCell>
                   <TableCell className="text-xs text-muted-foreground">{new Date(u.created_at).toLocaleDateString("pt-BR")}</TableCell>
                   <TableCell>
-                    <Select value={u.nivel_permissao_id ?? ""} onValueChange={(v) => updateRole.mutate({ user_id: u.id, nivel_permissao_id: v })} disabled={isSelf}>
+                    <Select value={u.nivel_permissao_id ?? ""} onValueChange={(v) => handleRoleChange(u, v)} disabled={isSelf}>
                       <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Selecione" /></SelectTrigger>
                       <SelectContent>{niveis.map((n) => <SelectItem key={n.id} value={n.id}>{n.nome}</SelectItem>)}</SelectContent>
                     </Select>
