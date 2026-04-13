@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { Building2, Pencil, Trash2, UserPlus, Users } from "lucide-react";
 import { DocumentInput } from "@/components/inputs/DocumentInput";
 import { PhoneInput } from "@/components/inputs/PhoneInput";
 import { DateInput } from "@/components/inputs/DateInput";
+import { CepInput } from "@/components/inputs/CepInput";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
