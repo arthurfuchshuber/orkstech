@@ -5,20 +5,13 @@ import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-
-import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
-} from "@/components/ui/dialog";
-import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from "@/components/ui/select";
 import {
   ChevronRight, ChevronDown, Plus, Pencil, Trash2, Power,
   FolderTree, GripVertical,
 } from "lucide-react";
 import { DragDropContext, Droppable, Draggable, type DropResult } from "@hello-pangea/dnd";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { CategoriaFinanceiraModal } from "@/components/modals/CategoriaFinanceiraModal";
 
 interface Categoria {
   id: string;
@@ -67,7 +60,6 @@ export function PlanoDeContasSection() {
   const qc = useQueryClient();
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [form, setForm] = useState({ nome: "", tipo: "despesa", categoria_pai_id: null as string | null });
   const [collapsedIds, setCollapsedIds] = useState<Set<string>>(new Set());
 
   const { data: categorias = [], isLoading } = useQuery({
@@ -125,21 +117,6 @@ export function PlanoDeContasSection() {
     reorderMutation.mutate(reordered.map((item, i) => ({ id: item.id, ordem: i })));
   };
 
-  const saveMutation = useMutation({
-    mutationFn: async () => {
-      if (editingId) {
-        const { error } = await supabase.from("categorias_financeiras").update({ nome: form.nome, tipo: form.tipo as "receita" | "despesa" | "custo" | "ajuste", categoria_pai_id: form.categoria_pai_id }).eq("id", editingId);
-        if (error) throw error;
-      } else {
-        const siblings = categorias.filter((c) => c.categoria_pai_id === form.categoria_pai_id);
-        const { error } = await supabase.from("categorias_financeiras").insert({ nome: form.nome, tipo: form.tipo as "receita" | "despesa" | "custo" | "ajuste", categoria_pai_id: form.categoria_pai_id, ordem: siblings.length, user_id: user!.id });
-        if (error) throw error;
-      }
-    },
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["categorias_financeiras"] }); toast.success(editingId ? "Categoria atualizada" : "Categoria criada"); closeModal(); },
-    onError: () => toast.error("Erro ao salvar categoria"),
-  });
-
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => { const { error } = await supabase.from("categorias_financeiras").delete().eq("id", id); if (error) throw error; },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["categorias_financeiras"] }); toast.success("Categoria excluída"); },
@@ -151,11 +128,8 @@ export function PlanoDeContasSection() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["categorias_financeiras"] }),
   });
 
-  const closeModal = () => { setModalOpen(false); setEditingId(null); setForm({ nome: "", tipo: "despesa", categoria_pai_id: null }); };
-  const openNew = (parentId?: string) => { setEditingId(null); setForm({ nome: "", tipo: "despesa", categoria_pai_id: parentId || null }); setModalOpen(true); };
-  const openEdit = (c: Categoria) => { setEditingId(c.id); setForm({ nome: c.nome, tipo: c.tipo, categoria_pai_id: c.categoria_pai_id }); setModalOpen(true); };
-
-  const parentOptions = categorias.filter((c) => c.id !== editingId);
+  const openNew = (parentId?: string) => { setEditingId(null); setModalOpen(true); };
+  const openEdit = (c: Categoria) => { setEditingId(c.id); setModalOpen(true); };
 
   return (
     <Card className="border-border/40 shadow-sm flex flex-col">
@@ -188,7 +162,6 @@ export function PlanoDeContasSection() {
                     const node = item.node;
                     const hasChildren = node.children && node.children.length > 0;
                     const isCollapsed = collapsedIds.has(node.id);
-                    
                     return (
                       <Draggable key={node.id} draggableId={node.id} index={index}>
                         {(provided, snapshot) => (
@@ -241,33 +214,12 @@ export function PlanoDeContasSection() {
         )}
       </CardContent>
 
-      <Dialog open={modalOpen} onOpenChange={(v) => !v && closeModal()}>
-        <DialogContent>
-          <DialogHeader><DialogTitle>{editingId ? "Editar Categoria" : "Nova Categoria"}</DialogTitle></DialogHeader>
-          <div className="space-y-4 py-2">
-            <div>
-              <label className="text-sm font-medium text-foreground mb-1.5 block">Nome</label>
-              <Input value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} placeholder="Ex: Receita de Serviços" />
-            </div>
-            <div>
-              <label className="text-sm font-medium text-foreground mb-1.5 block">Categoria Pai (opcional)</label>
-              <Select value={form.categoria_pai_id || "__none__"} onValueChange={(v) => setForm({ ...form, categoria_pai_id: v === "__none__" ? null : v })}>
-                <SelectTrigger><SelectValue placeholder="Nenhuma (raiz)" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__none__">Nenhuma (raiz)</SelectItem>
-                  {parentOptions.map((c) => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={closeModal}>Cancelar</Button>
-            <Button onClick={() => saveMutation.mutate()} disabled={!form.nome.trim() || saveMutation.isPending}>
-              {saveMutation.isPending ? "Salvando..." : "Salvar"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <CategoriaFinanceiraModal
+        open={modalOpen}
+        onOpenChange={setModalOpen}
+        editingId={editingId}
+        defaultTipo="despesa"
+      />
     </Card>
   );
 }
