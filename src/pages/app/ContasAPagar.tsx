@@ -227,14 +227,17 @@ export default function ContasAPagar() {
     onError: () => toast.error("Erro ao atualizar conta"),
   });
 
-  const paymentMutation = useMutation({
-    mutationFn: ({ id, bankAccountId, paymentDate }: { id: string; bankAccountId: string; paymentDate: string }) =>
-      registerPayment(id, bankAccountId, paymentDate, user!.id, empresaId),
+   const paymentMutation = useMutation({
+    mutationFn: ({ id, bankAccountId, paymentDate, jurosMulta }: { id: string; bankAccountId: string; paymentDate: string; jurosMulta?: number }) =>
+      registerPayment(id, bankAccountId, paymentDate, user!.id, empresaId, jurosMulta),
     onSuccess: async () => {
       await refreshQueries(queryClient, [["accounts-payable"], ["accounts-payable-counts"]]);
       toast.success("Pagamento registrado!");
       setShowPaymentDialog(false);
       setPayingId(null);
+      setPaymentJurosMulta(0);
+      setPaymentIsOverdue(false);
+      setPaymentValueChanged("");
     },
     onError: () => toast.error("Erro ao registrar pagamento"),
   });
