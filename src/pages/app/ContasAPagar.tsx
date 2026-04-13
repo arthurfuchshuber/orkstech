@@ -729,8 +729,8 @@ export default function ContasAPagar() {
                 const isNearDue = item.status === "pending" && isBefore(dueDate, addDays(new Date(), 7)) && !isPast(dueDate);
                 return (
                   <TableRow key={item.id} className={isNearDue ? "bg-amber-500/5" : ""}>
-                    <TableCell className="font-medium">{item.supplier_name || "—"}</TableCell>
-                    <TableCell>
+                    <TableCell className="font-medium truncate">{item.supplier_name || "—"}</TableCell>
+                    <TableCell className="truncate">
                       <div>
                         <span className="text-sm">{item.description}</span>
                         {item.installment_total > 1 && (
