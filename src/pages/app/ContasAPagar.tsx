@@ -631,18 +631,28 @@ export default function ContasAPagar() {
   };
 
   const openPaymentDialog = (id: string) => {
+    const item = payables.find((p: any) => p.id === id);
+    const isOverdue = item && (item.status === "overdue" || (item.status === "pending" && isPast(new Date(item.due_date))));
     setPayingId(id);
     setPaymentBankAccount("");
     setPaymentDate(new Date());
+    setPaymentJurosMulta(0);
+    setPaymentIsOverdue(!!isOverdue);
+    setPaymentValueChanged(isOverdue ? "" : "nao");
     setShowPaymentDialog(true);
   };
 
   const handlePaymentSubmit = () => {
     if (!payingId || !paymentDate) return;
+    if (paymentIsOverdue && !paymentValueChanged) {
+      toast.error("Informe se houve alteração de valor por atraso");
+      return;
+    }
     paymentMutation.mutate({
       id: payingId,
       bankAccountId: paymentBankAccount || "",
       paymentDate: paymentDate.toISOString().split("T")[0],
+      jurosMulta: paymentValueChanged === "sim" ? paymentJurosMulta / 100 : 0,
     });
   };
 
