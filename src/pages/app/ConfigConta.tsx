@@ -38,13 +38,15 @@ interface UserRow {
 interface NivelPermissao { id: string; nome: string; }
 
 function useUserManagementData() {
+  const { empresa } = useEmpresa();
   return useQuery({
-    queryKey: ["manage-users"],
+    queryKey: ["manage-users", empresa?.id],
     queryFn: async () => {
-      const { data, error } = await supabase.functions.invoke("manage-users", { body: { action: "list" } });
+      const { data, error } = await supabase.functions.invoke("manage-users", { body: { action: "list", empresa_id: empresa?.id } });
       if (error) throw error;
       return data as { users: UserRow[]; niveis: NivelPermissao[] };
     },
+    enabled: !!empresa?.id,
   });
 }
 
