@@ -7,6 +7,34 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+async function isLastAdminOfEmpresa(
+  supabaseAdmin: any,
+  targetUserId: string,
+  adminLevelId: string | undefined,
+  empresaId: string | null
+): Promise<boolean> {
+  if (!adminLevelId || !empresaId) return false;
+
+  // Check if target user is Admin
+  const { data: targetProfile } = await supabaseAdmin
+    .from("profiles")
+    .select("nivel_permissao_id")
+    .eq("user_id", targetUserId)
+    .single();
+
+  if (targetProfile?.nivel_permissao_id !== adminLevelId) return false;
+
+  // Count active admins in the same empresa
+  const { count } = await supabaseAdmin
+    .from("profiles")
+    .select("id", { count: "exact", head: true })
+    .eq("empresa_id", empresaId)
+    .eq("nivel_permissao_id", adminLevelId)
+    .eq("ativo", true);
+
+  return (count ?? 0) <= 1;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -69,16 +97,23 @@ serve(async (req) => {
         .select("user_id, nome, cpf, telefone, data_nascimento, nivel_permissao_id, ativo, empresa_id");
 
       // Filter by caller's empresa (unless Super Admin)
-      const filteredProfiles = isSuperAdmin
+      let filteredProfiles = isSuperAdmin
         ? profiles
-        : (profiles ?? []).filter((p) => p.empresa_id === callerEmpresaId);
+        : (profiles ?? []).filter((p: any) => p.empresa_id === callerEmpresaId);
 
-      const userIds = (filteredProfiles ?? []).map((p) => p.user_id);
+      // Hide Super Admin users from non-super-admin views
+      if (!isSuperAdmin && superAdminLevel?.id) {
+        filteredProfiles = (filteredProfiles ?? []).filter(
+          (p: any) => p.nivel_permissao_id !== superAdminLevel.id
+        );
+      }
+
+      const userIds = (filteredProfiles ?? []).map((p: any) => p.user_id);
 
       const { data: { users }, error } = await supabaseAdmin.auth.admin.listUsers({ perPage: 1000 });
       if (error) throw error;
 
-      const scopedUsers = users.filter((u) => userIds.includes(u.id));
+      const scopedUsers = users.filter((u: any) => userIds.includes(u.id));
 
       const { data: niveis } = await supabaseAdmin
         .from("niveis_permissao")
@@ -88,11 +123,11 @@ serve(async (req) => {
       // Filter out Super Admin from niveis for non-super-admins
       const visibleNiveis = isSuperAdmin
         ? niveis
-        : (niveis ?? []).filter((n) => n.nome !== "Super Admin");
+        : (niveis ?? []).filter((n: any) => n.nome !== "Super Admin");
 
-      const result = scopedUsers.map((u) => {
-        const profile = filteredProfiles?.find((p) => p.user_id === u.id);
-        const nivel = niveis?.find((n) => n.id === profile?.nivel_permissao_id);
+      const result = scopedUsers.map((u: any) => {
+        const profile = filteredProfiles?.find((p: any) => p.user_id === u.id);
+        const nivel = niveis?.find((n: any) => n.id === profile?.nivel_permissao_id);
         return {
           id: u.id,
           email: u.email,
@@ -119,7 +154,7 @@ serve(async (req) => {
       });
     }
 
-    // CREATE USER - admin creates a new user for their empresa
+    // CREATE USER
     if (action === "create_user") {
       const schema = z.object({
         email: z.string().email(),
@@ -140,23 +175,20 @@ serve(async (req) => {
         });
       }
 
-      // Prevent creating Super Admin users (unless caller is Super Admin)
       if (!isSuperAdmin && parsed.data.nivel_permissao_id === superAdminLevel?.id) {
         return new Response(JSON.stringify({ error: "Você não pode criar um Super Admin" }), {
           status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
 
-      // Create user via Auth Admin API
       const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
         email: parsed.data.email,
         password: parsed.data.password,
-        email_confirm: true, // auto-confirm since admin is creating
+        email_confirm: true,
         user_metadata: { full_name: parsed.data.nome },
       });
 
       if (createError) {
-        // Handle duplicate email
         if (createError.message?.includes("already been registered")) {
           return new Response(JSON.stringify({ error: "Este e-mail já está cadastrado no sistema" }), {
             status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -165,7 +197,6 @@ serve(async (req) => {
         throw createError;
       }
 
-      // Update the profile that was auto-created by trigger
       await supabaseAdmin
         .from("profiles")
         .update({
@@ -189,11 +220,31 @@ serve(async (req) => {
         });
       }
 
-      // Prevent assigning Super Admin (unless caller is Super Admin)
       if (!isSuperAdmin && parsed.data.nivel_permissao_id === superAdminLevel?.id) {
         return new Response(JSON.stringify({ error: "Você não pode atribuir o nível Super Admin" }), {
           status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
+      }
+
+      // Prevent removing Admin role from the last admin of the empresa
+      const { data: targetProfile } = await supabaseAdmin
+        .from("profiles")
+        .select("nivel_permissao_id, empresa_id")
+        .eq("user_id", parsed.data.user_id)
+        .single();
+
+      if (
+        targetProfile?.nivel_permissao_id === adminLevel?.id &&
+        parsed.data.nivel_permissao_id !== adminLevel?.id
+      ) {
+        const lastAdmin = await isLastAdminOfEmpresa(
+          supabaseAdmin, parsed.data.user_id, adminLevel?.id, targetProfile?.empresa_id
+        );
+        if (lastAdmin) {
+          return new Response(JSON.stringify({ error: "Não é possível remover o nível Admin do último administrador da empresa" }), {
+            status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
       }
 
       const { error } = await supabaseAdmin
@@ -220,6 +271,19 @@ serve(async (req) => {
           status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
+
+      // Prevent deactivating the last admin
+      if (!parsed.data.ativo) {
+        const lastAdmin = await isLastAdminOfEmpresa(
+          supabaseAdmin, parsed.data.user_id, adminLevel?.id, callerEmpresaId
+        );
+        if (lastAdmin) {
+          return new Response(JSON.stringify({ error: "Não é possível inativar o último administrador da empresa" }), {
+            status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+      }
+
       const { error } = await supabaseAdmin
         .from("profiles")
         .update({ ativo: parsed.data.ativo })
@@ -270,6 +334,31 @@ serve(async (req) => {
           status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
+
+      // Prevent deleting the last admin
+      const lastAdmin = await isLastAdminOfEmpresa(
+        supabaseAdmin, parsed.data.user_id, adminLevel?.id, callerEmpresaId
+      );
+      if (lastAdmin) {
+        return new Response(JSON.stringify({ error: "Não é possível excluir o último administrador da empresa" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Prevent deleting Super Admin users (unless caller is Super Admin)
+      if (!isSuperAdmin) {
+        const { data: targetProfile } = await supabaseAdmin
+          .from("profiles")
+          .select("nivel_permissao_id")
+          .eq("user_id", parsed.data.user_id)
+          .single();
+        if (targetProfile?.nivel_permissao_id === superAdminLevel?.id) {
+          return new Response(JSON.stringify({ error: "Você não pode excluir um Super Admin" }), {
+            status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+      }
+
       const { error } = await supabaseAdmin.auth.admin.deleteUser(parsed.data.user_id);
       if (error) throw error;
 
