@@ -150,6 +150,29 @@ export default function Clientes() {
     },
   });
 
+  const toggleMutation = useMutation({
+    mutationFn: async ({ id, ativo }: { id: string; ativo: boolean }) => {
+      const { error } = await supabase.from("clientes").update({ ativo }).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: async () => {
+      await refreshQueries(queryClient, [["clientes"]]);
+      toast.success("Status atualizado");
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("clientes").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: async () => {
+      await refreshQueries(queryClient, [["clientes"]]);
+      toast.success("Cliente excluído");
+    },
+    onError: () => toast.error("Erro ao excluir cliente"),
+  });
+
   const updateField = <K extends keyof ClientFormData>(key: K, value: ClientFormData[K]) => {
     setForm((prev) => ({ ...prev, [key]: value }));
     if (errors[key]) setErrors((prev) => { const n = { ...prev }; delete n[key]; return n; });
