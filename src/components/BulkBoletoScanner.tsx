@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useEmpresa } from "@/hooks/useEmpresa";
@@ -10,7 +10,7 @@ import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
-  ScanLine, Upload, Loader2, CheckCircle2, XCircle, FileText, X, AlertTriangle,
+  ScanLine, Upload, Loader2, CheckCircle2, XCircle, FileText, X,
 } from "lucide-react";
 import { createAccountPayable, type AccountPayableInsert } from "@/lib/accounts-payable-helpers";
 
