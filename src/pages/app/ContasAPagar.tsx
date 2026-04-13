@@ -25,6 +25,7 @@ import { CentroCustoModal } from "@/components/modals/CentroCustoModal";
 import { ContaBancariaModal } from "@/components/modals/ContaBancariaModal";
 import { FormaPagamentoModal } from "@/components/modals/FormaPagamentoModal";
 import { FornecedorModal, type FornecedorPrefill } from "@/components/modals/FornecedorModal";
+import { BulkBoletoScanner } from "@/components/BulkBoletoScanner";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
@@ -128,6 +129,7 @@ export default function ContasAPagar() {
   const [fornPrefill, setFornPrefill] = useState<FornecedorPrefill | null>(null);
   const [scanning, setScanning] = useState(false);
   const [isPickingScanFile, setIsPickingScanFile] = useState(false);
+  const [bulkScanOpen, setBulkScanOpen] = useState(false);
   const scanInputRef = useRef<HTMLInputElement>(null);
 
   // Fetch data
@@ -639,9 +641,14 @@ export default function ContasAPagar() {
           <h1 className="text-2xl font-bold text-foreground tracking-tight">Contas a Pagar</h1>
           <p className="text-muted-foreground text-sm mt-0.5">Gerencie suas despesas e pagamentos</p>
         </div>
-        <Button onClick={() => { setEditingId(null); setForm(initialForm); setShowForm(true); }} className="rounded-lg gap-2 shadow-sm">
-          <Plus className="w-4 h-4" /> Nova Conta
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setBulkScanOpen(true)} className="rounded-lg gap-2 shadow-sm">
+            <ScanLine className="w-4 h-4" /> Escanear em Massa
+          </Button>
+          <Button onClick={() => { setEditingId(null); setForm(initialForm); setShowForm(true); }} className="rounded-lg gap-2 shadow-sm">
+            <Plus className="w-4 h-4" /> Nova Conta
+          </Button>
+        </div>
       </div>
 
       {/* Stats */}
@@ -1119,6 +1126,12 @@ export default function ContasAPagar() {
             updateField("supplier_name", fornPrefill.nome);
           }
         }}
+      />
+
+      <BulkBoletoScanner
+        open={bulkScanOpen}
+        onOpenChange={setBulkScanOpen}
+        fornecedores={fornecedores}
       />
 
       {/* Duplicate detection alert */}
