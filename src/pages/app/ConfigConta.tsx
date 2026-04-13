@@ -70,11 +70,11 @@ function Field({ label, value, editing, onChange }: { label: string; value: stri
 /* ─── Tab: Empresa ─── */
 function EmpresaTab() {
   const { empresa, loading, refetch } = useEmpresa();
+  const [showEditModal, setShowEditModal] = useState(false);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState<Record<string, string>>({});
-  const isEditing = Object.keys(form).length > 0;
 
-  const startEdit = () => {
+  const openEdit = useCallback(() => {
     if (!empresa) return;
     setForm({
       razao_social: empresa.razao_social ?? "", nome_fantasia: empresa.nome_fantasia ?? "",
@@ -83,7 +83,8 @@ function EmpresaTab() {
       cidade: empresa.cidade ?? "", estado: empresa.estado ?? "",
       inscricao_estadual: empresa.inscricao_estadual ?? "", inscricao_municipal: empresa.inscricao_municipal ?? "",
     });
-  };
+    setShowEditModal(true);
+  }, [empresa]);
 
   const handleSave = async () => {
     if (!empresa) return;
@@ -97,43 +98,129 @@ function EmpresaTab() {
     setSaving(false);
     if (error) { toast.error(`Erro ao salvar: ${error.message}`); return; }
     toast.success("Dados da empresa atualizados");
-    setForm({});
+    setShowEditModal(false);
     await refetch();
+  };
+
+  const handleCepFilled = (data: { logradouro?: string; bairro?: string; cidade?: string; estado?: string }) => {
+    setForm((prev) => ({
+      ...prev,
+      logradouro: data.logradouro || prev.logradouro,
+      bairro: data.bairro || prev.bairro,
+      cidade: data.cidade || prev.cidade,
+      estado: data.estado || prev.estado,
+    }));
   };
 
   if (loading) return <p className="py-8 text-center text-sm text-muted-foreground">Carregando...</p>;
   if (!empresa) return <p className="py-8 text-center text-sm text-muted-foreground">Nenhuma empresa cadastrada.</p>;
 
-  const val = (field: string) => isEditing ? (form[field] ?? "") : (empresa[field] ?? "—");
-
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <p className="text-sm text-muted-foreground">Dados cadastrais da empresa vinculada à sua conta.</p>
-        {!isEditing ? (
-          <Button size="sm" variant="outline" onClick={startEdit}>Editar</Button>
-        ) : (
-          <div className="flex gap-2">
-            <Button size="sm" variant="ghost" onClick={() => setForm({})}>Cancelar</Button>
-            <Button size="sm" onClick={handleSave} disabled={saving}>{saving ? "Salvando..." : "Salvar"}</Button>
+    <>
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <p className="text-sm text-muted-foreground">Dados cadastrais da empresa vinculada à sua conta.</p>
+          <Button size="sm" variant="outline" onClick={openEdit} className="gap-1.5">
+            <Pencil className="h-3.5 w-3.5" /> Editar
+          </Button>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <Field label="Razão Social" value={empresa.razao_social ?? "—"} editing={false} />
+          <Field label="Nome Fantasia" value={empresa.nome_fantasia ?? "—"} editing={false} />
+          <Field label="CNPJ" value={empresa.cnpj ?? "—"} editing={false} />
+          <Field label="E-mail" value={empresa.email ?? "—"} editing={false} />
+          <Field label="Telefone" value={empresa.telefone ?? "—"} editing={false} />
+          <Field label="CEP" value={empresa.cep ?? "—"} editing={false} />
+          <Field label="Logradouro" value={empresa.logradouro ?? "—"} editing={false} />
+          <Field label="Bairro" value={empresa.bairro ?? "—"} editing={false} />
+          <Field label="Cidade" value={empresa.cidade ?? "—"} editing={false} />
+          <Field label="Estado" value={empresa.estado ?? "—"} editing={false} />
+          <Field label="Inscrição Estadual" value={empresa.inscricao_estadual ?? "—"} editing={false} />
+          <Field label="Inscrição Municipal" value={empresa.inscricao_municipal ?? "—"} editing={false} />
+        </div>
+      </div>
+
+      {/* Edit Empresa Modal */}
+      <Dialog open={showEditModal} onOpenChange={setShowEditModal}>
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-lg">
+              <Building2 className="h-5 w-5 text-primary" />
+              Editar Dados da Empresa
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-6 py-2">
+            {/* Identificação */}
+            <div className="space-y-3">
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Identificação</p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-muted-foreground">Razão Social *</label>
+                  <Input value={form.razao_social ?? ""} onChange={(e) => setForm({ ...form, razao_social: e.target.value })} className="h-9 text-sm" />
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-muted-foreground">Nome Fantasia</label>
+                  <Input value={form.nome_fantasia ?? ""} onChange={(e) => setForm({ ...form, nome_fantasia: e.target.value })} className="h-9 text-sm" />
+                </div>
+                <DocumentInput type="cnpj" value={form.cnpj ?? ""} onValueChange={(raw) => setForm({ ...form, cnpj: raw })} label="CNPJ" />
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-muted-foreground">E-mail</label>
+                  <Input type="email" value={form.email ?? ""} onChange={(e) => setForm({ ...form, email: e.target.value })} className="h-9 text-sm" />
+                </div>
+                <PhoneInput value={form.telefone ?? ""} onValueChange={(raw) => setForm({ ...form, telefone: raw })} label="Telefone" />
+              </div>
+            </div>
+
+            {/* Endereço */}
+            <div className="space-y-3">
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Endereço</p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <CepInput value={form.cep ?? ""} onValueChange={(raw) => setForm({ ...form, cep: raw })} onAddressFound={handleCepFilled} label="CEP" />
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-muted-foreground">Logradouro</label>
+                  <Input value={form.logradouro ?? ""} onChange={(e) => setForm({ ...form, logradouro: e.target.value })} className="h-9 text-sm" />
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-muted-foreground">Bairro</label>
+                  <Input value={form.bairro ?? ""} onChange={(e) => setForm({ ...form, bairro: e.target.value })} className="h-9 text-sm" />
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-muted-foreground">Cidade</label>
+                  <Input value={form.cidade ?? ""} onChange={(e) => setForm({ ...form, cidade: e.target.value })} className="h-9 text-sm" />
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-muted-foreground">Estado</label>
+                  <Input value={form.estado ?? ""} onChange={(e) => setForm({ ...form, estado: e.target.value })} className="h-9 text-sm" />
+                </div>
+              </div>
+            </div>
+
+            {/* Inscrições */}
+            <div className="space-y-3">
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Inscrições</p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-muted-foreground">Inscrição Estadual</label>
+                  <Input value={form.inscricao_estadual ?? ""} onChange={(e) => setForm({ ...form, inscricao_estadual: e.target.value })} className="h-9 text-sm" />
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-muted-foreground">Inscrição Municipal</label>
+                  <Input value={form.inscricao_municipal ?? ""} onChange={(e) => setForm({ ...form, inscricao_municipal: e.target.value })} className="h-9 text-sm" />
+                </div>
+              </div>
+            </div>
           </div>
-        )}
-      </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Field label="Razão Social" value={val("razao_social")} editing={isEditing} onChange={(v) => setForm({ ...form, razao_social: v })} />
-        <Field label="Nome Fantasia" value={val("nome_fantasia")} editing={isEditing} onChange={(v) => setForm({ ...form, nome_fantasia: v })} />
-        <Field label="CNPJ" value={val("cnpj")} editing={isEditing} onChange={(v) => setForm({ ...form, cnpj: v })} />
-        <Field label="E-mail" value={val("email")} editing={isEditing} onChange={(v) => setForm({ ...form, email: v })} />
-        <Field label="Telefone" value={val("telefone")} editing={isEditing} onChange={(v) => setForm({ ...form, telefone: v })} />
-        <Field label="CEP" value={val("cep")} editing={isEditing} onChange={(v) => setForm({ ...form, cep: v })} />
-        <Field label="Logradouro" value={val("logradouro")} editing={isEditing} onChange={(v) => setForm({ ...form, logradouro: v })} />
-        <Field label="Bairro" value={val("bairro")} editing={isEditing} onChange={(v) => setForm({ ...form, bairro: v })} />
-        <Field label="Cidade" value={val("cidade")} editing={isEditing} onChange={(v) => setForm({ ...form, cidade: v })} />
-        <Field label="Estado" value={val("estado")} editing={isEditing} onChange={(v) => setForm({ ...form, estado: v })} />
-        <Field label="Inscrição Estadual" value={val("inscricao_estadual")} editing={isEditing} onChange={(v) => setForm({ ...form, inscricao_estadual: v })} />
-        <Field label="Inscrição Municipal" value={val("inscricao_municipal")} editing={isEditing} onChange={(v) => setForm({ ...form, inscricao_municipal: v })} />
-      </div>
-    </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowEditModal(false)}>Cancelar</Button>
+            <Button onClick={handleSave} disabled={saving || !form.razao_social?.trim()}>
+              {saving ? "Salvando..." : "Salvar Alterações"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
 
