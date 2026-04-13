@@ -67,14 +67,14 @@ export function ClienteFinanceiroTab({ clienteId }: Props) {
 
       {/* Table */}
       <Card className="border-border/50 shadow-sm overflow-hidden">
-        <Table>
+        <Table className="table-fixed w-full">
           <TableHeader>
             <TableRow className="hover:bg-transparent border-border/30">
-              <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Descrição</TableHead>
-              <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Vencimento</TableHead>
-              <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Valor</TableHead>
-              <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Status</TableHead>
-              <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground text-right">Ação</TableHead>
+              <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground w-[30%]">Descrição</TableHead>
+              <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground w-[18%]">Vencimento</TableHead>
+              <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground w-[18%]">Valor</TableHead>
+              <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground w-[16%]">Status</TableHead>
+              <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground w-[18%] text-right">Ação</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
