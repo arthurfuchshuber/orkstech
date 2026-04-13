@@ -399,9 +399,10 @@ serve(async (req) => {
         });
       }
 
-      // Prevent deleting the last admin
+      // Prevent deleting the last admin (applies to ALL callers)
+      const targetEmpresaId = await getTargetEmpresaId(supabaseAdmin, parsed.data.user_id);
       const lastAdmin = await isLastAdminOfEmpresa(
-        supabaseAdmin, parsed.data.user_id, adminLevel?.id, callerEmpresaId
+        supabaseAdmin, parsed.data.user_id, adminLevel?.id, targetEmpresaId
       );
       if (lastAdmin) {
         return new Response(JSON.stringify({ error: "Não é possível excluir o último administrador da empresa" }), {
