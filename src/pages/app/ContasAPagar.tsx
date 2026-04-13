@@ -131,19 +131,23 @@ export default function ContasAPagar() {
 
   // Fetch data
   const { data: payables = [], isLoading } = useQuery({
-    queryKey: ["accounts-payable"],
-    queryFn: fetchAccountsPayable,
+    queryKey: ["accounts-payable", empresaId],
+    queryFn: async () => fetchAccountsPayable(empresaId),
+    enabled: !!user,
   });
 
   const { data: counts = { openTotal: 0, upcoming: 0, overdue: 0, paid: 0 } } = useQuery({
-    queryKey: ["accounts-payable-counts"],
-    queryFn: countAccountsPayable,
+    queryKey: ["accounts-payable-counts", empresaId],
+    queryFn: async () => countAccountsPayable(empresaId),
+    enabled: !!user,
   });
 
   const { data: fornecedores = [] } = useQuery({
-    queryKey: ["fornecedores"],
+    queryKey: ["fornecedores", empresaId],
     queryFn: async () => {
-      const { data } = await supabase.from("fornecedores").select("id, tipo, nome_completo, razao_social, nome_fantasia, cnpj, cpf").eq("ativo", true).order("razao_social");
+      let q = supabase.from("fornecedores").select("id, tipo, nome_completo, razao_social, nome_fantasia, cnpj, cpf").eq("ativo", true).order("razao_social");
+      if (empresaId) q = q.eq("empresa_id", empresaId);
+      const { data } = await q;
       return data ?? [];
     },
   });
