@@ -12,20 +12,18 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 
-type TipoFinanceiro = "receita" | "despesa" | "custo" | "ajuste";
-
 interface CategoriaFinanceiraModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   editingId?: string | null;
-  defaultTipo?: TipoFinanceiro;
+  defaultTipo?: string;
   onSaved?: (id: string) => void;
 }
 
 export function CategoriaFinanceiraModal({ open, onOpenChange, editingId, defaultTipo = "despesa", onSaved }: CategoriaFinanceiraModalProps) {
   const { user } = useAuth();
   const qc = useQueryClient();
-  const [form, setForm] = useState({ nome: "", tipo: defaultTipo as TipoFinanceiro, categoria_pai_id: null as string | null });
+  const [form, setForm] = useState({ nome: "", categoria_pai_id: null as string | null });
 
   const { data: existing } = useQuery({
     queryKey: ["categorias_financeiras_edit", editingId],
@@ -49,11 +47,11 @@ export function CategoriaFinanceiraModal({ open, onOpenChange, editingId, defaul
 
   useEffect(() => {
     if (existing && editingId) {
-      setForm({ nome: existing.nome, tipo: existing.tipo as TipoFinanceiro, categoria_pai_id: existing.categoria_pai_id });
+      setForm({ nome: existing.nome, categoria_pai_id: existing.categoria_pai_id });
     } else if (!editingId && open) {
-      setForm({ nome: "", tipo: defaultTipo, categoria_pai_id: null });
+      setForm({ nome: "", categoria_pai_id: null });
     }
-  }, [existing, editingId, open, defaultTipo]);
+  }, [existing, editingId, open]);
 
   const parentOptions = allCategories.filter((c) => c.id !== editingId);
 
@@ -61,7 +59,7 @@ export function CategoriaFinanceiraModal({ open, onOpenChange, editingId, defaul
     mutationFn: async () => {
       if (editingId) {
         const { error } = await supabase.from("categorias_financeiras")
-          .update({ nome: form.nome, tipo: form.tipo, categoria_pai_id: form.categoria_pai_id })
+          .update({ nome: form.nome, categoria_pai_id: form.categoria_pai_id })
           .eq("id", editingId);
         if (error) throw error;
         return editingId;
@@ -69,7 +67,13 @@ export function CategoriaFinanceiraModal({ open, onOpenChange, editingId, defaul
         const siblings = allCategories.filter((c) => c.categoria_pai_id === form.categoria_pai_id);
         const ordem = siblings.length;
         const { data, error } = await supabase.from("categorias_financeiras")
-          .insert({ nome: form.nome, tipo: form.tipo, categoria_pai_id: form.categoria_pai_id, ordem, user_id: user!.id })
+          .insert({
+            nome: form.nome,
+            tipo: defaultTipo as "receita" | "despesa" | "custo" | "ajuste",
+            categoria_pai_id: form.categoria_pai_id,
+            ordem,
+            user_id: user!.id,
+          })
           .select("id").single();
         if (error) throw error;
         return data.id;
@@ -95,18 +99,6 @@ export function CategoriaFinanceiraModal({ open, onOpenChange, editingId, defaul
           <div>
             <label className="text-sm font-medium text-foreground mb-1.5 block">Nome</label>
             <Input value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} placeholder="Ex: Receita de Serviços" maxLength={60} />
-          </div>
-          <div>
-            <label className="text-sm font-medium text-foreground mb-1.5 block">Tipo Financeiro</label>
-            <Select value={form.tipo} onValueChange={(v) => setForm({ ...form, tipo: v as TipoFinanceiro })}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="receita">Receita</SelectItem>
-                <SelectItem value="despesa">Despesa</SelectItem>
-                <SelectItem value="custo">Custo</SelectItem>
-                <SelectItem value="ajuste">Ajuste</SelectItem>
-              </SelectContent>
-            </Select>
           </div>
           <div>
             <label className="text-sm font-medium text-foreground mb-1.5 block">Categoria Pai (opcional)</label>
