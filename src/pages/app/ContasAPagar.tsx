@@ -1134,7 +1134,12 @@ export default function ContasAPagar() {
                 <p>Foram encontrados registros semelhantes ao que você está tentando salvar:</p>
                 <div className="max-h-48 overflow-y-auto space-y-2">
                   {duplicateMatches.map((dup: any, idx: number) => (
-                    <div key={idx} className="rounded-md border border-border bg-muted/30 p-3 text-sm">
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => setDupDetailItem(dup)}
+                      className="w-full text-left rounded-md border border-border bg-muted/30 p-3 text-sm hover:bg-muted/60 hover:border-primary/40 transition-colors cursor-pointer"
+                    >
                       <p className="font-medium text-foreground">{dup.description}</p>
                       <p className="text-muted-foreground">
                         Valor: R$ {Number(dup.amount).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
@@ -1146,7 +1151,8 @@ export default function ContasAPagar() {
                           <Badge key={i} variant="outline" className="text-xs border-amber-300 text-amber-600">{r}</Badge>
                         ))}
                       </div>
-                    </div>
+                      <p className="text-xs text-primary mt-1.5">Clique para ver detalhes →</p>
+                    </button>
                   ))}
                 </div>
                 <p className="text-sm">Deseja continuar mesmo assim?</p>
