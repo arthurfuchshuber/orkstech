@@ -788,6 +788,9 @@ export default function ContasAPagar() {
                               <X className="w-4 h-4 mr-2" /> Cancelar
                             </DropdownMenuItem>
                           )}
+                          <DropdownMenuItem onClick={() => setDeleteId(item.id)} className="text-destructive">
+                            <Trash2 className="w-4 h-4 mr-2" /> Excluir
+                          </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </TableCell>
