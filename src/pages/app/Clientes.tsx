@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import {
   Users, Plus, Search, Building2, UserRound, Check, Loader2,
-  Mail, MapPin, Home, Filter, X, Pencil, Trash2
+  Mail, MapPin, Home, Filter, X, Pencil, Trash2, ChevronDown
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -441,15 +441,24 @@ export default function Clientes() {
                     {c.cidade ? `${c.cidade}${c.estado ? `/${c.estado}` : ""}` : "—"}
                   </TableCell>
                   <TableCell className="text-center" onClick={(e) => e.stopPropagation()}>
-                    <button
-                      type="button"
-                      onClick={() => toggleMutation.mutate({ id: c.id, ativo: !c.ativo })}
-                      className="inline-flex"
-                    >
-                      <Badge variant={c.ativo ? "default" : "secondary"} className="text-xs cursor-pointer hover:opacity-90 whitespace-nowrap">
-                        {c.ativo ? "Ativo" : "Inativo"}
-                      </Badge>
-                    </button>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <button type="button" className="inline-flex items-center gap-1">
+                          <Badge variant={c.ativo ? "default" : "secondary"} className="text-xs cursor-pointer hover:opacity-90 whitespace-nowrap">
+                            {c.ativo ? "Ativo" : "Inativo"}
+                            <ChevronDown className="w-3 h-3 ml-0.5" />
+                          </Badge>
+                        </button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="center" className="min-w-[120px]">
+                        <DropdownMenuItem onClick={() => toggleMutation.mutate({ id: c.id, ativo: true })} disabled={c.ativo}>
+                          <Badge variant="default" className="text-xs mr-2">Ativo</Badge>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => toggleMutation.mutate({ id: c.id, ativo: false })} disabled={!c.ativo}>
+                          <Badge variant="secondary" className="text-xs mr-2">Inativo</Badge>
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </TableCell>
                   <TableCell className="text-muted-foreground text-sm text-right">
                     <div className="flex items-center justify-end gap-2 whitespace-nowrap">
