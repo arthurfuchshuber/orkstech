@@ -129,6 +129,7 @@ export default function ContasAPagar() {
   const [fornPrefill, setFornPrefill] = useState<FornecedorPrefill | null>(null);
   const [scanning, setScanning] = useState(false);
   const [isPickingScanFile, setIsPickingScanFile] = useState(false);
+  const [bulkScanOpen, setBulkScanOpen] = useState(false);
   const scanInputRef = useRef<HTMLInputElement>(null);
 
   // Fetch data
