@@ -313,6 +313,7 @@ export function BulkBoletoScanner({ open, onOpenChange, fornecedores }: BulkBole
 
     await queryClient.invalidateQueries({ queryKey: ["accounts-payable"] });
     await queryClient.invalidateQueries({ queryKey: ["accounts-payable-counts"] });
+    await queryClient.invalidateQueries({ queryKey: ["fornecedores"] });
 
     if (dupCount > 0) {
       toast.info(`${dupCount} boleto(s) com possível duplicata aguardando sua decisão`);
