@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
+
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
@@ -15,37 +15,20 @@ import {
 } from "@/components/ui/select";
 import {
   ChevronRight, ChevronDown, Plus, Pencil, Trash2, Power,
-  FolderTree, TrendingUp, TrendingDown, Minus, RefreshCw, GripVertical,
+  FolderTree, GripVertical,
 } from "lucide-react";
 import { DragDropContext, Droppable, Draggable, type DropResult } from "@hello-pangea/dnd";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
-type TipoFinanceiro = "receita" | "despesa" | "custo" | "ajuste";
-
 interface Categoria {
   id: string;
   nome: string;
-  tipo: TipoFinanceiro;
+  tipo: string;
   categoria_pai_id: string | null;
   ordem: number;
   ativo: boolean;
   children?: Categoria[];
 }
-
-const tipoLabels: Record<TipoFinanceiro, string> = {
-  receita: "Receita", despesa: "Despesa", custo: "Custo", ajuste: "Ajuste",
-};
-
-const tipoColors: Record<TipoFinanceiro, string> = {
-  receita: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
-  despesa: "bg-red-500/10 text-red-400 border-red-500/20",
-  custo: "bg-amber-500/10 text-amber-400 border-amber-500/20",
-  ajuste: "bg-blue-500/10 text-blue-400 border-blue-500/20",
-};
-
-const tipoIcons: Record<TipoFinanceiro, typeof TrendingUp> = {
-  receita: TrendingUp, despesa: TrendingDown, custo: Minus, ajuste: RefreshCw,
-};
 
 function flattenTree(nodes: Categoria[]): { id: string; node: Categoria; level: number; parentId: string | null }[] {
   const result: { id: string; node: Categoria; level: number; parentId: string | null }[] = [];
@@ -84,7 +67,7 @@ export function PlanoDeContasSection() {
   const qc = useQueryClient();
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [form, setForm] = useState({ nome: "", tipo: "receita" as TipoFinanceiro, categoria_pai_id: null as string | null });
+  const [form, setForm] = useState({ nome: "", tipo: "despesa", categoria_pai_id: null as string | null });
   const [collapsedIds, setCollapsedIds] = useState<Set<string>>(new Set());
 
   const { data: categorias = [], isLoading } = useQuery({
@@ -145,11 +128,11 @@ export function PlanoDeContasSection() {
   const saveMutation = useMutation({
     mutationFn: async () => {
       if (editingId) {
-        const { error } = await supabase.from("categorias_financeiras").update({ nome: form.nome, tipo: form.tipo, categoria_pai_id: form.categoria_pai_id }).eq("id", editingId);
+        const { error } = await supabase.from("categorias_financeiras").update({ nome: form.nome, tipo: form.tipo as "receita" | "despesa" | "custo" | "ajuste", categoria_pai_id: form.categoria_pai_id }).eq("id", editingId);
         if (error) throw error;
       } else {
         const siblings = categorias.filter((c) => c.categoria_pai_id === form.categoria_pai_id);
-        const { error } = await supabase.from("categorias_financeiras").insert({ nome: form.nome, tipo: form.tipo, categoria_pai_id: form.categoria_pai_id, ordem: siblings.length, user_id: user!.id });
+        const { error } = await supabase.from("categorias_financeiras").insert({ nome: form.nome, tipo: form.tipo as "receita" | "despesa" | "custo" | "ajuste", categoria_pai_id: form.categoria_pai_id, ordem: siblings.length, user_id: user!.id });
         if (error) throw error;
       }
     },
@@ -168,8 +151,8 @@ export function PlanoDeContasSection() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["categorias_financeiras"] }),
   });
 
-  const closeModal = () => { setModalOpen(false); setEditingId(null); setForm({ nome: "", tipo: "receita", categoria_pai_id: null }); };
-  const openNew = (parentId?: string, tipo?: TipoFinanceiro) => { setEditingId(null); setForm({ nome: "", tipo: tipo || "receita", categoria_pai_id: parentId || null }); setModalOpen(true); };
+  const closeModal = () => { setModalOpen(false); setEditingId(null); setForm({ nome: "", tipo: "despesa", categoria_pai_id: null }); };
+  const openNew = (parentId?: string) => { setEditingId(null); setForm({ nome: "", tipo: "despesa", categoria_pai_id: parentId || null }); setModalOpen(true); };
   const openEdit = (c: Categoria) => { setEditingId(c.id); setForm({ nome: c.nome, tipo: c.tipo, categoria_pai_id: c.categoria_pai_id }); setModalOpen(true); };
 
   const parentOptions = categorias.filter((c) => c.id !== editingId);
@@ -205,7 +188,7 @@ export function PlanoDeContasSection() {
                     const node = item.node;
                     const hasChildren = node.children && node.children.length > 0;
                     const isCollapsed = collapsedIds.has(node.id);
-                    const Icon = tipoIcons[node.tipo];
+                    
                     return (
                       <Draggable key={node.id} draggableId={node.id} index={index}>
                         {(provided, snapshot) => (
@@ -220,9 +203,8 @@ export function PlanoDeContasSection() {
                             <button onClick={() => toggleCollapse(node.id)} className="w-4 h-4 flex items-center justify-center flex-shrink-0">
                               {hasChildren ? (isCollapsed ? <ChevronRight className="w-3 h-3 text-muted-foreground" /> : <ChevronDown className="w-3 h-3 text-muted-foreground" />) : <div className="w-1 h-1 rounded-full bg-muted-foreground/25" />}
                             </button>
-                            <Icon className="w-3 h-3 text-muted-foreground/60 flex-shrink-0" />
+                            <div className="w-1.5 h-1.5 rounded-full bg-primary/40 flex-shrink-0" />
                             <span className="text-xs font-medium text-foreground flex-1 truncate">{node.nome}</span>
-                            <Badge variant="outline" className={`text-[9px] px-1 py-0 leading-4 ${tipoColors[node.tipo]}`}>{tipoLabels[node.tipo]}</Badge>
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
                                 <Button variant="ghost" size="icon" className="h-5 w-5 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -230,7 +212,7 @@ export function PlanoDeContasSection() {
                                 </Button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end">
-                                <DropdownMenuItem onClick={() => openNew(node.id, node.tipo)}>
+                                <DropdownMenuItem onClick={() => openNew(node.id)}>
                                   <Plus className="w-4 h-4 mr-2" /> Adicionar Sub
                                 </DropdownMenuItem>
                                 <DropdownMenuItem onClick={() => openEdit(node)}>
@@ -266,18 +248,6 @@ export function PlanoDeContasSection() {
             <div>
               <label className="text-sm font-medium text-foreground mb-1.5 block">Nome</label>
               <Input value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} placeholder="Ex: Receita de Serviços" />
-            </div>
-            <div>
-              <label className="text-sm font-medium text-foreground mb-1.5 block">Tipo Financeiro</label>
-              <Select value={form.tipo} onValueChange={(v) => setForm({ ...form, tipo: v as TipoFinanceiro })}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="receita">Receita</SelectItem>
-                  <SelectItem value="despesa">Despesa</SelectItem>
-                  <SelectItem value="custo">Custo</SelectItem>
-                  <SelectItem value="ajuste">Ajuste</SelectItem>
-                </SelectContent>
-              </Select>
             </div>
             <div>
               <label className="text-sm font-medium text-foreground mb-1.5 block">Categoria Pai (opcional)</label>
