@@ -446,6 +446,24 @@ function UsuariosTab() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Admin block popup */}
+      <AlertDialog open={!!adminBlockMsg} onOpenChange={(open) => !open && setAdminBlockMsg(null)}>
+        <AlertDialogContent className="max-w-md">
+          <AlertDialogHeader>
+            <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-destructive/10">
+              <ShieldAlert className="h-6 w-6 text-destructive" />
+            </div>
+            <AlertDialogTitle className="text-center">Ação bloqueada</AlertDialogTitle>
+            <AlertDialogDescription className="text-center text-sm">
+              {adminBlockMsg}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="sm:justify-center">
+            <AlertDialogAction onClick={() => setAdminBlockMsg(null)}>Entendi</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
