@@ -92,16 +92,19 @@ serve(async (req) => {
 
     // LIST - scoped by empresa
     if (action === "list") {
+      // Accept optional empresa_id from request body for scoping
+      const requestEmpresaId = body.empresa_id || callerEmpresaId;
+
       const { data: profiles } = await supabaseAdmin
         .from("profiles")
         .select("user_id, nome, cpf, telefone, data_nascimento, nivel_permissao_id, ativo, empresa_id");
 
-      // Filter by caller's empresa (unless Super Admin)
-      let filteredProfiles = isSuperAdmin
+      // Filter by empresa (unless Super Admin viewing all)
+      let filteredProfiles = isSuperAdmin && !body.empresa_id
         ? profiles
-        : (profiles ?? []).filter((p: any) => p.empresa_id === callerEmpresaId);
+        : (profiles ?? []).filter((p: any) => requestEmpresaId && p.empresa_id === requestEmpresaId);
 
-      // Hide Super Admin users from non-super-admin views
+      // Always hide Super Admin users from non-super-admin views
       if (!isSuperAdmin && superAdminLevel?.id) {
         filteredProfiles = (filteredProfiles ?? []).filter(
           (p: any) => p.nivel_permissao_id !== superAdminLevel.id
