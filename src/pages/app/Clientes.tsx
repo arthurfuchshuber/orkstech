@@ -380,29 +380,30 @@ export default function Clientes() {
 
       {/* Table */}
       <Card className="border-border/50 shadow-sm overflow-hidden">
-        <Table>
+        <Table className="table-fixed w-full">
           <TableHeader>
             <TableRow className="hover:bg-transparent border-border/30">
-              <TableHead className="text-xs font-semibold uppercase tracking-wider">Nome / Razão Social</TableHead>
-              <TableHead className="text-xs font-semibold uppercase tracking-wider">Tipo</TableHead>
-              <TableHead className="text-xs font-semibold uppercase tracking-wider">Documento</TableHead>
-              <TableHead className="text-xs font-semibold uppercase tracking-wider">Telefone</TableHead>
-              <TableHead className="text-xs font-semibold uppercase tracking-wider">Email</TableHead>
-              <TableHead className="text-xs font-semibold uppercase tracking-wider">Cidade</TableHead>
-              <TableHead className="text-xs font-semibold uppercase tracking-wider">Status</TableHead>
-              <TableHead className="text-xs font-semibold uppercase tracking-wider">Criado em</TableHead>
+              <TableHead className="text-xs font-semibold uppercase tracking-wider w-[20%]">Nome / Razão Social</TableHead>
+              <TableHead className="text-xs font-semibold uppercase tracking-wider w-[6%]">Tipo</TableHead>
+              <TableHead className="text-xs font-semibold uppercase tracking-wider w-[14%]">Documento</TableHead>
+              <TableHead className="text-xs font-semibold uppercase tracking-wider w-[13%]">Telefone</TableHead>
+              <TableHead className="text-xs font-semibold uppercase tracking-wider w-[17%]">Email</TableHead>
+              <TableHead className="text-xs font-semibold uppercase tracking-wider w-[10%]">Cidade</TableHead>
+              <TableHead className="text-xs font-semibold uppercase tracking-wider w-[7%]">Status</TableHead>
+              <TableHead className="text-xs font-semibold uppercase tracking-wider w-[9%] text-right">Criado em</TableHead>
+              <TableHead className="text-xs font-semibold uppercase tracking-wider w-[4%]"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={8} className="text-center py-12">
+                <TableCell colSpan={9} className="text-center py-12">
                   <Loader2 className="w-5 h-5 animate-spin mx-auto text-muted-foreground" />
                 </TableCell>
               </TableRow>
             ) : filtered.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} className="text-center py-12">
+                <TableCell colSpan={9} className="text-center py-12">
                   <div className="flex flex-col items-center gap-2">
                     <Users className="w-8 h-8 text-muted-foreground/30" />
                     <p className="text-sm text-muted-foreground">
@@ -415,10 +416,10 @@ export default function Clientes() {
               filtered.map((c) => (
                 <TableRow
                   key={c.id}
-                  className="cursor-pointer hover:bg-muted/50 transition-colors border-border/20"
+                  className="cursor-pointer hover:bg-muted/50 transition-colors border-border/20 group"
                   onClick={() => navigate(`/app/clientes/${c.id}`)}
                 >
-                  <TableCell className="font-medium text-foreground">
+                  <TableCell className="font-medium text-foreground truncate">
                     {c.tipo === "pf" ? c.nome_completo : (c.nome_fantasia || c.razao_social) || "—"}
                   </TableCell>
                   <TableCell>
@@ -426,14 +427,14 @@ export default function Clientes() {
                       {c.tipo === "pf" ? "PF" : "PJ"}
                     </Badge>
                   </TableCell>
-                  <TableCell className="text-muted-foreground text-sm font-mono">
+                  <TableCell className="text-muted-foreground text-sm font-mono truncate">
                     {formatDoc(c.tipo, c.cpf, c.cnpj)}
                   </TableCell>
-                  <TableCell className="text-muted-foreground text-sm">
+                  <TableCell className="text-muted-foreground text-sm truncate">
                     {formatPhone(c.telefone)}
                   </TableCell>
-                  <TableCell className="text-muted-foreground text-sm">{c.email || "—"}</TableCell>
-                  <TableCell className="text-muted-foreground text-sm">
+                  <TableCell className="text-muted-foreground text-sm truncate">{c.email || "—"}</TableCell>
+                  <TableCell className="text-muted-foreground text-sm truncate">
                     {c.cidade ? `${c.cidade}${c.estado ? `/${c.estado}` : ""}` : "—"}
                   </TableCell>
                   <TableCell>
@@ -441,8 +442,21 @@ export default function Clientes() {
                       {c.ativo ? "Ativo" : "Inativo"}
                     </Badge>
                   </TableCell>
-                  <TableCell className="text-muted-foreground text-sm">
+                  <TableCell className="text-muted-foreground text-sm text-right">
                     {format(new Date(c.created_at), "dd/MM/yyyy", { locale: ptBR })}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex gap-1 justify-end opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
+                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => navigate(`/app/clientes/${c.id}`)}>
+                        <Pencil className="w-3.5 h-3.5" />
+                      </Button>
+                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => toggleMutation.mutate({ id: c.id, ativo: !c.ativo })}>
+                        <Power className={`w-3.5 h-3.5 ${c.ativo ? "text-emerald-400" : ""}`} />
+                      </Button>
+                      <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => setDeleteId(c.id)}>
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))
@@ -450,6 +464,25 @@ export default function Clientes() {
           </TableBody>
         </Table>
       </Card>
+
+      {/* Delete confirmation */}
+      <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir cliente?</AlertDialogTitle>
+            <AlertDialogDescription>Esta ação é permanente e não pode ser desfeita.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => { if (deleteId) deleteMutation.mutate(deleteId); setDeleteId(null); }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Modal Novo Cliente */}
       <FormModal open={showForm} onOpenChange={handleOpenChange} title="Novo Cliente" description="Preencha os dados do cliente. CNPJ e CEP preenchem dados automaticamente." size="xl">
