@@ -31,10 +31,7 @@ import Conciliacao from "./pages/app/Conciliacao";
 import ConfigConta from "./pages/app/ConfigConta";
 import ConfigPlanos from "./pages/app/ConfigPlanos";
 import { SuperAdminRoute } from "./components/SuperAdminRoute";
-import AdminDashboard from "./pages/app/admin/AdminDashboard";
-import AdminUsers from "./pages/app/admin/AdminUsers";
-import AdminPlans from "./pages/app/admin/AdminPlans";
-import AdminLogs from "./pages/app/admin/AdminLogs";
+import AdminPanel from "./pages/app/admin/AdminPanel";
 
 const queryClient = new QueryClient();
 
@@ -80,10 +77,7 @@ const App = () => (
                 <Route path="config/conta" element={<ConfigConta />} />
                 <Route path="config/planos" element={<ConfigPlanos />} />
                 <Route path="config/menus" element={<GerenciarMenu />} />
-                <Route path="admin" element={<SuperAdminRoute><AdminDashboard /></SuperAdminRoute>} />
-                <Route path="admin/users" element={<SuperAdminRoute><AdminUsers /></SuperAdminRoute>} />
-                <Route path="admin/plans" element={<SuperAdminRoute><AdminPlans /></SuperAdminRoute>} />
-                <Route path="admin/logs" element={<SuperAdminRoute><AdminLogs /></SuperAdminRoute>} />
+                <Route path="admin" element={<SuperAdminRoute><AdminPanel /></SuperAdminRoute>} />
               </Route>
               <Route path="*" element={<NotFound />} />
             </Routes>

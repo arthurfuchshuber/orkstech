@@ -30,10 +30,6 @@ export default function AdminLogs() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <div>
-        <h1 className="text-2xl font-bold text-foreground tracking-tight">Logs de Auditoria</h1>
-        <p className="text-muted-foreground text-sm mt-0.5">Últimas 100 ações registradas no sistema</p>
-      </div>
 
       <Card className="border-border/50">
         <CardHeader className="pb-2">
