@@ -32,6 +32,7 @@ export type Database = {
           installment_total: number | null
           is_recurring: boolean
           issue_date: string | null
+          juros_multa: number
           notes: string | null
           payment_date: string | null
           payment_method_id: string | null
@@ -62,6 +63,7 @@ export type Database = {
           installment_total?: number | null
           is_recurring?: boolean
           issue_date?: string | null
+          juros_multa?: number
           notes?: string | null
           payment_date?: string | null
           payment_method_id?: string | null
@@ -92,6 +94,7 @@ export type Database = {
           installment_total?: number | null
           is_recurring?: boolean
           issue_date?: string | null
+          juros_multa?: number
           notes?: string | null
           payment_date?: string | null
           payment_method_id?: string | null

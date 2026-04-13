@@ -107,26 +107,33 @@ export async function countAccountsPayable(empresaId?: string) {
   return { openTotal: openTotal ?? 0, upcoming: upcoming ?? 0, overdue, paid: paid ?? 0 };
 }
 
-export async function registerPayment(id: string, bankAccountId: string, paymentDate: string, userId: string, empresaId?: string) {
+export async function registerPayment(id: string, bankAccountId: string, paymentDate: string, userId: string, empresaId?: string, jurosMulta?: number) {
+  const updatePayload: any = {
+    status: "paid" as any,
+    payment_date: paymentDate,
+    bank_account_id: bankAccountId || null,
+  };
+  if (jurosMulta !== undefined && jurosMulta > 0) {
+    updatePayload.juros_multa = jurosMulta;
+  }
+
   const { data: updated, error: updateError } = await supabase
     .from("accounts_payable")
-    .update({
-      status: "paid" as any,
-      payment_date: paymentDate,
-      bank_account_id: bankAccountId || null,
-    })
+    .update(updatePayload)
     .eq("id", id)
     .select()
     .single();
   if (updateError) throw updateError;
 
+  const totalPaid = Number((updated as any).amount) + (jurosMulta || 0);
+
   const { error: txError } = await supabase.from("cash_transactions").insert({
     user_id: userId,
     empresa_id: empresaId || null,
     type: "expense" as any,
-    amount: (updated as any).amount,
+    amount: totalPaid,
     transaction_date: paymentDate,
-    description: `Pagamento: ${(updated as any).description}`,
+    description: `Pagamento: ${(updated as any).description}${jurosMulta && jurosMulta > 0 ? ` (+ juros/multa)` : ""}`,
     account_payable_id: id,
     bank_account_id: bankAccountId || null,
   });
