@@ -123,8 +123,8 @@ export function ClienteEditModal({ cliente, open, onOpenChange }: Props) {
           <div className="space-y-4">
             <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Dados da empresa</p>
             <div className="grid grid-cols-2 gap-4">
-              <TextInput label="Razão Social" value={form.razao_social} onChange={(e) => setForm((p) => ({ ...p, razao_social: e.target.value }))} icon={<Building2 className="w-4 h-4" />} />
-              <TextInput label="Nome Fantasia" value={form.nome_fantasia} onChange={(e) => setForm((p) => ({ ...p, nome_fantasia: e.target.value }))} />
+              <TextInput label="Razão Social" value={form.razao_social} onChange={(e) => setForm((p) => ({ ...p, razao_social: e.target.value }))} icon={<Building2 className="w-4 h-4" />} className="uppercase" />
+              <TextInput label="Nome Fantasia" value={form.nome_fantasia} onChange={(e) => setForm((p) => ({ ...p, nome_fantasia: e.target.value }))} className="uppercase" />
               <TextInput label="Inscrição Estadual" value={form.inscricao_estadual} onChange={(e) => setForm((p) => ({ ...p, inscricao_estadual: e.target.value }))} />
               <TextInput label="Inscrição Municipal" value={form.inscricao_municipal} onChange={(e) => setForm((p) => ({ ...p, inscricao_municipal: e.target.value }))} />
             </div>

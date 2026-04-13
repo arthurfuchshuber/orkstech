@@ -469,11 +469,11 @@ export default function AdminUsers() {
           <div className="space-y-4">
             <div>
               <label className="text-xs font-medium text-muted-foreground mb-1 block">Razão Social</label>
-              <Input value={companyForm.razao_social} onChange={(e) => setCompanyForm({ ...companyForm, razao_social: e.target.value })} className="h-9 text-sm" />
+              <Input value={companyForm.razao_social} onChange={(e) => setCompanyForm({ ...companyForm, razao_social: e.target.value })} className="h-9 text-sm uppercase" />
             </div>
             <div>
               <label className="text-xs font-medium text-muted-foreground mb-1 block">Nome Fantasia</label>
-              <Input value={companyForm.nome_fantasia} onChange={(e) => setCompanyForm({ ...companyForm, nome_fantasia: e.target.value })} className="h-9 text-sm" />
+              <Input value={companyForm.nome_fantasia} onChange={(e) => setCompanyForm({ ...companyForm, nome_fantasia: e.target.value })} className="h-9 text-sm uppercase" />
             </div>
             <div>
               <label className="text-xs font-medium text-muted-foreground mb-1 block">CNPJ</label>
