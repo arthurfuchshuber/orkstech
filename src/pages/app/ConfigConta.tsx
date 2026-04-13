@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Building2, Users, Trash2, Pencil } from "lucide-react";
+import { Building2, Users, Trash2, Pencil, UserPlus } from "lucide-react";
 import { DocumentInput } from "@/components/inputs/DocumentInput";
 import { PhoneInput } from "@/components/inputs/PhoneInput";
 import { DateInput } from "@/components/inputs/DateInput";
@@ -165,6 +165,8 @@ function UsuariosTab() {
   const qc = useQueryClient();
   const [editingUser, setEditingUser] = useState<UserRow | null>(null);
   const [editForm, setEditForm] = useState({ nome: "", cpf: "", telefone: "", data_nascimento: "" });
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [createForm, setCreateForm] = useState({ email: "", password: "", nome: "", nivel_permissao_id: "" });
 
   const { data, isLoading } = useQuery({
     queryKey: ["manage-users"],
@@ -189,6 +191,23 @@ function UsuariosTab() {
       data_nascimento: u.data_nascimento ?? "",
     });
   };
+
+  const createUser = useMutation({
+    mutationFn: async () => {
+      const { data, error } = await supabase.functions.invoke("manage-users", {
+        body: { action: "create_user", ...createForm },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+    },
+    onSuccess: () => {
+      toast.success("Usuário criado com sucesso!");
+      setShowCreateModal(false);
+      setCreateForm({ email: "", password: "", nome: "", nivel_permissao_id: "" });
+      qc.invalidateQueries({ queryKey: ["manage-users"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
 
   const updateRole = useMutation({
     mutationFn: async ({ user_id, nivel_permissao_id }: { user_id: string; nivel_permissao_id: string }) => {
@@ -263,7 +282,13 @@ function UsuariosTab() {
 
   return (
     <div className="space-y-4">
-      <p className="text-sm text-muted-foreground">Gerencie os usuários do sistema, seus níveis de acesso e status.</p>
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-muted-foreground">Gerencie os usuários do sistema, seus níveis de acesso e status.</p>
+        <Button size="sm" onClick={() => setShowCreateModal(true)} className="gap-1.5">
+          <UserPlus className="w-3.5 h-3.5" />
+          Novo Usuário
+        </Button>
+      </div>
 
       <Card className="overflow-hidden">
         <Table>
@@ -290,7 +315,10 @@ function UsuariosTab() {
                   <TableRow key={u.id} className={!u.ativo ? "opacity-50" : ""}>
                     <TableCell className="text-sm">
                       <div className="flex items-center gap-2">
-                        {u.email}
+                        <div>
+                          <span>{u.email}</span>
+                          {u.nome && <p className="text-xs text-muted-foreground">{u.nome}</p>}
+                        </div>
                         {isSelf && <Badge variant="secondary" className="text-[10px]">Você</Badge>}
                       </div>
                     </TableCell>
@@ -365,6 +393,81 @@ function UsuariosTab() {
           </TableBody>
         </Table>
       </Card>
+
+      {/* Create User Modal */}
+      <Dialog open={showCreateModal} onOpenChange={setShowCreateModal}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <UserPlus className="w-5 h-5 text-primary" />
+              Novo Usuário
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <label className="text-xs font-medium text-muted-foreground mb-1 block">Nome completo *</label>
+              <Input
+                value={createForm.nome}
+                onChange={(e) => setCreateForm({ ...createForm, nome: e.target.value })}
+                className="h-9 text-sm"
+                placeholder="Ex: João Silva"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-muted-foreground mb-1 block">E-mail *</label>
+              <Input
+                type="email"
+                value={createForm.email}
+                onChange={(e) => setCreateForm({ ...createForm, email: e.target.value })}
+                className="h-9 text-sm"
+                placeholder="usuario@empresa.com"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-muted-foreground mb-1 block">Senha temporária *</label>
+              <Input
+                type="password"
+                value={createForm.password}
+                onChange={(e) => setCreateForm({ ...createForm, password: e.target.value })}
+                className="h-9 text-sm"
+                placeholder="Mínimo 6 caracteres"
+              />
+              <p className="text-[10px] text-muted-foreground mt-1">O usuário poderá alterar a senha após o primeiro login.</p>
+            </div>
+            <div>
+              <label className="text-xs font-medium text-muted-foreground mb-1 block">Nível de Acesso *</label>
+              <Select
+                value={createForm.nivel_permissao_id}
+                onValueChange={(v) => setCreateForm({ ...createForm, nivel_permissao_id: v })}
+              >
+                <SelectTrigger className="h-9 text-sm">
+                  <SelectValue placeholder="Selecione o nível" />
+                </SelectTrigger>
+                <SelectContent>
+                  {niveis.map((n) => (
+                    <SelectItem key={n.id} value={n.id}>{n.nome}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowCreateModal(false)}>Cancelar</Button>
+            <Button
+              onClick={() => createUser.mutate()}
+              disabled={
+                createUser.isPending ||
+                !createForm.email ||
+                !createForm.password ||
+                !createForm.nome ||
+                !createForm.nivel_permissao_id
+              }
+            >
+              {createUser.isPending ? "Criando..." : "Criar Usuário"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Edit Profile Dialog */}
       <Dialog open={!!editingUser} onOpenChange={(open) => !open && setEditingUser(null)}>
