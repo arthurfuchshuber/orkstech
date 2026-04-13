@@ -49,10 +49,6 @@ export default function AdminUsers() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <div>
-        <h1 className="text-2xl font-bold text-foreground tracking-tight">Usuários & Empresas</h1>
-        <p className="text-muted-foreground text-sm mt-0.5">Todos os usuários do SaaS</p>
-      </div>
 
       <Card className="border-border/50">
         <CardHeader className="pb-2">

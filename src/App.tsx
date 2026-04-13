@@ -31,10 +31,7 @@ import Conciliacao from "./pages/app/Conciliacao";
 import ConfigConta from "./pages/app/ConfigConta";
 import ConfigPlanos from "./pages/app/ConfigPlanos";
 import { SuperAdminRoute } from "./components/SuperAdminRoute";
-import AdminDashboard from "./pages/app/admin/AdminDashboard";
-import AdminUsers from "./pages/app/admin/AdminUsers";
-import AdminPlans from "./pages/app/admin/AdminPlans";
-import AdminLogs from "./pages/app/admin/AdminLogs";
+import AdminPanel from "./pages/app/admin/AdminPanel";
 
 const queryClient = new QueryClient();
 
