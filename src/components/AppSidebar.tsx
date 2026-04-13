@@ -6,8 +6,9 @@ import { DynamicIcon } from "@/components/DynamicIcon";
 import { useMenus, type MenuItem } from "@/hooks/useMenus";
 import { useAuth } from "@/hooks/useAuth";
 import { useSuperAdmin } from "@/hooks/useSuperAdmin";
+import { useEmpresa } from "@/hooks/useEmpresa";
 import { supabase } from "@/integrations/supabase/client";
-import { ChevronRight, Zap, ShieldCheck } from "lucide-react";
+import { ChevronRight, Zap } from "lucide-react";
 import { EmpresaSelector } from "@/components/EmpresaSelector";
 import {
   Sidebar,
