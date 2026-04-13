@@ -949,6 +949,54 @@ export default function ContasAPagar() {
             <DialogDescription>Informe os dados do pagamento</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 pt-2">
+            {paymentIsOverdue && (() => {
+              const item = payables.find((p: any) => p.id === payingId);
+              return (
+                <div className="rounded-lg border border-amber-200 bg-amber-500/10 p-3 space-y-3">
+                  <div className="flex items-center gap-2">
+                    <AlertTriangle className="w-4 h-4 text-amber-600" />
+                    <span className="text-sm font-medium text-amber-700">Conta vencida</span>
+                  </div>
+                  {item && (
+                    <p className="text-xs text-muted-foreground">
+                      Valor original: {formatCurrency(item.amount)}
+                    </p>
+                  )}
+                  <div>
+                    <label className="text-sm font-medium text-foreground mb-2 block">
+                      O valor foi alterado por conta do atraso? <span className="text-destructive">*</span>
+                    </label>
+                    <RadioGroup
+                      value={paymentValueChanged}
+                      onValueChange={(v) => {
+                        setPaymentValueChanged(v);
+                        if (v === "nao") setPaymentJurosMulta(0);
+                      }}
+                      className="flex gap-4"
+                    >
+                      <div className="flex items-center gap-2">
+                        <RadioGroupItem value="sim" id="val-sim" />
+                        <label htmlFor="val-sim" className="text-sm cursor-pointer">Sim</label>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <RadioGroupItem value="nao" id="val-nao" />
+                        <label htmlFor="val-nao" className="text-sm cursor-pointer">Não</label>
+                      </div>
+                    </RadioGroup>
+                  </div>
+                  {paymentValueChanged === "sim" && (
+                    <CurrencyInput
+                      label="Juros/Multa"
+                      value={paymentJurosMulta}
+                      onValueChange={setPaymentJurosMulta}
+                      required
+                      error={paymentJurosMulta <= 0 ? "Informe o valor de juros/multa" : undefined}
+                    />
+                  )}
+                </div>
+              );
+            })()}
+
             <DateInput label="Data do pagamento" value={paymentDate} onValueChange={setPaymentDate} />
             <ManagedSelectInput
               label="Conta bancária"
@@ -964,7 +1012,11 @@ export default function ContasAPagar() {
             />
             <div className="flex justify-end gap-3 pt-2">
               <Button variant="outline" onClick={() => setShowPaymentDialog(false)} className="rounded-lg">Cancelar</Button>
-              <Button onClick={handlePaymentSubmit} disabled={paymentMutation.isPending} className="rounded-lg gap-2">
+              <Button
+                onClick={handlePaymentSubmit}
+                disabled={paymentMutation.isPending || (paymentIsOverdue && !paymentValueChanged) || (paymentValueChanged === "sim" && paymentJurosMulta <= 0)}
+                className="rounded-lg gap-2"
+              >
                 {paymentMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
                 Confirmar Pagamento
               </Button>
