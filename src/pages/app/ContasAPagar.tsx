@@ -659,12 +659,27 @@ export default function ContasAPagar() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-        <StatCard icon={Receipt} title="Total em Aberto" value={String(counts.openTotal)} />
-        <StatCard icon={Clock} title="A Vencer" value={String(counts.upcoming)} />
-        <StatCard icon={AlertTriangle} title="Vencidas" value={String(counts.overdue)} />
-        <StatCard icon={Check} title="Pagas" value={String(counts.paid)} />
-      </div>
+      {(() => {
+        const fmt = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+        const openItems = payables.filter((p: any) => p.status === "pending" || p.status === "overdue");
+        const upcomingItems = payables.filter((p: any) => {
+          if (p.status !== "pending") return false;
+          const due = new Date(p.due_date); due.setHours(0,0,0,0);
+          const now = new Date(); now.setHours(0,0,0,0);
+          return due >= now;
+        });
+        const overdueItems = payables.filter((p: any) => p.status === "overdue" || (p.status === "pending" && new Date(p.due_date) < new Date(new Date().toDateString())));
+        const paidItems = payables.filter((p: any) => p.status === "paid");
+        const sum = (items: any[]) => items.reduce((s: number, i: any) => s + Number(i.amount || 0), 0);
+        return (
+          <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+            <StatCard icon={Receipt} title="Total em Aberto" value={String(counts.openTotal)} subtitle={fmt(sum(openItems))} />
+            <StatCard icon={Clock} title="A Vencer" value={String(counts.upcoming)} subtitle={fmt(sum(upcomingItems))} />
+            <StatCard icon={AlertTriangle} title="Vencidas" value={String(counts.overdue)} subtitle={fmt(sum(overdueItems))} />
+            <StatCard icon={Check} title="Pagas" value={String(counts.paid)} subtitle={fmt(sum(paidItems))} />
+          </div>
+        );
+      })()}
 
       {nearDue > 0 && (
         <div className="flex items-center gap-2 px-4 py-3 rounded-lg bg-amber-500/10 border border-amber-200">
