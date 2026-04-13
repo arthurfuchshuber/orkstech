@@ -798,7 +798,7 @@ export default function ContasAPagar() {
             </span>
             <div className="flex items-center gap-2">
               <span className="text-xs text-muted-foreground mr-1">Alterar status para:</span>
-              {Object.entries(statusConfig).map(([key, cfg]) => (
+              {Object.entries(statusConfig).filter(([key]) => key !== "cancelled").map(([key, cfg]) => (
                 <Button
                   key={key}
                   size="sm"
@@ -896,7 +896,7 @@ export default function ContasAPagar() {
                           </button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="start">
-                          {Object.entries(statusConfig).map(([key, cfg]) => {
+                          {Object.entries(statusConfig).filter(([key]) => key !== "cancelled").map(([key, cfg]) => {
                             if (key === item.status) return null;
                             return (
                               <DropdownMenuItem key={key} onClick={() => handleChangeStatus(item.id, key)}>
