@@ -17,6 +17,7 @@ interface EmpresaContextType {
   loading: boolean;
   refetch: () => Promise<void>;
   selectEmpresa: (id: string) => void;
+  isSuperAdminMode: boolean;
 }
 
 const EmpresaContext = createContext<EmpresaContextType | undefined>(undefined);
@@ -31,6 +32,7 @@ export function EmpresaProvider({ children }: { children: ReactNode }) {
     try { return localStorage.getItem(SELECTED_EMPRESA_KEY); } catch { return null; }
   });
   const [loading, setLoading] = useState(true);
+  const [isSuperAdminMode, setIsSuperAdminMode] = useState(false);
 
   const fetchEmpresas = useCallback(async (targetUserId = userId) => {
     if (!targetUserId) {
@@ -39,14 +41,54 @@ export function EmpresaProvider({ children }: { children: ReactNode }) {
       return;
     }
     setLoading(true);
-    const { data } = await supabase
-      .from("empresas")
-      .select("*")
-      .eq("user_id", targetUserId)
-      .order("created_at", { ascending: true });
 
-    const list = (data ?? []) as Empresa[];
+    // Check if user is Super Admin
+    let superAdmin = false;
+    try {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("nivel_permissao_id")
+        .eq("user_id", targetUserId)
+        .single();
+      if (profile?.nivel_permissao_id) {
+        const { data: nivel } = await supabase
+          .from("niveis_permissao")
+          .select("nome")
+          .eq("id", profile.nivel_permissao_id)
+          .single();
+        superAdmin = nivel?.nome === "Super Admin";
+      }
+    } catch {}
+
+    let list: Empresa[] = [];
+
+    if (superAdmin) {
+      // Super Admin: fetch ALL companies via edge function
+      try {
+        const { data } = await supabase.functions.invoke("admin-dashboard", {
+          body: { action: "list_companies" },
+        });
+        list = (data?.companies ?? []) as Empresa[];
+      } catch {
+        // Fallback to own companies
+        const { data } = await supabase
+          .from("empresas")
+          .select("*")
+          .eq("user_id", targetUserId)
+          .order("created_at", { ascending: true });
+        list = (data ?? []) as Empresa[];
+      }
+    } else {
+      const { data } = await supabase
+        .from("empresas")
+        .select("*")
+        .eq("user_id", targetUserId)
+        .order("created_at", { ascending: true });
+      list = (data ?? []) as Empresa[];
+    }
+
     setEmpresas(list);
+    setIsSuperAdminMode(superAdmin);
 
     // Auto-select: stored ID if still valid, otherwise first
     if (list.length > 0) {
@@ -75,7 +117,7 @@ export function EmpresaProvider({ children }: { children: ReactNode }) {
   const empresa = empresas.find((e) => e.id === selectedId) ?? empresas[0] ?? null;
 
   return (
-    <EmpresaContext.Provider value={{ empresa, empresas, loading, refetch: fetchEmpresas, selectEmpresa }}>
+    <EmpresaContext.Provider value={{ empresa, empresas, loading, refetch: fetchEmpresas, selectEmpresa, isSuperAdminMode }}>
       {children}
     </EmpresaContext.Provider>
   );
