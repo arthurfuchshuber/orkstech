@@ -139,6 +139,7 @@ function EmpresaTab() {
 /* ─── Tab: Usuários ─── */
 function UsuariosTab() {
   const { user } = useAuth();
+  const { empresa } = useEmpresa();
   const qc = useQueryClient();
   const [editingUser, setEditingUser] = useState<UserRow | null>(null);
   const [editForm, setEditForm] = useState({ nome: "", cpf: "", telefone: "", data_nascimento: "" });
@@ -164,7 +165,7 @@ function UsuariosTab() {
 
   const updateRole = useMutation({
     mutationFn: async ({ user_id, nivel_permissao_id }: { user_id: string; nivel_permissao_id: string }) => {
-      const { data, error } = await supabase.functions.invoke("manage-users", { body: { action: "update_role", user_id, nivel_permissao_id } });
+      const { data, error } = await supabase.functions.invoke("manage-users", { body: { action: "update_role", user_id, nivel_permissao_id, empresa_id: empresa?.id } });
       if (error) throw error; if (data?.error) throw new Error(data.error);
     },
     onSuccess: () => { toast.success("Nível atualizado"); qc.invalidateQueries({ queryKey: ["manage-users"] }); },
@@ -173,7 +174,7 @@ function UsuariosTab() {
 
   const toggleActive = useMutation({
     mutationFn: async ({ user_id, ativo }: { user_id: string; ativo: boolean }) => {
-      const { data, error } = await supabase.functions.invoke("manage-users", { body: { action: "toggle_active", user_id, ativo } });
+      const { data, error } = await supabase.functions.invoke("manage-users", { body: { action: "toggle_active", user_id, ativo, empresa_id: empresa?.id } });
       if (error) throw error; if (data?.error) throw new Error(data.error);
     },
     onSuccess: () => { toast.success("Status atualizado"); qc.invalidateQueries({ queryKey: ["manage-users"] }); },
@@ -182,7 +183,7 @@ function UsuariosTab() {
 
   const deleteUser = useMutation({
     mutationFn: async (user_id: string) => {
-      const { data, error } = await supabase.functions.invoke("manage-users", { body: { action: "delete", user_id } });
+      const { data, error } = await supabase.functions.invoke("manage-users", { body: { action: "delete", user_id, empresa_id: empresa?.id } });
       if (error) throw error; if (data?.error) throw new Error(data.error);
     },
     onSuccess: () => { toast.success("Usuário excluído"); qc.invalidateQueries({ queryKey: ["manage-users"] }); },

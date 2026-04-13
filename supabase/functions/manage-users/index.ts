@@ -291,7 +291,7 @@ serve(async (req) => {
       // Prevent removing Admin role from the last admin of the empresa (applies to ALL callers)
       const { data: targetProfile } = await supabaseAdmin
         .from("profiles")
-        .select("nivel_permissao_id, empresa_id")
+        .select("nivel_permissao_id")
         .eq("user_id", parsed.data.user_id)
         .single();
 
@@ -299,7 +299,7 @@ serve(async (req) => {
         targetProfile?.nivel_permissao_id === adminLevel?.id &&
         parsed.data.nivel_permissao_id !== adminLevel?.id
       ) {
-        const targetEmpresaId = await getTargetEmpresaId(supabaseAdmin, parsed.data.user_id);
+        const targetEmpresaId = body.empresa_id ?? await getTargetEmpresaId(supabaseAdmin, parsed.data.user_id);
         const lastAdmin = await isLastAdminOfEmpresa(
           supabaseAdmin, parsed.data.user_id, adminLevel?.id, targetEmpresaId
         );
@@ -337,7 +337,7 @@ serve(async (req) => {
 
       // Prevent deactivating the last admin (applies to ALL callers)
       if (!parsed.data.ativo) {
-        const targetEmpresaId = await getTargetEmpresaId(supabaseAdmin, parsed.data.user_id);
+        const targetEmpresaId = body.empresa_id ?? await getTargetEmpresaId(supabaseAdmin, parsed.data.user_id);
         const lastAdmin = await isLastAdminOfEmpresa(
           supabaseAdmin, parsed.data.user_id, adminLevel?.id, targetEmpresaId
         );
@@ -400,7 +400,7 @@ serve(async (req) => {
       }
 
       // Prevent deleting the last admin (applies to ALL callers)
-      const targetEmpresaId = await getTargetEmpresaId(supabaseAdmin, parsed.data.user_id);
+      const targetEmpresaId = body.empresa_id ?? await getTargetEmpresaId(supabaseAdmin, parsed.data.user_id);
       const lastAdmin = await isLastAdminOfEmpresa(
         supabaseAdmin, parsed.data.user_id, adminLevel?.id, targetEmpresaId
       );
