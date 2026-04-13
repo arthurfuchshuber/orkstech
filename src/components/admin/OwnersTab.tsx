@@ -146,7 +146,7 @@ export function OwnersTab({ users, niveis, isLoading }: Props) {
             <TableRow className="hover:bg-transparent border-border/30">
               <TableHead className="w-[40px]"></TableHead>
               <TableHead>Usuário</TableHead>
-              <TableHead>Nível</TableHead>
+              
               <TableHead>Empresas</TableHead>
               <TableHead>Criado em</TableHead>
               <TableHead className="text-center w-[80px]">Ativo</TableHead>
@@ -155,9 +155,9 @@ export function OwnersTab({ users, niveis, isLoading }: Props) {
           </TableHeader>
           <TableBody>
             {isLoading ? (
-              <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8 text-sm">Carregando...</TableCell></TableRow>
+              <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8 text-sm">Carregando...</TableCell></TableRow>
             ) : !ownerUsers.length ? (
-              <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8 text-sm">
+              <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8 text-sm">
                 <div className="flex flex-col items-center gap-2"><Users className="w-8 h-8 text-muted-foreground/30" /><p>Nenhum usuário encontrado</p></div>
               </TableCell></TableRow>
             ) : (
@@ -174,7 +174,7 @@ export function OwnersTab({ users, niveis, isLoading }: Props) {
                       <TableCell>
                         <div><span className="text-sm font-medium text-foreground">{u.nome || "Sem nome"}</span><p className="text-xs text-muted-foreground">{u.email}</p></div>
                       </TableCell>
-                      <TableCell><Badge variant="outline" className="text-[10px] font-normal">{u.nivel}</Badge></TableCell>
+                      
                       <TableCell className="text-sm text-muted-foreground">{empresaCount} {empresaCount === 1 ? "empresa" : "empresas"}</TableCell>
                       <TableCell className="text-xs text-muted-foreground whitespace-nowrap">{format(new Date(u.created_at), "dd/MM/yyyy")}</TableCell>
                       <TableCell className="text-center" onClick={(e) => e.stopPropagation()}>
@@ -199,7 +199,7 @@ export function OwnersTab({ users, niveis, isLoading }: Props) {
                     {isExpanded && u.empresas.map((emp) => (
                       <TableRow key={emp.id} className="bg-muted/20 border-border/10 hover:bg-muted/30">
                         <TableCell></TableCell>
-                        <TableCell colSpan={2}>
+                        <TableCell>
                           <div className="pl-2">
                             <CompanyNameDisplay empresa={emp} />
                           </div>
