@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useEmpresa } from "@/hooks/useEmpresa";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Users, Truck, Receipt, AlertTriangle, Landmark, TrendingUp, Clock } from "lucide-react";
@@ -10,39 +11,49 @@ import { useMemo } from "react";
 
 export default function Dashboard() {
   const { user } = useAuth();
+  const { empresa } = useEmpresa();
+  const empresaId = empresa?.id;
 
   const { data: clientes } = useQuery({
-    queryKey: ["dashboard-clientes", user?.id],
+    queryKey: ["dashboard-clientes", user?.id, empresaId],
     enabled: !!user,
     queryFn: async () => {
-      const { count } = await supabase.from("clientes").select("id", { count: "exact", head: true }).eq("ativo", true);
+      let q = supabase.from("clientes").select("id", { count: "exact", head: true }).eq("ativo", true);
+      if (empresaId) q = q.eq("empresa_id", empresaId);
+      const { count } = await q;
       return count ?? 0;
     },
   });
 
   const { data: fornecedores } = useQuery({
-    queryKey: ["dashboard-fornecedores", user?.id],
+    queryKey: ["dashboard-fornecedores", user?.id, empresaId],
     enabled: !!user,
     queryFn: async () => {
-      const { count } = await supabase.from("fornecedores").select("id", { count: "exact", head: true }).eq("ativo", true);
+      let q = supabase.from("fornecedores").select("id", { count: "exact", head: true }).eq("ativo", true);
+      if (empresaId) q = q.eq("empresa_id", empresaId);
+      const { count } = await q;
       return count ?? 0;
     },
   });
 
   const { data: contasPagar } = useQuery({
-    queryKey: ["dashboard-contas-pagar", user?.id],
+    queryKey: ["dashboard-contas-pagar", user?.id, empresaId],
     enabled: !!user,
     queryFn: async () => {
-      const { data } = await supabase.from("accounts_payable").select("id, amount, status, due_date").in("status", ["pending", "overdue"]);
+      let q = supabase.from("accounts_payable").select("id, amount, status, due_date").in("status", ["pending", "overdue"]);
+      if (empresaId) q = q.eq("empresa_id", empresaId);
+      const { data } = await q;
       return data ?? [];
     },
   });
 
   const { data: saldoBancario } = useQuery({
-    queryKey: ["dashboard-saldo", user?.id],
+    queryKey: ["dashboard-saldo", user?.id, empresaId],
     enabled: !!user,
     queryFn: async () => {
-      const { data } = await supabase.from("contas_bancarias").select("saldo_inicial").eq("ativo", true);
+      let q = supabase.from("contas_bancarias").select("saldo_inicial").eq("ativo", true);
+      if (empresaId) q = q.eq("empresa_id", empresaId);
+      const { data } = await q;
       return data?.reduce((sum, c) => sum + Number(c.saldo_inicial), 0) ?? 0;
     },
   });

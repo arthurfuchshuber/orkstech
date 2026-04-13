@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useEmpresa } from "@/hooks/useEmpresa";
 import { refreshQueries } from "@/lib/query-refresh";
 import { toast } from "sonner";
 import {
@@ -88,6 +89,8 @@ function getLocation(f: Fornecedor) {
 
 export default function Fornecedores() {
   const { user } = useAuth();
+  const { empresa } = useEmpresa();
+  const empresaId = empresa?.id;
   const qc = useQueryClient();
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -100,12 +103,14 @@ export default function Fornecedores() {
 
   // ---- Queries ----
   const { data: fornecedores = [], isLoading } = useQuery({
-    queryKey: ["fornecedores"],
+    queryKey: ["fornecedores", empresaId],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let q = supabase
         .from("fornecedores")
         .select("*")
         .order("created_at", { ascending: false });
+      if (empresaId) q = q.eq("empresa_id", empresaId);
+      const { data, error } = await q;
       if (error) throw error;
       return data as Fornecedor[];
     },
@@ -149,7 +154,7 @@ export default function Fornecedores() {
         const { error } = await supabase.from("fornecedores").update(payload).eq("id", editingId);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from("fornecedores").insert({ ...payload, user_id: user!.id });
+        const { error } = await supabase.from("fornecedores").insert({ ...payload, user_id: user!.id, empresa_id: empresaId || null });
         if (error) throw error;
       }
     },

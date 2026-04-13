@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useEmpresa } from "@/hooks/useEmpresa";
 import { refreshQueries } from "@/lib/query-refresh";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -38,19 +39,23 @@ interface ContaBancaria {
 
 export default function ContasBancarias() {
   const { user } = useAuth();
+  const { empresa } = useEmpresa();
+  const empresaId = empresa?.id;
   const qc = useQueryClient();
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   
 
   const { data: items = [], isLoading } = useQuery({
-    queryKey: ["contas_bancarias"],
+    queryKey: ["contas_bancarias", empresaId],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let q = supabase
         .from("contas_bancarias")
         .select("*")
         .eq("user_id", user!.id)
         .order("nome");
+      if (empresaId) q = q.eq("empresa_id", empresaId);
+      const { data, error } = await q;
       if (error) throw error;
       return data as ContaBancaria[];
     },
