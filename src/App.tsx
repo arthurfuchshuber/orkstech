@@ -75,6 +75,8 @@ const App = () => (
                 <Route path="config" element={<Configuracoes />} />
                 <Route path="config/geral" element={<PlaceholderPage />} />
                 <Route path="config/conta" element={<ConfigConta />} />
+                <Route path="config/usuarios" element={<ConfigConta />} />
+                <Route path="config/permissoes" element={<PlaceholderPage />} />
                 <Route path="config/planos" element={<ConfigPlanos />} />
                 <Route path="config/menus" element={<GerenciarMenu />} />
                 <Route path="admin" element={<SuperAdminRoute><AdminPanel /></SuperAdminRoute>} />
