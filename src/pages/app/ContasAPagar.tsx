@@ -1128,6 +1128,12 @@ export default function ContasAPagar() {
         }}
       />
 
+      <BulkBoletoScanner
+        open={bulkScanOpen}
+        onOpenChange={setBulkScanOpen}
+        fornecedores={fornecedores}
+      />
+
       {/* Duplicate detection alert */}
       <AlertDialog open={showDuplicateAlert} onOpenChange={setShowDuplicateAlert}>
         <AlertDialogContent className="max-w-lg">
