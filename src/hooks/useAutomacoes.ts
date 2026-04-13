@@ -54,7 +54,7 @@ export function useAutomacoes() {
         .select("*")
         .order("created_at", { ascending: false });
       if (error) throw error;
-      return (data ?? []) as AutomacaoDB[];
+      return (data ?? []) as unknown as AutomacaoDB[];
     },
     enabled: !!user,
   });
