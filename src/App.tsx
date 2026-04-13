@@ -65,7 +65,7 @@ const App = () => (
                 <Route path="financas/plano-de-contas" element={<Navigate to="/app/financas/cadastros" replace />} />
                 <Route path="financas/centros-de-custo" element={<Navigate to="/app/financas/cadastros" replace />} />
                 <Route path="financas/formas-de-pagamento" element={<Navigate to="/app/financas/cadastros" replace />} />
-                <Route path="financas/contas-bancarias" element={<Financeiro />} />
+                <Route path="financas/contas-bancarias" element={<Navigate to="/app/financas/cadastros" replace />} />
                 <Route path="financas/extrato" element={<ExtratoBancario />} />
                 <Route path="financas/conciliacao" element={<Conciliacao />} />
                 <Route path="automacoes/config" element={<Automacoes />} />
@@ -76,7 +76,7 @@ const App = () => (
                 <Route path="config/geral" element={<PlaceholderPage />} />
                 <Route path="config/conta" element={<ConfigConta />} />
                 <Route path="config/usuarios" element={<ConfigConta defaultTab="usuarios" />} />
-                <Route path="config/permissoes" element={<ConfigConta defaultTab="permissoes" />} />
+                <Route path="config/permissoes" element={<Navigate to="/app/config/conta" replace />} />
                 <Route path="config/planos" element={<ConfigPlanos />} />
                 <Route path="config/menus" element={<GerenciarMenu />} />
                 <Route path="config/integracoes" element={<PlaceholderPage />} />
