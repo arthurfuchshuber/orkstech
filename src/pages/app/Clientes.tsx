@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import type { Tables } from "@/integrations/supabase/types";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import {
@@ -18,6 +19,7 @@ import { TextareaInput } from "@/components/inputs/TextareaInput";
 import { DateInput } from "@/components/inputs/DateInput";
 import { validateClientForm, type ClientFormData, type FormErrors } from "@/lib/validators";
 import { refreshQueries } from "@/lib/query-refresh";
+import { ClienteEditModal } from "@/components/clientes/ClienteEditModal";
 import { useAuth } from "@/hooks/useAuth";
 import { useEmpresa } from "@/hooks/useEmpresa";
 import { supabase } from "@/integrations/supabase/client";
@@ -88,6 +90,7 @@ export default function Clientes() {
   const [filterStatus, setFilterStatus] = useState<string[]>([]);
   const [filterTipo, setFilterTipo] = useState<string[]>([]);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [editCliente, setEditCliente] = useState<Tables<"clientes"> | null>(null);
 
   const { data: clientes = [], isLoading } = useQuery({
     queryKey: ["clientes", empresaId],
@@ -467,7 +470,7 @@ export default function Clientes() {
                     <div className="flex items-center justify-end gap-2 whitespace-nowrap">
                       <span>{format(new Date(c.created_at), "dd/MM/yyyy", { locale: ptBR })}</span>
                       <div className="flex items-center gap-0.5" onClick={(e) => e.stopPropagation()}>
-                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => navigate(`/app/clientes/${c.id}`)}>
+                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setEditCliente(c)}>
                           <Pencil className="w-3.5 h-3.5" />
                         </Button>
                         <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => setDeleteId(c.id)}>
@@ -602,6 +605,15 @@ export default function Clientes() {
           </div>
         </div>
       </FormModal>
+
+      {/* Edit modal */}
+      {editCliente && (
+        <ClienteEditModal
+          cliente={editCliente}
+          open={!!editCliente}
+          onOpenChange={(open) => { if (!open) setEditCliente(null); }}
+        />
+      )}
     </div>
   );
 }
