@@ -245,7 +245,7 @@ export default function Fornecedores() {
       telefone: f.telefone || "",
       email: f.email || "",
       contatoResponsavel: "",
-      categoria: "",
+      categoria: f.categoria_id || "",
       observacoes: f.observacoes || "",
       endereco: {
         cep: f.cep || "",
