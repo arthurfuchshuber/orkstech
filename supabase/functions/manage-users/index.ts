@@ -288,7 +288,7 @@ serve(async (req) => {
         });
       }
 
-      // Prevent removing Admin role from the last admin of the empresa
+      // Prevent removing Admin role from the last admin of the empresa (applies to ALL callers)
       const { data: targetProfile } = await supabaseAdmin
         .from("profiles")
         .select("nivel_permissao_id, empresa_id")
@@ -299,8 +299,9 @@ serve(async (req) => {
         targetProfile?.nivel_permissao_id === adminLevel?.id &&
         parsed.data.nivel_permissao_id !== adminLevel?.id
       ) {
+        const targetEmpresaId = await getTargetEmpresaId(supabaseAdmin, parsed.data.user_id);
         const lastAdmin = await isLastAdminOfEmpresa(
-          supabaseAdmin, parsed.data.user_id, adminLevel?.id, targetProfile?.empresa_id
+          supabaseAdmin, parsed.data.user_id, adminLevel?.id, targetEmpresaId
         );
         if (lastAdmin) {
           return new Response(JSON.stringify({ error: "Não é possível remover o nível Admin do último administrador da empresa" }), {
