@@ -1,4 +1,4 @@
-import { Building2, CreditCard, Landmark, Settings2 } from "lucide-react";
+import { Settings2 } from "lucide-react";
 import { PlanoDeContasSection } from "@/components/financas/PlanoDeContasSection";
 import { CentrosCustoSection } from "@/components/financas/CentrosCustoSection";
 import { FormasPagamentoSection } from "@/components/financas/FormasPagamentoSection";
