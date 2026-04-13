@@ -100,12 +100,18 @@ serve(async (req) => {
     if (action === "list_all_users") {
       const { data: { users } } = await supabaseAdmin.auth.admin.listUsers({ perPage: 1000 });
       const { data: profiles } = await supabaseAdmin.from("profiles").select("user_id, nome, ativo, nivel_permissao_id, empresa_id, cpf, telefone, data_nascimento");
-      const { data: empresas } = await supabaseAdmin.from("empresas").select("id, user_id, razao_social, nome_fantasia");
+      const { data: empresas } = await supabaseAdmin.from("empresas").select("id, user_id, razao_social, nome_fantasia, cnpj, email, telefone, created_at");
       const { data: niveis } = await supabaseAdmin.from("niveis_permissao").select("id, nome");
+
+      // Build a map of companies owned by each user
+      const companiesByUser: Record<string, typeof empresas> = {};
+      for (const e of empresas ?? []) {
+        if (!companiesByUser[e.user_id]) companiesByUser[e.user_id] = [];
+        companiesByUser[e.user_id].push(e);
+      }
 
       const result = (users ?? []).map((u) => {
         const profile = profiles?.find((p) => p.user_id === u.id);
-        // Find empresa by profile.empresa_id OR by user ownership
         const empresa = empresas?.find((e) => e.id === profile?.empresa_id) || empresas?.find((e) => e.user_id === u.id);
         const nivel = niveis?.find((n) => n.id === profile?.nivel_permissao_id);
         return {
@@ -121,6 +127,16 @@ serve(async (req) => {
           nivel_permissao_id: profile?.nivel_permissao_id ?? null,
           empresa: empresa?.nome_fantasia || empresa?.razao_social || "—",
           empresa_id: empresa?.id ?? null,
+          is_owner: !!(companiesByUser[u.id]?.length),
+          empresas: (companiesByUser[u.id] ?? []).map((e) => ({
+            id: e.id,
+            razao_social: e.razao_social,
+            nome_fantasia: e.nome_fantasia,
+            cnpj: e.cnpj,
+            email: e.email,
+            telefone: e.telefone,
+            created_at: e.created_at,
+          })),
         };
       });
 
