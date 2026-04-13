@@ -109,6 +109,29 @@ export default function Fornecedores() {
     enabled: !!user,
   });
 
+  const { data: categorias = [] } = useQuery({
+    queryKey: ["categorias_cadastro", empresaId],
+    queryFn: async () => {
+      let q = supabase
+        .from("categorias_cadastro")
+        .select("id, nome, categoria_pai_id")
+        .eq("ativo", true)
+        .order("ordem");
+      if (empresaId) q = q.eq("empresa_id", empresaId);
+      const { data, error } = await q;
+      if (error) throw error;
+      return data ?? [];
+    },
+    enabled: !!user,
+  });
+
+  const categoriaOptions = categorias.map((c) => ({
+    value: c.id,
+    label: c.categoria_pai_id
+      ? `  └ ${c.nome}`
+      : c.nome,
+  }));
+
   const totalAtivos = fornecedores.filter((f) => f.ativo).length;
   const totalEmpresas = fornecedores.filter((f) => f.tipo === "pj" && f.ativo).length;
   const totalPf = fornecedores.filter((f) => f.tipo === "pf" && f.ativo).length;
