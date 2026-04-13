@@ -47,15 +47,10 @@ serve(async (req) => {
     const { action } = body;
 
     if (action === "overview") {
-      // Total empresas
       const { count: totalEmpresas } = await supabaseAdmin.from("empresas").select("id", { count: "exact", head: true });
-      // Total users
       const { data: { users } } = await supabaseAdmin.auth.admin.listUsers({ perPage: 1000 });
       const totalUsers = users?.length ?? 0;
-      // Total profiles
-      const { data: profiles } = await supabaseAdmin.from("profiles").select("user_id, nome, ativo, created_at");
 
-      // Stripe metrics
       let mrr = 0;
       let activeSubscriptions = 0;
       let planBreakdown: Record<string, number> = {};
@@ -68,18 +63,13 @@ serve(async (req) => {
           const amount = sub.items.data[0]?.price?.unit_amount ?? 0;
           const interval = sub.items.data[0]?.price?.recurring?.interval;
           const productId = sub.items.data[0]?.price?.product as string;
-          
-          // Normalize to monthly
           let monthly = amount;
           if (interval === "year") monthly = Math.round(amount / 12);
-          else if (interval === "month") monthly = amount;
           mrr += monthly;
-
           planBreakdown[productId] = (planBreakdown[productId] || 0) + 1;
         }
       }
 
-      // Recent signups (last 30 days)
       const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
       const recentUsers = users?.filter((u) => u.created_at > thirtyDaysAgo).length ?? 0;
 
@@ -109,26 +99,32 @@ serve(async (req) => {
 
     if (action === "list_all_users") {
       const { data: { users } } = await supabaseAdmin.auth.admin.listUsers({ perPage: 1000 });
-      const { data: profiles } = await supabaseAdmin.from("profiles").select("user_id, nome, ativo, nivel_permissao_id");
-      const { data: empresas } = await supabaseAdmin.from("empresas").select("user_id, razao_social, nome_fantasia");
+      const { data: profiles } = await supabaseAdmin.from("profiles").select("user_id, nome, ativo, nivel_permissao_id, empresa_id, cpf, telefone, data_nascimento");
+      const { data: empresas } = await supabaseAdmin.from("empresas").select("id, user_id, razao_social, nome_fantasia");
       const { data: niveis } = await supabaseAdmin.from("niveis_permissao").select("id, nome");
 
       const result = (users ?? []).map((u) => {
         const profile = profiles?.find((p) => p.user_id === u.id);
-        const empresa = empresas?.find((e) => e.user_id === u.id);
+        // Find empresa by profile.empresa_id OR by user ownership
+        const empresa = empresas?.find((e) => e.id === profile?.empresa_id) || empresas?.find((e) => e.user_id === u.id);
         const nivel = niveis?.find((n) => n.id === profile?.nivel_permissao_id);
         return {
           id: u.id,
           email: u.email,
           created_at: u.created_at,
           nome: profile?.nome ?? null,
+          cpf: profile?.cpf ?? null,
+          telefone: profile?.telefone ?? null,
+          data_nascimento: profile?.data_nascimento ?? null,
           ativo: profile?.ativo ?? true,
           nivel: nivel?.nome ?? "—",
+          nivel_permissao_id: profile?.nivel_permissao_id ?? null,
           empresa: empresa?.nome_fantasia || empresa?.razao_social || "—",
+          empresa_id: empresa?.id ?? null,
         };
       });
 
-      return new Response(JSON.stringify({ users: result }), {
+      return new Response(JSON.stringify({ users: result, niveis: niveis ?? [] }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -153,6 +149,127 @@ serve(async (req) => {
         });
       }
       await supabaseAdmin.from("profiles").update({ ativo }).eq("user_id", user_id);
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // UPDATE USER (Super Admin editing any user's profile)
+    if (action === "update_user") {
+      const { user_id, nome, cpf, telefone, data_nascimento, nivel_permissao_id } = body;
+      if (!user_id) {
+        return new Response(JSON.stringify({ error: "user_id obrigatório" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const updateData: Record<string, any> = {};
+      if (nome !== undefined) updateData.nome = nome;
+      if (cpf !== undefined) updateData.cpf = cpf;
+      if (telefone !== undefined) updateData.telefone = telefone;
+      if (data_nascimento !== undefined) updateData.data_nascimento = data_nascimento;
+      if (nivel_permissao_id !== undefined) updateData.nivel_permissao_id = nivel_permissao_id;
+
+      const { error } = await supabaseAdmin.from("profiles").update(updateData).eq("user_id", user_id);
+      if (error) throw error;
+
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // DELETE USER (Super Admin)
+    if (action === "delete_user") {
+      const { user_id } = body;
+      if (!user_id) {
+        return new Response(JSON.stringify({ error: "user_id obrigatório" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      if (user_id === caller.id) {
+        return new Response(JSON.stringify({ error: "Não pode excluir a si mesmo" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const { error } = await supabaseAdmin.auth.admin.deleteUser(user_id);
+      if (error) throw error;
+
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // UPDATE COMPANY (Super Admin editing any company)
+    if (action === "update_company") {
+      const { empresa_id, razao_social, nome_fantasia, cnpj, email, telefone } = body;
+      if (!empresa_id) {
+        return new Response(JSON.stringify({ error: "empresa_id obrigatório" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const updateData: Record<string, any> = {};
+      if (razao_social !== undefined) updateData.razao_social = razao_social;
+      if (nome_fantasia !== undefined) updateData.nome_fantasia = nome_fantasia;
+      if (cnpj !== undefined) updateData.cnpj = cnpj;
+      if (email !== undefined) updateData.email = email;
+      if (telefone !== undefined) updateData.telefone = telefone;
+
+      const { error } = await supabaseAdmin.from("empresas").update(updateData).eq("id", empresa_id);
+      if (error) throw error;
+
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // DELETE COMPANY (Super Admin)
+    if (action === "delete_company") {
+      const { empresa_id } = body;
+      if (!empresa_id) {
+        return new Response(JSON.stringify({ error: "empresa_id obrigatório" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const { error } = await supabaseAdmin.from("empresas").delete().eq("id", empresa_id);
+      if (error) throw error;
+
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // REQUEST ACCOUNT DELETION (any authenticated user can request)
+    if (action === "request_account_deletion") {
+      // Log the request in historico_sistema
+      await supabaseAdmin.from("historico_sistema").insert({
+        user_id: caller.id,
+        evento: "conta.exclusao_solicitada",
+        descricao: `Usuário ${caller.email} solicitou exclusão total da conta e empresa.`,
+        contexto: { email: caller.email, requested_at: new Date().toISOString() },
+      });
+
+      // Create a notification for all Super Admins
+      const { data: superAdminNivel } = await supabaseAdmin
+        .from("niveis_permissao")
+        .select("id")
+        .eq("nome", "Super Admin")
+        .single();
+
+      if (superAdminNivel) {
+        const { data: superAdminProfiles } = await supabaseAdmin
+          .from("profiles")
+          .select("user_id")
+          .eq("nivel_permissao_id", superAdminNivel.id);
+
+        for (const sa of superAdminProfiles ?? []) {
+          await supabaseAdmin.from("notificacoes_sistema").insert({
+            user_id: sa.user_id,
+            titulo: "Solicitação de exclusão de conta",
+            descricao: `O usuário ${caller.email} solicitou a exclusão total da sua conta e empresa vinculada.`,
+            tipo: "alerta",
+          });
+        }
+      }
+
       return new Response(JSON.stringify({ success: true }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });

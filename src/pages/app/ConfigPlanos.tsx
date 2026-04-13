@@ -1,8 +1,13 @@
 import { useState, useEffect } from "react";
-import { CreditCard, ExternalLink, RefreshCw, Sparkles, Clock, AlertTriangle } from "lucide-react";
+import { CreditCard, ExternalLink, RefreshCw, Sparkles, Clock, AlertTriangle, Trash2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { useSubscription, PLANS } from "@/hooks/useSubscription";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -14,6 +19,7 @@ export default function ConfigPlanos() {
     isTrialing, trialEnd, cancelAtPeriodEnd,
   } = useSubscription();
   const [loadingPortal, setLoadingPortal] = useState(false);
+  const [deletionLoading, setDeletionLoading] = useState(false);
   const [searchParams] = useSearchParams();
 
   useEffect(() => {
@@ -48,6 +54,21 @@ export default function ConfigPlanos() {
       toast.error("Erro ao abrir portal: " + (e.message || "Tente novamente"));
     } finally {
       setLoadingPortal(false);
+    }
+  };
+
+  const handleRequestDeletion = async () => {
+    setDeletionLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("admin-dashboard", {
+        body: { action: "request_account_deletion" },
+      });
+      if (error) throw error;
+      toast.success("Solicitação enviada com sucesso. Nossa equipe entrará em contato.");
+    } catch (e: any) {
+      toast.error("Erro ao enviar solicitação: " + (e.message || "Tente novamente"));
+    } finally {
+      setDeletionLoading(false);
     }
   };
 
@@ -181,7 +202,7 @@ export default function ConfigPlanos() {
           <h3 className="text-sm font-semibold text-foreground">Faturamento</h3>
         </div>
         {subscribed ? (
-          <div className="space-y-2">
+          <div className="space-y-3">
             <p className="text-xs text-muted-foreground">
               Gerencie seus métodos de pagamento, faturas, upgrade, downgrade e cancelamento através do{" "}
               <button
@@ -195,12 +216,72 @@ export default function ConfigPlanos() {
             <p className="text-[10px] text-muted-foreground/60">
               Ao fazer upgrade ou downgrade, o valor será ajustado proporcionalmente (pro-rata) no próximo ciclo de cobrança.
             </p>
+            <div className="pt-2 border-t border-border/40 flex items-center justify-between">
+              <div>
+                <p className="text-xs font-medium text-foreground">Cancelar assinatura</p>
+                <p className="text-[10px] text-muted-foreground">Sua assinatura ficará ativa até o fim do período pago.</p>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleManageSubscription}
+                disabled={loadingPortal}
+                className="gap-1.5 border-destructive/30 text-destructive hover:text-destructive"
+              >
+                <ExternalLink className="w-3.5 h-3.5" />
+                Cancelar plano
+              </Button>
+            </div>
           </div>
         ) : (
           <p className="text-xs text-muted-foreground">
             Selecione um plano acima para começar. Aceitamos cartão de crédito, débito e boleto via Stripe.
           </p>
         )}
+      </Card>
+
+      {/* Account Deletion Request */}
+      <Card className="p-5 border-destructive/20">
+        <div className="flex items-center gap-3 mb-3">
+          <Trash2 className="w-5 h-5 text-destructive" />
+          <h3 className="text-sm font-semibold text-foreground">Exclusão de conta</h3>
+        </div>
+        <p className="text-xs text-muted-foreground mb-3">
+          Ao solicitar a exclusão, nossa equipe irá apagar todos os dados da sua empresa e conta. 
+          Esta ação é <strong>irreversível</strong>.
+        </p>
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button variant="outline" size="sm" className="gap-1.5 border-destructive/30 text-destructive hover:text-destructive">
+              <Trash2 className="w-3.5 h-3.5" />
+              Solicitar exclusão total
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Solicitar exclusão de conta</AlertDialogTitle>
+              <AlertDialogDescription>
+                Tem certeza? Esta solicitação será enviada à nossa equipe e resultará na exclusão permanente de:
+                <ul className="list-disc list-inside mt-2 space-y-1 text-xs">
+                  <li>Sua empresa e todos os dados vinculados</li>
+                  <li>Clientes, fornecedores e financeiro</li>
+                  <li>Documentos e arquivos armazenados</li>
+                  <li>Sua conta de acesso ao sistema</li>
+                </ul>
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Voltar</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleRequestDeletion}
+                disabled={deletionLoading}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                {deletionLoading ? "Enviando..." : "Confirmar solicitação"}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </Card>
     </div>
   );
