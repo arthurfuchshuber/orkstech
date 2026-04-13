@@ -712,15 +712,15 @@ export default function ContasAPagar() {
             <p className="text-sm text-muted-foreground font-medium">Nenhuma conta encontrada</p>
           </div>
         ) : (
-          <Table>
+          <Table className="table-fixed w-full">
             <TableHeader>
               <TableRow>
-                <TableHead>Fornecedor</TableHead>
-                <TableHead>Descrição</TableHead>
-                <TableHead>Valor</TableHead>
-                <TableHead>Vencimento</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Ações</TableHead>
+                <TableHead className="w-[20%]">Fornecedor</TableHead>
+                <TableHead className="w-[25%]">Descrição</TableHead>
+                <TableHead className="w-[12%]">Valor</TableHead>
+                <TableHead className="w-[13%]">Vencimento</TableHead>
+                <TableHead className="w-[12%]">Status</TableHead>
+                <TableHead className="w-[8%] text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -729,8 +729,8 @@ export default function ContasAPagar() {
                 const isNearDue = item.status === "pending" && isBefore(dueDate, addDays(new Date(), 7)) && !isPast(dueDate);
                 return (
                   <TableRow key={item.id} className={isNearDue ? "bg-amber-500/5" : ""}>
-                    <TableCell className="font-medium">{item.supplier_name || "—"}</TableCell>
-                    <TableCell>
+                    <TableCell className="font-medium truncate">{item.supplier_name || "—"}</TableCell>
+                    <TableCell className="truncate">
                       <div>
                         <span className="text-sm">{item.description}</span>
                         {item.installment_total > 1 && (

@@ -40,14 +40,14 @@ export default function AdminLogs() {
         </CardHeader>
         <CardContent className="p-0">
           <div className="overflow-x-auto">
-            <Table>
+            <Table className="table-fixed w-full">
               <TableHeader>
                 <TableRow>
-                  <TableHead>Data</TableHead>
-                  <TableHead>Evento</TableHead>
-                  <TableHead>Descrição</TableHead>
-                  <TableHead>Entidade</TableHead>
-                  <TableHead>User ID</TableHead>
+                  <TableHead className="w-[15%]">Data</TableHead>
+                  <TableHead className="w-[18%]">Evento</TableHead>
+                  <TableHead className="w-[35%]">Descrição</TableHead>
+                  <TableHead className="w-[15%]">Entidade</TableHead>
+                  <TableHead className="w-[17%]">User ID</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
