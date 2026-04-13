@@ -1167,6 +1167,58 @@ export default function ContasAPagar() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Duplicate detail modal */}
+      <Dialog open={!!dupDetailItem} onOpenChange={(open) => { if (!open) setDupDetailItem(null); }}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="text-lg">Detalhes da Conta Existente</DialogTitle>
+            <DialogDescription>Informações completas do registro encontrado.</DialogDescription>
+          </DialogHeader>
+          {dupDetailItem && (() => {
+            const d = dupDetailItem;
+            const cfg = statusConfig[d.status] || statusConfig.pending;
+            const forn = d.supplier_id ? fornecedores.find((f: any) => f.id === d.supplier_id) : null;
+            const cat = d.category_id ? categories.find((c: any) => c.id === d.category_id) : null;
+            const cc = d.cost_center_id ? costCenters.find((c: any) => c.id === d.cost_center_id) : null;
+            const ba = d.bank_account_id ? bankAccounts.find((b: any) => b.id === d.bank_account_id) : null;
+            const pm = d.payment_method_id ? paymentMethods.find((p: any) => p.id === d.payment_method_id) : null;
+            const fornName = forn ? (forn.tipo === "pj" ? (forn.nome_fantasia || forn.razao_social) : forn.nome_completo) : d.supplier_name;
+            const fornDoc = forn ? (forn.tipo === "pj" ? forn.cnpj : forn.cpf) : null;
+
+            const rows: [string, string | null | undefined][] = [
+              ["Descrição", d.description],
+              ["Status", cfg.label],
+              ["Valor", `R$ ${Number(d.amount).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`],
+              ["Vencimento", d.due_date ? format(new Date(d.due_date), "dd/MM/yyyy") : null],
+              ["Fornecedor", fornName],
+              ["Documento (Fornecedor)", fornDoc],
+              ["Nº Documento", d.document_number],
+              ["Categoria", cat?.nome],
+              ["Centro de Custo", cc?.nome],
+              ["Conta Bancária", ba?.nome],
+              ["Forma de Pagamento", pm?.nome],
+              ["Parcela", d.installment_total > 1 ? `${d.installment_number}/${d.installment_total}` : null],
+              ["Observações", d.notes],
+              ["Criado em", d.created_at ? format(new Date(d.created_at), "dd/MM/yyyy HH:mm") : null],
+            ];
+
+            return (
+              <div className="space-y-2 max-h-[60vh] overflow-y-auto">
+                {rows.map(([label, value]) => value ? (
+                  <div key={label} className="flex justify-between gap-4 py-1.5 border-b border-border/20 last:border-0">
+                    <span className="text-sm text-muted-foreground shrink-0">{label}</span>
+                    <span className="text-sm font-medium text-foreground text-right">{value}</span>
+                  </div>
+                ) : null)}
+              </div>
+            );
+          })()}
+          <div className="flex justify-end pt-2">
+            <Button variant="outline" onClick={() => setDupDetailItem(null)} className="rounded-lg">Fechar</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
