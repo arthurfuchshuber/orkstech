@@ -7,7 +7,7 @@ import { refreshQueries } from "@/lib/query-refresh";
 import { toast } from "sonner";
 import {
   Truck, Plus, Building2, UserRound, Check, Mail, MapPin, Home,
-  Tag, Loader2, Pencil, Trash2, Power, Search, Phone,
+  Tag, Loader2, Pencil, Trash2, Power, Search, Phone, ChevronDown,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { StatCard } from "@/components/StatCard";
@@ -26,6 +26,7 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 interface Fornecedor {
   id: string;
@@ -377,17 +378,24 @@ export default function Fornecedores() {
               {f.ativo ? "Ativo" : "Inativo"}
             </Badge>
 
-            <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEdit(f)}>
-                <Pencil className="w-3.5 h-3.5" />
-              </Button>
-              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => toggleMutation.mutate({ id: f.id, ativo: !f.ativo })}>
-                <Power className={`w-3.5 h-3.5 ${f.ativo ? "text-emerald-400" : ""}`} />
-              </Button>
-              <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => setDeleteId(f.id)}>
-                <Trash2 className="w-3.5 h-3.5" />
-              </Button>
-            </div>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="sm" className="rounded-lg">
+                  <ChevronDown className="w-4 h-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => openEdit(f)}>
+                  <Pencil className="w-4 h-4 mr-2" /> Editar
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => toggleMutation.mutate({ id: f.id, ativo: !f.ativo })}>
+                  <Power className={`w-4 h-4 mr-2 ${f.ativo ? "text-emerald-400" : ""}`} /> {f.ativo ? "Desativar" : "Ativar"}
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setDeleteId(f.id)} className="text-destructive">
+                  <Trash2 className="w-4 h-4 mr-2" /> Excluir
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         ))}
       </Card>

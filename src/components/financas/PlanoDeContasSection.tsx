@@ -222,12 +222,29 @@ export function PlanoDeContasSection() {
                             <Icon className="w-3 h-3 text-muted-foreground/60 flex-shrink-0" />
                             <span className="text-xs font-medium text-foreground flex-1 truncate">{node.nome}</span>
                             <Badge variant="outline" className={`text-[9px] px-1 py-0 leading-4 ${tipoColors[node.tipo]}`}>{tipoLabels[node.tipo]}</Badge>
-                            <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                              <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => openNew(node.id, node.tipo)}><Plus className="w-2.5 h-2.5" /></Button>
-                              <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => openEdit(node)}><Pencil className="w-2.5 h-2.5" /></Button>
-                              <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => toggleMutation.mutate({ id: node.id, ativo: !node.ativo })}><Power className={`w-2.5 h-2.5 ${node.ativo ? "text-emerald-400" : "text-muted-foreground"}`} /></Button>
-                              {!hasChildren && <Button variant="ghost" size="icon" className="h-5 w-5 text-destructive" onClick={() => deleteMutation.mutate(node.id)}><Trash2 className="w-2.5 h-2.5" /></Button>}
-                            </div>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-5 w-5 opacity-0 group-hover:opacity-100 transition-opacity">
+                                  <ChevronDown className="w-3 h-3" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={() => openNew(node.id, node.tipo)}>
+                                  <Plus className="w-4 h-4 mr-2" /> Adicionar Sub
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => openEdit(node)}>
+                                  <Pencil className="w-4 h-4 mr-2" /> Editar
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => toggleMutation.mutate({ id: node.id, ativo: !node.ativo })}>
+                                  <Power className={`w-4 h-4 mr-2 ${node.ativo ? "text-emerald-400" : "text-muted-foreground"}`} /> {node.ativo ? "Desativar" : "Ativar"}
+                                </DropdownMenuItem>
+                                {!hasChildren && (
+                                  <DropdownMenuItem onClick={() => deleteMutation.mutate(node.id)} className="text-destructive">
+                                    <Trash2 className="w-4 h-4 mr-2" /> Excluir
+                                  </DropdownMenuItem>
+                                )}
+                              </DropdownMenuContent>
+                            </DropdownMenu>
                           </div>
                         )}
                       </Draggable>

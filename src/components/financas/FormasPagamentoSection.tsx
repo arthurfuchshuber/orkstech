@@ -7,7 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { FormaPagamentoModal } from "@/components/modals/FormaPagamentoModal";
-import { Plus, Pencil, Trash2, Power, CreditCard, QrCode, FileBarChart, ArrowLeftRight, Banknote } from "lucide-react";
+import { Plus, Pencil, Trash2, Power, CreditCard, QrCode, FileBarChart, ArrowLeftRight, Banknote, ChevronDown } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 type TipoForma = "pix" | "boleto" | "cartao" | "transferencia" | "dinheiro";
 
@@ -91,13 +92,24 @@ export function FormasPagamentoSection() {
                   </div>
                   <span className="text-xs font-medium text-foreground flex-1 truncate">{item.nome}</span>
                   <Badge variant="outline" className="text-[9px] px-1 py-0 leading-4">{tipoLabels[item.tipo]}</Badge>
-                  <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => openEdit(item)}><Pencil className="w-2.5 h-2.5" /></Button>
-                    <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => toggleMutation.mutate({ id: item.id, ativo: !item.ativo })}>
-                      <Power className={`w-2.5 h-2.5 ${item.ativo ? "text-emerald-400" : ""}`} />
-                    </Button>
-                    <Button variant="ghost" size="icon" className="h-5 w-5 text-destructive" onClick={() => deleteMutation.mutate(item.id)}><Trash2 className="w-2.5 h-2.5" /></Button>
-                  </div>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-5 w-5">
+                        <ChevronDown className="w-3 h-3" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => openEdit(item)}>
+                        <Pencil className="w-4 h-4 mr-2" /> Editar
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => toggleMutation.mutate({ id: item.id, ativo: !item.ativo })}>
+                        <Power className={`w-4 h-4 mr-2 ${item.ativo ? "text-emerald-400" : ""}`} /> {item.ativo ? "Desativar" : "Ativar"}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => deleteMutation.mutate(item.id)} className="text-destructive">
+                        <Trash2 className="w-4 h-4 mr-2" /> Excluir
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
               );
             })}
