@@ -51,6 +51,8 @@ export function EmpresaSelector({ collapsed }: { collapsed: boolean }) {
     );
   }, [empresas, search]);
 
+  if (!empresa && !isSuperAdminMode) return null;
+
   const handleNewEmpresa = () => {
     if (!canAddMore) {
       setShowUpgrade(true);
