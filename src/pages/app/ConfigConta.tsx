@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Building2, Users, Trash2, Pencil, UserPlus } from "lucide-react";
 import { DocumentInput } from "@/components/inputs/DocumentInput";
 import { PhoneInput } from "@/components/inputs/PhoneInput";
@@ -559,7 +560,9 @@ function UsuariosTab() {
 }
 
 /* ─── Page ─── */
-export default function ConfigConta() {
+export default function ConfigConta({ defaultTab }: { defaultTab?: string }) {
+  const tab = defaultTab ?? "empresa";
+
   return (
     <div className="space-y-6 animate-fade-in">
       <div>
@@ -569,7 +572,7 @@ export default function ConfigConta() {
         </p>
       </div>
 
-      <Tabs defaultValue="empresa" className="w-full">
+      <Tabs defaultValue={tab} className="w-full">
         <TabsList className="w-full justify-start">
           <TabsTrigger value="empresa" className="gap-1.5">
             <Building2 className="w-3.5 h-3.5" />
