@@ -19,6 +19,7 @@ import { DateInput } from "@/components/inputs/DateInput";
 import { validateClientForm, type ClientFormData, type FormErrors } from "@/lib/validators";
 import { refreshQueries } from "@/lib/query-refresh";
 import { useAuth } from "@/hooks/useAuth";
+import { useEmpresa } from "@/hooks/useEmpresa";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -67,6 +68,8 @@ function formatPhone(phone?: string | null) {
 
 export default function Clientes() {
   const { user } = useAuth();
+  const { empresa } = useEmpresa();
+  const empresaId = empresa?.id;
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const [showForm, setShowForm] = useState(false);
@@ -79,12 +82,14 @@ export default function Clientes() {
   const [filterTipo, setFilterTipo] = useState<string[]>([]);
 
   const { data: clientes = [], isLoading } = useQuery({
-    queryKey: ["clientes"],
+    queryKey: ["clientes", empresaId],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let q = supabase
         .from("clientes")
         .select("*")
         .order("created_at", { ascending: false });
+      if (empresaId) q = q.eq("empresa_id", empresaId);
+      const { data, error } = await q;
       if (error) throw error;
       return data;
     },
@@ -202,6 +207,7 @@ export default function Clientes() {
 
     mutation.mutate({
       user_id: user!.id,
+      empresa_id: empresaId,
       tipo: form.type,
       nome_completo: form.type === "pf" ? form.nomeCompleto : undefined,
       cpf: form.type === "pf" ? form.cpf.replace(/\D/g, "") : undefined,

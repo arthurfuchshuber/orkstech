@@ -1,5 +1,6 @@
 import { useState, useMemo, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useEmpresa } from "@/hooks/useEmpresa";
 import {
   Receipt, Plus, Check, Loader2, AlertTriangle, Clock, Ban,
   FileText, Search, CreditCard,
@@ -90,6 +91,8 @@ const statusConfig: Record<string, { label: string; color: string; icon: typeof 
 
 export default function ContasAPagar() {
   const { user } = useAuth();
+  const { empresa } = useEmpresa();
+  const empresaId = empresa?.id;
   const queryClient = useQueryClient();
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -128,19 +131,23 @@ export default function ContasAPagar() {
 
   // Fetch data
   const { data: payables = [], isLoading } = useQuery({
-    queryKey: ["accounts-payable"],
-    queryFn: fetchAccountsPayable,
+    queryKey: ["accounts-payable", empresaId],
+    queryFn: async () => fetchAccountsPayable(empresaId),
+    enabled: !!user,
   });
 
   const { data: counts = { openTotal: 0, upcoming: 0, overdue: 0, paid: 0 } } = useQuery({
-    queryKey: ["accounts-payable-counts"],
-    queryFn: countAccountsPayable,
+    queryKey: ["accounts-payable-counts", empresaId],
+    queryFn: async () => countAccountsPayable(empresaId),
+    enabled: !!user,
   });
 
   const { data: fornecedores = [] } = useQuery({
-    queryKey: ["fornecedores"],
+    queryKey: ["fornecedores", empresaId],
     queryFn: async () => {
-      const { data } = await supabase.from("fornecedores").select("id, tipo, nome_completo, razao_social, nome_fantasia, cnpj, cpf").eq("ativo", true).order("razao_social");
+      let q = supabase.from("fornecedores").select("id, tipo, nome_completo, razao_social, nome_fantasia, cnpj, cpf").eq("ativo", true).order("razao_social");
+      if (empresaId) q = q.eq("empresa_id", empresaId);
+      const { data } = await q;
       return data ?? [];
     },
   });
@@ -151,33 +158,41 @@ export default function ContasAPagar() {
   }));
 
   const { data: categories = [] } = useQuery({
-    queryKey: ["categorias-financeiras"],
+    queryKey: ["categorias-financeiras", empresaId],
     queryFn: async () => {
-      const { data } = await supabase.from("categorias_financeiras").select("id, nome").eq("ativo", true).order("nome");
+      let q = supabase.from("categorias_financeiras").select("id, nome").eq("ativo", true).order("nome");
+      if (empresaId) q = q.eq("empresa_id", empresaId);
+      const { data } = await q;
       return data ?? [];
     },
   });
 
   const { data: costCenters = [] } = useQuery({
-    queryKey: ["centros-custo"],
+    queryKey: ["centros-custo", empresaId],
     queryFn: async () => {
-      const { data } = await supabase.from("centros_custo").select("id, nome").eq("ativo", true).order("nome");
+      let q = supabase.from("centros_custo").select("id, nome").eq("ativo", true).order("nome");
+      if (empresaId) q = q.eq("empresa_id", empresaId);
+      const { data } = await q;
       return data ?? [];
     },
   });
 
   const { data: bankAccounts = [] } = useQuery({
-    queryKey: ["contas-bancarias"],
+    queryKey: ["contas-bancarias", empresaId],
     queryFn: async () => {
-      const { data } = await supabase.from("contas_bancarias").select("id, nome, banco").eq("ativo", true).order("nome");
+      let q = supabase.from("contas_bancarias").select("id, nome, banco").eq("ativo", true).order("nome");
+      if (empresaId) q = q.eq("empresa_id", empresaId);
+      const { data } = await q;
       return data ?? [];
     },
   });
 
   const { data: paymentMethods = [] } = useQuery({
-    queryKey: ["formas-pagamento"],
+    queryKey: ["formas-pagamento", empresaId],
     queryFn: async () => {
-      const { data } = await supabase.from("formas_pagamento").select("id, nome").eq("ativo", true).order("nome");
+      let q = supabase.from("formas_pagamento").select("id, nome").eq("ativo", true).order("nome");
+      if (empresaId) q = q.eq("empresa_id", empresaId);
+      const { data } = await q;
       return data ?? [];
     },
   });
@@ -205,7 +220,7 @@ export default function ContasAPagar() {
 
   const paymentMutation = useMutation({
     mutationFn: ({ id, bankAccountId, paymentDate }: { id: string; bankAccountId: string; paymentDate: string }) =>
-      registerPayment(id, bankAccountId, paymentDate, user!.id),
+      registerPayment(id, bankAccountId, paymentDate, user!.id, empresaId),
     onSuccess: async () => {
       await refreshQueries(queryClient, [["accounts-payable"], ["accounts-payable-counts"]]);
       toast.success("Pagamento registrado!");
@@ -350,6 +365,7 @@ export default function ContasAPagar() {
 
       records.push({
         user_id: user!.id,
+        empresa_id: empresaId || undefined,
         description: form.installments > 1 ? `${form.description} (${i + 1}/${form.installments})` : form.description,
         supplier_id: form.supplier_id || null,
         supplier_name: form.supplier_name || null,
