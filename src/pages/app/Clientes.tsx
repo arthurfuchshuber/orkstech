@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import {
   Users, Plus, Search, Building2, UserRound, Check, Loader2,
-  Mail, MapPin, Home, Filter, X, Pencil, Power, Trash2
+  Mail, MapPin, Home, Filter, X, Pencil, Trash2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -380,30 +380,29 @@ export default function Clientes() {
 
       {/* Table */}
       <Card className="border-border/50 shadow-sm overflow-hidden">
-        <Table className="table-fixed w-full">
+        <Table className="w-full">
           <TableHeader>
             <TableRow className="hover:bg-transparent border-border/30">
-              <TableHead className="text-xs font-semibold uppercase tracking-wider w-[20%]">Nome / Razão Social</TableHead>
-              <TableHead className="text-xs font-semibold uppercase tracking-wider w-[6%]">Tipo</TableHead>
+              <TableHead className="text-xs font-semibold uppercase tracking-wider w-[19%]">Nome / Razão Social</TableHead>
+              <TableHead className="text-xs font-semibold uppercase tracking-wider w-[7%]">Tipo</TableHead>
               <TableHead className="text-xs font-semibold uppercase tracking-wider w-[14%]">Documento</TableHead>
               <TableHead className="text-xs font-semibold uppercase tracking-wider w-[13%]">Telefone</TableHead>
-              <TableHead className="text-xs font-semibold uppercase tracking-wider w-[17%]">Email</TableHead>
+              <TableHead className="text-xs font-semibold uppercase tracking-wider w-[18%]">Email</TableHead>
               <TableHead className="text-xs font-semibold uppercase tracking-wider w-[10%]">Cidade</TableHead>
-              <TableHead className="text-xs font-semibold uppercase tracking-wider w-[7%]">Status</TableHead>
-              <TableHead className="text-xs font-semibold uppercase tracking-wider w-[9%] text-right">Criado em</TableHead>
-              <TableHead className="text-xs font-semibold uppercase tracking-wider w-[4%]"></TableHead>
+              <TableHead className="text-xs font-semibold uppercase tracking-wider w-[9%] text-center">Status</TableHead>
+              <TableHead className="text-xs font-semibold uppercase tracking-wider w-[10%] text-right">Criado em</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={9} className="text-center py-12">
+                <TableCell colSpan={8} className="text-center py-12">
                   <Loader2 className="w-5 h-5 animate-spin mx-auto text-muted-foreground" />
                 </TableCell>
               </TableRow>
             ) : filtered.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={9} className="text-center py-12">
+                <TableCell colSpan={8} className="text-center py-12">
                   <div className="flex flex-col items-center gap-2">
                     <Users className="w-8 h-8 text-muted-foreground/30" />
                     <p className="text-sm text-muted-foreground">
@@ -416,46 +415,53 @@ export default function Clientes() {
               filtered.map((c) => (
                 <TableRow
                   key={c.id}
-                  className="cursor-pointer hover:bg-muted/50 transition-colors border-border/20 group"
+                  className="cursor-pointer hover:bg-muted/50 transition-colors border-border/20"
                   onClick={() => navigate(`/app/clientes/${c.id}`)}
                 >
-                  <TableCell className="font-medium text-foreground truncate">
-                    {c.tipo === "pf" ? c.nome_completo : (c.nome_fantasia || c.razao_social) || "—"}
+                  <TableCell className="font-medium text-foreground">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="truncate block">{c.tipo === "pf" ? c.nome_completo : (c.nome_fantasia || c.razao_social) || "—"}</span>
+                    </div>
                   </TableCell>
                   <TableCell>
-                    <Badge variant="outline" className="text-xs font-medium">
+                    <Badge variant="outline" className="text-xs font-medium whitespace-nowrap">
                       {c.tipo === "pf" ? "PF" : "PJ"}
                     </Badge>
                   </TableCell>
-                  <TableCell className="text-muted-foreground text-sm font-mono truncate">
+                  <TableCell className="text-muted-foreground text-sm font-mono whitespace-nowrap">
                     {formatDoc(c.tipo, c.cpf, c.cnpj)}
                   </TableCell>
-                  <TableCell className="text-muted-foreground text-sm truncate">
-                    {formatPhone(c.telefone)}
+                  <TableCell className="text-muted-foreground text-sm">
+                    <span className="truncate block">{formatPhone(c.telefone)}</span>
                   </TableCell>
-                  <TableCell className="text-muted-foreground text-sm truncate">{c.email || "—"}</TableCell>
-                  <TableCell className="text-muted-foreground text-sm truncate">
+                  <TableCell className="text-muted-foreground text-sm">
+                    <span className="truncate block">{c.email || "—"}</span>
+                  </TableCell>
+                  <TableCell className="text-muted-foreground text-sm whitespace-nowrap">
                     {c.cidade ? `${c.cidade}${c.estado ? `/${c.estado}` : ""}` : "—"}
                   </TableCell>
-                  <TableCell>
-                    <Badge variant={c.ativo ? "default" : "secondary"} className="text-xs">
-                      {c.ativo ? "Ativo" : "Inativo"}
-                    </Badge>
+                  <TableCell className="text-center" onClick={(e) => e.stopPropagation()}>
+                    <button
+                      type="button"
+                      onClick={() => toggleMutation.mutate({ id: c.id, ativo: !c.ativo })}
+                      className="inline-flex"
+                    >
+                      <Badge variant={c.ativo ? "default" : "secondary"} className="text-xs cursor-pointer hover:opacity-90 whitespace-nowrap">
+                        {c.ativo ? "Ativo" : "Inativo"}
+                      </Badge>
+                    </button>
                   </TableCell>
                   <TableCell className="text-muted-foreground text-sm text-right">
-                    {format(new Date(c.created_at), "dd/MM/yyyy", { locale: ptBR })}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex gap-1 justify-end opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
-                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => navigate(`/app/clientes/${c.id}`)}>
-                        <Pencil className="w-3.5 h-3.5" />
-                      </Button>
-                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => toggleMutation.mutate({ id: c.id, ativo: !c.ativo })}>
-                        <Power className={`w-3.5 h-3.5 ${c.ativo ? "text-emerald-400" : ""}`} />
-                      </Button>
-                      <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => setDeleteId(c.id)}>
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </Button>
+                    <div className="flex items-center justify-end gap-2 whitespace-nowrap">
+                      <span>{format(new Date(c.created_at), "dd/MM/yyyy", { locale: ptBR })}</span>
+                      <div className="flex items-center gap-0.5" onClick={(e) => e.stopPropagation()}>
+                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => navigate(`/app/clientes/${c.id}`)}>
+                          <Pencil className="w-3.5 h-3.5" />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => setDeleteId(c.id)}>
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </Button>
+                      </div>
                     </div>
                   </TableCell>
                 </TableRow>
