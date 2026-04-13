@@ -18,6 +18,7 @@ import {
   FolderTree, TrendingUp, TrendingDown, Minus, RefreshCw, GripVertical,
 } from "lucide-react";
 import { DragDropContext, Droppable, Draggable, type DropResult } from "@hello-pangea/dnd";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 type TipoFinanceiro = "receita" | "despesa" | "custo" | "ajuste";
 
