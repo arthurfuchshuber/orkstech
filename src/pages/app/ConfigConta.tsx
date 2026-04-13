@@ -318,7 +318,7 @@ function UsuariosTab() {
 
   const handleRoleChange = (targetUser: UserRow, nextNivelId: string) => {
     if (isOnlyActiveAdmin(targetUser) && nextNivelId !== adminNivelId) {
-      toast.error("Não é possível remover o nível Admin do último administrador da empresa");
+      toast.error("Não é possível remover o nível Admin do único administrador da empresa.", { duration: 5000 });
       return;
     }
 
