@@ -158,33 +158,41 @@ export default function ContasAPagar() {
   }));
 
   const { data: categories = [] } = useQuery({
-    queryKey: ["categorias-financeiras"],
+    queryKey: ["categorias-financeiras", empresaId],
     queryFn: async () => {
-      const { data } = await supabase.from("categorias_financeiras").select("id, nome").eq("ativo", true).order("nome");
+      let q = supabase.from("categorias_financeiras").select("id, nome").eq("ativo", true).order("nome");
+      if (empresaId) q = q.eq("empresa_id", empresaId);
+      const { data } = await q;
       return data ?? [];
     },
   });
 
   const { data: costCenters = [] } = useQuery({
-    queryKey: ["centros-custo"],
+    queryKey: ["centros-custo", empresaId],
     queryFn: async () => {
-      const { data } = await supabase.from("centros_custo").select("id, nome").eq("ativo", true).order("nome");
+      let q = supabase.from("centros_custo").select("id, nome").eq("ativo", true).order("nome");
+      if (empresaId) q = q.eq("empresa_id", empresaId);
+      const { data } = await q;
       return data ?? [];
     },
   });
 
   const { data: bankAccounts = [] } = useQuery({
-    queryKey: ["contas-bancarias"],
+    queryKey: ["contas-bancarias", empresaId],
     queryFn: async () => {
-      const { data } = await supabase.from("contas_bancarias").select("id, nome, banco").eq("ativo", true).order("nome");
+      let q = supabase.from("contas_bancarias").select("id, nome, banco").eq("ativo", true).order("nome");
+      if (empresaId) q = q.eq("empresa_id", empresaId);
+      const { data } = await q;
       return data ?? [];
     },
   });
 
   const { data: paymentMethods = [] } = useQuery({
-    queryKey: ["formas-pagamento"],
+    queryKey: ["formas-pagamento", empresaId],
     queryFn: async () => {
-      const { data } = await supabase.from("formas_pagamento").select("id, nome").eq("ativo", true).order("nome");
+      let q = supabase.from("formas_pagamento").select("id, nome").eq("ativo", true).order("nome");
+      if (empresaId) q = q.eq("empresa_id", empresaId);
+      const { data } = await q;
       return data ?? [];
     },
   });
