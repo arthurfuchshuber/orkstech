@@ -25,8 +25,10 @@ export function StatCard({ title, value, subtitle, change, changeType = "neutral
           <Icon className="w-3.5 h-3.5 text-primary" />
         </div>
       </div>
-      <div className="text-2xl font-bold text-foreground tracking-tight">{value}</div>
-      {subtitle && <span className="text-xs font-medium text-muted-foreground mt-0.5 block">{subtitle}</span>}
+      <div className="flex items-baseline gap-2">
+        <span className="text-2xl font-bold text-foreground tracking-tight">{value}</span>
+        {subtitle && <span className="text-sm font-medium text-muted-foreground">({subtitle})</span>}
+      </div>
       {change && <span className={`text-xs font-medium mt-1 block ${changeColor}`}>{change}</span>}
     </Card>
   );
