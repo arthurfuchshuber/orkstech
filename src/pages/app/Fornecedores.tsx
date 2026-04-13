@@ -163,6 +163,7 @@ export default function Fornecedores() {
         estado: form.endereco.estado || null,
         cep: form.endereco.cep || null,
         observacoes: form.observacoes || null,
+        categoria_id: form.categoria || null,
       };
 
       if (editingId) {
