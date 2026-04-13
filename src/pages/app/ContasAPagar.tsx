@@ -729,10 +729,10 @@ export default function ContasAPagar() {
           .reduce((s: number, i: any) => s + Number(i.juros_multa || 0), 0);
         return (
           <div className="grid grid-cols-1 sm:grid-cols-5 gap-4">
-            <StatCard icon={Receipt} title="Total em Aberto" value={String(counts.openTotal)} subtitle={fmt(sum(openItems))} />
-            <StatCard icon={Clock} title="A Vencer" value={String(counts.upcoming)} subtitle={fmt(sum(upcomingItems))} />
-            <StatCard icon={AlertTriangle} title="Vencidas" value={String(counts.overdue)} subtitle={fmt(sum(overdueItems))} />
-            <StatCard icon={Check} title="Pagas" value={String(counts.paid)} subtitle={fmt(sum(paidItems))} />
+            <StatCard icon={Receipt} title="Total em Aberto" value={fmt(sum(openItems))} subtitle={`(${counts.openTotal})`} />
+            <StatCard icon={Clock} title="A Vencer" value={fmt(sum(upcomingItems))} subtitle={`(${counts.upcoming})`} />
+            <StatCard icon={AlertTriangle} title="Vencidas" value={fmt(sum(overdueItems))} subtitle={`(${counts.overdue})`} />
+            <StatCard icon={Check} title="Pagas" value={fmt(sum(paidItems))} subtitle={`(${counts.paid})`} />
             <StatCard icon={Percent} title="Juros/Multa" value={fmt(jurosMultaTotal)} />
           </div>
         );
