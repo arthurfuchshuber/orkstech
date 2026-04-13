@@ -335,10 +335,11 @@ serve(async (req) => {
         });
       }
 
-      // Prevent deactivating the last admin
+      // Prevent deactivating the last admin (applies to ALL callers)
       if (!parsed.data.ativo) {
+        const targetEmpresaId = await getTargetEmpresaId(supabaseAdmin, parsed.data.user_id);
         const lastAdmin = await isLastAdminOfEmpresa(
-          supabaseAdmin, parsed.data.user_id, adminLevel?.id, callerEmpresaId
+          supabaseAdmin, parsed.data.user_id, adminLevel?.id, targetEmpresaId
         );
         if (lastAdmin) {
           return new Response(JSON.stringify({ error: "Não é possível inativar o último administrador da empresa" }), {
