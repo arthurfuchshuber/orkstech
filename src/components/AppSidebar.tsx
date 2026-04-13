@@ -6,8 +6,9 @@ import { DynamicIcon } from "@/components/DynamicIcon";
 import { useMenus, type MenuItem } from "@/hooks/useMenus";
 import { useAuth } from "@/hooks/useAuth";
 import { useSuperAdmin } from "@/hooks/useSuperAdmin";
+import { useEmpresa } from "@/hooks/useEmpresa";
 import { supabase } from "@/integrations/supabase/client";
-import { ChevronRight, Zap, ShieldCheck } from "lucide-react";
+import { ChevronRight, Zap } from "lucide-react";
 import { EmpresaSelector } from "@/components/EmpresaSelector";
 import {
   Sidebar,
@@ -212,6 +213,14 @@ export function AppSidebar() {
   const { user } = useAuth();
   const { isSuperAdmin } = useSuperAdmin();
   const { tree, flatMenus, isLoading } = useMenus();
+  const { empresa } = useEmpresa();
+
+  // Super Admin without empresa: auto-navigate to admin panel
+  useEffect(() => {
+    if (isSuperAdmin && !empresa && !location.pathname.startsWith("/app/admin")) {
+      navigate("/app/admin", { replace: true });
+    }
+  }, [isSuperAdmin, empresa, location.pathname, navigate]);
 
   // Check if user has open finance connections
   const { data: hasOpenFinance } = useQuery({
@@ -300,6 +309,8 @@ export function AppSidebar() {
     setOpenMap(next);
   };
 
+  const showRegularMenus = !!empresa;
+
   return (
     <Sidebar collapsible="icon">
       <SidebarHeader className="px-3 py-4 space-y-3">
@@ -313,34 +324,39 @@ export function AppSidebar() {
       </SidebarHeader>
 
       <SidebarContent className="px-2">
-        {isLoading ? (
-          <div className="space-y-2 p-3">
-            {[1, 2, 3, 4, 5].map((i) => (
-              <Skeleton key={i} className="h-6 w-full" />
-            ))}
-          </div>
-        ) : (
-          <SidebarGroup className="py-0.5">
-            <SidebarGroupContent>
-              <SidebarMenu>
-                {filteredTree.map((item) => (
-                  <MenuItemNode
-                    key={item.id}
-                    item={item}
-                    collapsed={collapsed}
-                    pathname={location.pathname}
-                    openMap={openMap}
-                    onToggle={handleToggle}
-                  />
+        {/* Regular menus - only when an empresa is selected */}
+        {showRegularMenus && (
+          <>
+            {isLoading ? (
+              <div className="space-y-2 p-3">
+                {[1, 2, 3, 4, 5].map((i) => (
+                  <Skeleton key={i} className="h-6 w-full" />
                 ))}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
+              </div>
+            ) : (
+              <SidebarGroup className="py-0.5">
+                <SidebarGroupContent>
+                  <SidebarMenu>
+                    {filteredTree.map((item) => (
+                      <MenuItemNode
+                        key={item.id}
+                        item={item}
+                        collapsed={collapsed}
+                        pathname={location.pathname}
+                        openMap={openMap}
+                        onToggle={handleToggle}
+                      />
+                    ))}
+                  </SidebarMenu>
+                </SidebarGroupContent>
+              </SidebarGroup>
+            )}
+          </>
         )}
 
         {/* Admin Menu - Super Admin only */}
         {isSuperAdmin && (
-          <SidebarGroup className="py-0.5 mt-2 border-t border-border/30 pt-2">
+          <SidebarGroup className={`py-0.5 ${showRegularMenus ? "mt-2 border-t border-border/30 pt-2" : ""}`}>
             <SidebarGroupContent>
               <SidebarMenu>
                 <SidebarMenuItem>
