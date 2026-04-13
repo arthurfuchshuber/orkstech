@@ -420,6 +420,15 @@ export default function ContasAPagar() {
     toast.success("Conta cancelada");
   };
 
+  const handleDelete = async (id: string) => {
+    const { error } = await supabase.from("accounts_payable").delete().eq("id", id);
+    if (error) { toast.error("Erro ao excluir"); return; }
+    queryClient.invalidateQueries({ queryKey: ["accounts-payable"] });
+    queryClient.invalidateQueries({ queryKey: ["accounts-payable-counts"] });
+    toast.success("Conta excluída");
+    setDeleteId(null);
+  };
+
   const handleDuplicate = (item: any) => {
     setEditingId(null);
     setForm({
