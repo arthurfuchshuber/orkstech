@@ -271,9 +271,9 @@ export default function Onboarding() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="md:col-span-2">
-                  <TextInput label="Razão Social *" value={form.razao_social} onChange={handleInputChange("razao_social")} error={errors.razao_social} />
+                  <TextInput label="Razão Social *" value={form.razao_social} onChange={handleInputChange("razao_social")} error={errors.razao_social} className="uppercase" />
                 </div>
-                <TextInput label="Nome Fantasia" value={form.nome_fantasia} onChange={handleInputChange("nome_fantasia")} />
+                <TextInput label="Nome Fantasia" value={form.nome_fantasia} onChange={handleInputChange("nome_fantasia")} className="uppercase" />
                 <TextInput label="Inscrição Estadual" value={form.inscricao_estadual} onChange={handleInputChange("inscricao_estadual")} />
                 <TextInput label="Inscrição Municipal" value={form.inscricao_municipal} onChange={handleInputChange("inscricao_municipal")} />
                 <PhoneInput label="Telefone" value={form.telefone} onValueChange={handleValueChange("telefone")} />
