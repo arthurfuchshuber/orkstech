@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
-import { Users, Building2, ChevronRight, Mail, Calendar, Shield, User } from "lucide-react";
+import { Users, Building2, ChevronDown, Mail, Calendar, Shield, User } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -19,14 +19,14 @@ interface AdminUser {
   empresa: string;
 }
 
-interface CompanyGroup {
-  empresa: string;
-  users: AdminUser[];
+interface UserGroup {
+  user: AdminUser;
+  empresas: string[];
 }
 
 export default function AdminUsers() {
   const qc = useQueryClient();
-  const [expandedCompanies, setExpandedCompanies] = useState<Set<string>>(new Set());
+  const [expandedUsers, setExpandedUsers] = useState<Set<string>>(new Set());
 
   const { data, isLoading } = useQuery({
     queryKey: ["admin-all-users"],
@@ -39,24 +39,26 @@ export default function AdminUsers() {
     },
   });
 
-  const groups = useMemo<CompanyGroup[]>(() => {
+  const userGroups = useMemo<UserGroup[]>(() => {
     if (!data?.length) return [];
-    const map = new Map<string, AdminUser[]>();
+    const map = new Map<string, UserGroup>();
     for (const u of data) {
-      const key = u.empresa || "Sem empresa";
-      if (!map.has(key)) map.set(key, []);
-      map.get(key)!.push(u);
+      if (!map.has(u.id)) {
+        map.set(u.id, { user: u, empresas: [] });
+      }
+      const group = map.get(u.id)!;
+      if (u.empresa) group.empresas.push(u.empresa);
     }
-    return Array.from(map.entries())
-      .map(([empresa, users]) => ({ empresa, users }))
-      .sort((a, b) => a.empresa.localeCompare(b.empresa));
+    return Array.from(map.values()).sort((a, b) =>
+      (a.user.nome || "").localeCompare(b.user.nome || "")
+    );
   }, [data]);
 
-  const toggleExpand = (empresa: string) => {
-    setExpandedCompanies((prev) => {
+  const toggleExpand = (userId: string) => {
+    setExpandedUsers((prev) => {
       const next = new Set(prev);
-      if (next.has(empresa)) next.delete(empresa);
-      else next.add(empresa);
+      if (next.has(userId)) next.delete(userId);
+      else next.add(userId);
       return next;
     });
   };
@@ -76,101 +78,103 @@ export default function AdminUsers() {
     onError: (e: any) => toast.error(e.message),
   });
 
+  const totalEmpresas = useMemo(() => {
+    const set = new Set<string>();
+    userGroups.forEach((g) => g.empresas.forEach((e) => set.add(e)));
+    return set.size;
+  }, [userGroups]);
+
   return (
     <div className="space-y-6 animate-fade-in">
       <Card className="border-border/50">
         <CardHeader className="pb-3">
           <CardTitle className="text-sm font-medium flex items-center gap-2">
             <Users className="w-4 h-4 text-primary" />
-            {data?.length ?? 0} usuários em {groups.length} empresa{groups.length !== 1 ? "s" : ""}
+            {userGroups.length} usuário{userGroups.length !== 1 ? "s" : ""} em {totalEmpresas} empresa{totalEmpresas !== 1 ? "s" : ""}
           </CardTitle>
         </CardHeader>
         <CardContent className="p-0 pb-2">
           {isLoading ? (
             <div className="text-center text-muted-foreground py-12 text-sm">Carregando...</div>
-          ) : !groups.length ? (
+          ) : !userGroups.length ? (
             <div className="text-center text-muted-foreground py-12 text-sm">Nenhum usuário</div>
           ) : (
             <div className="space-y-1 px-3">
-              {groups.map((group) => {
-                const isOpen = expandedCompanies.has(group.empresa);
-                return (
-                  <div key={group.empresa} className="rounded-lg border border-border/40 overflow-hidden transition-all duration-200">
-                    {/* Company row */}
-                    <button
-                      onClick={() => toggleExpand(group.empresa)}
-                      className={cn(
-                        "w-full flex items-center gap-3 px-4 py-3 text-left transition-all duration-200 hover:bg-muted/40",
-                        isOpen && "bg-muted/30"
-                      )}
-                    >
-                      <div className={cn(
-                        "w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors",
-                        isOpen ? "bg-primary/15 text-primary" : "bg-muted/60 text-muted-foreground"
-                      )}>
-                        <Building2 className="w-4 h-4" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-foreground truncate">{group.empresa}</p>
-                        <p className="text-[11px] text-muted-foreground">
-                          {group.users.length} usuário{group.users.length !== 1 ? "s" : ""}
-                        </p>
-                      </div>
-                      <ChevronRight className={cn(
-                        "w-4 h-4 text-muted-foreground/50 transition-transform duration-200",
-                        isOpen && "rotate-90 text-primary/60"
-                      )} />
-                    </button>
+              {userGroups.map((group) => {
+                const { user: u, empresas } = group;
+                const isOpen = expandedUsers.has(u.id);
+                const hasEmpresas = empresas.length > 0;
 
-                    {/* Users list */}
+                return (
+                  <div key={u.id} className="rounded-lg border border-border/40 overflow-hidden transition-all duration-200">
+                    {/* User row */}
+                    <div className={cn(
+                      "flex items-center gap-4 px-4 py-3 transition-colors",
+                      isOpen && "bg-muted/20"
+                    )}>
+                      {/* Expand button or spacer */}
+                      {hasEmpresas ? (
+                        <button
+                          onClick={() => toggleExpand(u.id)}
+                          className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 bg-primary/10 hover:bg-primary/20 transition-colors"
+                        >
+                          <ChevronDown className={cn(
+                            "w-4 h-4 text-primary/70 transition-transform duration-200",
+                            isOpen && "rotate-180"
+                          )} />
+                        </button>
+                      ) : (
+                        <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 bg-muted/40">
+                          <User className="w-4 h-4 text-muted-foreground/50" />
+                        </div>
+                      )}
+
+                      {/* User info */}
+                      <div className="flex-1 min-w-0 flex items-center gap-6">
+                        <p className="text-sm font-medium text-foreground truncate min-w-[160px]">
+                          {u.nome || "Sem nome"}
+                        </p>
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <Mail className="w-3 h-3 text-muted-foreground/50 flex-shrink-0" />
+                          <span className="text-xs text-muted-foreground truncate">{u.email}</span>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <Shield className="w-3 h-3 text-muted-foreground/50" />
+                          <Badge variant="outline" className="text-[10px] font-normal">{u.nivel}</Badge>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <Calendar className="w-3 h-3 text-muted-foreground/50" />
+                          <span className="text-[11px] text-muted-foreground">
+                            {format(new Date(u.created_at), "dd/MM/yyyy")}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Toggle */}
+                      <Switch
+                        checked={u.ativo}
+                        onCheckedChange={(v) => toggleMutation.mutate({ user_id: u.id, ativo: v })}
+                      />
+                    </div>
+
+                    {/* Empresas sub-list */}
                     <div className={cn(
                       "transition-all duration-200 ease-in-out overflow-hidden",
-                      isOpen ? "max-h-[2000px] opacity-100" : "max-h-0 opacity-0"
+                      isOpen ? "max-h-[1000px] opacity-100" : "max-h-0 opacity-0"
                     )}>
                       <div className="border-t border-border/30 bg-muted/10">
-                        {group.users.map((u, idx) => (
+                        {empresas.map((empresa, idx) => (
                           <div
-                            key={u.id}
+                            key={empresa}
                             className={cn(
-                              "flex items-center gap-4 px-5 py-3 transition-colors hover:bg-muted/20",
-                              idx !== group.users.length - 1 && "border-b border-border/20"
+                              "flex items-center gap-3 pl-16 pr-5 py-2.5 transition-colors hover:bg-muted/20",
+                              idx !== empresas.length - 1 && "border-b border-border/20"
                             )}
                           >
-                            {/* Avatar */}
-                            <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                              <User className="w-3.5 h-3.5 text-primary/70" />
+                            <div className="w-6 h-6 rounded-md bg-primary/10 flex items-center justify-center flex-shrink-0">
+                              <Building2 className="w-3 h-3 text-primary/70" />
                             </div>
-
-                            {/* Info */}
-                            <div className="flex-1 min-w-0 grid grid-cols-1 sm:grid-cols-4 gap-1 sm:gap-4 items-center">
-                              <div className="min-w-0">
-                                <p className="text-sm font-medium text-foreground truncate">
-                                  {u.nome || "Sem nome"}
-                                </p>
-                              </div>
-                              <div className="flex items-center gap-1.5 min-w-0">
-                                <Mail className="w-3 h-3 text-muted-foreground/50 flex-shrink-0" />
-                                <span className="text-xs text-muted-foreground truncate">{u.email}</span>
-                              </div>
-                              <div className="flex items-center gap-2">
-                                <div className="flex items-center gap-1.5">
-                                  <Shield className="w-3 h-3 text-muted-foreground/50" />
-                                  <Badge variant="outline" className="text-[10px] font-normal">{u.nivel}</Badge>
-                                </div>
-                                <div className="flex items-center gap-1.5">
-                                  <Calendar className="w-3 h-3 text-muted-foreground/50" />
-                                  <span className="text-[11px] text-muted-foreground">
-                                    {format(new Date(u.created_at), "dd/MM/yyyy")}
-                                  </span>
-                                </div>
-                              </div>
-                              <div className="flex justify-end">
-                                <Switch
-                                  checked={u.ativo}
-                                  onCheckedChange={(v) => toggleMutation.mutate({ user_id: u.id, ativo: v })}
-                                />
-                              </div>
-                            </div>
+                            <span className="text-xs text-muted-foreground">{empresa}</span>
                           </div>
                         ))}
                       </div>
