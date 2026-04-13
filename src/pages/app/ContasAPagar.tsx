@@ -641,9 +641,14 @@ export default function ContasAPagar() {
           <h1 className="text-2xl font-bold text-foreground tracking-tight">Contas a Pagar</h1>
           <p className="text-muted-foreground text-sm mt-0.5">Gerencie suas despesas e pagamentos</p>
         </div>
-        <Button onClick={() => { setEditingId(null); setForm(initialForm); setShowForm(true); }} className="rounded-lg gap-2 shadow-sm">
-          <Plus className="w-4 h-4" /> Nova Conta
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setBulkScanOpen(true)} className="rounded-lg gap-2 shadow-sm">
+            <ScanLine className="w-4 h-4" /> Escanear em Massa
+          </Button>
+          <Button onClick={() => { setEditingId(null); setForm(initialForm); setShowForm(true); }} className="rounded-lg gap-2 shadow-sm">
+            <Plus className="w-4 h-4" /> Nova Conta
+          </Button>
+        </div>
       </div>
 
       {/* Stats */}
