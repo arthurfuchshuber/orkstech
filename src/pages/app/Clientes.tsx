@@ -169,6 +169,13 @@ export default function Clientes() {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
+      const { count } = await supabase
+        .from("accounts_payable")
+        .select("id", { count: "exact", head: true })
+        .eq("cliente_id", id);
+      if (count && count > 0) {
+        throw new Error("LINKED");
+      }
       const { error } = await supabase.from("clientes").delete().eq("id", id);
       if (error) throw error;
     },
@@ -176,7 +183,13 @@ export default function Clientes() {
       await refreshQueries(queryClient, [["clientes"]]);
       toast.success("Cliente excluído");
     },
-    onError: () => toast.error("Erro ao excluir cliente"),
+    onError: (err: any) => {
+      if (err?.message === "LINKED") {
+        toast.error("Este cliente possui registros financeiros vinculados e não pode ser excluído.");
+      } else {
+        toast.error("Erro ao excluir cliente");
+      }
+    },
   });
 
   const updateField = <K extends keyof ClientFormData>(key: K, value: ClientFormData[K]) => {
