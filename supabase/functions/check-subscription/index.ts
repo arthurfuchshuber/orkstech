@@ -44,7 +44,11 @@ serve(async (req) => {
 
     if (customers.data.length === 0) {
       logStep("No Stripe customer found");
-      return new Response(JSON.stringify({ subscribed: false }), {
+      return new Response(JSON.stringify({
+        subscribed: false,
+        status: null,
+        trial_end: null,
+      }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 200,
       });
@@ -53,33 +57,58 @@ serve(async (req) => {
     const customerId = customers.data[0].id;
     logStep("Found customer", { customerId });
 
+    // Check active AND trialing subscriptions
     const subscriptions = await stripe.subscriptions.list({
       customer: customerId,
-      status: "active",
       limit: 1,
     });
 
-    const hasActiveSub = subscriptions.data.length > 0;
-    let productId = null;
-    let priceId = null;
-    let subscriptionEnd = null;
+    // Find active or trialing sub
+    const activeSub = subscriptions.data.find(
+      (s) => s.status === "active" || s.status === "trialing"
+    );
 
-    if (hasActiveSub) {
-      const sub = subscriptions.data[0];
-      subscriptionEnd = new Date(sub.current_period_end * 1000).toISOString();
-      priceId = sub.items.data[0].price.id;
-      productId = sub.items.data[0].price.product;
-      logStep("Active subscription found", { subscriptionId: sub.id, productId, priceId });
-    } else {
-      logStep("No active subscription");
+    if (!activeSub) {
+      logStep("No active/trialing subscription");
+      return new Response(JSON.stringify({
+        subscribed: false,
+        status: null,
+        product_id: null,
+        price_id: null,
+        subscription_end: null,
+        trial_end: null,
+        cancel_at_period_end: false,
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200,
+      });
     }
+
+    const subscriptionEnd = new Date(activeSub.current_period_end * 1000).toISOString();
+    const priceId = activeSub.items.data[0].price.id;
+    const productId = activeSub.items.data[0].price.product;
+    const trialEnd = activeSub.trial_end
+      ? new Date(activeSub.trial_end * 1000).toISOString()
+      : null;
+
+    logStep("Subscription found", {
+      subscriptionId: activeSub.id,
+      status: activeSub.status,
+      productId,
+      priceId,
+      trialEnd,
+      cancelAtPeriodEnd: activeSub.cancel_at_period_end,
+    });
 
     return new Response(
       JSON.stringify({
-        subscribed: hasActiveSub,
+        subscribed: true,
+        status: activeSub.status, // "active" | "trialing"
         product_id: productId,
         price_id: priceId,
         subscription_end: subscriptionEnd,
+        trial_end: trialEnd,
+        cancel_at_period_end: activeSub.cancel_at_period_end,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
     );

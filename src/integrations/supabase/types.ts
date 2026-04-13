@@ -1618,6 +1618,7 @@ export type Database = {
           cpf: string | null
           created_at: string
           data_nascimento: string | null
+          empresa_id: string | null
           id: string
           nivel_permissao_id: string | null
           nome: string | null
@@ -1630,6 +1631,7 @@ export type Database = {
           cpf?: string | null
           created_at?: string
           data_nascimento?: string | null
+          empresa_id?: string | null
           id?: string
           nivel_permissao_id?: string | null
           nome?: string | null
@@ -1642,6 +1644,7 @@ export type Database = {
           cpf?: string | null
           created_at?: string
           data_nascimento?: string | null
+          empresa_id?: string | null
           id?: string
           nivel_permissao_id?: string | null
           nome?: string | null
@@ -1650,6 +1653,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "profiles_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "profiles_nivel_permissao_id_fkey"
             columns: ["nivel_permissao_id"]
