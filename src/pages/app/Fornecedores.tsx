@@ -46,17 +46,8 @@ interface Fornecedor {
   observacoes: string | null;
   ativo: boolean;
   created_at: string;
+  categoria_id: string | null;
 }
-
-const categoriaOptions = [
-  { value: "tecnologia", label: "Tecnologia" },
-  { value: "logistica", label: "Logística" },
-  { value: "escritorio", label: "Material de Escritório" },
-  { value: "servicos", label: "Serviços" },
-  { value: "consultoria", label: "Consultoria" },
-  { value: "marketing", label: "Marketing" },
-  { value: "outros", label: "Outros" },
-];
 
 const initialForm: SupplierFormData = {
   type: "empresa",
