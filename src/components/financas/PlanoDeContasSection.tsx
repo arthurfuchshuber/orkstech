@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
+
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/select";
 import {
   ChevronRight, ChevronDown, Plus, Pencil, Trash2, Power,
-  FolderTree, TrendingUp, TrendingDown, Minus, RefreshCw, GripVertical,
+  FolderTree, GripVertical,
 } from "lucide-react";
 import { DragDropContext, Droppable, Draggable, type DropResult } from "@hello-pangea/dnd";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -67,7 +67,7 @@ export function PlanoDeContasSection() {
   const qc = useQueryClient();
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [form, setForm] = useState({ nome: "", tipo: "receita" as TipoFinanceiro, categoria_pai_id: null as string | null });
+  const [form, setForm] = useState({ nome: "", tipo: "despesa", categoria_pai_id: null as string | null });
   const [collapsedIds, setCollapsedIds] = useState<Set<string>>(new Set());
 
   const { data: categorias = [], isLoading } = useQuery({
@@ -188,7 +188,7 @@ export function PlanoDeContasSection() {
                     const node = item.node;
                     const hasChildren = node.children && node.children.length > 0;
                     const isCollapsed = collapsedIds.has(node.id);
-                    const Icon = tipoIcons[node.tipo];
+                    
                     return (
                       <Draggable key={node.id} draggableId={node.id} index={index}>
                         {(provided, snapshot) => (
