@@ -21,7 +21,7 @@ import Automacoes from "./pages/app/Automacoes";
 import Configuracoes from "./pages/app/Configuracoes";
 import PlaceholderPage from "./pages/app/PlaceholderPage";
 import Dashboard from "./pages/app/Dashboard";
-import CadastrosFinanceiros from "./pages/app/CadastrosFinanceiros";
+import Financeiro from "./pages/app/Financeiro";
 import ContasBancarias from "./pages/app/ContasBancarias";
 import GerenciarMenu from "./pages/app/GerenciarMenu";
 import ContasAPagar from "./pages/app/ContasAPagar";
@@ -61,11 +61,11 @@ const App = () => (
                 <Route path="financas/receber" element={<PlaceholderPage />} />
                 <Route path="financas/fluxo" element={<PlaceholderPage />} />
                 <Route path="financas/dre" element={<PlaceholderPage />} />
-                <Route path="financas/cadastros" element={<CadastrosFinanceiros />} />
+                <Route path="financas/cadastros" element={<Financeiro />} />
                 <Route path="financas/plano-de-contas" element={<Navigate to="/app/financas/cadastros" replace />} />
                 <Route path="financas/centros-de-custo" element={<Navigate to="/app/financas/cadastros" replace />} />
                 <Route path="financas/formas-de-pagamento" element={<Navigate to="/app/financas/cadastros" replace />} />
-                <Route path="financas/contas-bancarias" element={<ContasBancarias />} />
+                <Route path="financas/contas-bancarias" element={<Financeiro />} />
                 <Route path="financas/extrato" element={<ExtratoBancario />} />
                 <Route path="financas/conciliacao" element={<Conciliacao />} />
                 <Route path="automacoes/config" element={<Automacoes />} />
@@ -76,7 +76,7 @@ const App = () => (
                 <Route path="config/geral" element={<PlaceholderPage />} />
                 <Route path="config/conta" element={<ConfigConta />} />
                 <Route path="config/usuarios" element={<ConfigConta defaultTab="usuarios" />} />
-                <Route path="config/permissoes" element={<PlaceholderPage />} />
+                <Route path="config/permissoes" element={<ConfigConta defaultTab="permissoes" />} />
                 <Route path="config/planos" element={<ConfigPlanos />} />
                 <Route path="config/menus" element={<GerenciarMenu />} />
                 <Route path="config/integracoes" element={<PlaceholderPage />} />
