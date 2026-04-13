@@ -989,7 +989,6 @@ export default function ContasAPagar() {
                       label="Juros/Multa"
                       value={paymentJurosMulta}
                       onValueChange={setPaymentJurosMulta}
-                      required
                       error={paymentJurosMulta <= 0 ? "Informe o valor de juros/multa" : undefined}
                     />
                   )}
