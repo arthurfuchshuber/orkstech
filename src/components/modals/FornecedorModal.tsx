@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useEmpresa } from "@/hooks/useEmpresa";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { FormModal } from "@/components/FormModal";
@@ -54,6 +55,7 @@ const initialForm: FornecedorForm = {
 
 export function FornecedorModal({ open, onOpenChange, editingId, onSaved, prefill }: FornecedorModalProps) {
   const { user } = useAuth();
+  const { empresa } = useEmpresa();
   const qc = useQueryClient();
   const [form, setForm] = useState<FornecedorForm>(initialForm);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -192,7 +194,7 @@ export function FornecedorModal({ open, onOpenChange, editingId, onSaved, prefil
         return editingId;
       } else {
         const { data, error } = await supabase.from("fornecedores")
-          .insert({ ...payload, user_id: user!.id })
+          .insert({ ...payload, user_id: user!.id, empresa_id: empresa?.id || null })
           .select("id").single();
         if (error) throw error;
         return data.id;
