@@ -130,6 +130,37 @@ export function BulkBoletoScanner({ open, onOpenChange, fornecedores }: BulkBole
     return null;
   };
 
+  const parseAddress = (address: string | null | undefined) => {
+    if (!address) return {};
+    const result: Record<string, string> = {};
+    
+    // Try to extract CEP (8 digits, with or without dash)
+    const cepMatch = address.match(/(\d{5})-?(\d{3})/);
+    if (cepMatch) result.cep = `${cepMatch[1]}-${cepMatch[2]}`;
+
+    // Try to extract state (2-letter abbreviation at end or after city)
+    const stateMatch = address.match(/[-–,\s]\s*([A-Z]{2})\s*(?:[-–,]|\d{5}|$)/);
+    if (stateMatch) result.estado = stateMatch[1];
+
+    // Try to extract city - usually before state
+    const cityStateMatch = address.match(/[-–,]\s*([^,\-–\d]+?)\s*[-–/]\s*[A-Z]{2}/);
+    if (cityStateMatch) result.cidade = cityStateMatch[1].trim().toUpperCase();
+
+    // Try to extract bairro - usually after number and before city
+    const parts = address.split(/[-–,]/).map(p => p.trim()).filter(Boolean);
+    if (parts.length >= 3) {
+      // First part is usually street, try to use remaining parts
+      result.logradouro = parts[0].toUpperCase();
+      if (parts.length >= 4 && !result.cidade) {
+        result.bairro = parts[parts.length - 3]?.toUpperCase();
+      }
+    } else if (parts.length > 0) {
+      result.logradouro = parts[0].toUpperCase();
+    }
+
+    return result;
+  };
+
   const autoCreateSupplier = async (extracted: any): Promise<{ id: string; name: string } | null> => {
     if (!user) return null;
     const supplierName = extracted.supplier_name?.trim();
@@ -137,12 +168,16 @@ export function BulkBoletoScanner({ open, onOpenChange, fornecedores }: BulkBole
 
     const supplierCnpj = extracted.supplier_cnpj?.replace(/\D/g, "") || null;
     const isPf = supplierCnpj ? supplierCnpj.length <= 11 : false;
+    const addressFields = parseAddress(extracted.supplier_address);
 
     const insertData: any = {
       user_id: user.id,
       empresa_id: empresaId || null,
       tipo: isPf ? "pf" : "pj",
       ativo: true,
+      telefone: extracted.supplier_phone?.replace(/\D/g, "") || null,
+      email: extracted.supplier_email?.trim().toLowerCase() || null,
+      ...addressFields,
     };
 
     if (isPf) {
@@ -162,7 +197,6 @@ export function BulkBoletoScanner({ open, onOpenChange, fornecedores }: BulkBole
         .single();
       if (error) throw error;
       const name = data.tipo === "pj" ? (data.nome_fantasia || data.razao_social || "") : (data.nome_completo || "");
-      // Add to local fornecedores list for subsequent matches
       fornecedores.push({ ...data, cnpj: supplierCnpj, cpf: isPf ? supplierCnpj : null });
       return { id: data.id, name };
     } catch (err) {
