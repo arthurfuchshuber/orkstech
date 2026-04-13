@@ -130,6 +130,7 @@ export default function ContasAPagar() {
   const [scanning, setScanning] = useState(false);
   const [isPickingScanFile, setIsPickingScanFile] = useState(false);
   const [bulkScanOpen, setBulkScanOpen] = useState(false);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
   const scanInputRef = useRef<HTMLInputElement>(null);
 
   // Fetch data
