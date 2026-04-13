@@ -10,6 +10,7 @@ import { TextInput } from "@/components/inputs/TextInput";
 import { TextareaInput } from "@/components/inputs/TextareaInput";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useDocumentValidation } from "@/hooks/useDocumentValidation";
 import type { Tables } from "@/integrations/supabase/types";
 
 interface Props {
@@ -20,6 +21,7 @@ interface Props {
 
 export function ClienteEditModal({ cliente, open, onOpenChange }: Props) {
   const queryClient = useQueryClient();
+  const { validatingCnpj, cnpjError, cpfError, validateCpfField, validateCnpjField, clearErrors } = useDocumentValidation();
 
   const [tipo, setTipo] = useState<"pf" | "pj">(cliente.tipo);
   const [form, setForm] = useState({
@@ -68,11 +70,28 @@ export function ClienteEditModal({ cliente, open, onOpenChange }: Props) {
         responsavel_interno: cliente.responsavel_interno || "",
         observacoes: cliente.observacoes || "",
       });
+      clearErrors();
     }
   }, [open, cliente]);
 
   const mutation = useMutation({
     mutationFn: async () => {
+      // Validate documents before saving
+      if (tipo === "pf") {
+        const rawCpf = form.cpf.replace(/\D/g, "");
+        if (rawCpf && !validateCpfField(rawCpf)) {
+          throw new Error("CPF inválido");
+        }
+      } else {
+        const rawCnpj = form.cnpj.replace(/\D/g, "");
+        if (rawCnpj) {
+          const result = await validateCnpjField(rawCnpj);
+          if (!result.valid) {
+            throw new Error("CNPJ inválido ou inativo");
+          }
+        }
+      }
+
       const update: any = {
         tipo,
         telefone: form.telefone.replace(/\D/g, "") || null,
@@ -107,8 +126,28 @@ export function ClienteEditModal({ cliente, open, onOpenChange }: Props) {
       toast.success("Cliente atualizado");
       onOpenChange(false);
     },
-    onError: () => toast.error("Erro ao atualizar"),
+    onError: (e: any) => toast.error(e.message || "Erro ao atualizar"),
   });
+
+  const handleCnpjBlur = async () => {
+    const rawCnpj = form.cnpj.replace(/\D/g, "");
+    if (rawCnpj.length === 14) {
+      const result = await validateCnpjField(rawCnpj);
+      if (result.valid && result.data) {
+        setForm((prev) => ({
+          ...prev,
+          razao_social: result.data!.razao_social || prev.razao_social,
+          nome_fantasia: result.data!.nome_fantasia || prev.nome_fantasia,
+          logradouro: result.data!.logradouro || prev.logradouro,
+          bairro: result.data!.bairro || prev.bairro,
+          cidade: result.data!.cidade || prev.cidade,
+          estado: result.data!.estado || prev.estado,
+          cep: result.data!.cep || prev.cep,
+        }));
+        toast.success("Dados preenchidos automaticamente");
+      }
+    }
+  };
 
   const handleAddressFound = (address: { logradouro: string; bairro: string; cidade: string; estado: string }) => {
     setForm((prev) => ({ ...prev, ...address }));
@@ -126,7 +165,7 @@ export function ClienteEditModal({ cliente, open, onOpenChange }: Props) {
               { key: "pf" as const, label: "Pessoa Física", sub: "CPF", icon: UserRound },
               { key: "pj" as const, label: "Pessoa Jurídica", sub: "CNPJ", icon: Building2 },
             ]).map(({ key, label, sub, icon: Icon }) => (
-              <button key={key} type="button" onClick={() => setTipo(key)}
+              <button key={key} type="button" onClick={() => { setTipo(key); clearErrors(); }}
                 className={`flex items-center gap-3 p-3.5 rounded-lg border-2 transition-all duration-200 ${tipo === key ? "border-primary bg-primary/5" : "border-border/50 hover:border-muted-foreground/30"}`}>
                 <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${tipo === key ? "bg-primary/15" : "bg-muted/50"}`}>
                   <Icon className={`w-4 h-4 ${tipo === key ? "text-primary" : "text-muted-foreground"}`} />
@@ -148,14 +187,16 @@ export function ClienteEditModal({ cliente, open, onOpenChange }: Props) {
             <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Dados pessoais</p>
             <div className="grid grid-cols-2 gap-4">
               <TextInput label="Nome completo" value={form.nome_completo} onChange={(e) => setForm((p) => ({ ...p, nome_completo: e.target.value }))} icon={<UserRound className="w-4 h-4" />} />
-              <DocumentInput type="cpf" value={form.cpf} onValueChange={(v) => setForm((p) => ({ ...p, cpf: v }))} />
+              <DocumentInput type="cpf" value={form.cpf} onValueChange={(v) => setForm((p) => ({ ...p, cpf: v }))} error={cpfError} onBlur={() => validateCpfField(form.cpf)} />
             </div>
           </div>
         ) : (
           <div className="space-y-4">
-            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Dados da empresa</p>
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Dados da empresa {validatingCnpj && <Loader2 className="w-3 h-3 animate-spin text-primary inline ml-1" />}
+            </p>
             <div className="grid grid-cols-2 gap-4">
-              <DocumentInput type="cnpj" value={form.cnpj} onValueChange={(v) => setForm((p) => ({ ...p, cnpj: v }))} />
+              <DocumentInput type="cnpj" value={form.cnpj} onValueChange={(v) => setForm((p) => ({ ...p, cnpj: v }))} error={cnpjError} onBlur={handleCnpjBlur} />
               <TextInput label="Razão Social" value={form.razao_social} onChange={(e) => setForm((p) => ({ ...p, razao_social: e.target.value }))} icon={<Building2 className="w-4 h-4" />} className="uppercase" />
               <TextInput label="Nome Fantasia" value={form.nome_fantasia} onChange={(e) => setForm((p) => ({ ...p, nome_fantasia: e.target.value }))} className="uppercase" />
               <TextInput label="Inscrição Estadual" value={form.inscricao_estadual} onChange={(e) => setForm((p) => ({ ...p, inscricao_estadual: e.target.value }))} />
@@ -202,8 +243,8 @@ export function ClienteEditModal({ cliente, open, onOpenChange }: Props) {
 
         <div className="flex justify-end gap-3 pt-1">
           <Button variant="outline" onClick={() => onOpenChange(false)} className="rounded-lg">Cancelar</Button>
-          <Button onClick={() => mutation.mutate()} disabled={mutation.isPending} className="rounded-lg gap-2 shadow-sm">
-            {mutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+          <Button onClick={() => mutation.mutate()} disabled={mutation.isPending || validatingCnpj} className="rounded-lg gap-2 shadow-sm">
+            {(mutation.isPending || validatingCnpj) ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
             Salvar
           </Button>
         </div>

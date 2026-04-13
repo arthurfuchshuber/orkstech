@@ -10,6 +10,7 @@ import { TextareaInput } from "@/components/inputs/TextareaInput";
 import { DocumentInput } from "@/components/inputs/DocumentInput";
 import { PhoneInput } from "@/components/inputs/PhoneInput";
 import { CepInput } from "@/components/inputs/CepInput";
+import { useDocumentValidation } from "@/hooks/useDocumentValidation";
 import {
   Building2, UserRound, Check, Loader2, Mail, MapPin, Home,
 } from "lucide-react";
@@ -56,7 +57,7 @@ export function FornecedorModal({ open, onOpenChange, editingId, onSaved, prefil
   const qc = useQueryClient();
   const [form, setForm] = useState<FornecedorForm>(initialForm);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [loadingCnpj, setLoadingCnpj] = useState(false);
+  const { validatingCnpj, cnpjError, cpfError, validateCpfField, validateCnpjField, clearErrors } = useDocumentValidation();
 
   const { data: existing } = useQuery({
     queryKey: ["fornecedor_edit", editingId],
@@ -106,6 +107,7 @@ export function FornecedorModal({ open, onOpenChange, editingId, onSaved, prefil
         setForm(initialForm);
       }
       setErrors({});
+      clearErrors();
     }
   }, [existing, editingId, open, prefill]);
 
@@ -122,26 +124,20 @@ export function FornecedorModal({ open, onOpenChange, editingId, onSaved, prefil
     const raw = form.cpfCnpj.replace(/\D/g, "");
     if (raw.length !== 14) return;
 
-    setLoadingCnpj(true);
-    try {
-      const res = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${raw}`);
-      if (res.ok) {
-        const data = await res.json();
-        setForm((p) => ({
-          ...p,
-          nome: data.razao_social || p.nome,
-          endereco: {
-            logradouro: data.logradouro || p.endereco.logradouro,
-            bairro: data.bairro || p.endereco.bairro,
-            cidade: data.municipio || p.endereco.cidade,
-            estado: data.uf || p.endereco.estado,
-            cep: data.cep ? data.cep.replace(/\D/g, "") : p.endereco.cep,
-          },
-        }));
-        toast.success("Dados preenchidos automaticamente");
-      }
-    } catch { /* silent */ } finally {
-      setLoadingCnpj(false);
+    const result = await validateCnpjField(raw);
+    if (result.valid && result.data) {
+      setForm((p) => ({
+        ...p,
+        nome: result.data!.razao_social || p.nome,
+        endereco: {
+          logradouro: result.data!.logradouro || p.endereco.logradouro,
+          bairro: result.data!.bairro || p.endereco.bairro,
+          cidade: result.data!.cidade || p.endereco.cidade,
+          estado: result.data!.estado || p.endereco.estado,
+          cep: result.data!.cep ? result.data!.cep.replace(/\D/g, "") : p.endereco.cep,
+        },
+      }));
+      toast.success("Dados preenchidos automaticamente");
     }
   };
 
@@ -163,6 +159,16 @@ export function FornecedorModal({ open, onOpenChange, editingId, onSaved, prefil
     mutationFn: async () => {
       const tipoDb = form.type === "empresa" ? "pj" as const : "pf" as const;
       const docRaw = form.cpfCnpj.replace(/\D/g, "");
+
+      // Validate document before saving
+      if (docRaw) {
+        if (form.type === "pessoa") {
+          if (!validateCpfField(docRaw)) throw new Error("CPF inválido");
+        } else {
+          const result = await validateCnpjField(docRaw);
+          if (!result.valid) throw new Error("CNPJ inválido ou inativo");
+        }
+      }
 
       const payload = {
         tipo: tipoDb,
@@ -198,7 +204,7 @@ export function FornecedorModal({ open, onOpenChange, editingId, onSaved, prefil
       onSaved?.(id);
       onOpenChange(false);
     },
-    onError: () => toast.error("Erro ao salvar fornecedor"),
+    onError: (e: any) => toast.error(e.message || "Erro ao salvar fornecedor"),
   });
 
   const validate = () => {
@@ -230,7 +236,7 @@ export function FornecedorModal({ open, onOpenChange, editingId, onSaved, prefil
               { key: "empresa" as const, label: "Empresa", icon: Building2 },
               { key: "pessoa" as const, label: "Pessoa Física", icon: UserRound },
             ]).map(({ key, label, icon: Icon }) => (
-              <button key={key} type="button" onClick={() => { update("type", key); setErrors({}); }}
+              <button key={key} type="button" onClick={() => { update("type", key); setErrors({}); clearErrors(); }}
                 className={`flex items-center gap-2.5 p-3 rounded-lg border-2 transition-all duration-200 ${form.type === key ? "border-primary bg-primary/5" : "border-border/50 hover:border-muted-foreground/30"}`}>
                 <Icon className={`w-4 h-4 ${form.type === key ? "text-primary" : "text-muted-foreground"}`} />
                 <span className={`text-sm font-medium ${form.type === key ? "text-foreground" : "text-muted-foreground"}`}>{label}</span>
@@ -243,7 +249,7 @@ export function FornecedorModal({ open, onOpenChange, editingId, onSaved, prefil
         <div className="flex items-center gap-3">
           <div className="h-px flex-1 bg-border/30" />
           <span className="text-[11px] uppercase tracking-widest text-muted-foreground/60 font-medium">
-            Dados cadastrais {loadingCnpj && <Loader2 className="w-3 h-3 animate-spin text-primary inline ml-1" />}
+            Dados cadastrais {validatingCnpj && <Loader2 className="w-3 h-3 animate-spin text-primary inline ml-1" />}
           </span>
           <div className="h-px flex-1 bg-border/30" />
         </div>
@@ -252,8 +258,8 @@ export function FornecedorModal({ open, onOpenChange, editingId, onSaved, prefil
           type={form.type === "empresa" ? "cnpj" : "cpf"}
           value={form.cpfCnpj}
           onValueChange={(raw) => update("cpfCnpj", raw)}
-          onBlur={form.type === "empresa" ? handleCnpjBlur : undefined}
-          error={errors.cpfCnpj}
+          onBlur={form.type === "empresa" ? handleCnpjBlur : () => validateCpfField(form.cpfCnpj)}
+          error={form.type === "empresa" ? cnpjError : cpfError}
         />
 
         <TextInput
@@ -297,8 +303,8 @@ export function FornecedorModal({ open, onOpenChange, editingId, onSaved, prefil
 
         <div className="flex justify-end gap-3 pt-3 border-t border-border/20">
           <Button variant="outline" onClick={() => onOpenChange(false)} className="rounded-lg">Cancelar</Button>
-          <Button onClick={handleSubmit} disabled={saveMutation.isPending} className="rounded-lg gap-2 shadow-sm">
-            {saveMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+          <Button onClick={handleSubmit} disabled={saveMutation.isPending || validatingCnpj} className="rounded-lg gap-2 shadow-sm">
+            {(saveMutation.isPending || validatingCnpj) ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
             {editingId ? "Salvar Alterações" : "Salvar Fornecedor"}
           </Button>
         </div>
