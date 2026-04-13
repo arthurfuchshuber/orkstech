@@ -2,6 +2,7 @@ import { useCallback } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useEmpresa } from "@/hooks/useEmpresa";
 import type { ManagedOption } from "@/components/inputs/ManagedSelectInput";
 
 type TableName = "categorias_financeiras" | "centros_custo" | "contas_bancarias" | "formas_pagamento" | "cliente_interacao_tipos";
@@ -60,13 +61,13 @@ export function useManagedSelect(
   opts?: { insertDefaults?: Record<string, any> }
 ) {
   const { user } = useAuth();
+  const { empresa } = useEmpresa();
   const queryClient = useQueryClient();
   const config = configs[tableName];
 
   const invalidate = useCallback(() => {
     if (config) {
       queryClient.invalidateQueries({ queryKey: [config.queryKey] });
-      // Also invalidate the table key variant
       queryClient.invalidateQueries({ queryKey: [config.table] });
     }
   }, [config, queryClient]);
@@ -77,6 +78,7 @@ export function useManagedSelect(
       const payload: any = {
         [config.labelField]: label,
         user_id: user.id,
+        empresa_id: empresa?.id || null,
         ...opts?.insertDefaults,
       };
       const { data, error } = await supabase
@@ -90,7 +92,7 @@ export function useManagedSelect(
     } catch {
       return null;
     }
-  }, [config, user, opts?.insertDefaults, invalidate]);
+  }, [config, user, empresa, opts?.insertDefaults, invalidate]);
 
   const onEdit = useCallback(async (id: string, label: string): Promise<boolean> => {
     if (!config) return false;
@@ -122,11 +124,9 @@ export function useManagedSelect(
     }
   }, [config, invalidate]);
 
-  // Reorder is a no-op for tables without an order field — we just persist the visual order
   const onReorder = useCallback(async (orderedIds: string[]): Promise<boolean> => {
     if (!config) return false;
     try {
-      // Update order_index if the table supports it (categorias_financeiras has 'ordem')
       const updates = orderedIds.map((id, idx) => {
         if (config.table === "categorias_financeiras") {
           return supabase.from(config.table).update({ ordem: idx } as any).eq("id", id);

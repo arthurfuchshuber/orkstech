@@ -2,6 +2,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 export type AccountPayableInsert = {
   user_id: string;
+  empresa_id?: string;
   description: string;
   supplier_id?: string | null;
   supplier_name?: string | null;
@@ -22,11 +23,13 @@ export type AccountPayableInsert = {
   pessoa_tipo?: "pj" | "pf";
 };
 
-export async function fetchAccountsPayable() {
-  const { data, error } = await supabase
+export async function fetchAccountsPayable(empresaId?: string) {
+  let query = supabase
     .from("accounts_payable")
     .select("*")
     .order("due_date", { ascending: true });
+  if (empresaId) query = query.eq("empresa_id", empresaId);
+  const { data, error } = await query;
   if (error) throw error;
 
   // Auto-mark overdue
@@ -78,22 +81,33 @@ export async function updateAccountPayable(id: string, updates: any) {
   return data;
 }
 
-export async function countAccountsPayable() {
+export async function countAccountsPayable(empresaId?: string) {
   const today = new Date().toISOString().split("T")[0];
-  // Total em aberto = pending + overdue (não pagos, não cancelados)
-  const { count: openTotal } = await supabase.from("accounts_payable").select("*", { count: "exact", head: true }).in("status", ["pending", "overdue"]);
-  // A vencer = pending com vencimento >= hoje
-  const { count: upcoming } = await supabase.from("accounts_payable").select("*", { count: "exact", head: true }).in("status", ["pending"]).gte("due_date", today);
-  // Vencidas = overdue OU pending com vencimento < hoje
-  const { count: overdueExplicit } = await supabase.from("accounts_payable").select("*", { count: "exact", head: true }).eq("status", "overdue");
-  const { count: pendingOverdue } = await supabase.from("accounts_payable").select("*", { count: "exact", head: true }).eq("status", "pending").lt("due_date", today);
+  
+  let q1 = supabase.from("accounts_payable").select("*", { count: "exact", head: true }).in("status", ["pending", "overdue"]);
+  let q2 = supabase.from("accounts_payable").select("*", { count: "exact", head: true }).in("status", ["pending"]).gte("due_date", today);
+  let q3 = supabase.from("accounts_payable").select("*", { count: "exact", head: true }).eq("status", "overdue");
+  let q4 = supabase.from("accounts_payable").select("*", { count: "exact", head: true }).eq("status", "pending").lt("due_date", today);
+  let q5 = supabase.from("accounts_payable").select("*", { count: "exact", head: true }).eq("status", "paid");
+  
+  if (empresaId) {
+    q1 = q1.eq("empresa_id", empresaId);
+    q2 = q2.eq("empresa_id", empresaId);
+    q3 = q3.eq("empresa_id", empresaId);
+    q4 = q4.eq("empresa_id", empresaId);
+    q5 = q5.eq("empresa_id", empresaId);
+  }
+  
+  const { count: openTotal } = await q1;
+  const { count: upcoming } = await q2;
+  const { count: overdueExplicit } = await q3;
+  const { count: pendingOverdue } = await q4;
   const overdue = (overdueExplicit ?? 0) + (pendingOverdue ?? 0);
-  const { count: paid } = await supabase.from("accounts_payable").select("*", { count: "exact", head: true }).eq("status", "paid");
+  const { count: paid } = await q5;
   return { openTotal: openTotal ?? 0, upcoming: upcoming ?? 0, overdue, paid: paid ?? 0 };
 }
 
-export async function registerPayment(id: string, bankAccountId: string, paymentDate: string, userId: string) {
-  // Update the account payable
+export async function registerPayment(id: string, bankAccountId: string, paymentDate: string, userId: string, empresaId?: string) {
   const { data: updated, error: updateError } = await supabase
     .from("accounts_payable")
     .update({
@@ -106,9 +120,9 @@ export async function registerPayment(id: string, bankAccountId: string, payment
     .single();
   if (updateError) throw updateError;
 
-  // Create cash transaction
   const { error: txError } = await supabase.from("cash_transactions").insert({
     user_id: userId,
+    empresa_id: empresaId || null,
     type: "expense" as any,
     amount: (updated as any).amount,
     transaction_date: paymentDate,
