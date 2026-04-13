@@ -1,0 +1,1 @@
+ALTER TABLE public.accounts_payable ADD COLUMN juros_multa numeric NOT NULL DEFAULT 0;
