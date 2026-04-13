@@ -5,7 +5,7 @@ import {
   Receipt, Plus, Check, Loader2, AlertTriangle, Clock, Ban,
   FileText, Search, CreditCard,
   Building2, Target, Landmark, FolderTree, X, Copy, Pencil, Trash2,
-  Banknote, ChevronDown, ScanLine
+  Banknote, ChevronDown, ScanLine, MoreHorizontal
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { StatCard } from "@/components/StatCard";
@@ -28,6 +28,7 @@ import { FornecedorModal, type FornecedorPrefill } from "@/components/modals/For
 import { BulkBoletoScanner } from "@/components/BulkBoletoScanner";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -98,6 +99,7 @@ export default function ContasAPagar() {
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<PayableForm>(initialForm);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState<string>("all");
@@ -429,6 +431,50 @@ export default function ContasAPagar() {
     setDeleteId(null);
   };
 
+  const handleChangeStatus = async (id: string, newStatus: string) => {
+    if (newStatus === "paid") {
+      openPaymentDialog(id);
+      return;
+    }
+    await updateAccountPayable(id, { status: newStatus as any, ...(newStatus !== "paid" ? { payment_date: null } : {}) });
+    queryClient.invalidateQueries({ queryKey: ["accounts-payable"] });
+    queryClient.invalidateQueries({ queryKey: ["accounts-payable-counts"] });
+    toast.success(`Status alterado para ${statusConfig[newStatus]?.label || newStatus}`);
+  };
+
+  const handleBulkChangeStatus = async (newStatus: string) => {
+    if (newStatus === "paid") {
+      toast.error("Para registrar pagamento, use a ação individual.");
+      return;
+    }
+    const ids = Array.from(selectedIds);
+    if (ids.length === 0) return;
+    for (const id of ids) {
+      await updateAccountPayable(id, { status: newStatus as any, ...(newStatus !== "paid" ? { payment_date: null } : {}) });
+    }
+    setSelectedIds(new Set());
+    queryClient.invalidateQueries({ queryKey: ["accounts-payable"] });
+    queryClient.invalidateQueries({ queryKey: ["accounts-payable-counts"] });
+    toast.success(`${ids.length} conta(s) atualizada(s) para ${statusConfig[newStatus]?.label || newStatus}`);
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === filtered.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(filtered.map((p: any) => p.id)));
+    }
+  };
+
+  const toggleSelectItem = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
   const handleDuplicate = (item: any) => {
     setEditingId(null);
     setForm({
@@ -628,16 +674,8 @@ export default function ContasAPagar() {
   const formatCurrency = (val: number) =>
     new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(val);
 
-  const getStatusBadge = (status: string) => {
-    const cfg = statusConfig[status] || statusConfig.pending;
-    const Icon = cfg.icon;
-    return (
-      <Badge variant="outline" className={`${cfg.color} gap-1 font-medium`}>
-        <Icon className="w-3 h-3" />
-        {cfg.label}
-      </Badge>
-    );
-  };
+
+
 
   const isPending = createMutation.isPending || updateMutation.isPending;
 
@@ -728,6 +766,35 @@ export default function ContasAPagar() {
         </div>
       </Card>
 
+      {/* Bulk Action Bar */}
+      {selectedIds.size > 0 && (
+        <Card className="border-primary/30 bg-primary/5 shadow-sm p-3">
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-medium text-foreground">
+              {selectedIds.size} item(ns) selecionado(s)
+            </span>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-muted-foreground mr-1">Alterar status para:</span>
+              {Object.entries(statusConfig).map(([key, cfg]) => (
+                <Button
+                  key={key}
+                  size="sm"
+                  variant="outline"
+                  className="rounded-lg text-xs gap-1"
+                  onClick={() => handleBulkChangeStatus(key)}
+                >
+                  <cfg.icon className="w-3 h-3" />
+                  {cfg.label}
+                </Button>
+              ))}
+              <Button size="sm" variant="ghost" className="rounded-lg text-xs" onClick={() => setSelectedIds(new Set())}>
+                Limpar seleção
+              </Button>
+            </div>
+          </div>
+        </Card>
+      )}
+
       {/* Table */}
       <Card className="border-border/50 shadow-sm overflow-hidden">
         {isLoading ? (
@@ -745,11 +812,17 @@ export default function ContasAPagar() {
           <Table className="table-fixed w-full">
             <TableHeader>
               <TableRow>
-                <TableHead className="w-[20%]">Fornecedor</TableHead>
-                <TableHead className="w-[25%]">Descrição</TableHead>
-                <TableHead className="w-[12%]">Valor</TableHead>
-                <TableHead className="w-[13%]">Vencimento</TableHead>
-                <TableHead className="w-[12%]">Status</TableHead>
+                <TableHead className="w-[4%]">
+                  <Checkbox
+                    checked={filtered.length > 0 && selectedIds.size === filtered.length}
+                    onCheckedChange={toggleSelectAll}
+                  />
+                </TableHead>
+                <TableHead className="w-[18%]">Fornecedor</TableHead>
+                <TableHead className="w-[23%]">Descrição</TableHead>
+                <TableHead className="w-[11%]">Valor</TableHead>
+                <TableHead className="w-[12%]">Vencimento</TableHead>
+                <TableHead className="w-[14%]">Status</TableHead>
                 <TableHead className="w-[8%] text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
@@ -759,6 +832,12 @@ export default function ContasAPagar() {
                 const isNearDue = item.status === "pending" && isBefore(dueDate, addDays(new Date(), 7)) && !isPast(dueDate);
                 return (
                   <TableRow key={item.id} className={isNearDue ? "bg-amber-500/5" : ""}>
+                    <TableCell>
+                      <Checkbox
+                        checked={selectedIds.has(item.id)}
+                        onCheckedChange={() => toggleSelectItem(item.id)}
+                      />
+                    </TableCell>
                     <TableCell className="font-medium truncate">{item.supplier_name || "—"}</TableCell>
                     <TableCell className="truncate">
                       <div>
@@ -776,12 +855,41 @@ export default function ContasAPagar() {
                         {format(dueDate, "dd/MM/yyyy")}
                       </span>
                     </TableCell>
-                    <TableCell>{getStatusBadge(item.status)}</TableCell>
+                    <TableCell>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <button className="cursor-pointer">
+                            {(() => {
+                              const cfg = statusConfig[item.status] || statusConfig.pending;
+                              const Icon = cfg.icon;
+                              return (
+                                <Badge variant="outline" className={`${cfg.color} gap-1 font-medium cursor-pointer hover:opacity-80 transition-opacity`}>
+                                  <Icon className="w-3 h-3" />
+                                  {cfg.label}
+                                  <ChevronDown className="w-3 h-3 ml-0.5 opacity-50" />
+                                </Badge>
+                              );
+                            })()}
+                          </button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="start">
+                          {Object.entries(statusConfig).map(([key, cfg]) => {
+                            if (key === item.status) return null;
+                            return (
+                              <DropdownMenuItem key={key} onClick={() => handleChangeStatus(item.id, key)}>
+                                <cfg.icon className="w-4 h-4 mr-2" />
+                                {cfg.label}
+                              </DropdownMenuItem>
+                            );
+                          })}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
                     <TableCell className="text-right">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button variant="ghost" size="sm" className="rounded-lg">
-                            <ChevronDown className="w-4 h-4" />
+                            <MoreHorizontal className="w-4 h-4" />
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
