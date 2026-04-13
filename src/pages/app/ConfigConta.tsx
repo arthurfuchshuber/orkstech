@@ -342,65 +342,6 @@ function UsuariosTab() {
   );
 }
 
-/* ─── Tab: Permissões ─── */
-function PermissoesTab() {
-  const { data, isLoading } = useUserManagementData();
-  const users = data?.users ?? [];
-  // Extra safety: filter out Super Admin from client side
-  const niveis = (data?.niveis ?? []).filter((n: NivelPermissao) => n.nome !== "Super Admin");
-
-  const getNivelDescription = (nome: string) => {
-    const n = nome.toLowerCase();
-    if (n.includes("admin")) return "Gerencia operação, usuários e configurações da empresa.";
-    if (n.includes("finance")) return "Focado em rotinas financeiras, cadastros estruturais e contas bancárias.";
-    if (n.includes("operac")) return "Acesso às rotinas operacionais do dia a dia.";
-    if (n.includes("visual") || n.includes("leitura")) return "Acesso consultivo, ideal para acompanhamento.";
-    return "Define o escopo de acesso do usuário dentro do sistema.";
-  };
-
-  const resumo = useMemo(() => niveis.map((nivel) => ({
-    ...nivel,
-    count: users.filter((u) => u.nivel_permissao_id === nivel.id).length,
-  })), [niveis, users]);
-
-  if (isLoading) return <p className="py-8 text-center text-sm text-muted-foreground">Carregando...</p>;
-
-  return (
-    <div className="space-y-4">
-      <p className="text-sm text-muted-foreground">Visão dos níveis de acesso e a distribuição dos usuários por nível.</p>
-
-      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-        {resumo.map((nivel) => (
-          <div key={nivel.id} className="rounded-xl border border-border/60 bg-muted/20 p-4">
-            <div className="flex items-start justify-between gap-3">
-              <div className="space-y-1">
-                <p className="text-sm font-semibold text-foreground">{nivel.nome}</p>
-                <p className="text-xs leading-relaxed text-muted-foreground">{getNivelDescription(nivel.nome)}</p>
-              </div>
-              <Badge variant="secondary" className="shrink-0">{nivel.count}</Badge>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      <div className="space-y-2">
-        {users.map((u) => (
-          <div key={u.id} className="flex flex-col gap-3 rounded-xl border border-border/60 bg-background px-4 py-3 md:flex-row md:items-center md:justify-between">
-            <div>
-              <p className="text-sm font-medium text-foreground">{u.nome || u.email}</p>
-              <p className="text-xs text-muted-foreground">{u.email}</p>
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <Badge variant="outline">{u.nivel_nome}</Badge>
-              <Badge variant={u.ativo ? "secondary" : "outline"}>{u.ativo ? "Ativo" : "Inativo"}</Badge>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
 /* ─── Page ─── */
 export default function ConfigConta({ defaultTab }: { defaultTab?: string }) {
   const tab = defaultTab ?? "empresa";
@@ -422,11 +363,7 @@ export default function ConfigConta({ defaultTab }: { defaultTab?: string }) {
           </TabsTrigger>
           <TabsTrigger value="usuarios" className="gap-1.5">
             <Users className="w-3.5 h-3.5" />
-            Usuários
-          </TabsTrigger>
-          <TabsTrigger value="permissoes" className="gap-1.5">
-            <ShieldCheck className="w-3.5 h-3.5" />
-            Permissões
+            Usuários & Permissões
           </TabsTrigger>
         </TabsList>
 
@@ -435,9 +372,6 @@ export default function ConfigConta({ defaultTab }: { defaultTab?: string }) {
         </TabsContent>
         <TabsContent value="usuarios" className="mt-4">
           <UsuariosTab />
-        </TabsContent>
-        <TabsContent value="permissoes" className="mt-4">
-          <PermissoesTab />
         </TabsContent>
       </Tabs>
     </div>
