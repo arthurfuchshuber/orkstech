@@ -20,8 +20,8 @@ interface Props {
 
 export function ClienteEditModal({ cliente, open, onOpenChange }: Props) {
   const queryClient = useQueryClient();
-  const isPF = cliente.tipo === "pf";
 
+  const [tipo, setTipo] = useState<"pf" | "pj">(cliente.tipo);
   const [form, setForm] = useState({
     nome_completo: cliente.nome_completo || "",
     cpf: cliente.cpf || "",
@@ -31,21 +31,22 @@ export function ClienteEditModal({ cliente, open, onOpenChange }: Props) {
     inscricao_estadual: cliente.inscricao_estadual || "",
     inscricao_municipal: cliente.inscricao_municipal || "",
     telefone: cliente.telefone || "",
-    whatsapp: (cliente as any).whatsapp || "",
+    whatsapp: cliente.whatsapp || "",
     email: cliente.email || "",
     logradouro: cliente.logradouro || "",
-    numero: (cliente as any).numero || "",
-    complemento: (cliente as any).complemento || "",
+    numero: cliente.numero || "",
+    complemento: cliente.complemento || "",
     bairro: cliente.bairro || "",
     cidade: cliente.cidade || "",
     estado: cliente.estado || "",
     cep: cliente.cep || "",
-    responsavel_interno: (cliente as any).responsavel_interno || "",
+    responsavel_interno: cliente.responsavel_interno || "",
     observacoes: cliente.observacoes || "",
   });
 
   useEffect(() => {
     if (open) {
+      setTipo(cliente.tipo);
       setForm({
         nome_completo: cliente.nome_completo || "",
         cpf: cliente.cpf || "",
@@ -55,16 +56,16 @@ export function ClienteEditModal({ cliente, open, onOpenChange }: Props) {
         inscricao_estadual: cliente.inscricao_estadual || "",
         inscricao_municipal: cliente.inscricao_municipal || "",
         telefone: cliente.telefone || "",
-        whatsapp: (cliente as any).whatsapp || "",
+        whatsapp: cliente.whatsapp || "",
         email: cliente.email || "",
         logradouro: cliente.logradouro || "",
-        numero: (cliente as any).numero || "",
-        complemento: (cliente as any).complemento || "",
+        numero: cliente.numero || "",
+        complemento: cliente.complemento || "",
         bairro: cliente.bairro || "",
         cidade: cliente.cidade || "",
         estado: cliente.estado || "",
         cep: cliente.cep || "",
-        responsavel_interno: (cliente as any).responsavel_interno || "",
+        responsavel_interno: cliente.responsavel_interno || "",
         observacoes: cliente.observacoes || "",
       });
     }
@@ -73,6 +74,7 @@ export function ClienteEditModal({ cliente, open, onOpenChange }: Props) {
   const mutation = useMutation({
     mutationFn: async () => {
       const update: any = {
+        tipo,
         telefone: form.telefone.replace(/\D/g, "") || null,
         whatsapp: form.whatsapp.replace(/\D/g, "") || null,
         email: form.email || null,
@@ -86,11 +88,13 @@ export function ClienteEditModal({ cliente, open, onOpenChange }: Props) {
         responsavel_interno: form.responsavel_interno || null,
         observacoes: form.observacoes || null,
       };
-      if (isPF) {
+      if (tipo === "pf") {
         update.nome_completo = form.nome_completo || null;
+        update.cpf = form.cpf.replace(/\D/g, "") || null;
       } else {
-        update.razao_social = form.razao_social || null;
-        update.nome_fantasia = form.nome_fantasia || null;
+        update.razao_social = form.razao_social ? form.razao_social.toUpperCase() : null;
+        update.nome_fantasia = form.nome_fantasia ? form.nome_fantasia.toUpperCase() : null;
+        update.cnpj = form.cnpj.replace(/\D/g, "") || null;
         update.inscricao_estadual = form.inscricao_estadual || null;
         update.inscricao_municipal = form.inscricao_municipal || null;
       }
@@ -114,15 +118,44 @@ export function ClienteEditModal({ cliente, open, onOpenChange }: Props) {
   return (
     <FormModal open={open} onOpenChange={onOpenChange} title="Editar Cliente" size="xl">
       <div className="space-y-6">
-        {isPF ? (
+        {/* Tipo de cliente */}
+        <div className="space-y-2">
+          <label className="text-sm font-medium text-foreground">Tipo de cliente</label>
+          <div className="grid grid-cols-2 gap-3">
+            {([
+              { key: "pf" as const, label: "Pessoa Física", sub: "CPF", icon: UserRound },
+              { key: "pj" as const, label: "Pessoa Jurídica", sub: "CNPJ", icon: Building2 },
+            ]).map(({ key, label, sub, icon: Icon }) => (
+              <button key={key} type="button" onClick={() => setTipo(key)}
+                className={`flex items-center gap-3 p-3.5 rounded-lg border-2 transition-all duration-200 ${tipo === key ? "border-primary bg-primary/5" : "border-border/50 hover:border-muted-foreground/30"}`}>
+                <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${tipo === key ? "bg-primary/15" : "bg-muted/50"}`}>
+                  <Icon className={`w-4 h-4 ${tipo === key ? "text-primary" : "text-muted-foreground"}`} />
+                </div>
+                <div className="text-left">
+                  <p className={`text-sm font-medium ${tipo === key ? "text-foreground" : "text-muted-foreground"}`}>{label}</p>
+                  <p className="text-xs text-muted-foreground">{sub}</p>
+                </div>
+                {tipo === key && <Check className="w-4 h-4 text-primary ml-auto" />}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="h-px bg-border/30" />
+
+        {tipo === "pf" ? (
           <div className="space-y-4">
             <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Dados pessoais</p>
-            <TextInput label="Nome completo" value={form.nome_completo} onChange={(e) => setForm((p) => ({ ...p, nome_completo: e.target.value }))} icon={<UserRound className="w-4 h-4" />} />
+            <div className="grid grid-cols-2 gap-4">
+              <TextInput label="Nome completo" value={form.nome_completo} onChange={(e) => setForm((p) => ({ ...p, nome_completo: e.target.value }))} icon={<UserRound className="w-4 h-4" />} />
+              <DocumentInput type="cpf" value={form.cpf} onValueChange={(v) => setForm((p) => ({ ...p, cpf: v }))} />
+            </div>
           </div>
         ) : (
           <div className="space-y-4">
             <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Dados da empresa</p>
             <div className="grid grid-cols-2 gap-4">
+              <DocumentInput type="cnpj" value={form.cnpj} onValueChange={(v) => setForm((p) => ({ ...p, cnpj: v }))} />
               <TextInput label="Razão Social" value={form.razao_social} onChange={(e) => setForm((p) => ({ ...p, razao_social: e.target.value }))} icon={<Building2 className="w-4 h-4" />} className="uppercase" />
               <TextInput label="Nome Fantasia" value={form.nome_fantasia} onChange={(e) => setForm((p) => ({ ...p, nome_fantasia: e.target.value }))} className="uppercase" />
               <TextInput label="Inscrição Estadual" value={form.inscricao_estadual} onChange={(e) => setForm((p) => ({ ...p, inscricao_estadual: e.target.value }))} />
