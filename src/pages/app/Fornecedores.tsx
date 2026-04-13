@@ -173,6 +173,13 @@ export default function Fornecedores() {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
+      const { count } = await supabase
+        .from("accounts_payable")
+        .select("id", { count: "exact", head: true })
+        .eq("supplier_id", id);
+      if (count && count > 0) {
+        throw new Error("LINKED");
+      }
       const { error } = await supabase.from("fornecedores").delete().eq("id", id);
       if (error) throw error;
     },
@@ -180,7 +187,13 @@ export default function Fornecedores() {
       await refreshQueries(qc, [["fornecedores"]]);
       toast.success("Fornecedor excluído");
     },
-    onError: () => toast.error("Erro ao excluir fornecedor"),
+    onError: (err: any) => {
+      if (err?.message === "LINKED") {
+        toast.error("Este fornecedor possui registros financeiros vinculados e não pode ser excluído.");
+      } else {
+        toast.error("Erro ao excluir fornecedor");
+      }
+    },
   });
 
   const toggleMutation = useMutation({
