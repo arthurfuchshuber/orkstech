@@ -5,7 +5,7 @@ import {
   Receipt, Plus, Check, Loader2, AlertTriangle, Clock, Ban,
   FileText, Search, CreditCard,
   Building2, Target, Landmark, FolderTree, X, Copy, Pencil, Trash2,
-  Banknote, ChevronDown, ScanLine
+  Banknote, ChevronDown, ScanLine, MoreHorizontal
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { StatCard } from "@/components/StatCard";
