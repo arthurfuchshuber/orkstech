@@ -10,7 +10,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
+
 import { useNavigate } from "react-router-dom";
 import { UpgradeDialog } from "@/components/UpgradeDialog";
 
@@ -26,8 +26,6 @@ export function EmpresaSelector({ collapsed }: { collapsed: boolean }) {
   const navigate = useNavigate();
   const [showUpgrade, setShowUpgrade] = useState(false);
   const [search, setSearch] = useState("");
-
-  if (!empresa && !isSuperAdminMode) return null;
 
   const displayName = empresa
     ? empresa.nome_fantasia || empresa.razao_social
