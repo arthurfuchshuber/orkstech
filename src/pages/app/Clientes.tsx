@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import {
   Users, Plus, Search, Building2, UserRound, Check, Loader2,
-  Mail, MapPin, Home, Filter, X, Pencil, Power, Trash2
+  Mail, MapPin, Home, Filter, X, Pencil, Trash2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
