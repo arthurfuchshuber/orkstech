@@ -102,10 +102,10 @@ export default function ContasBancarias({ embedded = false }: { embedded?: boole
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <PluggyConnectButton />
               <Button onClick={openNew} size="sm" variant="outline" className="h-7 text-xs gap-1.5 rounded-md">
-                <Plus className="w-3 h-3" /> Nova
+                <Plus className="w-3 h-3" /> Nova Conta Manual
               </Button>
+              <PluggyConnectButton />
             </div>
           </CardHeader>
 
