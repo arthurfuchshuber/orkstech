@@ -712,15 +712,15 @@ export default function ContasAPagar() {
             <p className="text-sm text-muted-foreground font-medium">Nenhuma conta encontrada</p>
           </div>
         ) : (
-          <Table>
+          <Table className="table-fixed w-full">
             <TableHeader>
               <TableRow>
-                <TableHead>Fornecedor</TableHead>
-                <TableHead>Descrição</TableHead>
-                <TableHead>Valor</TableHead>
-                <TableHead>Vencimento</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Ações</TableHead>
+                <TableHead className="w-[20%]">Fornecedor</TableHead>
+                <TableHead className="w-[25%]">Descrição</TableHead>
+                <TableHead className="w-[12%]">Valor</TableHead>
+                <TableHead className="w-[13%]">Vencimento</TableHead>
+                <TableHead className="w-[12%]">Status</TableHead>
+                <TableHead className="w-[8%] text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
