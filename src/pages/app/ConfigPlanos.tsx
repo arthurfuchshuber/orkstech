@@ -19,6 +19,7 @@ export default function ConfigPlanos() {
     isTrialing, trialEnd, cancelAtPeriodEnd,
   } = useSubscription();
   const [loadingPortal, setLoadingPortal] = useState(false);
+  const [deletionLoading, setDeletionLoading] = useState(false);
   const [searchParams] = useSearchParams();
 
   useEffect(() => {
