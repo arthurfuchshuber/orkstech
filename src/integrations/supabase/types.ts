@@ -415,6 +415,57 @@ export type Database = {
           },
         ]
       }
+      categorias_cadastro: {
+        Row: {
+          ativo: boolean
+          categoria_pai_id: string | null
+          created_at: string
+          empresa_id: string | null
+          id: string
+          nome: string
+          ordem: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          ativo?: boolean
+          categoria_pai_id?: string | null
+          created_at?: string
+          empresa_id?: string | null
+          id?: string
+          nome: string
+          ordem?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          ativo?: boolean
+          categoria_pai_id?: string | null
+          created_at?: string
+          empresa_id?: string | null
+          id?: string
+          nome?: string
+          ordem?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "categorias_cadastro_categoria_pai_id_fkey"
+            columns: ["categoria_pai_id"]
+            isOneToOne: false
+            referencedRelation: "categorias_cadastro"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "categorias_cadastro_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       categorias_financeiras: {
         Row: {
           ativo: boolean
@@ -1004,6 +1055,7 @@ export type Database = {
         Row: {
           ativo: boolean
           bairro: string | null
+          categoria_id: string | null
           cep: string | null
           cidade: string | null
           cnpj: string | null
@@ -1028,6 +1080,7 @@ export type Database = {
         Insert: {
           ativo?: boolean
           bairro?: string | null
+          categoria_id?: string | null
           cep?: string | null
           cidade?: string | null
           cnpj?: string | null
@@ -1052,6 +1105,7 @@ export type Database = {
         Update: {
           ativo?: boolean
           bairro?: string | null
+          categoria_id?: string | null
           cep?: string | null
           cidade?: string | null
           cnpj?: string | null
@@ -1074,6 +1128,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "fornecedores_categoria_id_fkey"
+            columns: ["categoria_id"]
+            isOneToOne: false
+            referencedRelation: "categorias_cadastro"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "fornecedores_empresa_id_fkey"
             columns: ["empresa_id"]
