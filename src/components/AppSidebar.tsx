@@ -5,8 +5,9 @@ import { NavLink } from "@/components/NavLink";
 import { DynamicIcon } from "@/components/DynamicIcon";
 import { useMenus, type MenuItem } from "@/hooks/useMenus";
 import { useAuth } from "@/hooks/useAuth";
+import { useSuperAdmin } from "@/hooks/useSuperAdmin";
 import { supabase } from "@/integrations/supabase/client";
-import { ChevronRight, Zap } from "lucide-react";
+import { ChevronRight, Zap, ShieldCheck } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -208,6 +209,7 @@ export function AppSidebar() {
   const location = useLocation();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { isSuperAdmin } = useSuperAdmin();
   const { tree, flatMenus, isLoading } = useMenus();
 
   // Check if user has open finance connections
@@ -329,6 +331,53 @@ export function AppSidebar() {
                     onToggle={handleToggle}
                   />
                 ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
+
+        {/* Admin Menu - Super Admin only */}
+        {isSuperAdmin && (
+          <SidebarGroup className="py-0.5 mt-2 border-t border-border/30 pt-2">
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {!collapsed && (
+                  <div className="px-3 py-1">
+                    <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/50">Admin</span>
+                  </div>
+                )}
+                {[
+                  { label: "Painel Admin", route: "/app/admin", icon: "BarChart3" },
+                  { label: "Usuários", route: "/app/admin/users", icon: "Users" },
+                  { label: "Planos", route: "/app/admin/plans", icon: "CreditCard" },
+                  { label: "Logs", route: "/app/admin/logs", icon: "ScrollText" },
+                ].map((item) => {
+                  const isActive = location.pathname === item.route;
+                  return (
+                    <SidebarMenuItem key={item.route}>
+                      <SidebarMenuButton asChild>
+                        <NavLink
+                          to={item.route}
+                          className={`relative flex items-center gap-2.5 px-3 py-1.5 rounded-md text-[13px] transition-all duration-200 ${
+                            isActive
+                              ? "text-primary font-medium bg-primary/[0.08]"
+                              : "text-muted-foreground/70 hover:text-foreground hover:bg-muted/40"
+                          }`}
+                          activeClassName=""
+                        >
+                          {isActive && (
+                            <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[2px] h-4 rounded-full bg-primary" />
+                          )}
+                          <DynamicIcon
+                            name={item.icon}
+                            className={`w-[15px] h-[15px] flex-shrink-0 ${isActive ? "text-primary" : ""}`}
+                          />
+                          {!collapsed && <span>{item.label}</span>}
+                        </NavLink>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  );
+                })}
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
