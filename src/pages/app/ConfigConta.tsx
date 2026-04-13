@@ -316,7 +316,8 @@ function UsuariosTab() {
 function PermissoesTab() {
   const { data, isLoading } = useUserManagementData();
   const users = data?.users ?? [];
-  const niveis = data?.niveis ?? [];
+  // Extra safety: filter out Super Admin from client side
+  const niveis = (data?.niveis ?? []).filter((n: NivelPermissao) => n.nome !== "Super Admin");
 
   const getNivelDescription = (nome: string) => {
     const n = nome.toLowerCase();
