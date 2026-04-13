@@ -7,6 +7,28 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+async function getTargetEmpresaId(
+  supabaseAdmin: any,
+  targetUserId: string
+): Promise<string | null> {
+  // First check profile empresa_id
+  const { data: profile } = await supabaseAdmin
+    .from("profiles")
+    .select("empresa_id")
+    .eq("user_id", targetUserId)
+    .single();
+  if (profile?.empresa_id) return profile.empresa_id;
+
+  // Fallback: check if user owns an empresa
+  const { data: empresa } = await supabaseAdmin
+    .from("empresas")
+    .select("id")
+    .eq("user_id", targetUserId)
+    .limit(1)
+    .single();
+  return empresa?.id ?? null;
+}
+
 async function isLastAdminOfEmpresa(
   supabaseAdmin: any,
   targetUserId: string,
@@ -24,15 +46,37 @@ async function isLastAdminOfEmpresa(
 
   if (targetProfile?.nivel_permissao_id !== adminLevelId) return false;
 
-  // Count active admins in the same empresa
-  const { count } = await supabaseAdmin
+  // Get empresa owner
+  const { data: empresaData } = await supabaseAdmin
+    .from("empresas")
+    .select("user_id")
+    .eq("id", empresaId)
+    .single();
+  const ownerId = empresaData?.user_id;
+
+  // Count active admins: those with empresa_id on profile + the owner
+  const { data: adminProfiles } = await supabaseAdmin
     .from("profiles")
-    .select("id", { count: "exact", head: true })
+    .select("user_id")
     .eq("empresa_id", empresaId)
     .eq("nivel_permissao_id", adminLevelId)
     .eq("ativo", true);
 
-  return (count ?? 0) <= 1;
+  const adminUserIds = new Set((adminProfiles ?? []).map((p: any) => p.user_id));
+
+  // Also check if owner is an active admin (may not have empresa_id on profile)
+  if (ownerId && !adminUserIds.has(ownerId)) {
+    const { data: ownerProfile } = await supabaseAdmin
+      .from("profiles")
+      .select("nivel_permissao_id, ativo")
+      .eq("user_id", ownerId)
+      .single();
+    if (ownerProfile?.nivel_permissao_id === adminLevelId && ownerProfile?.ativo) {
+      adminUserIds.add(ownerId);
+    }
+  }
+
+  return adminUserIds.size <= 1;
 }
 
 serve(async (req) => {
