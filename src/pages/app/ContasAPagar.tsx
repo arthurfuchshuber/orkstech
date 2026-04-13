@@ -430,6 +430,50 @@ export default function ContasAPagar() {
     setDeleteId(null);
   };
 
+  const handleChangeStatus = async (id: string, newStatus: string) => {
+    if (newStatus === "paid") {
+      openPaymentDialog(id);
+      return;
+    }
+    await updateAccountPayable(id, { status: newStatus as any, ...(newStatus !== "paid" ? { payment_date: null } : {}) });
+    queryClient.invalidateQueries({ queryKey: ["accounts-payable"] });
+    queryClient.invalidateQueries({ queryKey: ["accounts-payable-counts"] });
+    toast.success(`Status alterado para ${statusConfig[newStatus]?.label || newStatus}`);
+  };
+
+  const handleBulkChangeStatus = async (newStatus: string) => {
+    if (newStatus === "paid") {
+      toast.error("Para registrar pagamento, use a ação individual.");
+      return;
+    }
+    const ids = Array.from(selectedIds);
+    if (ids.length === 0) return;
+    for (const id of ids) {
+      await updateAccountPayable(id, { status: newStatus as any, ...(newStatus !== "paid" ? { payment_date: null } : {}) });
+    }
+    setSelectedIds(new Set());
+    queryClient.invalidateQueries({ queryKey: ["accounts-payable"] });
+    queryClient.invalidateQueries({ queryKey: ["accounts-payable-counts"] });
+    toast.success(`${ids.length} conta(s) atualizada(s) para ${statusConfig[newStatus]?.label || newStatus}`);
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === filtered.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(filtered.map((p: any) => p.id)));
+    }
+  };
+
+  const toggleSelectItem = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
   const handleDuplicate = (item: any) => {
     setEditingId(null);
     setForm({
