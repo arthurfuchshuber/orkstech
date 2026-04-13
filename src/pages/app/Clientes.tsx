@@ -389,26 +389,27 @@ export default function Clientes() {
         <Table className="w-full">
           <TableHeader>
             <TableRow className="hover:bg-transparent border-border/30">
-              <TableHead className="text-xs font-semibold uppercase tracking-wider w-[19%]">Nome / Razão Social</TableHead>
-              <TableHead className="text-xs font-semibold uppercase tracking-wider w-[7%]">Tipo</TableHead>
-              <TableHead className="text-xs font-semibold uppercase tracking-wider w-[14%]">Documento</TableHead>
-              <TableHead className="text-xs font-semibold uppercase tracking-wider w-[13%]">Telefone</TableHead>
-              <TableHead className="text-xs font-semibold uppercase tracking-wider w-[18%]">Email</TableHead>
-              <TableHead className="text-xs font-semibold uppercase tracking-wider w-[10%]">Cidade</TableHead>
-              <TableHead className="text-xs font-semibold uppercase tracking-wider w-[9%] text-center">Status</TableHead>
-              <TableHead className="text-xs font-semibold uppercase tracking-wider w-[10%] text-right">Criado em</TableHead>
+              <TableHead className="text-xs font-semibold uppercase tracking-wider">Nome / Razão Social</TableHead>
+              <TableHead className="text-xs font-semibold uppercase tracking-wider w-[60px]">Tipo</TableHead>
+              <TableHead className="text-xs font-semibold uppercase tracking-wider">Documento</TableHead>
+              <TableHead className="text-xs font-semibold uppercase tracking-wider">Telefone</TableHead>
+              <TableHead className="text-xs font-semibold uppercase tracking-wider">Email</TableHead>
+              <TableHead className="text-xs font-semibold uppercase tracking-wider">Cidade</TableHead>
+              <TableHead className="text-xs font-semibold uppercase tracking-wider text-center w-[100px]">Status</TableHead>
+              <TableHead className="text-xs font-semibold uppercase tracking-wider text-right">Criado em</TableHead>
+              <TableHead className="w-[80px]"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={8} className="text-center py-12">
+                 <TableCell colSpan={9} className="text-center py-12">
                   <Loader2 className="w-5 h-5 animate-spin mx-auto text-muted-foreground" />
                 </TableCell>
               </TableRow>
             ) : filtered.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} className="text-center py-12">
+                <TableCell colSpan={9} className="text-center py-12">
                   <div className="flex flex-col items-center gap-2">
                     <Users className="w-8 h-8 text-muted-foreground/30" />
                     <p className="text-sm text-muted-foreground">
@@ -466,17 +467,17 @@ export default function Clientes() {
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>
-                  <TableCell className="text-muted-foreground text-sm text-right">
-                    <div className="flex items-center justify-end gap-2 whitespace-nowrap">
-                      <span>{format(new Date(c.created_at), "dd/MM/yyyy", { locale: ptBR })}</span>
-                      <div className="flex items-center gap-0.5" onClick={(e) => e.stopPropagation()}>
-                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setEditCliente(c)}>
-                          <Pencil className="w-3.5 h-3.5" />
-                        </Button>
-                        <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => setDeleteId(c.id)}>
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </Button>
-                      </div>
+                  <TableCell className="text-muted-foreground text-sm text-right whitespace-nowrap">
+                    {format(new Date(c.created_at), "dd/MM/yyyy", { locale: ptBR })}
+                  </TableCell>
+                  <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                    <div className="flex items-center justify-end gap-0.5">
+                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setEditCliente(c)}>
+                        <Pencil className="w-3.5 h-3.5" />
+                      </Button>
+                      <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => setDeleteId(c.id)}>
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </Button>
                     </div>
                   </TableCell>
                 </TableRow>
