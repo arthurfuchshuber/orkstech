@@ -220,7 +220,7 @@ export default function ContasAPagar() {
 
   const paymentMutation = useMutation({
     mutationFn: ({ id, bankAccountId, paymentDate }: { id: string; bankAccountId: string; paymentDate: string }) =>
-      registerPayment(id, bankAccountId, paymentDate, user!.id),
+      registerPayment(id, bankAccountId, paymentDate, user!.id, empresaId),
     onSuccess: async () => {
       await refreshQueries(queryClient, [["accounts-payable"], ["accounts-payable-counts"]]);
       toast.success("Pagamento registrado!");
@@ -365,6 +365,7 @@ export default function ContasAPagar() {
 
       records.push({
         user_id: user!.id,
+        empresa_id: empresaId || undefined,
         description: form.installments > 1 ? `${form.description} (${i + 1}/${form.installments})` : form.description,
         supplier_id: form.supplier_id || null,
         supplier_name: form.supplier_name || null,
