@@ -1,5 +1,6 @@
 import { useState, useMemo, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useEmpresa } from "@/hooks/useEmpresa";
 import {
   Receipt, Plus, Check, Loader2, AlertTriangle, Clock, Ban,
   FileText, Search, CreditCard,
