@@ -19,11 +19,14 @@ import {
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import { Users, Pencil, Trash2, Search, ChevronRight } from "lucide-react";
+import { Users, Pencil, Trash2, Search, ChevronRight, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
+import { useDocumentValidation } from "@/hooks/useDocumentValidation";
+import { DocumentInput } from "@/components/inputs/DocumentInput";
+import { PhoneInput } from "@/components/inputs/PhoneInput";
 import { CompanyNameDisplay } from "./CompanyNameDisplay";
 import type { AdminUser, EmpresaInfo, NivelPermissao } from "./AdminUserTypes";
 
@@ -42,6 +45,9 @@ export function OwnersTab({ users, niveis, isLoading }: Props) {
   const [editForm, setEditForm] = useState({ nome: "", cpf: "", telefone: "", data_nascimento: "", nivel_permissao_id: "" });
   const [editingCompany, setEditingCompany] = useState<EmpresaInfo | null>(null);
   const [companyForm, setCompanyForm] = useState({ razao_social: "", nome_fantasia: "", cnpj: "", email: "", telefone: "" });
+
+  const userDocValidation = useDocumentValidation();
+  const companyDocValidation = useDocumentValidation();
 
   const ownerUsers = useMemo(() => {
     const owners = users.filter((u) => u.is_owner);
@@ -83,8 +89,21 @@ export function OwnersTab({ users, niveis, isLoading }: Props) {
   const updateUserMutation = useMutation({
     mutationFn: async () => {
       if (!editingUser) return;
+      // Validate CPF before saving
+      const rawCpf = editForm.cpf.replace(/\D/g, "");
+      if (rawCpf && !userDocValidation.validateCpfField(rawCpf)) {
+        throw new Error("CPF inválido");
+      }
       const { error } = await supabase.functions.invoke("admin-dashboard", {
-        body: { action: "update_user", user_id: editingUser.id, ...editForm },
+        body: {
+          action: "update_user",
+          user_id: editingUser.id,
+          nome: editForm.nome || null,
+          cpf: rawCpf || null,
+          telefone: editForm.telefone.replace(/\D/g, "") || null,
+          data_nascimento: editForm.data_nascimento || null,
+          nivel_permissao_id: editForm.nivel_permissao_id || null,
+        },
       });
       if (error) throw error;
     },
@@ -104,8 +123,22 @@ export function OwnersTab({ users, niveis, isLoading }: Props) {
   const updateCompanyMutation = useMutation({
     mutationFn: async () => {
       if (!editingCompany) return;
+      // Validate CNPJ before saving
+      const rawCnpj = companyForm.cnpj.replace(/\D/g, "");
+      if (rawCnpj) {
+        const result = await companyDocValidation.validateCnpjField(rawCnpj);
+        if (!result.valid) throw new Error("CNPJ inválido ou inativo");
+      }
       const { error } = await supabase.functions.invoke("admin-dashboard", {
-        body: { action: "update_company", empresa_id: editingCompany.id, ...companyForm },
+        body: {
+          action: "update_company",
+          empresa_id: editingCompany.id,
+          razao_social: companyForm.razao_social,
+          nome_fantasia: companyForm.nome_fantasia,
+          cnpj: rawCnpj,
+          email: companyForm.email,
+          telefone: companyForm.telefone.replace(/\D/g, ""),
+        },
       });
       if (error) throw error;
     },
@@ -125,11 +158,28 @@ export function OwnersTab({ users, niveis, isLoading }: Props) {
   const openEditUser = (u: AdminUser) => {
     setEditingUser(u);
     setEditForm({ nome: u.nome ?? "", cpf: u.cpf ?? "", telefone: u.telefone ?? "", data_nascimento: u.data_nascimento ?? "", nivel_permissao_id: u.nivel_permissao_id ?? "" });
+    userDocValidation.clearErrors();
   };
 
   const openEditCompany = (c: EmpresaInfo) => {
     setEditingCompany(c);
     setCompanyForm({ razao_social: c.razao_social ?? "", nome_fantasia: c.nome_fantasia ?? "", cnpj: c.cnpj ?? "", email: c.email ?? "", telefone: c.telefone ?? "" });
+    companyDocValidation.clearErrors();
+  };
+
+  const handleCompanyCnpjBlur = async () => {
+    const raw = companyForm.cnpj.replace(/\D/g, "");
+    if (raw.length === 14) {
+      const result = await companyDocValidation.validateCnpjField(raw);
+      if (result.valid && result.data) {
+        setCompanyForm((prev) => ({
+          ...prev,
+          razao_social: result.data!.razao_social || prev.razao_social,
+          nome_fantasia: result.data!.nome_fantasia || prev.nome_fantasia,
+        }));
+        toast.success("Dados preenchidos automaticamente");
+      }
+    }
   };
 
   return (
@@ -145,7 +195,6 @@ export function OwnersTab({ users, niveis, isLoading }: Props) {
             <TableRow className="hover:bg-transparent border-border/30">
               <TableHead className="w-[40px]"></TableHead>
               <TableHead>Usuário</TableHead>
-              
               <TableHead>Empresas</TableHead>
               <TableHead>Criado em</TableHead>
               <TableHead className="text-center w-[80px]">Ativo</TableHead>
@@ -173,7 +222,6 @@ export function OwnersTab({ users, niveis, isLoading }: Props) {
                       <TableCell>
                         <div><span className="text-sm font-medium text-foreground">{u.nome || "Sem nome"}</span><p className="text-xs text-muted-foreground">{u.email}</p></div>
                       </TableCell>
-                      
                       <TableCell className="text-sm text-muted-foreground">{empresaCount} {empresaCount === 1 ? "empresa" : "empresas"}</TableCell>
                       <TableCell className="text-xs text-muted-foreground whitespace-nowrap">{format(new Date(u.created_at), "dd/MM/yyyy")}</TableCell>
                       <TableCell className="text-center" onClick={(e) => e.stopPropagation()}>
@@ -235,8 +283,8 @@ export function OwnersTab({ users, niveis, isLoading }: Props) {
           <div className="space-y-4">
             <div><label className="text-xs font-medium text-muted-foreground mb-1 block">E-mail</label><Input value={editingUser?.email ?? ""} disabled className="h-9 text-sm opacity-60" /></div>
             <div><label className="text-xs font-medium text-muted-foreground mb-1 block">Nome</label><Input value={editForm.nome} onChange={(e) => setEditForm({ ...editForm, nome: e.target.value })} className="h-9 text-sm" /></div>
-            <div><label className="text-xs font-medium text-muted-foreground mb-1 block">CPF</label><Input value={editForm.cpf} onChange={(e) => setEditForm({ ...editForm, cpf: e.target.value })} className="h-9 text-sm" /></div>
-            <div><label className="text-xs font-medium text-muted-foreground mb-1 block">Telefone</label><Input value={editForm.telefone} onChange={(e) => setEditForm({ ...editForm, telefone: e.target.value })} className="h-9 text-sm" /></div>
+            <DocumentInput type="cpf" value={editForm.cpf} onValueChange={(v) => setEditForm({ ...editForm, cpf: v })} error={userDocValidation.cpfError} onBlur={() => userDocValidation.validateCpfField(editForm.cpf)} />
+            <PhoneInput label="Telefone" value={editForm.telefone} onValueChange={(v) => setEditForm({ ...editForm, telefone: v })} />
             <div><label className="text-xs font-medium text-muted-foreground mb-1 block">Data de Nascimento</label><Input type="date" value={editForm.data_nascimento} onChange={(e) => setEditForm({ ...editForm, data_nascimento: e.target.value })} className="h-9 text-sm" /></div>
             <div>
               <label className="text-xs font-medium text-muted-foreground mb-1 block">Nível de Acesso</label>
@@ -256,17 +304,32 @@ export function OwnersTab({ users, niveis, isLoading }: Props) {
       {/* Edit Company Dialog */}
       <Dialog open={!!editingCompany} onOpenChange={(open) => !open && setEditingCompany(null)}>
         <DialogContent className="max-w-md">
-          <DialogHeader><DialogTitle>Editar Empresa</DialogTitle></DialogHeader>
+          <DialogHeader>
+            <DialogTitle>Editar Empresa</DialogTitle>
+          </DialogHeader>
           <div className="space-y-4">
+            <DocumentInput
+              type="cnpj"
+              value={companyForm.cnpj}
+              onValueChange={(v) => setCompanyForm({ ...companyForm, cnpj: v })}
+              error={companyDocValidation.cnpjError}
+              onBlur={handleCompanyCnpjBlur}
+            />
+            {companyDocValidation.validatingCnpj && (
+              <div className="flex items-center gap-2 text-xs text-primary">
+                <Loader2 className="w-3 h-3 animate-spin" /> Validando CNPJ na Receita Federal...
+              </div>
+            )}
             <div><label className="text-xs font-medium text-muted-foreground mb-1 block">Razão Social</label><Input value={companyForm.razao_social} onChange={(e) => setCompanyForm({ ...companyForm, razao_social: e.target.value })} className="h-9 text-sm uppercase" /></div>
             <div><label className="text-xs font-medium text-muted-foreground mb-1 block">Nome Fantasia</label><Input value={companyForm.nome_fantasia} onChange={(e) => setCompanyForm({ ...companyForm, nome_fantasia: e.target.value })} className="h-9 text-sm uppercase" /></div>
-            <div><label className="text-xs font-medium text-muted-foreground mb-1 block">CNPJ</label><Input value={companyForm.cnpj} onChange={(e) => setCompanyForm({ ...companyForm, cnpj: e.target.value })} className="h-9 text-sm" /></div>
             <div><label className="text-xs font-medium text-muted-foreground mb-1 block">E-mail</label><Input value={companyForm.email} onChange={(e) => setCompanyForm({ ...companyForm, email: e.target.value })} className="h-9 text-sm" /></div>
-            <div><label className="text-xs font-medium text-muted-foreground mb-1 block">Telefone</label><Input value={companyForm.telefone} onChange={(e) => setCompanyForm({ ...companyForm, telefone: e.target.value })} className="h-9 text-sm" /></div>
+            <PhoneInput label="Telefone" value={companyForm.telefone} onValueChange={(v) => setCompanyForm({ ...companyForm, telefone: v })} />
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditingCompany(null)}>Cancelar</Button>
-            <Button onClick={() => updateCompanyMutation.mutate()} disabled={updateCompanyMutation.isPending}>{updateCompanyMutation.isPending ? "Salvando..." : "Salvar"}</Button>
+            <Button onClick={() => updateCompanyMutation.mutate()} disabled={updateCompanyMutation.isPending || companyDocValidation.validatingCnpj}>
+              {(updateCompanyMutation.isPending || companyDocValidation.validatingCnpj) ? "Salvando..." : "Salvar"}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
