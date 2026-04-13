@@ -6,7 +6,7 @@ import { useEmpresa } from "@/hooks/useEmpresa";
 import { refreshQueries } from "@/lib/query-refresh";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ContaBancariaModal } from "@/components/modals/ContaBancariaModal";
 import { Plus, Pencil, Trash2, Power, Landmark, Wallet, PiggyBank, Banknote } from "lucide-react";
@@ -44,7 +44,6 @@ export default function ContasBancarias({ embedded = false }: { embedded?: boole
   const qc = useQueryClient();
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  
 
   const { data: items = [], isLoading } = useQuery({
     queryKey: ["contas_bancarias", empresaId],
@@ -88,36 +87,80 @@ export default function ContasBancarias({ embedded = false }: { embedded?: boole
 
   const formatCurrency = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
-  return (
-    <div className={embedded ? "space-y-4" : "space-y-6"}>
-      {!embedded && (
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Landmark className="w-6 h-6 text-primary" />
-            <div>
-              <h1 className="text-xl font-bold text-foreground">Contas Bancárias</h1>
-              <p className="text-sm text-muted-foreground">Gerencie as contas da empresa</p>
+  if (embedded) {
+    return (
+      <>
+        <Card className="border-border/40 shadow-sm flex flex-col">
+          <CardHeader className="pb-3 pt-4 px-4 flex-row items-center justify-between space-y-0">
+            <div className="flex items-center gap-2.5">
+              <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center">
+                <Landmark className="w-3.5 h-3.5 text-primary" />
+              </div>
+              <div>
+                <CardTitle className="text-sm font-semibold">Contas Bancárias</CardTitle>
+                <p className="text-[11px] text-muted-foreground mt-0.5">Gerencie contas e integrações</p>
+              </div>
             </div>
-          </div>
-          <Button onClick={openNew} className="gap-2"><Plus className="w-4 h-4" /> Nova Conta</Button>
-        </div>
-      )}
+            <div className="flex items-center gap-2">
+              <PluggyConnectButton />
+              <Button onClick={openNew} size="sm" variant="outline" className="h-7 text-xs gap-1.5 rounded-md">
+                <Plus className="w-3 h-3" /> Nova
+              </Button>
+            </div>
+          </CardHeader>
 
-      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-        {embedded ? (
+          <CardContent className="px-2 pb-3 flex-1 overflow-auto max-h-[420px]">
+            {isLoading ? (
+              <div className="py-8 text-center text-muted-foreground text-xs">Carregando...</div>
+            ) : items.length === 0 ? (
+              <div className="py-8 text-center text-muted-foreground text-xs">Nenhuma conta cadastrada.</div>
+            ) : (
+              <div className="space-y-0.5">
+                {items.map((item) => {
+                  const Icon = tipoIcons[item.tipo];
+                  return (
+                    <div
+                      key={item.id}
+                      className={`flex items-center gap-2 py-1.5 px-2 rounded-md transition-colors group hover:bg-muted/30 ${!item.ativo ? "opacity-40" : ""}`}
+                    >
+                      <Icon className="w-3.5 h-3.5 text-muted-foreground/60 flex-shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <span className="text-xs font-medium text-foreground truncate block">{item.nome}</span>
+                        {item.banco && <span className="text-[10px] text-muted-foreground truncate block">{item.banco}</span>}
+                      </div>
+                      <span className="text-xs font-semibold text-foreground whitespace-nowrap">{formatCurrency(item.saldo_inicial)}</span>
+                      <Badge variant="outline" className="text-[9px] px-1 py-0 leading-4 flex-shrink-0">{tipoLabels[item.tipo]}</Badge>
+                      <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => openEdit(item)}><Pencil className="w-2.5 h-2.5" /></Button>
+                        <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => toggleMutation.mutate({ id: item.id, ativo: !item.ativo })}>
+                          <Power className={`w-2.5 h-2.5 ${item.ativo ? "text-emerald-400" : "text-muted-foreground"}`} />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="h-5 w-5 text-destructive" onClick={() => deleteMutation.mutate(item.id)}><Trash2 className="w-2.5 h-2.5" /></Button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <ContaBancariaModal open={modalOpen} onOpenChange={setModalOpen} editingId={editingId} />
+      </>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <Landmark className="w-6 h-6 text-primary" />
           <div>
-            <p className="text-sm font-medium text-foreground">Contas bancárias e integrações</p>
-            <p className="text-xs text-muted-foreground">Cadastre contas, acompanhe saldos iniciais e conecte instituições financeiras.</p>
+            <h1 className="text-xl font-bold text-foreground">Contas Bancárias</h1>
+            <p className="text-sm text-muted-foreground">Gerencie as contas da empresa</p>
           </div>
-        ) : (
-          <div />
-        )}
-        <div className="flex flex-col gap-2 sm:flex-row">
-          <PluggyConnectButton />
-          {embedded && (
-            <Button onClick={openNew} className="gap-2"><Plus className="w-4 h-4" /> Nova Conta</Button>
-          )}
         </div>
+        <Button onClick={openNew} className="gap-2"><Plus className="w-4 h-4" /> Nova Conta</Button>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -157,11 +200,7 @@ export default function ContasBancarias({ embedded = false }: { embedded?: boole
         })}
       </div>
 
-      <ContaBancariaModal
-        open={modalOpen}
-        onOpenChange={setModalOpen}
-        editingId={editingId}
-      />
+      <ContaBancariaModal open={modalOpen} onOpenChange={setModalOpen} editingId={editingId} />
     </div>
   );
 }

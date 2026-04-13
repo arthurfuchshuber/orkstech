@@ -29,9 +29,7 @@ export default function Financeiro() {
           <PlanoDeContasSection />
           <CentrosCustoSection />
           <FormasPagamentoSection />
-          <div className="rounded-2xl border border-border/60 bg-card p-4 shadow-sm">
-            <ContasBancarias embedded />
-          </div>
+          <ContasBancarias embedded />
         </div>
       </section>
     </div>
