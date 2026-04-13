@@ -11,7 +11,7 @@ import { useSearchParams } from "react-router-dom";
 export default function ConfigPlanos() {
   const {
     subscribed, currentPlan, subscriptionEnd, isLoading, refetch,
-    isTrialing, trialEnd, cancelAtPeriodEnd, status,
+    isTrialing, trialEnd, cancelAtPeriodEnd,
   } = useSubscription();
   const [loadingPortal, setLoadingPortal] = useState(false);
   const [searchParams] = useSearchParams();
