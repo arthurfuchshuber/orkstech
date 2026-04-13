@@ -232,6 +232,7 @@ function UsuariosTab() {
   const [editingUser, setEditingUser] = useState<UserRow | null>(null);
   const [editForm, setEditForm] = useState({ nome: "", cpf: "", telefone: "", data_nascimento: "" });
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [adminBlockMsg, setAdminBlockMsg] = useState<string | null>(null);
   const [createForm, setCreateForm] = useState({ email: "", password: "", nome: "", nivel_permissao_id: "" });
   const { data, isLoading } = useUserManagementData();
   const users = data?.users ?? [];
