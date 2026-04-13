@@ -674,16 +674,8 @@ export default function ContasAPagar() {
   const formatCurrency = (val: number) =>
     new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(val);
 
-  const getStatusBadge = (status: string) => {
-    const cfg = statusConfig[status] || statusConfig.pending;
-    const Icon = cfg.icon;
-    return (
-      <Badge variant="outline" className={`${cfg.color} gap-1 font-medium`}>
-        <Icon className="w-3 h-3" />
-        {cfg.label}
-      </Badge>
-    );
-  };
+
+
 
   const isPending = createMutation.isPending || updateMutation.isPending;
 
