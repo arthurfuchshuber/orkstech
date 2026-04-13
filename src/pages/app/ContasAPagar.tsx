@@ -2,7 +2,7 @@ import { useState, useMemo, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEmpresa } from "@/hooks/useEmpresa";
 import {
-  Receipt, Plus, Check, Loader2, AlertTriangle, Clock, Ban,
+  Receipt, Plus, Check, Loader2, AlertTriangle, Clock, Ban, Percent,
   FileText, Search, CreditCard,
   Building2, Target, Landmark, FolderTree, X, Copy, Pencil, Trash2,
   Banknote, ChevronDown, ScanLine, MoreHorizontal
