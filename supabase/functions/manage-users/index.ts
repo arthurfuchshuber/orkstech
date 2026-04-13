@@ -100,9 +100,24 @@ serve(async (req) => {
         .select("user_id, nome, cpf, telefone, data_nascimento, nivel_permissao_id, ativo, empresa_id");
 
       // Filter by empresa (unless Super Admin viewing all)
+      // Also include the empresa owner (user_id on empresas table) who may not have empresa_id on their profile
+      let empresaOwnerId: string | null = null;
+      if (requestEmpresaId) {
+        const { data: empresaData } = await supabaseAdmin
+          .from("empresas")
+          .select("user_id")
+          .eq("id", requestEmpresaId)
+          .single();
+        empresaOwnerId = empresaData?.user_id ?? null;
+      }
+
       let filteredProfiles = isSuperAdmin && !body.empresa_id
         ? profiles
-        : (profiles ?? []).filter((p: any) => requestEmpresaId && p.empresa_id === requestEmpresaId);
+        : (profiles ?? []).filter((p: any) => {
+            if (!requestEmpresaId) return false;
+            // Match by empresa_id on profile OR by being the empresa owner
+            return p.empresa_id === requestEmpresaId || p.user_id === empresaOwnerId;
+          });
 
       // Always hide Super Admin users from non-super-admin views
       if (!isSuperAdmin && superAdminLevel?.id) {
