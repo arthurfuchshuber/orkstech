@@ -130,6 +130,47 @@ export function BulkBoletoScanner({ open, onOpenChange, fornecedores }: BulkBole
     return null;
   };
 
+  const autoCreateSupplier = async (extracted: any): Promise<{ id: string; name: string } | null> => {
+    if (!user) return null;
+    const supplierName = extracted.supplier_name?.trim();
+    if (!supplierName) return null;
+
+    const supplierCnpj = extracted.supplier_cnpj?.replace(/\D/g, "") || null;
+    const isPf = supplierCnpj ? supplierCnpj.length <= 11 : false;
+
+    const insertData: any = {
+      user_id: user.id,
+      empresa_id: empresaId || null,
+      tipo: isPf ? "pf" : "pj",
+      ativo: true,
+    };
+
+    if (isPf) {
+      insertData.nome_completo = supplierName.toUpperCase();
+      insertData.cpf = supplierCnpj;
+    } else {
+      insertData.razao_social = supplierName.toUpperCase();
+      insertData.cnpj = supplierCnpj;
+      insertData.nome_fantasia = supplierName.toUpperCase();
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from("fornecedores")
+        .insert(insertData)
+        .select("id, tipo, nome_completo, razao_social, nome_fantasia")
+        .single();
+      if (error) throw error;
+      const name = data.tipo === "pj" ? (data.nome_fantasia || data.razao_social || "") : (data.nome_completo || "");
+      // Add to local fornecedores list for subsequent matches
+      fornecedores.push({ ...data, cnpj: supplierCnpj, cpf: isPf ? supplierCnpj : null });
+      return { id: data.id, name };
+    } catch (err) {
+      console.error("Auto-create supplier error:", err);
+      return null;
+    }
+  };
+
   const checkDuplicates = (record: AccountPayableInsert, existingPayables: any[]): { reasons: string[]; matches: any[] } => {
     const allMatches: any[] = [];
 
