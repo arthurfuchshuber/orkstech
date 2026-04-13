@@ -304,7 +304,7 @@ serve(async (req) => {
           supabaseAdmin, parsed.data.user_id, adminLevel?.id, targetEmpresaId
         );
         if (lastAdmin) {
-          return new Response(JSON.stringify({ error: "Não é possível remover o nível Admin do último administrador da empresa" }), {
+          return new Response(JSON.stringify({ error: "Não é possível remover o nível Admin do único administrador da empresa." }), {
             status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
           });
         }
