@@ -37,7 +37,7 @@ interface ContaBancaria {
   ativo: boolean;
 }
 
-export default function ContasBancarias() {
+export default function ContasBancarias({ embedded = false }: { embedded?: boolean }) {
   const { user } = useAuth();
   const { empresa } = useEmpresa();
   const empresaId = empresa?.id;
@@ -89,19 +89,36 @@ export default function ContasBancarias() {
   const formatCurrency = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Landmark className="w-6 h-6 text-primary" />
-          <div>
-            <h1 className="text-xl font-bold text-foreground">Contas Bancárias</h1>
-            <p className="text-sm text-muted-foreground">Gerencie as contas da empresa</p>
+    <div className={embedded ? "space-y-4" : "space-y-6"}>
+      {!embedded && (
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Landmark className="w-6 h-6 text-primary" />
+            <div>
+              <h1 className="text-xl font-bold text-foreground">Contas Bancárias</h1>
+              <p className="text-sm text-muted-foreground">Gerencie as contas da empresa</p>
+            </div>
           </div>
+          <Button onClick={openNew} className="gap-2"><Plus className="w-4 h-4" /> Nova Conta</Button>
         </div>
-        <Button onClick={openNew} className="gap-2"><Plus className="w-4 h-4" /> Nova Conta</Button>
-      </div>
+      )}
 
-      <PluggyConnectButton />
+      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+        {embedded ? (
+          <div>
+            <p className="text-sm font-medium text-foreground">Contas bancárias e integrações</p>
+            <p className="text-xs text-muted-foreground">Cadastre contas, acompanhe saldos iniciais e conecte instituições financeiras.</p>
+          </div>
+        ) : (
+          <div />
+        )}
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <PluggyConnectButton />
+          {embedded && (
+            <Button onClick={openNew} className="gap-2"><Plus className="w-4 h-4" /> Nova Conta</Button>
+          )}
+        </div>
+      </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {isLoading ? (
