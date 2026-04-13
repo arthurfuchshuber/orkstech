@@ -91,6 +91,8 @@ const statusConfig: Record<string, { label: string; color: string; icon: typeof 
 
 export default function ContasAPagar() {
   const { user } = useAuth();
+  const { empresa } = useEmpresa();
+  const empresaId = empresa?.id;
   const queryClient = useQueryClient();
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
