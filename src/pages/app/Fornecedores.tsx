@@ -46,17 +46,8 @@ interface Fornecedor {
   observacoes: string | null;
   ativo: boolean;
   created_at: string;
+  categoria_id: string | null;
 }
-
-const categoriaOptions = [
-  { value: "tecnologia", label: "Tecnologia" },
-  { value: "logistica", label: "Logística" },
-  { value: "escritorio", label: "Material de Escritório" },
-  { value: "servicos", label: "Serviços" },
-  { value: "consultoria", label: "Consultoria" },
-  { value: "marketing", label: "Marketing" },
-  { value: "outros", label: "Outros" },
-];
 
 const initialForm: SupplierFormData = {
   type: "empresa",
@@ -118,6 +109,29 @@ export default function Fornecedores() {
     enabled: !!user,
   });
 
+  const { data: categorias = [] } = useQuery({
+    queryKey: ["categorias_cadastro", empresaId],
+    queryFn: async () => {
+      let q = supabase
+        .from("categorias_cadastro")
+        .select("id, nome, categoria_pai_id")
+        .eq("ativo", true)
+        .order("ordem");
+      if (empresaId) q = q.eq("empresa_id", empresaId);
+      const { data, error } = await q;
+      if (error) throw error;
+      return data ?? [];
+    },
+    enabled: !!user,
+  });
+
+  const categoriaOptions = categorias.map((c) => ({
+    value: c.id,
+    label: c.categoria_pai_id
+      ? `  └ ${c.nome}`
+      : c.nome,
+  }));
+
   const totalAtivos = fornecedores.filter((f) => f.ativo).length;
   const totalEmpresas = fornecedores.filter((f) => f.tipo === "pj" && f.ativo).length;
   const totalPf = fornecedores.filter((f) => f.tipo === "pf" && f.ativo).length;
@@ -149,6 +163,7 @@ export default function Fornecedores() {
         estado: form.endereco.estado || null,
         cep: form.endereco.cep || null,
         observacoes: form.observacoes || null,
+        categoria_id: form.categoria || null,
       };
 
       if (editingId) {
@@ -230,7 +245,7 @@ export default function Fornecedores() {
       telefone: f.telefone || "",
       email: f.email || "",
       contatoResponsavel: "",
-      categoria: "",
+      categoria: f.categoria_id || "",
       observacoes: f.observacoes || "",
       endereco: {
         cep: f.cep || "",
