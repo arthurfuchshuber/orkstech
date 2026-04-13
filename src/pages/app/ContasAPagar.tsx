@@ -728,12 +728,16 @@ export default function ContasAPagar() {
         const jurosMultaTotal = payables.filter((p: any) => p.status === "paid" && Number(p.juros_multa || 0) > 0)
           .reduce((s: number, i: any) => s + Number(i.juros_multa || 0), 0);
         return (
-          <div className="grid grid-cols-1 sm:grid-cols-5 gap-4">
-            <StatCard icon={Receipt} title="Total em Aberto" value={fmt(sum(openItems))} subtitle={`(${counts.openTotal})`} />
-            <StatCard icon={Clock} title="A Vencer" value={fmt(sum(upcomingItems))} subtitle={`(${counts.upcoming})`} />
-            <StatCard icon={AlertTriangle} title="Vencidas" value={fmt(sum(overdueItems))} subtitle={`(${counts.overdue})`} />
-            <StatCard icon={Check} title="Pagas" value={fmt(sum(paidItems))} subtitle={`(${counts.paid})`} />
-            <StatCard icon={Percent} title="Juros/Multa" value={fmt(jurosMultaTotal)} />
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <StatCard icon={Receipt} title="Total em Aberto" value={fmt(sum(openItems))} subtitle={`(${counts.openTotal})`} />
+              <StatCard icon={Clock} title="A Vencer" value={fmt(sum(upcomingItems))} subtitle={`(${counts.upcoming})`} />
+              <StatCard icon={AlertTriangle} title="Vencidas" value={fmt(sum(overdueItems))} subtitle={`(${counts.overdue})`} />
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <StatCard icon={Check} title="Pagas" value={fmt(sum(paidItems))} subtitle={`(${counts.paid})`} />
+              <StatCard icon={Percent} title="Juros/Multa" value={fmt(jurosMultaTotal)} />
+            </div>
           </div>
         );
       })()}
