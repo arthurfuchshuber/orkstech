@@ -107,6 +107,9 @@ export default function ContasAPagar() {
   const [payingId, setPayingId] = useState<string | null>(null);
   const [paymentBankAccount, setPaymentBankAccount] = useState("");
   const [paymentDate, setPaymentDate] = useState<Date | undefined>(new Date());
+  const [paymentJurosMulta, setPaymentJurosMulta] = useState<number>(0);
+  const [paymentIsOverdue, setPaymentIsOverdue] = useState(false);
+  const [paymentValueChanged, setPaymentValueChanged] = useState<string>("");
   const [showDuplicateAlert, setShowDuplicateAlert] = useState(false);
   const [duplicateMatches, setDuplicateMatches] = useState<any[]>([]);
   const [dupDetailItem, setDupDetailItem] = useState<any | null>(null);
