@@ -8,6 +8,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useSuperAdmin } from "@/hooks/useSuperAdmin";
 import { supabase } from "@/integrations/supabase/client";
 import { ChevronRight, Zap, ShieldCheck } from "lucide-react";
+import { EmpresaSelector } from "@/components/EmpresaSelector";
 import {
   Sidebar,
   SidebarContent,
@@ -301,13 +302,14 @@ export function AppSidebar() {
 
   return (
     <Sidebar collapsible="icon">
-      <SidebarHeader className="px-4 py-5">
-        <div className="flex items-center gap-2.5">
+      <SidebarHeader className="px-3 py-4 space-y-3">
+        <div className="flex items-center gap-2.5 px-1">
           <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center flex-shrink-0">
             <Zap className="w-3.5 h-3.5 text-primary-foreground" />
           </div>
           {!collapsed && <span className="text-sm font-semibold tracking-tight text-foreground">NexusOS</span>}
         </div>
+        <EmpresaSelector collapsed={collapsed} />
       </SidebarHeader>
 
       <SidebarContent className="px-2">

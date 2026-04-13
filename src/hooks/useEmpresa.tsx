@@ -1,45 +1,81 @@
-import { createContext, useContext, useState, useEffect, type ReactNode } from "react";
+import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 
+interface Empresa {
+  id: string;
+  razao_social: string;
+  nome_fantasia: string | null;
+  cnpj: string;
+  user_id: string;
+  [key: string]: any;
+}
+
 interface EmpresaContextType {
-  empresa: any | null;
+  empresa: Empresa | null;
+  empresas: Empresa[];
   loading: boolean;
   refetch: () => Promise<void>;
+  selectEmpresa: (id: string) => void;
 }
 
 const EmpresaContext = createContext<EmpresaContextType | undefined>(undefined);
 
+const SELECTED_EMPRESA_KEY = "nexus_selected_empresa_id";
+
 export function EmpresaProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   const userId = user?.id ?? null;
-  const [empresa, setEmpresa] = useState<any | null>(null);
+  const [empresas, setEmpresas] = useState<Empresa[]>([]);
+  const [selectedId, setSelectedId] = useState<string | null>(() => {
+    try { return localStorage.getItem(SELECTED_EMPRESA_KEY); } catch { return null; }
+  });
   const [loading, setLoading] = useState(true);
 
-  const fetchEmpresa = async (targetUserId = userId) => {
+  const fetchEmpresas = useCallback(async (targetUserId = userId) => {
     if (!targetUserId) {
-      setEmpresa(null);
+      setEmpresas([]);
       setLoading(false);
       return;
     }
-
     setLoading(true);
     const { data } = await supabase
       .from("empresas")
       .select("*")
       .eq("user_id", targetUserId)
-      .maybeSingle();
+      .order("created_at", { ascending: true });
 
-    setEmpresa(data);
+    const list = (data ?? []) as Empresa[];
+    setEmpresas(list);
+
+    // Auto-select: stored ID if still valid, otherwise first
+    if (list.length > 0) {
+      const stored = selectedId;
+      const valid = list.find((e) => e.id === stored);
+      if (!valid) {
+        setSelectedId(list[0].id);
+        try { localStorage.setItem(SELECTED_EMPRESA_KEY, list[0].id); } catch {}
+      }
+    } else {
+      setSelectedId(null);
+      try { localStorage.removeItem(SELECTED_EMPRESA_KEY); } catch {}
+    }
     setLoading(false);
-  };
+  }, [userId, selectedId]);
 
   useEffect(() => {
-    fetchEmpresa(userId);
+    fetchEmpresas(userId);
   }, [userId]);
 
+  const selectEmpresa = useCallback((id: string) => {
+    setSelectedId(id);
+    try { localStorage.setItem(SELECTED_EMPRESA_KEY, id); } catch {}
+  }, []);
+
+  const empresa = empresas.find((e) => e.id === selectedId) ?? empresas[0] ?? null;
+
   return (
-    <EmpresaContext.Provider value={{ empresa, loading, refetch: fetchEmpresa }}>
+    <EmpresaContext.Provider value={{ empresa, empresas, loading, refetch: fetchEmpresas, selectEmpresa }}>
       {children}
     </EmpresaContext.Provider>
   );
