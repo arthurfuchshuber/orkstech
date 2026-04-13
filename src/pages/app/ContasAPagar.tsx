@@ -4,7 +4,7 @@ import { useEmpresa } from "@/hooks/useEmpresa";
 import {
   Receipt, Plus, Check, Loader2, AlertTriangle, Clock, Ban,
   FileText, Search, CreditCard,
-  Building2, Target, Landmark, FolderTree, X, Copy, Pencil,
+  Building2, Target, Landmark, FolderTree, X, Copy, Pencil, Trash2,
   Banknote, ChevronDown, ScanLine
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -130,6 +130,7 @@ export default function ContasAPagar() {
   const [scanning, setScanning] = useState(false);
   const [isPickingScanFile, setIsPickingScanFile] = useState(false);
   const [bulkScanOpen, setBulkScanOpen] = useState(false);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
   const scanInputRef = useRef<HTMLInputElement>(null);
 
   // Fetch data
@@ -417,6 +418,15 @@ export default function ContasAPagar() {
     queryClient.invalidateQueries({ queryKey: ["accounts-payable"] });
     queryClient.invalidateQueries({ queryKey: ["accounts-payable-counts"] });
     toast.success("Conta cancelada");
+  };
+
+  const handleDelete = async (id: string) => {
+    const { error } = await supabase.from("accounts_payable").delete().eq("id", id);
+    if (error) { toast.error("Erro ao excluir"); return; }
+    queryClient.invalidateQueries({ queryKey: ["accounts-payable"] });
+    queryClient.invalidateQueries({ queryKey: ["accounts-payable-counts"] });
+    toast.success("Conta excluída");
+    setDeleteId(null);
   };
 
   const handleDuplicate = (item: any) => {
@@ -778,6 +788,9 @@ export default function ContasAPagar() {
                               <X className="w-4 h-4 mr-2" /> Cancelar
                             </DropdownMenuItem>
                           )}
+                          <DropdownMenuItem onClick={() => setDeleteId(item.id)} className="text-destructive">
+                            <Trash2 className="w-4 h-4 mr-2" /> Excluir
+                          </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </TableCell>
@@ -1229,6 +1242,22 @@ export default function ContasAPagar() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Delete confirmation */}
+      <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir conta a pagar?</AlertDialogTitle>
+            <AlertDialogDescription>Esta ação é permanente e não pode ser desfeita.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={() => { if (deleteId) handleDelete(deleteId); }} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
