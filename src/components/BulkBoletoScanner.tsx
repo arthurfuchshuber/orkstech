@@ -244,7 +244,12 @@ export function BulkBoletoScanner({ open, onOpenChange, fornecedores }: BulkBole
         const extracted = data?.data;
         if (!extracted) throw new Error("Sem dados extraídos");
 
-        const supplier = matchSupplier(extracted);
+        let supplier = matchSupplier(extracted);
+
+        // Auto-create supplier if not found
+        if (!supplier && extracted.supplier_name) {
+          supplier = await autoCreateSupplier(extracted);
+        }
 
         const record: AccountPayableInsert = {
           user_id: user.id,
