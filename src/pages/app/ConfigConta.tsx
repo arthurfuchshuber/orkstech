@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import { Building2, Pencil, Trash2, UserPlus, Users } from "lucide-react";
+import { Building2, Pencil, Trash2, UserPlus, Users, ShieldAlert } from "lucide-react";
 import { DocumentInput } from "@/components/inputs/DocumentInput";
 import { PhoneInput } from "@/components/inputs/PhoneInput";
 import { DateInput } from "@/components/inputs/DateInput";
@@ -232,6 +232,7 @@ function UsuariosTab() {
   const [editingUser, setEditingUser] = useState<UserRow | null>(null);
   const [editForm, setEditForm] = useState({ nome: "", cpf: "", telefone: "", data_nascimento: "" });
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [adminBlockMsg, setAdminBlockMsg] = useState<string | null>(null);
   const [createForm, setCreateForm] = useState({ email: "", password: "", nome: "", nivel_permissao_id: "" });
   const { data, isLoading } = useUserManagementData();
   const users = data?.users ?? [];
@@ -318,7 +319,7 @@ function UsuariosTab() {
 
   const handleRoleChange = (targetUser: UserRow, nextNivelId: string) => {
     if (isOnlyActiveAdmin(targetUser) && nextNivelId !== adminNivelId) {
-      toast.error("Não é possível remover o nível Admin do único administrador da empresa.", { duration: 5000 });
+      setAdminBlockMsg("Não é possível remover o nível Admin do único administrador da empresa.");
       return;
     }
 
@@ -445,6 +446,24 @@ function UsuariosTab() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Admin block popup */}
+      <AlertDialog open={!!adminBlockMsg} onOpenChange={(open) => !open && setAdminBlockMsg(null)}>
+        <AlertDialogContent className="max-w-md">
+          <AlertDialogHeader>
+            <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-destructive/10">
+              <ShieldAlert className="h-6 w-6 text-destructive" />
+            </div>
+            <AlertDialogTitle className="text-center">Ação bloqueada</AlertDialogTitle>
+            <AlertDialogDescription className="text-center text-sm">
+              {adminBlockMsg}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="sm:justify-center">
+            <AlertDialogAction onClick={() => setAdminBlockMsg(null)}>Entendi</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
