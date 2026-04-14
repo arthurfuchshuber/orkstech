@@ -89,6 +89,9 @@ export function PlanoDeContasSection() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState({ nome: "", tipo: "receita" as TipoFinanceiro, categoria_pai_id: null as string | null });
   const [collapsedIds, setCollapsedIds] = useState<Set<string>>(new Set());
+  const [moveModalOpen, setMoveModalOpen] = useState(false);
+  const [movingNode, setMovingNode] = useState<Categoria | null>(null);
+  const [moveTargetId, setMoveTargetId] = useState<string | null>(null);
 
   const targetUserId = empresa?.user_id ?? user?.id;
 
