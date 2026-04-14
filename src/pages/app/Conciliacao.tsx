@@ -34,18 +34,21 @@ interface PayableCandidate {
 
 export default function Conciliacao() {
   const { user } = useAuth();
+  const { empresa } = useEmpresa();
   const qc = useQueryClient();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedTx, setSelectedTx] = useState<string | null>(null);
 
+  const targetUserId = empresa?.user_id ?? user?.id;
+
   // Unreconciled debit transactions
   const { data: unreconciledTxs = [], isLoading: loadingTx } = useQuery({
-    queryKey: ["unreconciled_transactions"],
+    queryKey: ["unreconciled_transactions", targetUserId],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("pluggy_transactions" as any)
         .select("*")
-        .eq("user_id", user!.id)
+        .eq("user_id", targetUserId!)
         .eq("reconciled", false)
         .in("type", ["DEBIT"])
         .order("date", { ascending: false })
@@ -53,23 +56,23 @@ export default function Conciliacao() {
       if (error) throw error;
       return data as unknown as UnreconciledTx[];
     },
-    enabled: !!user,
+    enabled: !!user && !!targetUserId,
   });
 
   // Pending payables for manual matching
   const { data: payables = [] } = useQuery({
-    queryKey: ["pending_payables_for_reconciliation"],
+    queryKey: ["pending_payables_for_reconciliation", targetUserId],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("accounts_payable")
         .select("id, description, amount, due_date, supplier_name")
-        .eq("user_id", user!.id)
+        .eq("user_id", targetUserId!)
         .in("status", ["pending", "overdue"])
         .order("due_date");
       if (error) throw error;
       return data as PayableCandidate[];
     },
-    enabled: !!user,
+    enabled: !!user && !!targetUserId,
   });
 
   const reconcileMutation = useMutation({
