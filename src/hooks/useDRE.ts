@@ -27,6 +27,7 @@ export interface DRELine {
   variation: number | null;
   isGroup: boolean;
   isSummary: boolean;
+  isPercentual?: boolean;
   dreGroup?: string;
   tipo?: string;
   children?: DRELine[];
