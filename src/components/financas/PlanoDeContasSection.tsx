@@ -48,15 +48,16 @@ const tipoIcons: Record<TipoFinanceiro, typeof TrendingUp> = {
   receita: TrendingUp, despesa: TrendingDown, custo: Minus, ajuste: RefreshCw,
 };
 
-function flattenTree(nodes: Categoria[]): { id: string; node: Categoria; level: number; parentId: string | null }[] {
-  const result: { id: string; node: Categoria; level: number; parentId: string | null }[] = [];
-  function walk(items: Categoria[], lvl: number, pid: string | null) {
-    items.forEach((n) => {
-      result.push({ id: n.id, node: n, level: lvl, parentId: pid });
-      if (n.children?.length) walk(n.children, lvl + 1, n.id);
+function flattenTree(nodes: Categoria[]): { id: string; node: Categoria; level: number; parentId: string | null; number: string }[] {
+  const result: { id: string; node: Categoria; level: number; parentId: string | null; number: string }[] = [];
+  function walk(items: Categoria[], lvl: number, pid: string | null, prefix: string) {
+    items.forEach((n, idx) => {
+      const num = prefix ? `${prefix}${idx + 1}.` : `${idx + 1}.`;
+      result.push({ id: n.id, node: n, level: lvl, parentId: pid, number: num });
+      if (n.children?.length) walk(n.children, lvl + 1, n.id, num);
     });
   }
-  walk(nodes, 0, null);
+  walk(nodes, 0, null, "");
   return result;
 }
 
@@ -225,6 +226,7 @@ export function PlanoDeContasSection() {
                               {hasChildren ? (isCollapsed ? <ChevronRight className="w-3 h-3 text-muted-foreground" /> : <ChevronDown className="w-3 h-3 text-muted-foreground" />) : <div className="w-1 h-1 rounded-full bg-muted-foreground/25" />}
                             </button>
                             <Icon className="w-3 h-3 text-muted-foreground/60 flex-shrink-0" />
+                            <span className="text-[10px] font-mono text-muted-foreground flex-shrink-0 min-w-[2rem]">{item.number}</span>
                             <span className="text-xs font-medium text-foreground flex-1 truncate">{node.nome}</span>
                             <Badge variant="outline" className={`text-[9px] px-1 py-0 leading-4 ${tipoColors[node.tipo]}`}>{tipoLabels[node.tipo]}</Badge>
                             <DropdownMenu>
