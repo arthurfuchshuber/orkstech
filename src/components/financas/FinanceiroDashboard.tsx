@@ -475,7 +475,7 @@ export default function FinanceiroDashboard() {
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium flex items-center gap-2">
                 <TrendingUp className="w-4 h-4 text-primary" />
-                Contas a Pagar — Visão Geral
+                Contas a Pagar — Próximos 6 meses + Vencidas (meses anteriores)
               </CardTitle>
             </CardHeader>
             <CardContent>
