@@ -23,8 +23,25 @@ import {
 } from "@/components/ui/sidebar";
 import { Skeleton } from "@/components/ui/skeleton";
 
+// Map of routes that redirect to other routes (from App.tsx Navigate elements)
+const ROUTE_REDIRECTS: Record<string, string> = {
+  "/app/dashboard": "/app/financas/dashboard",
+  "/app/financas/plano-de-contas": "/app/financas/cadastros",
+  "/app/financas/centros-de-custo": "/app/financas/cadastros",
+  "/app/financas/formas-de-pagamento": "/app/financas/cadastros",
+  "/app/financas/contas-bancarias": "/app/financas/cadastros",
+  "/app/financas/extrato": "/app/extrato-bancario",
+  "/app/automacoes/workflows": "/app/automacoes/config",
+  "/app/config/permissoes": "/app/config/conta",
+};
+
+function resolveRoute(route: string | null): string | null {
+  if (!route) return null;
+  return ROUTE_REDIRECTS[route] ?? route;
+}
+
 function hasActiveDescendant(item: MenuItem, pathname: string): boolean {
-  if (item.route === pathname) return true;
+  if (resolveRoute(item.route) === pathname) return true;
   return item.children?.some((child) => hasActiveDescendant(child, pathname)) ?? false;
 }
 
@@ -57,7 +74,8 @@ function MenuItemNode({
 
   const hasChildren = !!item.children?.length;
   const isOpen = openMap[item.id] ?? false;
-  const isActive = item.route ? pathname === item.route : false;
+  const resolvedRoute = resolveRoute(item.route);
+  const isActive = resolvedRoute ? pathname === resolvedRoute : false;
   const isChildActive = hasActiveDescendant(item, pathname) && !isActive;
 
   if (hasChildren && !item.route) {
