@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useEmpresa } from "@/hooks/useEmpresa";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -53,31 +54,34 @@ interface Transaction {
 
 export default function ExtratoBancario() {
   const { user } = useAuth();
+  const { empresa } = useEmpresa();
   const [selectedAccount, setSelectedAccount] = useState<string>("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [typeFilter, setTypeFilter] = useState<string>("all");
 
+  const targetUserId = empresa?.user_id ?? user?.id;
+
   const { data: accounts = [], isLoading: loadingAccounts } = useQuery({
-    queryKey: ["pluggy_bank_accounts"],
+    queryKey: ["pluggy_bank_accounts", targetUserId],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("pluggy_bank_accounts" as any)
         .select("*")
-        .eq("user_id", user!.id)
+        .eq("user_id", targetUserId!)
         .order("name");
       if (error) throw error;
       return data as unknown as BankAccount[];
     },
-    enabled: !!user,
+    enabled: !!user && !!targetUserId,
   });
 
   const { data: transactions = [], isLoading: loadingTx } = useQuery({
-    queryKey: ["pluggy_transactions", selectedAccount, typeFilter],
+    queryKey: ["pluggy_transactions", selectedAccount, typeFilter, targetUserId],
     queryFn: async () => {
       let query = supabase
         .from("pluggy_transactions" as any)
         .select("*")
-        .eq("user_id", user!.id)
+        .eq("user_id", targetUserId!)
         .order("date", { ascending: false })
         .limit(200);
 

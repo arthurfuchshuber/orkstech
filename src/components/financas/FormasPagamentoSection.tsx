@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useEmpresa } from "@/hooks/useEmpresa";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -29,18 +30,21 @@ interface FormaPagamento {
 
 export function FormasPagamentoSection() {
   const { user } = useAuth();
+  const { empresa } = useEmpresa();
   const qc = useQueryClient();
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
 
+  const targetUserId = empresa?.user_id ?? user?.id;
+
   const { data: items = [], isLoading } = useQuery({
-    queryKey: ["formas_pagamento"],
+    queryKey: ["formas_pagamento", targetUserId],
     queryFn: async () => {
-      const { data, error } = await supabase.from("formas_pagamento").select("*").eq("user_id", user!.id).order("nome");
+      const { data, error } = await supabase.from("formas_pagamento").select("*").eq("user_id", targetUserId!).order("nome");
       if (error) throw error;
       return data as FormaPagamento[];
     },
-    enabled: !!user,
+    enabled: !!user && !!targetUserId,
   });
 
   const deleteMutation = useMutation({

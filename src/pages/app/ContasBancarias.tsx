@@ -46,20 +46,23 @@ export default function ContasBancarias({ embedded = false }: { embedded?: boole
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
 
+  // Use empresa owner's user_id for Super Admin cross-tenant visibility
+  const targetUserId = empresa?.user_id ?? user?.id;
+
   const { data: items = [], isLoading } = useQuery({
-    queryKey: ["contas_bancarias", empresaId],
+    queryKey: ["contas_bancarias", empresaId, targetUserId],
     queryFn: async () => {
       let q = supabase
         .from("contas_bancarias")
         .select("*")
-        .eq("user_id", user!.id)
+        .eq("user_id", targetUserId!)
         .order("nome");
       if (empresaId) q = q.eq("empresa_id", empresaId);
       const { data, error } = await q;
       if (error) throw error;
       return data as ContaBancaria[];
     },
-    enabled: !!user,
+    enabled: !!user && !!targetUserId,
   });
 
   const deleteMutation = useMutation({

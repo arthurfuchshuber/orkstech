@@ -2,6 +2,7 @@ import { useState, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useEmpresa } from "@/hooks/useEmpresa";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -10,20 +11,24 @@ import { Link2, RefreshCw, Trash2, Loader2 } from "lucide-react";
 
 export function usePluggyConnections() {
   const { user } = useAuth();
+  const { empresa } = useEmpresa();
   const qc = useQueryClient();
 
+  // Use empresa owner's user_id for Super Admin cross-tenant visibility
+  const targetUserId = empresa?.user_id ?? user?.id;
+
   const { data: connections = [] } = useQuery({
-    queryKey: ["pluggy_connections"],
+    queryKey: ["pluggy_connections", targetUserId],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("pluggy_connections" as any)
         .select("*")
-        .eq("user_id", user!.id)
+        .eq("user_id", targetUserId!)
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data as any[];
     },
-    enabled: !!user,
+    enabled: !!user && !!targetUserId,
   });
 
   const deleteMutation = useMutation({

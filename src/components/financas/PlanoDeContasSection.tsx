@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useEmpresa } from "@/hooks/useEmpresa";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -81,20 +82,23 @@ function buildTree(items: Categoria[]): Categoria[] {
 
 export function PlanoDeContasSection() {
   const { user } = useAuth();
+  const { empresa } = useEmpresa();
   const qc = useQueryClient();
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState({ nome: "", tipo: "receita" as TipoFinanceiro, categoria_pai_id: null as string | null });
   const [collapsedIds, setCollapsedIds] = useState<Set<string>>(new Set());
 
+  const targetUserId = empresa?.user_id ?? user?.id;
+
   const { data: categorias = [], isLoading } = useQuery({
-    queryKey: ["categorias_financeiras"],
+    queryKey: ["categorias_financeiras", targetUserId],
     queryFn: async () => {
-      const { data, error } = await supabase.from("categorias_financeiras").select("*").eq("user_id", user!.id).order("ordem");
+      const { data, error } = await supabase.from("categorias_financeiras").select("*").eq("user_id", targetUserId!).order("ordem");
       if (error) throw error;
       return data as Categoria[];
     },
-    enabled: !!user,
+    enabled: !!user && !!targetUserId,
   });
 
   const tree = buildTree(categorias);
