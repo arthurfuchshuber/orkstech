@@ -330,6 +330,11 @@ export function PlanoDeContasSection() {
                                 <DropdownMenuItem onClick={() => openMoveModal(node)}>
                                   <MoveRight className="w-4 h-4 mr-2" /> Mover para
                                 </DropdownMenuItem>
+                                {node.categoria_pai_id && (
+                                  <DropdownMenuItem onClick={() => handlePromoteToRoot(node)}>
+                                    <ChevronRight className="w-4 h-4 mr-2 rotate-[-90deg]" /> Promover para raiz
+                                  </DropdownMenuItem>
+                                )}
                                 <DropdownMenuItem onClick={() => toggleMutation.mutate({ id: node.id, ativo: !node.ativo })}>
                                   <Power className={`w-4 h-4 mr-2 ${node.ativo ? "text-emerald-400" : "text-muted-foreground"}`} /> {node.ativo ? "Desativar" : "Ativar"}
                                 </DropdownMenuItem>
