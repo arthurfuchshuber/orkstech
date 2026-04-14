@@ -54,6 +54,7 @@ interface PayableForm {
   amount: number;
   due_date?: Date;
   category_id: string;
+  tipo_financeiro: string;
   categoria_financeira_id: string;
   cost_center_id: string;
   bank_account_id: string;
@@ -74,6 +75,7 @@ const initialForm: PayableForm = {
   amount: 0,
   due_date: undefined,
   category_id: "",
+  tipo_financeiro: "",
   categoria_financeira_id: "",
   cost_center_id: "",
   bank_account_id: "",
@@ -85,6 +87,13 @@ const initialForm: PayableForm = {
   pessoa_tipo: "pj",
   attachment_url: null,
 };
+
+const tiposFinanceiros = [
+  { value: "receita", label: "💰 Receita" },
+  { value: "despesa", label: "💸 Despesa" },
+  { value: "custo", label: "🏭 Custo" },
+  { value: "ajuste", label: "🔄 Ajuste" },
+];
 
 const statusConfig: Record<string, { label: string; color: string; icon: typeof Clock }> = {
   pending: { label: "Pendente", color: "bg-amber-500/10 text-amber-600 border-amber-200", icon: Clock },
@@ -417,6 +426,7 @@ export default function ContasAPagar() {
 
   const handleEdit = (item: any) => {
     setEditingId(item.id);
+    const catFin = categoriasFinanceiras.find((c: any) => c.id === item.categoria_financeira_id);
     setForm({
       description: item.description,
       supplier_id: item.supplier_id || "",
@@ -425,6 +435,7 @@ export default function ContasAPagar() {
       amount: Math.round(item.amount * 100),
       due_date: new Date(item.due_date),
       category_id: item.category_id || "",
+      tipo_financeiro: catFin?.tipo || "",
       categoria_financeira_id: item.categoria_financeira_id || "",
       cost_center_id: item.cost_center_id || "",
       bank_account_id: item.bank_account_id || "",
@@ -501,6 +512,7 @@ export default function ContasAPagar() {
 
   const handleDuplicate = (item: any) => {
     setEditingId(null);
+    const catFin2 = categoriasFinanceiras.find((c: any) => c.id === item.categoria_financeira_id);
     setForm({
       description: item.description,
       supplier_id: item.supplier_id || "",
@@ -509,6 +521,7 @@ export default function ContasAPagar() {
       amount: Math.round(item.amount * 100),
       due_date: undefined,
       category_id: item.category_id || "",
+      tipo_financeiro: catFin2?.tipo || "",
       categoria_financeira_id: item.categoria_financeira_id || "",
       cost_center_id: item.cost_center_id || "",
       bank_account_id: item.bank_account_id || "",
@@ -1154,18 +1167,34 @@ export default function ContasAPagar() {
             addLabel="Nova categoria"
           />
 
-          {/* Categoria Financeira (Plano de Contas / DRE) */}
+          {/* Tipo Financeiro */}
           <ManagedSelectInput
-            label="Categoria Financeira (DRE)"
+            label="Tipo Financeiro (DRE)"
+            value={form.tipo_financeiro}
+            onValueChange={(v) => {
+              updateField("tipo_financeiro", v);
+              updateField("categoria_financeira_id", "");
+            }}
+            options={tiposFinanceiros}
+            placeholder="Selecione o tipo financeiro..."
+            icon={<BarChart3 className="w-4 h-4" />}
+          />
+
+          {/* Subcategoria Financeira (Plano de Contas / DRE) */}
+          <ManagedSelectInput
+            label="Subcategoria (Plano de Contas)"
             value={form.categoria_financeira_id}
             onValueChange={(v) => updateField("categoria_financeira_id", v)}
-            options={categoriasFinanceiras.map((c: any) => ({ value: c.id, label: `${c.nome} (${c.tipo})` }))}
-            placeholder="Selecione a categoria do Plano de Contas..."
-            icon={<BarChart3 className="w-4 h-4" />}
+            options={categoriasFinanceiras
+              .filter((c: any) => !form.tipo_financeiro || c.tipo === form.tipo_financeiro)
+              .map((c: any) => ({ value: c.id, label: c.nome }))}
+            placeholder={form.tipo_financeiro ? "Selecione a subcategoria..." : "Selecione o tipo financeiro primeiro..."}
+            icon={<FolderTree className="w-4 h-4" />}
             onAddModal={() => { setCfEditingId(null); setCfModalOpen(true); }}
             onEditModal={(id) => { setCfEditingId(id); setCfModalOpen(true); }}
             onDelete={catFinCrud.onDelete}
-            addLabel="Nova categoria financeira"
+            addLabel="Nova subcategoria"
+            disabled={!form.tipo_financeiro}
           />
 
           {/* Centro de Custo */}
