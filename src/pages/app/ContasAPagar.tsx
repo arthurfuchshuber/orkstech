@@ -54,6 +54,7 @@ interface PayableForm {
   amount: number;
   due_date?: Date;
   category_id: string;
+  tipo_financeiro: string;
   categoria_financeira_id: string;
   cost_center_id: string;
   bank_account_id: string;
@@ -74,6 +75,7 @@ const initialForm: PayableForm = {
   amount: 0,
   due_date: undefined,
   category_id: "",
+  tipo_financeiro: "",
   categoria_financeira_id: "",
   cost_center_id: "",
   bank_account_id: "",
@@ -85,6 +87,13 @@ const initialForm: PayableForm = {
   pessoa_tipo: "pj",
   attachment_url: null,
 };
+
+const tiposFinanceiros = [
+  { value: "receita", label: "💰 Receita" },
+  { value: "despesa", label: "💸 Despesa" },
+  { value: "custo", label: "🏭 Custo" },
+  { value: "ajuste", label: "🔄 Ajuste" },
+];
 
 const statusConfig: Record<string, { label: string; color: string; icon: typeof Clock }> = {
   pending: { label: "Pendente", color: "bg-amber-500/10 text-amber-600 border-amber-200", icon: Clock },
