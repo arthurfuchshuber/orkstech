@@ -83,6 +83,21 @@ export default function ExtratoBancario() {
     enabled: !!user && !!targetUserId,
   });
 
+  const { data: allTransactions = [] } = useQuery({
+    queryKey: ["pluggy_transactions_summary", targetUserId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("pluggy_transactions" as any)
+        .select("*")
+        .eq("user_id", targetUserId!)
+        .limit(1000);
+
+      if (error) throw error;
+      return data as unknown as Transaction[];
+    },
+    enabled: !!user && !!targetUserId,
+  });
+
   const { data: transactions = [], isLoading: loadingTx } = useQuery({
     queryKey: ["pluggy_transactions", selectedAccount, typeFilter, targetUserId],
     queryFn: async () => {
@@ -91,7 +106,7 @@ export default function ExtratoBancario() {
         .select("*")
         .eq("user_id", targetUserId!)
         .order("date", { ascending: false })
-        .limit(200);
+        .limit(1000);
 
       if (selectedAccount !== "all") {
         query = query.eq("pluggy_account_id", selectedAccount);
@@ -104,7 +119,7 @@ export default function ExtratoBancario() {
       if (error) throw error;
       return data as unknown as Transaction[];
     },
-    enabled: !!user,
+    enabled: !!user && !!targetUserId,
   });
 
   const handleSync = async (itemId: string) => {
@@ -142,8 +157,30 @@ export default function ExtratoBancario() {
   const creditCards = accounts.filter((a) => a.type === "CREDIT");
   const bankAccounts = accounts.filter((a) => a.type !== "CREDIT");
 
+  const getInvestedBalance = (account: BankAccount) => {
+    const invested = account.bank_data?.automaticallyInvestedBalance ?? 0;
+    return invested > account.balance ? invested : 0;
+  };
+
+  const totalsByAccount = allTransactions.reduce<
+    Record<string, { income: number; expense: number }>
+  >((acc, tx) => {
+    const key = tx.pluggy_account_id;
+    const current = acc[key] ?? { income: 0, expense: 0 };
+    const amount = Math.abs(tx.amount);
+
+    if (tx.type === "CREDIT" || tx.amount > 0) {
+      current.income += amount;
+    } else {
+      current.expense += amount;
+    }
+
+    acc[key] = current;
+    return acc;
+  }, {});
+
   const totalBalance = bankAccounts.reduce(
-    (sum, a) => sum + a.balance,
+    (sum, a) => sum + a.balance + getInvestedBalance(a),
     0
   );
   const totalIncome = filteredTx
@@ -177,7 +214,7 @@ export default function ExtratoBancario() {
           </div>
           <p className="text-xl font-bold text-foreground">{formatCurrency(totalBalance)}</p>
           <p className="text-[11px] text-muted-foreground mt-1">
-            {bankAccounts.length} conta(s) conectada(s), incluindo valores guardados quando enviados pelo banco
+            {bankAccounts.length} conta(s) conectada(s), incluindo valores guardados quando o banco envia esse saldo separadamente
           </p>
         </Card>
         <Card className="p-4">
@@ -271,138 +308,45 @@ export default function ExtratoBancario() {
           </h2>
           <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
             {bankAccounts.map((acc) => {
-              const invested = acc.bank_data?.automaticallyInvestedBalance ?? 0;
-              const disponivel = acc.balance - invested;
+              const invested = getInvestedBalance(acc);
+              const accountTotal = acc.balance + invested;
+              const accountTotals = totalsByAccount[acc.pluggy_account_id] ?? {
+                income: 0,
+                expense: 0,
+              };
+
               return (
                 <Card key={acc.id} className="p-3 space-y-1">
                   <p className="text-xs text-muted-foreground">{acc.name}</p>
                   <p className="text-lg font-bold text-foreground">
-                    {formatCurrency(acc.balance)}
+                    {formatCurrency(accountTotal)}
                   </p>
-                  {invested > 0 && (
-                    <div className="text-[11px] text-muted-foreground space-y-0.5 pt-1 border-t border-border">
-                      <div className="flex justify-between">
-                        <span>Disponível</span>
-                        <span className="font-medium text-foreground">{formatCurrency(disponivel)}</span>
-                      </div>
+                  <div className="text-[11px] text-muted-foreground space-y-0.5 pt-1 border-t border-border">
+                    <div className="flex justify-between">
+                      <span>Disponível</span>
+                      <span className="font-medium text-foreground">{formatCurrency(acc.balance)}</span>
+                    </div>
+                    {invested > 0 && (
                       <div className="flex justify-between">
                         <span>Caixinhas / Guardado</span>
                         <span className="font-medium text-foreground">{formatCurrency(invested)}</span>
                       </div>
+                    )}
+                    <div className="flex justify-between">
+                      <span>Entradas</span>
+                      <span className="font-medium text-foreground">{formatCurrency(accountTotals.income)}</span>
                     </div>
-                  )}
+                    <div className="flex justify-between">
+                      <span>Saídas</span>
+                      <span className="font-medium text-foreground">{formatCurrency(accountTotals.expense)}</span>
+                    </div>
+                  </div>
                 </Card>
               );
             })}
           </div>
         </div>
       )}
-
-      {/* Filters */}
-      <Card className="p-4">
-        <div className="flex flex-col md:flex-row gap-3">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input
-              placeholder="Buscar transação..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-9"
-            />
-          </div>
-          <Select value={selectedAccount} onValueChange={setSelectedAccount}>
-            <SelectTrigger className="w-full md:w-[200px]">
-              <SelectValue placeholder="Todas as contas" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todas as contas</SelectItem>
-              {accounts.map((acc) => (
-                <SelectItem key={acc.pluggy_account_id} value={acc.pluggy_account_id}>
-                  {acc.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Select value={typeFilter} onValueChange={setTypeFilter}>
-            <SelectTrigger className="w-full md:w-[160px]">
-              <Filter className="w-3.5 h-3.5 mr-2" />
-              <SelectValue placeholder="Tipo" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos</SelectItem>
-              <SelectItem value="CREDIT">Entradas</SelectItem>
-              <SelectItem value="DEBIT">Saídas</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      </Card>
-
-      {/* Transactions List */}
-      <Card className="divide-y divide-border/30">
-        {loadingAccounts || loadingTx ? (
-          <div className="py-12 text-center text-muted-foreground text-sm">
-            Carregando transações...
-          </div>
-        ) : filteredTx.length === 0 ? (
-          <div className="py-12 text-center text-muted-foreground text-sm">
-            {accounts.length === 0
-              ? "Nenhuma conta conectada. Conecte um banco em Contas Bancárias."
-              : "Nenhuma transação encontrada."}
-          </div>
-        ) : (
-          filteredTx.map((tx) => {
-            const isCredit = tx.type === "CREDIT" || tx.amount > 0;
-            return (
-              <div
-                key={tx.id}
-                className="flex items-center gap-3 px-4 py-3 hover:bg-muted/30 transition-colors"
-              >
-                <div
-                  className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
-                    isCredit ? "bg-emerald-500/10" : "bg-destructive/10"
-                  }`}
-                >
-                  {isCredit ? (
-                    <ArrowDownLeft className="w-4 h-4 text-emerald-500" />
-                  ) : (
-                    <ArrowUpRight className="w-4 h-4 text-destructive" />
-                  )}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <p className="text-sm font-medium text-foreground truncate">
-                      {tx.description || "Sem descrição"}
-                    </p>
-                    {tx.reconciled && (
-                      <Badge
-                        variant="outline"
-                        className="text-[10px] gap-1 text-emerald-600 border-emerald-200"
-                      >
-                        <CheckCircle2 className="w-3 h-3" />
-                        Conciliado
-                      </Badge>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-2 mt-0.5">
-                    <span className="text-[11px] text-muted-foreground">
-                      {formatDate(tx.date)}
-                    </span>
-                    {tx.category && (
-                      <Badge variant="secondary" className="text-[10px]">
-                        {tx.category}
-                      </Badge>
-                    )}
-                  </div>
-                </div>
-                <p
-                  className={`text-sm font-semibold whitespace-nowrap ${
-                    isCredit ? "text-emerald-600" : "text-destructive"
-                  }`}
-                >
-                  {isCredit ? "+" : "-"} {formatCurrency(Math.abs(tx.amount))}
-                </p>
-              </div>
-            );
           })
         )}
       </Card>
