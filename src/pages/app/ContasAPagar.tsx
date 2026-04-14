@@ -1167,18 +1167,34 @@ export default function ContasAPagar() {
             addLabel="Nova categoria"
           />
 
-          {/* Categoria Financeira (Plano de Contas / DRE) */}
+          {/* Tipo Financeiro */}
           <ManagedSelectInput
-            label="Categoria Financeira (DRE)"
+            label="Tipo Financeiro (DRE)"
+            value={form.tipo_financeiro}
+            onValueChange={(v) => {
+              updateField("tipo_financeiro", v);
+              updateField("categoria_financeira_id", "");
+            }}
+            options={tiposFinanceiros}
+            placeholder="Selecione o tipo financeiro..."
+            icon={<BarChart3 className="w-4 h-4" />}
+          />
+
+          {/* Subcategoria Financeira (Plano de Contas / DRE) */}
+          <ManagedSelectInput
+            label="Subcategoria (Plano de Contas)"
             value={form.categoria_financeira_id}
             onValueChange={(v) => updateField("categoria_financeira_id", v)}
-            options={categoriasFinanceiras.map((c: any) => ({ value: c.id, label: `${c.nome} (${c.tipo})` }))}
-            placeholder="Selecione a categoria do Plano de Contas..."
-            icon={<BarChart3 className="w-4 h-4" />}
+            options={categoriasFinanceiras
+              .filter((c: any) => !form.tipo_financeiro || c.tipo === form.tipo_financeiro)
+              .map((c: any) => ({ value: c.id, label: c.nome }))}
+            placeholder={form.tipo_financeiro ? "Selecione a subcategoria..." : "Selecione o tipo financeiro primeiro..."}
+            icon={<FolderTree className="w-4 h-4" />}
             onAddModal={() => { setCfEditingId(null); setCfModalOpen(true); }}
             onEditModal={(id) => { setCfEditingId(id); setCfModalOpen(true); }}
             onDelete={catFinCrud.onDelete}
-            addLabel="Nova categoria financeira"
+            addLabel="Nova subcategoria"
+            disabled={!form.tipo_financeiro}
           />
 
           {/* Centro de Custo */}
