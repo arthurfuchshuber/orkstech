@@ -28,6 +28,7 @@ import ContasAPagar from "./pages/app/ContasAPagar";
 import NotFound from "./pages/NotFound";
 import ExtratoBancario from "./pages/app/ExtratoBancario";
 import Conciliacao from "./pages/app/Conciliacao";
+import DREPage from "./pages/app/DREPage";
 import ConfigConta from "./pages/app/ConfigConta";
 import ConfigPlanos from "./pages/app/ConfigPlanos";
 import { SuperAdminRoute } from "./components/SuperAdminRoute";
@@ -61,7 +62,7 @@ const App = () => (
                 <Route path="financas/pagar" element={<ContasAPagar />} />
                 <Route path="financas/receber" element={<PlaceholderPage />} />
                 <Route path="financas/fluxo" element={<PlaceholderPage />} />
-                <Route path="financas/dre" element={<PlaceholderPage />} />
+                <Route path="financas/dre" element={<DREPage />} />
                 <Route path="financas/cadastros" element={<Financeiro />} />
                 <Route path="financas/plano-de-contas" element={<Navigate to="/app/financas/cadastros" replace />} />
                 <Route path="financas/centros-de-custo" element={<Navigate to="/app/financas/cadastros" replace />} />
