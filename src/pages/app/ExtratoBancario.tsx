@@ -428,7 +428,7 @@ export default function ExtratoBancario() {
               Mês atual
             </Button>
             <Button
-              variant="secondary"
+              variant={!allPeriod && format(dateFrom, "yyyy-MM") === format(new Date(now.getFullYear(), now.getMonth() - 1, 1), "yyyy-MM") ? "default" : "secondary"}
               size="sm"
               onClick={() => {
                 setAllPeriod(false);
@@ -440,7 +440,7 @@ export default function ExtratoBancario() {
               Mês anterior
             </Button>
             <Button
-              variant="secondary"
+              variant={!allPeriod && format(dateFrom, "yyyy-MM-dd") === format(new Date(now.getFullYear(), 0, 1), "yyyy-MM-dd") && format(dateTo, "yyyy-MM") === format(now, "yyyy-MM") ? "default" : "secondary"}
               size="sm"
               onClick={() => {
                 setAllPeriod(false);
