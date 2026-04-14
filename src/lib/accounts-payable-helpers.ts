@@ -11,6 +11,7 @@ export type AccountPayableInsert = {
   due_date: string;
   issue_date?: string | null;
   category_id?: string | null;
+  categoria_financeira_id?: string | null;
   cost_center_id?: string | null;
   bank_account_id?: string | null;
   payment_method_id?: string | null;
@@ -126,6 +127,7 @@ export async function registerPayment(id: string, bankAccountId: string, payment
   if (updateError) throw updateError;
 
   const totalPaid = Number((updated as any).amount) + (jurosMulta || 0);
+  const catFinId = (updated as any).categoria_financeira_id;
 
   const { error: txError } = await supabase.from("cash_transactions").insert({
     user_id: userId,
@@ -136,6 +138,7 @@ export async function registerPayment(id: string, bankAccountId: string, payment
     description: `Pagamento: ${(updated as any).description}${jurosMulta && jurosMulta > 0 ? ` (+ juros/multa)` : ""}`,
     account_payable_id: id,
     bank_account_id: bankAccountId || null,
+    categoria_financeira_id: catFinId || null,
   });
   if (txError) throw txError;
 

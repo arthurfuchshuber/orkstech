@@ -5,7 +5,7 @@ import {
   Receipt, Plus, Check, Loader2, AlertTriangle, Clock, Ban,
   FileText, Search, CreditCard,
   Building2, Target, Landmark, FolderTree, Copy, Pencil, Trash2,
-  Banknote, ChevronDown, ScanLine, MoreHorizontal
+  Banknote, ChevronDown, ScanLine, MoreHorizontal, BarChart3
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -20,6 +20,7 @@ import { FileAttachment } from "@/components/inputs/FileAttachment";
 
 import { useManagedSelect } from "@/hooks/useManagedSelect";
 import { CategoriaCadastroModal } from "@/components/modals/CategoriaCadastroModal";
+import { CategoriaFinanceiraModal } from "@/components/modals/CategoriaFinanceiraModal";
 import { CentroCustoModal } from "@/components/modals/CentroCustoModal";
 import { ContaBancariaModal } from "@/components/modals/ContaBancariaModal";
 import { FormaPagamentoModal } from "@/components/modals/FormaPagamentoModal";
@@ -53,6 +54,7 @@ interface PayableForm {
   amount: number;
   due_date?: Date;
   category_id: string;
+  categoria_financeira_id: string;
   cost_center_id: string;
   bank_account_id: string;
   payment_method_id: string;
@@ -72,6 +74,7 @@ const initialForm: PayableForm = {
   amount: 0,
   due_date: undefined,
   category_id: "",
+  categoria_financeira_id: "",
   cost_center_id: "",
   bank_account_id: "",
   payment_method_id: "",
@@ -118,6 +121,7 @@ export default function ContasAPagar() {
   const centrosCrud = useManagedSelect("centros_custo");
   const contasCrud = useManagedSelect("contas_bancarias");
   const formasCrud = useManagedSelect("formas_pagamento");
+  const catFinCrud = useManagedSelect("categorias_financeiras");
 
   // Entity modal states
   const [catModalOpen, setCatModalOpen] = useState(false);
@@ -128,6 +132,8 @@ export default function ContasAPagar() {
   const [cbEditingId, setCbEditingId] = useState<string | null>(null);
   const [fpModalOpen, setFpModalOpen] = useState(false);
   const [fpEditingId, setFpEditingId] = useState<string | null>(null);
+  const [cfModalOpen, setCfModalOpen] = useState(false);
+  const [cfEditingId, setCfEditingId] = useState<string | null>(null);
   const [fornModalOpen, setFornModalOpen] = useState(false);
   const [fornEditingId, setFornEditingId] = useState<string | null>(null);
   const [fornPrefill, setFornPrefill] = useState<FornecedorPrefill | null>(null);
@@ -169,6 +175,16 @@ export default function ContasAPagar() {
     queryKey: ["categorias_cadastro", empresaId],
     queryFn: async () => {
       let q = supabase.from("categorias_cadastro").select("id, nome").eq("ativo", true).order("nome");
+      if (empresaId) q = q.eq("empresa_id", empresaId);
+      const { data } = await q;
+      return data ?? [];
+    },
+  });
+
+  const { data: categoriasFinanceiras = [] } = useQuery({
+    queryKey: ["categorias-financeiras", empresaId],
+    queryFn: async () => {
+      let q = supabase.from("categorias_financeiras").select("id, nome, tipo").eq("ativo", true).order("ordem");
       if (empresaId) q = q.eq("empresa_id", empresaId);
       const { data } = await q;
       return data ?? [];
@@ -349,6 +365,7 @@ export default function ContasAPagar() {
           amount: form.amount / 100,
           due_date: form.due_date!.toISOString().split("T")[0],
           category_id: form.category_id || null,
+          categoria_financeira_id: form.categoria_financeira_id || null,
           cost_center_id: form.cost_center_id || null,
           bank_account_id: form.bank_account_id || null,
           payment_method_id: form.payment_method_id || null,
@@ -381,6 +398,7 @@ export default function ContasAPagar() {
         amount: i === form.installments - 1 ? totalAmount - installmentAmount * (form.installments - 1) : installmentAmount,
         due_date: dueDate.toISOString().split("T")[0],
         category_id: form.category_id || null,
+        categoria_financeira_id: form.categoria_financeira_id || null,
         cost_center_id: form.cost_center_id || null,
         bank_account_id: form.bank_account_id || null,
         payment_method_id: form.payment_method_id || null,
@@ -407,6 +425,7 @@ export default function ContasAPagar() {
       amount: Math.round(item.amount * 100),
       due_date: new Date(item.due_date),
       category_id: item.category_id || "",
+      categoria_financeira_id: item.categoria_financeira_id || "",
       cost_center_id: item.cost_center_id || "",
       bank_account_id: item.bank_account_id || "",
       payment_method_id: item.payment_method_id || "",
@@ -490,6 +509,7 @@ export default function ContasAPagar() {
       amount: Math.round(item.amount * 100),
       due_date: undefined,
       category_id: item.category_id || "",
+      categoria_financeira_id: item.categoria_financeira_id || "",
       cost_center_id: item.cost_center_id || "",
       bank_account_id: item.bank_account_id || "",
       payment_method_id: item.payment_method_id || "",
@@ -1134,6 +1154,20 @@ export default function ContasAPagar() {
             addLabel="Nova categoria"
           />
 
+          {/* Categoria Financeira (Plano de Contas / DRE) */}
+          <ManagedSelectInput
+            label="Categoria Financeira (DRE)"
+            value={form.categoria_financeira_id}
+            onValueChange={(v) => updateField("categoria_financeira_id", v)}
+            options={categoriasFinanceiras.map((c: any) => ({ value: c.id, label: `${c.nome} (${c.tipo})` }))}
+            placeholder="Selecione a categoria do Plano de Contas..."
+            icon={<BarChart3 className="w-4 h-4" />}
+            onAddModal={() => { setCfEditingId(null); setCfModalOpen(true); }}
+            onEditModal={(id) => { setCfEditingId(id); setCfModalOpen(true); }}
+            onDelete={catFinCrud.onDelete}
+            addLabel="Nova categoria financeira"
+          />
+
           {/* Centro de Custo */}
           <ManagedSelectInput
             label="Centro de Custo"
@@ -1263,6 +1297,13 @@ export default function ContasAPagar() {
         onOpenChange={setCatModalOpen}
         editingId={catEditingId}
         onSaved={(id) => updateField("category_id", id)}
+      />
+      <CategoriaFinanceiraModal
+        open={cfModalOpen}
+        onOpenChange={setCfModalOpen}
+        editingId={cfEditingId}
+        defaultTipo="despesa"
+        onSaved={(id) => updateField("categoria_financeira_id", id)}
       />
       <CentroCustoModal
         open={ccModalOpen}
