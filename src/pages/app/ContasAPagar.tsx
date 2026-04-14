@@ -1187,8 +1187,6 @@ export default function ContasAPagar() {
             onValueChange={(v) => updateField("categoria_financeira_id", v)}
             options={(() => {
               const filtered = categoriasFinanceiras.filter((c: any) => !form.tipo_financeiro || c.tipo === form.tipo_financeiro);
-              const parentIds = new Set(filtered.map((c: any) => c.categoria_pai_id).filter(Boolean));
-              const allIds = new Set(filtered.map((c: any) => c.id));
               // Leaf = not a parent of any other category in the same filtered set
               return filtered
                 .filter((c: any) => !filtered.some((child: any) => child.categoria_pai_id === c.id))
