@@ -144,7 +144,7 @@ export function PlanoDeContasSection() {
     return children.flatMap((c) => [c.id, ...getDescendantIds(c.id)]);
   };
 
-
+  const handleDragEnd = (result: DropResult) => {
     if (!result.destination || result.source.index === result.destination.index) return;
     const sourceItem = visibleItems[result.source.index];
     const destItem = visibleItems[result.destination.index];
