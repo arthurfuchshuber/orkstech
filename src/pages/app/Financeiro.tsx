@@ -2,7 +2,7 @@ import { Settings2 } from "lucide-react";
 import { PlanoDeContasSection } from "@/components/financas/PlanoDeContasSection";
 import { CentrosCustoSection } from "@/components/financas/CentrosCustoSection";
 import { FormasPagamentoSection } from "@/components/financas/FormasPagamentoSection";
-import { CategoriasCadastroSection } from "@/components/financas/CategoriasCadastroSection";
+
 import ContasBancarias from "./ContasBancarias";
 
 export default function Financeiro() {
@@ -31,10 +31,7 @@ export default function Financeiro() {
           <CentrosCustoSection />
         </div>
         <ContasBancarias embedded />
-        <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
-          <FormasPagamentoSection />
-          <CategoriasCadastroSection />
-        </div>
+        <FormasPagamentoSection />
       </section>
     </div>
   );
