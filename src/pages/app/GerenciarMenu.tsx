@@ -3,13 +3,26 @@ import { DragDropContext, Droppable, Draggable, type DropResult } from "@hello-p
 import { useMenus, type MenuItem } from "@/hooks/useMenus";
 import { DynamicIcon } from "@/components/DynamicIcon";
 import { Card } from "@/components/ui/card";
-import { ChevronRight, ChevronDown, GripVertical, Menu } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+  ChevronRight,
+  ChevronDown,
+  GripVertical,
+  Menu,
+  FolderInput,
+} from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 export default function GerenciarMenu() {
   const { tree, flatMenus, isLoading, reorder } = useMenus();
   const [openMap, setOpenMap] = useState<Record<string, boolean>>({});
 
-  // Auto-open all groups on load
   useEffect(() => {
     if (flatMenus.length > 0) {
       const map: Record<string, boolean> = {};
@@ -24,49 +37,81 @@ export default function GerenciarMenu() {
 
   const toggle = (id: string) => setOpenMap((p) => ({ ...p, [id]: !p[id] }));
 
+  // Get all possible parent targets (root + groups)
+  const getParentOptions = (itemId: string) => {
+    // Groups = items that have children OR items at root level (which could become groups)
+    // Exclude the item itself and its descendants
+    const descendants = new Set<string>();
+    const collectDescendants = (parentId: string) => {
+      flatMenus
+        .filter((m) => m.parent_id === parentId)
+        .forEach((m) => {
+          descendants.add(m.id);
+          collectDescendants(m.id);
+        });
+    };
+    descendants.add(itemId);
+    collectDescendants(itemId);
+
+    // Root-level items that can be parents (groups)
+    const rootItems = flatMenus.filter(
+      (m) => m.parent_id === null && !descendants.has(m.id)
+    );
+
+    // Also include items that already have children (nested groups)
+    const groups = flatMenus.filter(
+      (m) =>
+        !descendants.has(m.id) &&
+        m.parent_id !== null &&
+        flatMenus.some((c) => c.parent_id === m.id)
+    );
+
+    return { rootItems, groups };
+  };
+
+  const moveToParent = (itemId: string, currentParentId: string | null, newParentId: string | null) => {
+    if (currentParentId === newParentId) return;
+
+    const updates: { id: string; order_index: number; parent_id: string | null }[] = [];
+
+    // Remove from current siblings and reindex
+    const currentSiblings = flatMenus
+      .filter((m) => m.parent_id === currentParentId && m.id !== itemId)
+      .sort((a, b) => a.order_index - b.order_index);
+    currentSiblings.forEach((s, i) => {
+      updates.push({ id: s.id, order_index: i, parent_id: currentParentId });
+    });
+
+    // Add to new parent at the end
+    const newSiblings = flatMenus
+      .filter((m) => m.parent_id === newParentId && m.id !== itemId)
+      .sort((a, b) => a.order_index - b.order_index);
+    updates.push({ id: itemId, order_index: newSiblings.length, parent_id: newParentId });
+
+    // Open new parent
+    if (newParentId) {
+      setOpenMap((p) => ({ ...p, [newParentId]: true }));
+    }
+
+    reorder.mutate(updates);
+  };
+
   const handleDragEnd = (result: DropResult) => {
     const { source, destination } = result;
     if (!destination) return;
     if (source.droppableId === destination.droppableId && source.index === destination.index) return;
 
-    const sourceParentId = source.droppableId === "root" ? null : source.droppableId;
-    const destParentId = destination.droppableId === "root" ? null : destination.droppableId;
+    const parentId = source.droppableId === "root" ? null : source.droppableId;
+    // Only allow reorder within same list
+    if (source.droppableId !== destination.droppableId) return;
 
-    // Get source siblings and remove the dragged item
-    const sourceSiblings = flatMenus
-      .filter((m) => m.parent_id === sourceParentId)
+    const siblings = flatMenus
+      .filter((m) => m.parent_id === parentId)
       .sort((a, b) => a.order_index - b.order_index);
-    const [moved] = sourceSiblings.splice(source.index, 1);
+    const moved = siblings.splice(source.index, 1)[0];
+    siblings.splice(destination.index, 0, moved);
 
-    const updates: { id: string; order_index: number; parent_id: string | null }[] = [];
-
-    if (sourceParentId === destParentId) {
-      // Same list — just reorder
-      sourceSiblings.splice(destination.index, 0, moved);
-      sourceSiblings.forEach((s, i) => {
-        updates.push({ id: s.id, order_index: i, parent_id: sourceParentId });
-      });
-    } else {
-      // Moving between lists
-      // Reindex source
-      sourceSiblings.forEach((s, i) => {
-        updates.push({ id: s.id, order_index: i, parent_id: sourceParentId });
-      });
-      // Insert into destination
-      const destSiblings = flatMenus
-        .filter((m) => m.parent_id === destParentId && m.id !== moved.id)
-        .sort((a, b) => a.order_index - b.order_index);
-      destSiblings.splice(destination.index, 0, moved);
-      destSiblings.forEach((s, i) => {
-        updates.push({ id: s.id, order_index: i, parent_id: destParentId });
-      });
-
-      // Open destination parent so the moved item is visible
-      if (destParentId) {
-        setOpenMap((p) => ({ ...p, [destParentId]: true }));
-      }
-    }
-
+    const updates = siblings.map((s, i) => ({ id: s.id, order_index: i, parent_id: parentId }));
     reorder.mutate(updates);
   };
 
@@ -83,6 +128,7 @@ export default function GerenciarMenu() {
           {items.map((item, index) => {
             const hasChildren = !!item.children?.length;
             const isOpen = openMap[item.id] ?? true;
+            const { rootItems, groups } = getParentOptions(item.id);
 
             return (
               <Draggable key={item.id} draggableId={item.id} index={index}>
@@ -104,6 +150,61 @@ export default function GerenciarMenu() {
                       <DynamicIcon name={item.icon} className="w-4 h-4 text-muted-foreground flex-shrink-0" />
                       <span className="flex-1 text-sm font-medium text-foreground">{item.name}</span>
 
+                      {/* Move to group dropdown */}
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 rounded-md opacity-50 hover:opacity-100"
+                            title="Mover para outro grupo"
+                          >
+                            <FolderInput className="w-3.5 h-3.5" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-56">
+                          <DropdownMenuItem
+                            disabled={item.parent_id === null}
+                            onClick={() => moveToParent(item.id, item.parent_id, null)}
+                          >
+                            <span className="text-xs">📂 Raiz (nível principal)</span>
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          {rootItems
+                            .filter((r) => r.id !== item.id)
+                            .map((r) => (
+                              <DropdownMenuItem
+                                key={r.id}
+                                disabled={item.parent_id === r.id}
+                                onClick={() => moveToParent(item.id, item.parent_id, r.id)}
+                              >
+                                <DynamicIcon name={r.icon} className="w-3.5 h-3.5 mr-2 text-muted-foreground" />
+                                <span className="text-xs">{r.name}</span>
+                                {item.parent_id === r.id && (
+                                  <span className="ml-auto text-[10px] text-muted-foreground">(atual)</span>
+                                )}
+                              </DropdownMenuItem>
+                            ))}
+                          {groups.length > 0 && (
+                            <>
+                              <DropdownMenuSeparator />
+                              {groups.map((g) => (
+                                <DropdownMenuItem
+                                  key={g.id}
+                                  disabled={item.parent_id === g.id}
+                                  onClick={() => moveToParent(item.id, item.parent_id, g.id)}
+                                >
+                                  <span className="text-xs ml-3">↳ {g.name}</span>
+                                  {item.parent_id === g.id && (
+                                    <span className="ml-auto text-[10px] text-muted-foreground">(atual)</span>
+                                  )}
+                                </DropdownMenuItem>
+                              ))}
+                            </>
+                          )}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+
                       {hasChildren && (
                         <button
                           onClick={() => toggle(item.id)}
@@ -118,26 +219,7 @@ export default function GerenciarMenu() {
                       )}
                     </div>
 
-                    {/* Always render droppable zone for this item so items can be dropped into it */}
                     {isOpen && hasChildren && renderDroppable(item.children!, item.id, depth + 1)}
-                    {/* If no children but open, still allow dropping into it as a group */}
-                    {isOpen && !hasChildren && (
-                      <Droppable droppableId={item.id}>
-                        {(emptyProv, emptySnap) => (
-                          <div
-                            ref={emptyProv.innerRef}
-                            {...emptyProv.droppableProps}
-                            className={`ml-6 mt-1 pl-3 border-l-2 border-dashed min-h-[2px] rounded transition-colors ${
-                              emptySnap.isDraggingOver
-                                ? "border-primary/40 bg-primary/5 min-h-[32px]"
-                                : "border-transparent"
-                            }`}
-                          >
-                            {emptyProv.placeholder}
-                          </div>
-                        )}
-                      </Droppable>
-                    )}
                   </div>
                 )}
               </Draggable>
@@ -160,7 +242,7 @@ export default function GerenciarMenu() {
         <div>
           <h1 className="text-xl font-bold text-foreground">Gerenciar Menu</h1>
           <p className="text-sm text-muted-foreground mt-0.5">
-            Arraste para reordenar ou mover itens entre grupos
+            Arraste para reordenar · Clique no ícone 📁 para mover entre grupos
           </p>
         </div>
       </div>
