@@ -201,6 +201,7 @@ Deno.serve(async (req) => {
           totalDebt: acc.type === 'CREDIT' ? (acc.balance ?? null) : null,
           hasBillData: billAmount != null,
           hasOpenBillCalc: openBillAmount != null,
+          totalInvestments: acc.type !== 'CREDIT' ? totalInvestments : 0,
         },
         updated_at: new Date().toISOString(),
       }
