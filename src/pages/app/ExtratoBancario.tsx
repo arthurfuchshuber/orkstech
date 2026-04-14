@@ -105,7 +105,7 @@ export default function ExtratoBancario() {
       const token = session.data.session?.access_token;
       const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
       const res = await fetch(
-        `https://${projectId}.supabase.co/functions/v1/pluggy-sync?itemId=${itemId}&action=summary`,
+        `https://${projectId}.supabase.co/functions/v1/pluggy-sync?itemId=${itemId}&action=full_sync`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
       if (!res.ok) {

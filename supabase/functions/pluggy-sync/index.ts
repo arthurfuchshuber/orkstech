@@ -95,15 +95,16 @@ Deno.serve(async (req) => {
     const accountsData = await accountsRes.json()
     const accounts = accountsData.results || []
 
-    // Get connection ID
+    // Get connection and resolve the real owner user_id
     const { data: conn } = await supabaseAdmin
       .from('pluggy_connections')
-      .select('id')
+      .select('id, user_id')
       .eq('pluggy_item_id', itemId)
-      .eq('user_id', userId)
-      .single()
+      .maybeSingle()
 
     const connectionId = conn?.id || null
+    // Use the connection owner's user_id (important for Super Admin syncing on behalf of another user)
+    const ownerUserId = conn?.user_id || userId
 
     // Upsert bank accounts
     let savedAccounts = 0
@@ -111,7 +112,7 @@ Deno.serve(async (req) => {
 
     for (const acc of accounts) {
       const accountPayload = {
-        user_id: userId,
+        user_id: ownerUserId,
         connection_id: connectionId,
         pluggy_item_id: itemId,
         pluggy_account_id: acc.id,
@@ -146,7 +147,7 @@ Deno.serve(async (req) => {
           const BATCH = 200
           for (let i = 0; i < transactions.length; i += BATCH) {
             const batch = transactions.slice(i, i + BATCH).map((tx: any) => ({
-              user_id: userId,
+              user_id: ownerUserId,
               pluggy_account_id: acc.id,
               pluggy_transaction_id: tx.id,
               description: tx.description || tx.descriptionRaw || null,
@@ -181,7 +182,7 @@ Deno.serve(async (req) => {
         connector_name: item.connector?.name || null,
       })
       .eq('pluggy_item_id', itemId)
-      .eq('user_id', userId)
+      .eq('user_id', ownerUserId)
 
     const result = {
       item: { id: item.id, status: item.status, connector: item.connector },
