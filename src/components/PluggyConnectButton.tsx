@@ -111,27 +111,40 @@ export function PluggyConnectButton({ size = "default" }: { size?: "default" | "
       qc.invalidateQueries({ queryKey: ["pluggy_connections"] });
       qc.invalidateQueries({ queryKey: ["pluggy_connections_exist"] });
 
-      // Auto-sync: fetch accounts and transactions
-      try {
+      // Auto-sync with retry: Pluggy item may still be processing
+      const syncWithRetry = async (retries = 3, delayMs = 5000) => {
         const session = await supabase.auth.getSession();
         const token = session.data.session?.access_token;
         const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
-        const res = await fetch(
-          `https://${projectId}.supabase.co/functions/v1/pluggy-sync?itemId=${item.id}&action=full_sync`,
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
-        if (res.ok) {
-          const result = await res.json();
-          toast.success(result.message || "Dados sincronizados!");
-          qc.invalidateQueries({ queryKey: ["pluggy_bank_accounts"] });
-          qc.invalidateQueries({ queryKey: ["pluggy_transactions"] });
-        } else {
-          console.error("Auto-sync failed:", await res.text());
-          toast.error("Conexão salva, mas erro ao sincronizar dados");
+
+        for (let attempt = 1; attempt <= retries; attempt++) {
+          if (attempt > 1) {
+            toast.info(`Aguardando processamento do banco... tentativa ${attempt}/${retries}`);
+            await new Promise((r) => setTimeout(r, delayMs));
+          }
+
+          try {
+            const res = await fetch(
+              `https://${projectId}.supabase.co/functions/v1/pluggy-sync?itemId=${item.id}&action=full_sync`,
+              { headers: { Authorization: `Bearer ${token}` } }
+            );
+            if (res.ok) {
+              const result = await res.json();
+              toast.success(result.message || "Dados sincronizados!");
+              qc.invalidateQueries({ queryKey: ["pluggy_bank_accounts"] });
+              qc.invalidateQueries({ queryKey: ["pluggy_transactions"] });
+              return;
+            }
+            const errText = await res.text();
+            console.error(`Auto-sync attempt ${attempt} failed:`, errText);
+          } catch (syncErr) {
+            console.error(`Auto-sync attempt ${attempt} error:`, syncErr);
+          }
         }
-      } catch (syncErr) {
-        console.error("Auto-sync error:", syncErr);
-      }
+        toast.error("Conexão salva, mas erro ao sincronizar. Clique no botão de sincronizar para tentar novamente.");
+      };
+
+      syncWithRetry().catch(console.error);
     }
     setConnectToken(null);
     setLoading(false);
