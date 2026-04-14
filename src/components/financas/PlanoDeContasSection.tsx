@@ -21,7 +21,7 @@ import {
 import { DragDropContext, Droppable, Draggable, type DropResult } from "@hello-pangea/dnd";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
-type TipoFinanceiro = "receita" | "despesa" | "custo" | "deducao" | "imposto" | "ajuste";
+type TipoFinanceiro = "receita" | "despesa" | "custo" | "deducao" | "imposto" | "receita_financeira" | "despesa_financeira" | "ajuste";
 
 interface Categoria {
   id: string;
