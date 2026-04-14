@@ -393,7 +393,7 @@ export default function ExtratoBancario() {
         </div>
       </Card>
 
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-4">
         <Card className="p-4">
           <div className="mb-1 flex items-center gap-2">
             <Landmark className="h-4 w-4 text-primary" />
@@ -401,7 +401,7 @@ export default function ExtratoBancario() {
           </div>
           <p className="text-xl font-bold text-foreground">{formatCurrency(totalBalance)}</p>
           <p className="mt-1 text-[11px] text-muted-foreground">
-            {bankAccounts.length} conta(s) conectada(s), incluindo valores guardados
+            {bankAccounts.length} conta(s) conectada(s)
           </p>
         </Card>
 
@@ -420,8 +420,31 @@ export default function ExtratoBancario() {
             <span className="text-xs text-muted-foreground">Saídas</span>
           </div>
           <p className="text-xl font-bold text-destructive">{formatCurrency(totalExpense)}</p>
-          <p className="mt-1 text-[11px] text-muted-foreground">{periodLabel} (excl. caixinhas/investimentos)</p>
+          <p className="mt-1 text-[11px] text-muted-foreground">{periodLabel}</p>
         </Card>
+
+        {(() => {
+          const resultado = totalIncome - totalExpense;
+          const isPositive = resultado >= 0;
+          return (
+            <Card className={cn("p-4 border-l-4", isPositive ? "border-l-primary" : "border-l-destructive")}>
+              <div className="mb-1 flex items-center gap-2">
+                {isPositive ? (
+                  <TrendingUp className="h-4 w-4 text-primary" />
+                ) : (
+                  <TrendingDown className="h-4 w-4 text-destructive" />
+                )}
+                <span className="text-xs text-muted-foreground">Resultado</span>
+              </div>
+              <p className={cn("text-xl font-bold", isPositive ? "text-primary" : "text-destructive")}>
+                {isPositive ? "+" : ""}{formatCurrency(resultado)}
+              </p>
+              <p className="mt-1 text-[11px] text-muted-foreground">
+                {isPositive ? "Superávit" : "Déficit"} no período
+              </p>
+            </Card>
+          );
+        })()}
       </div>
 
       {creditCards.length > 0 && (
