@@ -34,7 +34,9 @@ interface Categoria {
 }
 
 const tipoLabels: Record<TipoFinanceiro, string> = {
-  receita: "Receita", deducao: "Dedução", custo: "Custo", despesa: "Despesa", imposto: "Imposto", ajuste: "Ajuste",
+  receita: "Receita", deducao: "Dedução", custo: "Custo", despesa: "Despesa",
+  receita_financeira: "Rec. Financeira", despesa_financeira: "Desp. Financeira",
+  imposto: "Imposto", ajuste: "Ajuste",
 };
 
 const tipoColors: Record<TipoFinanceiro, string> = {
@@ -42,12 +44,16 @@ const tipoColors: Record<TipoFinanceiro, string> = {
   deducao: "bg-orange-500/10 text-orange-400 border-orange-500/20",
   custo: "bg-amber-500/10 text-amber-400 border-amber-500/20",
   despesa: "bg-red-500/10 text-red-400 border-red-500/20",
+  receita_financeira: "bg-teal-500/10 text-teal-400 border-teal-500/20",
+  despesa_financeira: "bg-pink-500/10 text-pink-400 border-pink-500/20",
   imposto: "bg-purple-500/10 text-purple-400 border-purple-500/20",
   ajuste: "bg-blue-500/10 text-blue-400 border-blue-500/20",
 };
 
 const tipoIcons: Record<TipoFinanceiro, typeof TrendingUp> = {
-  receita: TrendingUp, deducao: Minus, custo: Minus, despesa: TrendingDown, imposto: Minus, ajuste: RefreshCw,
+  receita: TrendingUp, deducao: Minus, custo: Minus, despesa: TrendingDown,
+  receita_financeira: TrendingUp, despesa_financeira: TrendingDown,
+  imposto: Minus, ajuste: RefreshCw,
 };
 
 function flattenTree(nodes: Categoria[]): { id: string; node: Categoria; level: number; parentId: string | null; number: string }[] {
