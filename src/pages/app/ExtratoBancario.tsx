@@ -348,26 +348,7 @@ export default function ExtratoBancario() {
     .filter((tx) => tx.type === "DEBIT" || tx.amount < 0)
     .reduce((sum, tx) => sum + Math.abs(tx.amount), 0);
 
-  // Investment yields: use API data for active investments, plus infer
-  // historical yields from withdrawn investments (Pluggy zeroes their data)
-  const apiRendimentos = investments
-    .filter((inv) => inv.status === "ACTIVE")
-    .reduce((sum, inv) => {
-      if (inv.amount_profit != null) return sum + inv.amount_profit;
-      if (inv.amount_original != null && inv.balance > 0) {
-        return sum + (inv.balance - inv.amount_original);
-      }
-      return sum;
-    }, 0);
-
-  // Total yields = difference between total balance and net external transactions
-  // This captures both current and historical (withdrawn) investment yields
-  const netExternal = totalIncome - totalExpense;
-  const inferredRendimentos = totalBalance - netExternal;
-  // Use the larger of API-calculated or inferred (inferred includes historical yields)
-  const totalRendimentosRounded = Math.round(
-    Math.max(apiRendimentos, inferredRendimentos > 0 ? inferredRendimentos : 0) * 100
-  ) / 100;
+  const resultado = totalIncome - totalExpense;
 
   const periodLabel = allPeriod ? "Todo o período" : `${format(dateFrom, "dd/MM/yyyy")} a ${format(dateTo, "dd/MM/yyyy")}`;
 
@@ -476,7 +457,7 @@ export default function ExtratoBancario() {
         </div>
       </Card>
 
-      <div className={cn("grid gap-4", totalRendimentosRounded !== 0 ? "md:grid-cols-5" : "md:grid-cols-4")}>
+      <div className="grid gap-4 md:grid-cols-4">
         <Card className="p-4">
           <div className="mb-1 flex items-center gap-2">
             <Landmark className="h-4 w-4 text-primary" />
@@ -506,23 +487,7 @@ export default function ExtratoBancario() {
           <p className="mt-1 text-[11px] text-muted-foreground">{periodLabel}</p>
         </Card>
 
-        {totalRendimentosRounded !== 0 && (
-          <Card className="p-4 border-l-4 border-l-amber-500">
-            <div className="mb-1 flex items-center gap-2">
-              <PiggyBank className="h-4 w-4 text-amber-500" />
-              <span className="text-xs text-muted-foreground">Rendimentos</span>
-            </div>
-            <p className={cn("text-xl font-bold", totalRendimentosRounded >= 0 ? "text-amber-600" : "text-destructive")}>
-              {totalRendimentosRounded >= 0 ? "+" : ""}{formatCurrency(totalRendimentosRounded)}
-            </p>
-            <p className="mt-1 text-[11px] text-muted-foreground">
-              Investimentos e caixinhas
-            </p>
-          </Card>
-        )}
-
         {(() => {
-          const resultado = totalIncome - totalExpense + totalRendimentosRounded;
           const isPositive = resultado >= 0;
           return (
             <Card className={cn("p-4 border-l-4", isPositive ? "border-l-primary" : "border-l-destructive")}>
