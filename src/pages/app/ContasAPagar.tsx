@@ -1154,6 +1154,20 @@ export default function ContasAPagar() {
             addLabel="Nova categoria"
           />
 
+          {/* Categoria Financeira (Plano de Contas / DRE) */}
+          <ManagedSelectInput
+            label="Categoria Financeira (DRE)"
+            value={form.categoria_financeira_id}
+            onValueChange={(v) => updateField("categoria_financeira_id", v)}
+            options={categoriasFinanceiras.map((c: any) => ({ value: c.id, label: `${c.nome} (${c.tipo})` }))}
+            placeholder="Selecione a categoria do Plano de Contas..."
+            icon={<BarChart3 className="w-4 h-4" />}
+            onAddModal={() => { setCfEditingId(null); setCfModalOpen(true); }}
+            onEditModal={(id) => { setCfEditingId(id); setCfModalOpen(true); }}
+            onDelete={catFinCrud.onDelete}
+            addLabel="Nova categoria financeira"
+          />
+
           {/* Centro de Custo */}
           <ManagedSelectInput
             label="Centro de Custo"
