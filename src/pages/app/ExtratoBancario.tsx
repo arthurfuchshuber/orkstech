@@ -39,6 +39,11 @@ interface BankAccount {
   pluggy_account_id: string;
   pluggy_item_id: string;
   connection_id: string;
+  bank_data: {
+    balanceCloseDate?: string | null;
+    openBillAmount?: number | null;
+    totalDebt?: number | null;
+  } | null;
 }
 
 interface Transaction {
