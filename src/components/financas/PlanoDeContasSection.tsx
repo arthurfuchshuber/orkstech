@@ -148,18 +148,18 @@ export function PlanoDeContasSection() {
     if (!result.destination || result.source.index === result.destination.index) return;
     const sourceItem = visibleItems[result.source.index];
     const destItem = visibleItems[result.destination.index];
-    const newParentId = destItem.parentId;
 
     // Prevent circular: can't drop into own descendants
     const descendantIds = getDescendantIds(sourceItem.id);
-    if (newParentId === sourceItem.id || descendantIds.includes(newParentId || "")) {
+    if (destItem.id === sourceItem.id || descendantIds.includes(destItem.id)) {
       toast.error("Não é possível mover para dentro de si mesmo");
       return;
     }
 
-    if (sourceItem.parentId === newParentId) {
+    if (sourceItem.parentId === destItem.parentId) {
       // Same level: simple reorder
-      const siblings = categorias.filter((c) => c.categoria_pai_id === newParentId).sort((a, b) => a.ordem - b.ordem);
+      const parentId = sourceItem.parentId;
+      const siblings = categorias.filter((c) => c.categoria_pai_id === parentId).sort((a, b) => a.ordem - b.ordem);
       const srcIdx = siblings.findIndex((s) => s.id === sourceItem.id);
       const destIdx = siblings.findIndex((s) => s.id === destItem.id);
       if (srcIdx === -1 || destIdx === -1) return;
@@ -168,30 +168,50 @@ export function PlanoDeContasSection() {
       reordered.splice(destIdx, 0, moved);
       reorderMutation.mutate(reordered.map((item, i) => ({ id: item.id, ordem: i })));
     } else {
-      // Cross-level: move to new parent
+      // Cross-level: make source a CHILD of the destination item
+      const newParentId = destItem.id;
+
       // Remove from old siblings and reorder them
       const oldSiblings = categorias
         .filter((c) => c.categoria_pai_id === sourceItem.parentId && c.id !== sourceItem.id)
         .sort((a, b) => a.ordem - b.ordem);
       const oldUpdates = oldSiblings.map((item, i) => ({ id: item.id, ordem: i }));
 
-      // Insert into new siblings at destination position
+      // Add as last child of the destination
       const newSiblings = categorias
         .filter((c) => c.categoria_pai_id === newParentId)
         .sort((a, b) => a.ordem - b.ordem);
-      const destIdx = newSiblings.findIndex((s) => s.id === destItem.id);
-      const insertAt = destIdx === -1 ? newSiblings.length : destIdx;
-      const reordered = [...newSiblings];
-      reordered.splice(insertAt, 0, { ...categorias.find((c) => c.id === sourceItem.id)! });
-      const newUpdates = reordered.map((item, i) => ({
-        id: item.id,
-        ordem: i,
-        ...(item.id === sourceItem.id ? { categoria_pai_id: newParentId } : {}),
-      }));
+
+      const newUpdates = [
+        ...newSiblings.map((item, i) => ({ id: item.id, ordem: i })),
+        { id: sourceItem.id, ordem: newSiblings.length, categoria_pai_id: newParentId as string | null },
+      ];
 
       reorderMutation.mutate([...oldUpdates, ...newUpdates]);
-      toast.success("Categoria movida");
+
+      // Expand the destination so the user sees the moved item
+      setCollapsedIds((prev) => {
+        const next = new Set(prev);
+        next.delete(newParentId);
+        return next;
+      });
+
+      toast.success(`"${sourceItem.node.nome}" agora é sub de "${destItem.node.nome}"`);
     }
+  };
+
+  // To promote (move OUT), use "Mover para" in dropdown or drag onto a root-level sibling
+  const handlePromoteToRoot = (node: Categoria) => {
+    const oldSiblings = categorias
+      .filter((c) => c.categoria_pai_id === node.categoria_pai_id && c.id !== node.id)
+      .sort((a, b) => a.ordem - b.ordem);
+    const oldUpdates = oldSiblings.map((item, i) => ({ id: item.id, ordem: i }));
+    const rootSiblings = categorias.filter((c) => !c.categoria_pai_id).sort((a, b) => a.ordem - b.ordem);
+    reorderMutation.mutate([
+      ...oldUpdates,
+      { id: node.id, ordem: rootSiblings.length, categoria_pai_id: null },
+    ]);
+    toast.success(`"${node.nome}" promovida para raiz`);
   };
 
   const moveMutation = useMutation({
