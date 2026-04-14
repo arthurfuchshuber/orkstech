@@ -43,6 +43,7 @@ interface BankAccount {
     balanceCloseDate?: string | null;
     openBillAmount?: number | null;
     totalDebt?: number | null;
+    automaticallyInvestedBalance?: number | null;
     hasBillData?: boolean;
     hasOpenBillCalc?: boolean;
   } | null;
