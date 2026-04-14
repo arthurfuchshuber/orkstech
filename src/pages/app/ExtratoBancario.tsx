@@ -129,10 +129,10 @@ export default function ExtratoBancario() {
 
     if (account.type === "CREDIT") {
       const creditData = (account.bank_data as any)?.creditData;
+      // Use the first identificationNumber as primary card (additional cards are in additionalCards array)
       const last4 = creditData?.disaggregatedCreditLimits?.[0]?.identificationNumber || "";
       const suffix = last4 ? ` (${last4})` : "";
-      const prefix = `${connectorName} Cartão de Crédito${suffix}`;
-      return displayOwner ? `${prefix} - ${displayOwner}` : prefix;
+      return `${connectorName} Cartão de Crédito${suffix}`;
     }
 
     return displayOwner ? `${connectorName} (${displayOwner})` : connectorName;
