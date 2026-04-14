@@ -191,11 +191,12 @@ export default function ExtratoBancario() {
     0
   );
 
-  const totalIncome = filteredTx
+  // Use allTransactions (unfiltered) so general cards always match per-account cards
+  const totalIncome = allTransactions
     .filter((tx) => tx.type === "CREDIT" || tx.amount > 0)
     .reduce((sum, tx) => sum + Math.abs(tx.amount), 0);
 
-  const totalExpense = filteredTx
+  const totalExpense = allTransactions
     .filter((tx) => tx.type === "DEBIT" || tx.amount < 0)
     .reduce((sum, tx) => sum + Math.abs(tx.amount), 0);
 
