@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useEmpresa } from "@/hooks/useEmpresa";
 import { useCallback } from "react";
 
 export interface MenuItem {
@@ -27,24 +28,33 @@ function buildTree(items: MenuItem[], parentId: string | null = null): MenuItem[
 
 export function useMenus() {
   const { user } = useAuth();
+  const { empresa } = useEmpresa();
   const qc = useQueryClient();
 
+  // For Super Admin viewing another company, use that company's owner user_id
+  const targetUserId = empresa?.user_id ?? user?.id;
+
   const { data: flatMenus = [], isLoading } = useQuery({
-    queryKey: ["menus", user?.id],
-    enabled: !!user,
+    queryKey: ["menus", targetUserId],
+    enabled: !!user && !!targetUserId,
     queryFn: async () => {
-      // Try to fetch menus
+      // Fetch menus filtered by the target user
       let { data, error } = await supabase
         .from("menus")
         .select("*")
+        .eq("user_id", targetUserId!)
         .order("order_index");
 
       if (error) throw error;
 
-      // If no menus exist, seed them
+      // If no menus exist for this user, seed them
       if (!data || data.length === 0) {
-        await supabase.rpc("seed_default_menus", { p_user_id: user!.id });
-        const res = await supabase.from("menus").select("*").order("order_index");
+        await supabase.rpc("seed_default_menus", { p_user_id: targetUserId! });
+        const res = await supabase
+          .from("menus")
+          .select("*")
+          .eq("user_id", targetUserId!)
+          .order("order_index");
         if (res.error) throw res.error;
         data = res.data;
       }
