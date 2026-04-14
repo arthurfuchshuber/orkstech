@@ -1779,6 +1779,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      is_super_admin: { Args: never; Returns: boolean }
       processar_automacoes: {
         Args: {
           p_contexto?: Json
