@@ -236,8 +236,8 @@ export function useDRE(filters: DREFilters) {
     
     if (totalReceitaAmount > 0 || totalDespesaAmount > 0 || totalCustoAmount > 0) {
       summaryLines.push({
-        id: "total-receitas",
-        label: "TOTAL RECEITAS",
+        id: "receita-liquida",
+        label: "RECEITA LÍQUIDA",
         depth: 0,
         amount: totalReceitaAmount,
         percentage: totalRevenue > 0 ? (totalReceitaAmount / totalRevenue) * 100 : 0,
@@ -259,19 +259,22 @@ export function useDRE(filters: DREFilters) {
           isGroup: false,
           isSummary: true,
         });
-
-        summaryLines.push({
-          id: "lucro-bruto",
-          label: "LUCRO BRUTO",
-          depth: 0,
-          amount: totalReceitaAmount - totalCustoAmount,
-          percentage: totalRevenue > 0 ? ((totalReceitaAmount - totalCustoAmount) / totalRevenue) * 100 : 0,
-          previousAmount: 0,
-          variation: null,
-          isGroup: false,
-          isSummary: true,
-        });
       }
+
+      const grossProfit = totalReceitaAmount - totalCustoAmount;
+      const grossMarginPct = totalReceitaAmount > 0 ? (grossProfit / totalReceitaAmount) * 100 : 0;
+
+      summaryLines.push({
+        id: "margem-bruta",
+        label: "MARGEM BRUTA",
+        depth: 0,
+        amount: grossProfit,
+        percentage: grossMarginPct,
+        previousAmount: 0,
+        variation: null,
+        isGroup: false,
+        isSummary: true,
+      });
 
       if (totalDespesaAmount > 0) {
         summaryLines.push({
@@ -287,9 +290,23 @@ export function useDRE(filters: DREFilters) {
         });
       }
 
+      const ebitdaVal = grossProfit - totalDespesaAmount;
+
       summaryLines.push({
-        id: "resultado-liquido",
-        label: "RESULTADO LÍQUIDO",
+        id: "ebitda",
+        label: "EBITDA",
+        depth: 0,
+        amount: ebitdaVal,
+        percentage: totalRevenue > 0 ? (ebitdaVal / totalRevenue) * 100 : 0,
+        previousAmount: 0,
+        variation: null,
+        isGroup: false,
+        isSummary: true,
+      });
+
+      summaryLines.push({
+        id: "resultado",
+        label: "RESULTADO",
         depth: 0,
         amount: netIncome,
         percentage: totalRevenue > 0 ? (netIncome / totalRevenue) * 100 : 0,
