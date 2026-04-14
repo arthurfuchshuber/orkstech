@@ -164,8 +164,10 @@ export default function ExtratoBancario() {
   const bankAccounts = accounts.filter((account) => account.type !== "CREDIT");
 
   const getStoredBalance = (account: BankAccount) => {
-    const stored = account.bank_data?.automaticallyInvestedBalance ?? 0;
-    return stored > account.balance ? stored : 0;
+    // Prefer totalInvestments (from investments API), fallback to automaticallyInvestedBalance
+    const investments = account.bank_data?.totalInvestments ?? 0;
+    const autoInvested = account.bank_data?.automaticallyInvestedBalance ?? 0;
+    return investments > 0 ? investments : autoInvested;
   };
 
   const getAccountTotalBalance = (account: BankAccount) =>
