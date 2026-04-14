@@ -193,7 +193,7 @@ export default function ContasAPagar() {
   const { data: categoriasFinanceiras = [] } = useQuery({
     queryKey: ["categorias-financeiras", empresaId],
     queryFn: async () => {
-      let q = supabase.from("categorias_financeiras").select("id, nome, tipo").eq("ativo", true).order("ordem");
+      let q = supabase.from("categorias_financeiras").select("id, nome, tipo, categoria_pai_id").eq("ativo", true).order("ordem");
       if (empresaId) q = q.eq("empresa_id", empresaId);
       const { data } = await q;
       return data ?? [];
