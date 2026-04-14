@@ -95,15 +95,16 @@ Deno.serve(async (req) => {
     const accountsData = await accountsRes.json()
     const accounts = accountsData.results || []
 
-    // Get connection ID
+    // Get connection and resolve the real owner user_id
     const { data: conn } = await supabaseAdmin
       .from('pluggy_connections')
-      .select('id')
+      .select('id, user_id')
       .eq('pluggy_item_id', itemId)
-      .eq('user_id', userId)
-      .single()
+      .maybeSingle()
 
     const connectionId = conn?.id || null
+    // Use the connection owner's user_id (important for Super Admin syncing on behalf of another user)
+    const ownerUserId = conn?.user_id || userId
 
     // Upsert bank accounts
     let savedAccounts = 0
