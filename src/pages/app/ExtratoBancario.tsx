@@ -293,8 +293,7 @@ export default function ExtratoBancario() {
                   )}
                 </Card>
               );
-            }
-            ))}
+            })}
           </div>
         </div>
       )}
