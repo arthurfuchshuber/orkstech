@@ -30,20 +30,11 @@ import {
 } from "@/components/ui/table";
 import {
   FileText,
-  TrendingUp,
-  TrendingDown,
-  DollarSign,
-  Percent,
   ChevronRight,
   ChevronDown,
   Download,
-  BarChart3,
-  ArrowUpRight,
-  ArrowDownRight,
-  Minus,
 } from "lucide-react";
 import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
 
 const fmt = (v: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
@@ -60,6 +51,22 @@ const periodLabels: Record<PeriodPreset, string> = {
   custom: "Personalizado",
 };
 
+// Numbering context to track indices per depth level
+interface NumberingContext {
+  counters: number[];
+}
+
+function getNumber(ctx: NumberingContext, depth: number): string {
+  // Ensure counters array is large enough
+  while (ctx.counters.length <= depth) ctx.counters.push(0);
+  // Reset deeper levels
+  ctx.counters.length = depth + 1;
+  // Increment current level
+  ctx.counters[depth]++;
+  // Build number string
+  return ctx.counters.map((c) => c.toString()).join(".") + ".";
+}
+
 export default function DREPage() {
   const { user } = useAuth();
   const { empresa } = useEmpresa();
@@ -75,16 +82,11 @@ export default function DREPage() {
   const {
     lines,
     totalRevenue,
-    totalExpense,
-    operatingResult,
-    netIncome,
-    profitMargin,
     transactions,
     isLoading,
     dateRange,
   } = useDRE(filters);
 
-  // Bank accounts for filter
   const { data: bankAccounts = [] } = useQuery({
     queryKey: ["dre-bank-accounts", user?.id, empresaId],
     enabled: !!user,
@@ -96,7 +98,6 @@ export default function DREPage() {
     },
   });
 
-  // Cost centers for filter
   const { data: costCenters = [] } = useQuery({
     queryKey: ["dre-cost-centers", user?.id, empresaId],
     enabled: !!user,
@@ -117,7 +118,6 @@ export default function DREPage() {
     });
   };
 
-  // Drill down data
   const drillDownData = useMemo(() => {
     if (!drillDownCategory) return [];
     return transactions.filter(
@@ -125,47 +125,16 @@ export default function DREPage() {
     );
   }, [drillDownCategory, transactions]);
 
-  // Chart data - monthly breakdown
-  const chartData = useMemo(() => {
-    const months: { label: string; revenue: number; expense: number; profit: number }[] = [];
-    const grouped: Record<string, { revenue: number; expense: number }> = {};
-
-    transactions.forEach((t) => {
-      const key = format(new Date((t as any).transaction_date + "T12:00:00"), "yyyy-MM");
-      if (!grouped[key]) grouped[key] = { revenue: 0, expense: 0 };
-      if ((t as any).type === "income") grouped[key].revenue += Math.abs(Number((t as any).amount));
-      else grouped[key].expense += Math.abs(Number((t as any).amount));
-    });
-
-    Object.keys(grouped)
-      .sort()
-      .forEach((key) => {
-        const d = new Date(key + "-15");
-        months.push({
-          label: format(d, "MMM", { locale: ptBR }),
-          revenue: grouped[key].revenue,
-          expense: grouped[key].expense,
-          profit: grouped[key].revenue - grouped[key].expense,
-        });
-      });
-
-    return months;
-  }, [transactions]);
-
-  const maxChart = Math.max(...chartData.map((m) => Math.max(m.revenue, m.expense)), 1);
-
-  // Export CSV
   const exportCSV = () => {
     const flatLines = flattenLines(lines);
     const csvRows = [
-      ["Categoria", "Valor", "% Receita", "Período Anterior", "Variação %"].join(";"),
+      ["Conta", "Categoria", "Valor", "% Receita"].join(";"),
       ...flatLines.map((l) =>
         [
           "  ".repeat(l.depth) + l.label,
+          l.label,
           l.amount.toFixed(2),
           l.percentage.toFixed(1),
-          l.previousAmount.toFixed(2),
-          l.variation !== null ? l.variation.toFixed(1) : "-",
         ].join(";")
       ),
     ];
@@ -178,8 +147,29 @@ export default function DREPage() {
     URL.revokeObjectURL(url);
   };
 
+  // Build numbered flat list for rendering
+  const numberedLines = useMemo(() => {
+    const result: { line: DRELine; number: string; visible: boolean }[] = [];
+    const ctx: NumberingContext = { counters: [] };
+
+    function walk(items: DRELine[], parentExpanded: boolean) {
+      for (const line of items) {
+        const num = line.isSummary ? "" : getNumber(ctx, line.depth);
+        result.push({ line, number: num, visible: parentExpanded });
+
+        if (line.children && line.children.length > 0) {
+          const isOpen = expandedGroups.has(line.id);
+          walk(line.children, parentExpanded && isOpen);
+        }
+      }
+    }
+
+    walk(lines, true);
+    return result;
+  }, [lines, expandedGroups]);
+
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="space-y-4 animate-fade-in">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -187,178 +177,163 @@ export default function DREPage() {
             Demonstração de Resultado (DRE)
           </h1>
           <p className="text-sm text-muted-foreground">
-            Relatório financeiro estratégico baseado no plano de contas
+            Relatório financeiro baseado no plano de contas
           </p>
         </div>
-        <Button variant="outline" className="gap-2" onClick={exportCSV}>
+        <Button variant="outline" size="sm" className="gap-2" onClick={exportCSV}>
           <Download className="w-4 h-4" /> Exportar CSV
         </Button>
       </div>
 
       {/* Filters */}
-      <Card className="border-border/50">
-        <CardContent className="p-4">
-          <div className="flex flex-wrap gap-3">
-            <Select
-              value={filters.period}
-              onValueChange={(v) => setFilters((f) => ({ ...f, period: v as PeriodPreset }))}
-            >
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Período" />
-              </SelectTrigger>
-              <SelectContent>
-                {Object.entries(periodLabels).map(([k, v]) => (
-                  <SelectItem key={k} value={k}>{v}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+      <div className="flex flex-wrap gap-3">
+        <Select
+          value={filters.period}
+          onValueChange={(v) => setFilters((f) => ({ ...f, period: v as PeriodPreset }))}
+        >
+          <SelectTrigger className="w-[170px] h-9 text-sm">
+            <SelectValue placeholder="Período" />
+          </SelectTrigger>
+          <SelectContent>
+            {Object.entries(periodLabels).map(([k, v]) => (
+              <SelectItem key={k} value={k}>{v}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
 
-            <Select
-              value={filters.bankAccountId || "all"}
-              onValueChange={(v) => setFilters((f) => ({ ...f, bankAccountId: v === "all" ? undefined : v }))}
-            >
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Conta bancária" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todas as contas</SelectItem>
-                {bankAccounts.map((b) => (
-                  <SelectItem key={b.id} value={b.id}>{b.nome}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+        <Select
+          value={filters.bankAccountId || "all"}
+          onValueChange={(v) => setFilters((f) => ({ ...f, bankAccountId: v === "all" ? undefined : v }))}
+        >
+          <SelectTrigger className="w-[170px] h-9 text-sm">
+            <SelectValue placeholder="Conta bancária" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todas as contas</SelectItem>
+            {bankAccounts.map((b) => (
+              <SelectItem key={b.id} value={b.id}>{b.nome}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
 
-            <Select
-              value={filters.costCenterId || "all"}
-              onValueChange={(v) => setFilters((f) => ({ ...f, costCenterId: v === "all" ? undefined : v }))}
-            >
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Centro de custo" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos os centros</SelectItem>
-                {costCenters.map((c) => (
-                  <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            <Select
-              value={filters.tipo || "all"}
-              onValueChange={(v) => setFilters((f) => ({ ...f, tipo: v as any }))}
-            >
-              <SelectTrigger className="w-[160px]">
-                <SelectValue placeholder="Tipo" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos</SelectItem>
-                <SelectItem value="income">Receitas</SelectItem>
-                <SelectItem value="expense">Despesas</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* KPI Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-        <KPICard icon={TrendingUp} label="Receita Bruta" value={fmt(totalRevenue)} color="text-emerald-500" bgColor="bg-emerald-500/10" />
-        <KPICard icon={TrendingDown} label="Despesas Operacionais" value={fmt(totalExpense)} color="text-destructive" bgColor="bg-destructive/10" />
-        <KPICard icon={DollarSign} label="Resultado Operacional" value={fmt(operatingResult)} color={operatingResult >= 0 ? "text-emerald-500" : "text-destructive"} bgColor="bg-primary/10" />
-        <KPICard icon={DollarSign} label="Lucro Líquido" value={fmt(netIncome)} color={netIncome >= 0 ? "text-emerald-500" : "text-destructive"} bgColor="bg-primary/10" />
-        <KPICard icon={Percent} label="Margem de Lucro" value={fmtPct(profitMargin)} color={profitMargin >= 0 ? "text-emerald-500" : "text-destructive"} bgColor="bg-primary/10" />
+        <Select
+          value={filters.costCenterId || "all"}
+          onValueChange={(v) => setFilters((f) => ({ ...f, costCenterId: v === "all" ? undefined : v }))}
+        >
+          <SelectTrigger className="w-[170px] h-9 text-sm">
+            <SelectValue placeholder="Centro de custo" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todos os centros</SelectItem>
+            {costCenters.map((c) => (
+              <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
-      {/* Chart */}
-      {chartData.length > 0 && (
+      {/* DRE Table - half width */}
+      <div className="w-full max-w-[50%]">
         <Card className="border-border/50">
-          <CardHeader className="pb-2">
+          <CardHeader className="py-3 px-4">
             <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <BarChart3 className="w-4 h-4 text-primary" />
-              Receita vs Despesa vs Lucro
+              <FileText className="w-4 h-4 text-primary" />
+              DRE
+              <Badge variant="outline" className="text-[10px] ml-2 font-normal">
+                {format(dateRange.start, "dd/MM/yyyy")} — {format(dateRange.end, "dd/MM/yyyy")}
+              </Badge>
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="flex items-end gap-2 h-48">
-              {chartData.map((m, i) => (
-                <div key={i} className="flex-1 flex flex-col items-center gap-1">
-                  <div className="flex gap-0.5 items-end w-full justify-center" style={{ height: 160 }}>
-                    <div
-                      className="w-1/3 rounded-t-sm bg-emerald-500/80"
-                      style={{ height: `${Math.max((m.revenue / maxChart) * 140, 2)}px` }}
-                      title={`Receita: ${fmt(m.revenue)}`}
-                    />
-                    <div
-                      className="w-1/3 rounded-t-sm bg-destructive/80"
-                      style={{ height: `${Math.max((m.expense / maxChart) * 140, 2)}px` }}
-                      title={`Despesa: ${fmt(m.expense)}`}
-                    />
-                    <div
-                      className={`w-1/3 rounded-t-sm ${m.profit >= 0 ? "bg-primary/80" : "bg-warning/80"}`}
-                      style={{ height: `${Math.max((Math.abs(m.profit) / maxChart) * 140, 2)}px` }}
-                      title={`Lucro: ${fmt(m.profit)}`}
-                    />
-                  </div>
-                  <span className="text-[11px] text-muted-foreground capitalize">{m.label}</span>
-                </div>
-              ))}
-            </div>
-            <div className="flex gap-4 justify-center mt-3">
-              <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
-                <div className="w-3 h-3 rounded-sm bg-emerald-500/80" /> Receita
-              </div>
-              <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
-                <div className="w-3 h-3 rounded-sm bg-destructive/80" /> Despesa
-              </div>
-              <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
-                <div className="w-3 h-3 rounded-sm bg-primary/80" /> Lucro
-              </div>
-            </div>
+          <CardContent className="p-0">
+            {isLoading ? (
+              <div className="py-12 text-center text-muted-foreground text-sm">Carregando...</div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow className="border-border/30">
+                    <TableHead className="w-[60%] text-xs">Conta</TableHead>
+                    <TableHead className="text-right text-xs">Valor</TableHead>
+                    <TableHead className="text-right text-xs">%</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {numberedLines
+                    .filter((n) => n.visible)
+                    .map((n) => {
+                      const { line, number } = n;
+                      const hasChildren = line.children && line.children.length > 0;
+                      const isExpanded = expandedGroups.has(line.id);
+                      const isSummary = line.isSummary;
+                      const isRevenue = line.dreGroup === "revenue" || line.dreGroup === "financial_revenue";
+
+                      const rowBg = isSummary
+                        ? "bg-muted/30 border-t border-border/40"
+                        : "";
+
+                      const labelColor = isSummary
+                        ? "font-semibold text-foreground"
+                        : line.depth === 0
+                          ? "font-medium text-foreground"
+                          : "text-muted-foreground";
+
+                      const valueColor = isSummary
+                        ? line.amount >= 0 ? "text-emerald-500 font-semibold" : "text-destructive font-semibold"
+                        : isRevenue
+                          ? "text-emerald-500"
+                          : line.depth === 0
+                            ? "text-destructive"
+                            : "text-foreground";
+
+                      return (
+                        <TableRow
+                          key={line.id}
+                          className={`${rowBg} border-border/15 hover:bg-muted/10 transition-colors`}
+                        >
+                          <TableCell className="py-1.5 pr-0">
+                            <div
+                              className="flex items-center gap-1.5 cursor-pointer select-none"
+                              style={{ paddingLeft: `${line.depth * 20}px` }}
+                              onClick={() => {
+                                if (hasChildren) toggleGroup(line.id);
+                                else if (line.categoryId) setDrillDownCategory({ id: line.categoryId, label: line.label });
+                              }}
+                            >
+                              {hasChildren && !isSummary ? (
+                                isExpanded ? (
+                                  <ChevronDown className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
+                                ) : (
+                                  <ChevronRight className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
+                                )
+                              ) : (
+                                !isSummary && <span className="w-3.5 flex-shrink-0" />
+                              )}
+                              {number && (
+                                <span className="text-xs text-muted-foreground/60 font-mono min-w-[40px]">
+                                  {number}
+                                </span>
+                              )}
+                              <span className={`text-xs ${labelColor}`}>
+                                {line.label}
+                              </span>
+                            </div>
+                          </TableCell>
+                          <TableCell className={`text-right text-xs py-1.5 ${valueColor}`}>
+                            {isSummary && line.amount < 0
+                              ? `(${fmt(Math.abs(line.amount))})`
+                              : fmt(Math.abs(line.amount))}
+                          </TableCell>
+                          <TableCell className="text-right text-xs py-1.5 text-muted-foreground">
+                            {fmtPct(line.percentage)}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                </TableBody>
+              </Table>
+            )}
           </CardContent>
         </Card>
-      )}
-
-      {/* DRE Table */}
-      <Card className="border-border/50">
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium flex items-center gap-2">
-            <FileText className="w-4 h-4 text-primary" />
-            Demonstração de Resultado do Exercício
-            <Badge variant="outline" className="text-[10px] ml-2">
-              {format(dateRange.start, "dd/MM/yyyy")} — {format(dateRange.end, "dd/MM/yyyy")}
-            </Badge>
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="p-0">
-          {isLoading ? (
-            <div className="py-12 text-center text-muted-foreground text-sm">Carregando...</div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow className="border-border/30">
-                  <TableHead className="w-[40%]">Categoria</TableHead>
-                  <TableHead className="text-right">Valor</TableHead>
-                  <TableHead className="text-right">% Receita</TableHead>
-                  <TableHead className="text-right">Período Anterior</TableHead>
-                  <TableHead className="text-right">Variação</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {lines.map((line) => (
-                  <DRELineRow
-                    key={line.id}
-                    line={line}
-                    expandedGroups={expandedGroups}
-                    onToggle={toggleGroup}
-                    onDrillDown={(id, label) => setDrillDownCategory({ id, label })}
-                    totalRevenue={totalRevenue}
-                  />
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
+      </div>
 
       {/* Drill Down Dialog */}
       <Dialog open={!!drillDownCategory} onOpenChange={() => setDrillDownCategory(null)}>
@@ -403,142 +378,6 @@ export default function DREPage() {
         </DialogContent>
       </Dialog>
     </div>
-  );
-}
-
-function KPICard({
-  icon: Icon,
-  label,
-  value,
-  color,
-  bgColor,
-}: {
-  icon: any;
-  label: string;
-  value: string;
-  color: string;
-  bgColor: string;
-}) {
-  return (
-    <Card className="border-border/50">
-      <CardContent className="p-4">
-        <div className="flex items-center gap-3">
-          <div className={`w-9 h-9 rounded-lg ${bgColor} flex items-center justify-center`}>
-            <Icon className={`w-4 h-4 ${color}`} />
-          </div>
-          <div>
-            <p className="text-xs text-muted-foreground">{label}</p>
-            <p className={`text-lg font-bold ${color}`}>{value}</p>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
-function DRELineRow({
-  line,
-  expandedGroups,
-  onToggle,
-  onDrillDown,
-  totalRevenue,
-  depth = 0,
-}: {
-  line: DRELine;
-  expandedGroups: Set<string>;
-  onToggle: (id: string) => void;
-  onDrillDown: (id: string, label: string) => void;
-  totalRevenue: number;
-  depth?: number;
-}) {
-  const isExpanded = expandedGroups.has(line.id);
-  const hasChildren = line.children && line.children.length > 0;
-  const isPositive = line.dreGroup === "revenue" || line.dreGroup === "financial_revenue";
-  const isSummary = line.isSummary;
-
-  const rowClass = isSummary
-    ? "bg-muted/20 font-semibold border-t border-border/50"
-    : line.depth === 0
-      ? "font-medium"
-      : "";
-
-  const valueColor = isSummary
-    ? line.amount >= 0
-      ? "text-emerald-500"
-      : "text-destructive"
-    : isPositive
-      ? "text-emerald-500"
-      : line.depth === 0
-        ? "text-destructive"
-        : "text-foreground";
-
-  return (
-    <>
-      <TableRow className={`${rowClass} border-border/20 hover:bg-muted/10 transition-colors`}>
-        <TableCell className="py-2.5">
-          <div
-            className="flex items-center gap-1 cursor-pointer"
-            style={{ paddingLeft: `${(line.depth + depth) * 20}px` }}
-            onClick={() => {
-              if (hasChildren) onToggle(line.id);
-              else if (line.categoryId) onDrillDown(line.categoryId, line.label);
-            }}
-          >
-            {hasChildren ? (
-              isExpanded ? (
-                <ChevronDown className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
-              ) : (
-                <ChevronRight className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
-              )
-            ) : (
-              <span className="w-3.5" />
-            )}
-            <span className={`text-sm ${isSummary ? "text-foreground" : ""}`}>{line.label}</span>
-          </div>
-        </TableCell>
-        <TableCell className={`text-right text-sm ${valueColor}`}>
-          {isSummary && line.amount < 0 ? `(${fmt(Math.abs(line.amount))})` : fmt(Math.abs(line.amount))}
-        </TableCell>
-        <TableCell className="text-right text-sm text-muted-foreground">
-          {fmtPct(line.percentage)}
-        </TableCell>
-        <TableCell className="text-right text-sm text-muted-foreground">
-          {line.previousAmount > 0 ? fmt(line.previousAmount) : "—"}
-        </TableCell>
-        <TableCell className="text-right">
-          {line.variation !== null ? (
-            <div className="flex items-center justify-end gap-1">
-              {line.variation > 0 ? (
-                <ArrowUpRight className="w-3 h-3 text-emerald-500" />
-              ) : line.variation < 0 ? (
-                <ArrowDownRight className="w-3 h-3 text-destructive" />
-              ) : (
-                <Minus className="w-3 h-3 text-muted-foreground" />
-              )}
-              <span
-                className={`text-xs ${line.variation > 0 ? "text-emerald-500" : line.variation < 0 ? "text-destructive" : "text-muted-foreground"}`}
-              >
-                {fmtPct(Math.abs(line.variation))}
-              </span>
-            </div>
-          ) : (
-            <span className="text-xs text-muted-foreground">—</span>
-          )}
-        </TableCell>
-      </TableRow>
-      {hasChildren && isExpanded &&
-        line.children!.map((child) => (
-          <DRELineRow
-            key={child.id}
-            line={child}
-            expandedGroups={expandedGroups}
-            onToggle={onToggle}
-            onDrillDown={onDrillDown}
-            totalRevenue={totalRevenue}
-            depth={depth}
-          />
-        ))}
-    </>
   );
 }
 
