@@ -150,7 +150,7 @@ export default function FinanceiroDashboard() {
     0
   );
 
-  const totalCreditLimit = creditCards.reduce((sum, a) => sum + (a.credit_limit ?? 0), 0);
+  
   const totalCreditAvailable = creditCards.reduce((sum, a) => sum + (a.credit_available ?? 0), 0);
 
   const getConnectorName = (account: BankAccount) => {
