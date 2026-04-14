@@ -138,7 +138,10 @@ export default function ExtratoBancario() {
     return displayOwner ? `${connectorName} (${displayOwner})` : connectorName;
   };
 
-  // Fetch ALL transactions (no limit) for accurate totals
+  const creditCards = accounts.filter((account) => account.type === "CREDIT");
+  const bankAccounts = accounts.filter((account) => account.type !== "CREDIT");
+
+  // Fetch ALL bank account transactions (no limit) for accurate totals
   const bankAccountIds = bankAccounts.map((a) => a.pluggy_account_id);
 
   const { data: allTransactions = [] } = useQuery({
@@ -215,9 +218,6 @@ export default function ExtratoBancario() {
       ? true
       : tx.description?.toLowerCase().includes(searchTerm.toLowerCase())
   );
-
-  const creditCards = accounts.filter((account) => account.type === "CREDIT");
-  const bankAccounts = accounts.filter((account) => account.type !== "CREDIT");
 
   const getStoredBalance = (account: BankAccount) => {
     // Prefer totalInvestments (from investments API), fallback to automaticallyInvestedBalance
