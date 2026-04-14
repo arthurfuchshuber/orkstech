@@ -99,21 +99,6 @@ export default function ExtratoBancario() {
     enabled: !!user && !!targetUserId,
   });
 
-  const { data: profileData } = useQuery({
-    queryKey: ["profile_name", targetUserId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("nome")
-        .eq("user_id", targetUserId!)
-        .maybeSingle();
-      if (error) throw error;
-      return data as { nome: string | null } | null;
-    },
-    enabled: !!user && !!targetUserId,
-  });
-
-  const { data: profileData } = useQuery({
     queryKey: ["profile_name", targetUserId],
     queryFn: async () => {
       const { data, error } = await supabase
