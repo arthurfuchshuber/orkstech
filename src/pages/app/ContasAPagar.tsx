@@ -193,7 +193,7 @@ export default function ContasAPagar() {
   const { data: categoriasFinanceiras = [] } = useQuery({
     queryKey: ["categorias-financeiras", empresaId],
     queryFn: async () => {
-      let q = supabase.from("categorias_financeiras").select("id, nome, tipo").eq("ativo", true).order("ordem");
+      let q = supabase.from("categorias_financeiras").select("id, nome, tipo, categoria_pai_id").eq("ativo", true).order("ordem");
       if (empresaId) q = q.eq("empresa_id", empresaId);
       const { data } = await q;
       return data ?? [];
@@ -1185,9 +1185,13 @@ export default function ContasAPagar() {
             label="Subcategoria (Plano de Contas)"
             value={form.categoria_financeira_id}
             onValueChange={(v) => updateField("categoria_financeira_id", v)}
-            options={categoriasFinanceiras
-              .filter((c: any) => !form.tipo_financeiro || c.tipo === form.tipo_financeiro)
-              .map((c: any) => ({ value: c.id, label: c.nome }))}
+            options={(() => {
+              const filtered = categoriasFinanceiras.filter((c: any) => !form.tipo_financeiro || c.tipo === form.tipo_financeiro);
+              // Leaf = not a parent of any other category in the same filtered set
+              return filtered
+                .filter((c: any) => !filtered.some((child: any) => child.categoria_pai_id === c.id))
+                .map((c: any) => ({ value: c.id, label: c.nome }));
+            })()}
             placeholder={form.tipo_financeiro ? "Selecione a subcategoria..." : "Selecione o tipo financeiro primeiro..."}
             icon={<FolderTree className="w-4 h-4" />}
             onAddModal={() => { setCfEditingId(null); setCfModalOpen(true); }}
