@@ -186,7 +186,6 @@ export default function GerenciarMenu() {
                       <DynamicIcon name={item.icon} className="w-4 h-4 text-muted-foreground flex-shrink-0" />
                       <span className="flex-1 text-sm font-medium text-foreground">{item.name}</span>
 
-                      {/* Move to group dropdown */}
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button
@@ -255,7 +254,29 @@ export default function GerenciarMenu() {
                       )}
                     </div>
 
-                    {isOpen && hasChildren && renderDroppable(item.children!, item.id, depth + 1)}
+                    {isOpen && (
+                      <Droppable droppableId={item.id}>
+                        {(childProvided, childSnapshot) => (
+                          <div
+                            ref={childProvided.innerRef}
+                            {...childProvided.droppableProps}
+                            className={`ml-6 mt-1 pl-3 border-l-2 rounded-md transition-colors ${
+                              childSnapshot.isDraggingOver
+                                ? "border-primary/50 bg-primary/5"
+                                : "border-border/30"
+                            } ${hasChildren ? "min-h-[4px]" : "min-h-[18px]"}`}
+                          >
+                            {hasChildren && renderDroppable(item.children!, item.id, depth + 1)}
+                            {!hasChildren && childSnapshot.isDraggingOver && (
+                              <div className="px-3 py-2 text-xs text-muted-foreground">
+                                Solte aqui para transformar em submenu
+                              </div>
+                            )}
+                            {childProvided.placeholder}
+                          </div>
+                        )}
+                      </Droppable>
+                    )}
                   </div>
                 )}
               </Draggable>
