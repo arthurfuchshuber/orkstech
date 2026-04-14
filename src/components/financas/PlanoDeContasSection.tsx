@@ -383,6 +383,8 @@ export function PlanoDeContasSection() {
                   <SelectItem value="deducao">Dedução</SelectItem>
                   <SelectItem value="custo">Custo</SelectItem>
                   <SelectItem value="despesa">Despesa</SelectItem>
+                  <SelectItem value="receita_financeira">Receita Financeira</SelectItem>
+                  <SelectItem value="despesa_financeira">Despesa Financeira</SelectItem>
                   <SelectItem value="imposto">Imposto</SelectItem>
                   <SelectItem value="ajuste">Ajuste</SelectItem>
                 </SelectContent>
