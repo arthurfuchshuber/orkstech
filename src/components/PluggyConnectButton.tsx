@@ -102,6 +102,7 @@ export function PluggyConnectButton({ size = "default" }: { size?: "default" | "
     } else {
       toast.success(`${item.connector?.name || "Banco"} conectado com sucesso!`);
       qc.invalidateQueries({ queryKey: ["pluggy_connections"] });
+      qc.invalidateQueries({ queryKey: ["pluggy_connections_exist"] });
     }
     setConnectToken(null);
     setLoading(false);
