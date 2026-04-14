@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/select";
 import {
   ChevronRight, ChevronDown, Plus, Pencil, Trash2, Power,
-  FolderTree, TrendingUp, TrendingDown, Minus, RefreshCw, GripVertical,
+  FolderTree, TrendingUp, TrendingDown, Minus, RefreshCw, GripVertical, MoveRight,
 } from "lucide-react";
 import { DragDropContext, Droppable, Draggable, type DropResult } from "@hello-pangea/dnd";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -89,6 +89,9 @@ export function PlanoDeContasSection() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState({ nome: "", tipo: "receita" as TipoFinanceiro, categoria_pai_id: null as string | null });
   const [collapsedIds, setCollapsedIds] = useState<Set<string>>(new Set());
+  const [moveModalOpen, setMoveModalOpen] = useState(false);
+  const [movingNode, setMovingNode] = useState<Categoria | null>(null);
+  const [moveTargetId, setMoveTargetId] = useState<string | null>(null);
 
   const targetUserId = empresa?.user_id ?? user?.id;
 
@@ -135,7 +138,7 @@ export function PlanoDeContasSection() {
     if (!result.destination || result.source.index === result.destination.index) return;
     const sourceItem = visibleItems[result.source.index];
     const destItem = visibleItems[result.destination.index];
-    if (sourceItem.parentId !== destItem.parentId) { toast.error("Arraste apenas entre categorias do mesmo nível"); return; }
+    if (sourceItem.parentId !== destItem.parentId) { toast.error("Arraste apenas entre categorias do mesmo nível. Use 'Mover para' no menu."); return; }
     const parentId = sourceItem.parentId;
     const siblings = categorias.filter((c) => c.categoria_pai_id === parentId).sort((a, b) => a.ordem - b.ordem);
     const srcIdx = siblings.findIndex((s) => s.id === sourceItem.id);
@@ -146,6 +149,16 @@ export function PlanoDeContasSection() {
     reordered.splice(destIdx, 0, moved);
     reorderMutation.mutate(reordered.map((item, i) => ({ id: item.id, ordem: i })));
   };
+
+  const moveMutation = useMutation({
+    mutationFn: async ({ id, newParentId }: { id: string; newParentId: string | null }) => {
+      const siblings = categorias.filter((c) => c.categoria_pai_id === newParentId && c.id !== id);
+      const { error } = await supabase.from("categorias_financeiras").update({ categoria_pai_id: newParentId, ordem: siblings.length }).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["categorias_financeiras"] }); toast.success("Categoria movida"); closeMoveModal(); },
+    onError: () => toast.error("Erro ao mover categoria"),
+  });
 
   const saveMutation = useMutation({
     mutationFn: async () => {
@@ -176,6 +189,19 @@ export function PlanoDeContasSection() {
   const closeModal = () => { setModalOpen(false); setEditingId(null); setForm({ nome: "", tipo: "receita", categoria_pai_id: null }); };
   const openNew = (parentId?: string, tipo?: TipoFinanceiro) => { setEditingId(null); setForm({ nome: "", tipo: tipo || "receita", categoria_pai_id: parentId || null }); setModalOpen(true); };
   const openEdit = (c: Categoria) => { setEditingId(c.id); setForm({ nome: c.nome, tipo: c.tipo, categoria_pai_id: c.categoria_pai_id }); setModalOpen(true); };
+
+  const closeMoveModal = () => { setMoveModalOpen(false); setMovingNode(null); setMoveTargetId(null); };
+  const openMoveModal = (c: Categoria) => { setMovingNode(c); setMoveTargetId(c.categoria_pai_id); setMoveModalOpen(true); };
+
+  // Helper to get all descendant IDs to prevent circular moves
+  const getDescendantIds = (id: string): string[] => {
+    const children = categorias.filter((c) => c.categoria_pai_id === id);
+    return children.flatMap((c) => [c.id, ...getDescendantIds(c.id)]);
+  };
+
+  const moveParentOptions = movingNode
+    ? categorias.filter((c) => c.id !== movingNode.id && !getDescendantIds(movingNode.id).includes(c.id))
+    : [];
 
   const parentOptions = categorias.filter((c) => c.id !== editingId);
 
@@ -242,6 +268,9 @@ export function PlanoDeContasSection() {
                                 <DropdownMenuItem onClick={() => openEdit(node)}>
                                   <Pencil className="w-4 h-4 mr-2" /> Editar
                                 </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => openMoveModal(node)}>
+                                  <MoveRight className="w-4 h-4 mr-2" /> Mover para
+                                </DropdownMenuItem>
                                 <DropdownMenuItem onClick={() => toggleMutation.mutate({ id: node.id, ativo: !node.ativo })}>
                                   <Power className={`w-4 h-4 mr-2 ${node.ativo ? "text-emerald-400" : "text-muted-foreground"}`} /> {node.ativo ? "Desativar" : "Ativar"}
                                 </DropdownMenuItem>
@@ -300,6 +329,33 @@ export function PlanoDeContasSection() {
             <Button variant="outline" onClick={closeModal}>Cancelar</Button>
             <Button onClick={() => saveMutation.mutate()} disabled={!form.nome.trim() || saveMutation.isPending}>
               {saveMutation.isPending ? "Salvando..." : "Salvar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={moveModalOpen} onOpenChange={(v) => !v && closeMoveModal()}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Mover "{movingNode?.nome}"</DialogTitle></DialogHeader>
+          <div className="space-y-4 py-2">
+            <div>
+              <label className="text-sm font-medium text-foreground mb-1.5 block">Mover para dentro de:</label>
+              <Select value={moveTargetId || "__none__"} onValueChange={(v) => setMoveTargetId(v === "__none__" ? null : v)}>
+                <SelectTrigger><SelectValue placeholder="Raiz (sem pai)" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">Raiz (sem pai)</SelectItem>
+                  {moveParentOptions.map((c) => {
+                    const flat = flatItems.find((f) => f.id === c.id);
+                    return <SelectItem key={c.id} value={c.id}>{flat?.number || ""} {c.nome}</SelectItem>;
+                  })}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={closeMoveModal}>Cancelar</Button>
+            <Button onClick={() => movingNode && moveMutation.mutate({ id: movingNode.id, newParentId: moveTargetId })} disabled={moveMutation.isPending}>
+              {moveMutation.isPending ? "Movendo..." : "Mover"}
             </Button>
           </DialogFooter>
         </DialogContent>
