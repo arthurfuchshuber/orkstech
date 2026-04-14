@@ -38,7 +38,7 @@ interface BankAccount {
   credit_bill_due_date: string | null;
   pluggy_account_id: string;
   pluggy_item_id: string;
-  connection_id: string;
+  connection_id: string | null;
   bank_data: {
     balanceCloseDate?: string | null;
     openBillAmount?: number | null;
@@ -77,6 +77,7 @@ export default function ExtratoBancario() {
         .select("*")
         .eq("user_id", targetUserId!)
         .order("name");
+
       if (error) throw error;
       return data as unknown as BankAccount[];
     },
@@ -90,6 +91,7 @@ export default function ExtratoBancario() {
         .from("pluggy_transactions" as any)
         .select("*")
         .eq("user_id", targetUserId!)
+        .order("date", { ascending: false })
         .limit(1000);
 
       if (error) throw error;
@@ -111,6 +113,7 @@ export default function ExtratoBancario() {
       if (selectedAccount !== "all") {
         query = query.eq("pluggy_account_id", selectedAccount);
       }
+
       if (typeFilter !== "all") {
         query = query.eq("type", typeFilter);
       }
@@ -131,10 +134,12 @@ export default function ExtratoBancario() {
         `https://${projectId}.supabase.co/functions/v1/pluggy-sync?itemId=${itemId}&action=full_sync`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
+
       if (!res.ok) {
         await res.text();
         throw new Error("Sync failed");
       }
+
       await res.json();
       window.location.reload();
     } catch (err) {
@@ -142,11 +147,11 @@ export default function ExtratoBancario() {
     }
   };
 
-  const formatCurrency = (v: number) =>
-    v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+  const formatCurrency = (value: number) =>
+    value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
-  const formatDate = (d: string) =>
-    new Date(d + "T12:00:00").toLocaleDateString("pt-BR");
+  const formatDate = (date: string) =>
+    new Date(date + "T12:00:00").toLocaleDateString("pt-BR");
 
   const filteredTx = transactions.filter((tx) =>
     searchTerm === ""
@@ -154,19 +159,21 @@ export default function ExtratoBancario() {
       : tx.description?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const creditCards = accounts.filter((a) => a.type === "CREDIT");
-  const bankAccounts = accounts.filter((a) => a.type !== "CREDIT");
+  const creditCards = accounts.filter((account) => account.type === "CREDIT");
+  const bankAccounts = accounts.filter((account) => account.type !== "CREDIT");
 
-  const getInvestedBalance = (account: BankAccount) => {
-    const invested = account.bank_data?.automaticallyInvestedBalance ?? 0;
-    return invested > account.balance ? invested : 0;
+  const getStoredBalance = (account: BankAccount) => {
+    const stored = account.bank_data?.automaticallyInvestedBalance ?? 0;
+    return stored > account.balance ? stored : 0;
   };
+
+  const getAccountTotalBalance = (account: BankAccount) =>
+    account.balance + getStoredBalance(account);
 
   const totalsByAccount = allTransactions.reduce<
     Record<string, { income: number; expense: number }>
-  >((acc, tx) => {
-    const key = tx.pluggy_account_id;
-    const current = acc[key] ?? { income: 0, expense: 0 };
+  >((accumulator, tx) => {
+    const current = accumulator[tx.pluggy_account_id] ?? { income: 0, expense: 0 };
     const amount = Math.abs(tx.amount);
 
     if (tx.type === "CREDIT" || tx.amount > 0) {
@@ -175,24 +182,25 @@ export default function ExtratoBancario() {
       current.expense += amount;
     }
 
-    acc[key] = current;
-    return acc;
+    accumulator[tx.pluggy_account_id] = current;
+    return accumulator;
   }, {});
 
   const totalBalance = bankAccounts.reduce(
-    (sum, a) => sum + a.balance + getInvestedBalance(a),
+    (sum, account) => sum + getAccountTotalBalance(account),
     0
   );
+
   const totalIncome = filteredTx
     .filter((tx) => tx.type === "CREDIT" || tx.amount > 0)
     .reduce((sum, tx) => sum + Math.abs(tx.amount), 0);
+
   const totalExpense = filteredTx
     .filter((tx) => tx.type === "DEBIT" || tx.amount < 0)
     .reduce((sum, tx) => sum + Math.abs(tx.amount), 0);
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <Landmark className="w-6 h-6 text-primary" />
@@ -205,91 +213,94 @@ export default function ExtratoBancario() {
         </div>
       </div>
 
-      {/* Summary Cards */}
       <div className="grid gap-4 md:grid-cols-3">
         <Card className="p-4">
-          <div className="flex items-center gap-2 mb-1">
-            <Landmark className="w-4 h-4 text-primary" />
+          <div className="mb-1 flex items-center gap-2">
+            <Landmark className="h-4 w-4 text-primary" />
             <span className="text-xs text-muted-foreground">Saldo Total</span>
           </div>
           <p className="text-xl font-bold text-foreground">{formatCurrency(totalBalance)}</p>
-          <p className="text-[11px] text-muted-foreground mt-1">
-            {bankAccounts.length} conta(s) conectada(s), incluindo valores guardados quando o banco envia esse saldo separadamente
+          <p className="mt-1 text-[11px] text-muted-foreground">
+            {bankAccounts.length} conta(s) conectada(s), incluindo valores guardados quando enviados separadamente
           </p>
         </Card>
+
         <Card className="p-4">
-          <div className="flex items-center gap-2 mb-1">
-            <TrendingUp className="w-4 h-4 text-emerald-500" />
+          <div className="mb-1 flex items-center gap-2">
+            <TrendingUp className="h-4 w-4 text-primary" />
             <span className="text-xs text-muted-foreground">Entradas</span>
           </div>
-          <p className="text-xl font-bold text-emerald-600">{formatCurrency(totalIncome)}</p>
-          <p className="text-[11px] text-muted-foreground mt-1">No período filtrado</p>
+          <p className="text-xl font-bold text-foreground">{formatCurrency(totalIncome)}</p>
+          <p className="mt-1 text-[11px] text-muted-foreground">No período filtrado</p>
         </Card>
+
         <Card className="p-4">
-          <div className="flex items-center gap-2 mb-1">
-            <TrendingDown className="w-4 h-4 text-destructive" />
+          <div className="mb-1 flex items-center gap-2">
+            <TrendingDown className="h-4 w-4 text-destructive" />
             <span className="text-xs text-muted-foreground">Saídas</span>
           </div>
           <p className="text-xl font-bold text-destructive">{formatCurrency(totalExpense)}</p>
-          <p className="text-[11px] text-muted-foreground mt-1">No período filtrado</p>
+          <p className="mt-1 text-[11px] text-muted-foreground">No período filtrado</p>
         </Card>
       </div>
 
-      {/* Credit Cards */}
       {creditCards.length > 0 && (
         <div className="space-y-3">
-          <h2 className="text-sm font-semibold text-foreground flex items-center gap-2">
-            <CreditCard className="w-4 h-4" /> Cartões de Crédito
+          <h2 className="flex items-center gap-2 text-sm font-semibold text-foreground">
+            <CreditCard className="h-4 w-4" /> Cartões de Crédito
           </h2>
+
           <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
-            {creditCards.map((cc) => (
-              <Card key={cc.id} className="p-4 space-y-3 border-l-4 border-l-primary">
+            {creditCards.map((card) => (
+              <Card key={card.id} className="space-y-3 border-l-4 border-l-primary p-4">
                 <div className="flex items-center justify-between">
-                  <p className="text-sm font-semibold text-foreground">{cc.name}</p>
+                  <p className="text-sm font-semibold text-foreground">{card.name}</p>
                   <Button
                     variant="ghost"
                     size="icon"
                     className="h-7 w-7"
-                    onClick={() => handleSync(cc.pluggy_item_id)}
+                    onClick={() => handleSync(card.pluggy_item_id)}
                   >
-                    <RefreshCw className="w-3.5 h-3.5" />
+                    <RefreshCw className="h-3.5 w-3.5" />
                   </Button>
                 </div>
+
                 <div className="grid grid-cols-2 gap-3 text-xs">
                   <div>
                     <p className="text-muted-foreground">
-                      {cc.bank_data?.hasBillData || cc.bank_data?.hasOpenBillCalc
+                      {card.bank_data?.hasBillData || card.bank_data?.hasOpenBillCalc
                         ? "Fatura Aberta"
                         : "Saldo Devedor"}
                     </p>
                     <p className="text-base font-bold text-destructive">
-                      {cc.credit_bill_amount != null
-                        ? formatCurrency(cc.credit_bill_amount)
+                      {card.credit_bill_amount != null
+                        ? formatCurrency(card.credit_bill_amount)
                         : "—"}
                     </p>
-                    {(cc.bank_data?.hasBillData || cc.bank_data?.hasOpenBillCalc) && (
+                    {(card.bank_data?.hasBillData || card.bank_data?.hasOpenBillCalc) && (
                       <p className="text-[10px] text-muted-foreground/70">parcial do ciclo</p>
                     )}
                   </div>
+
                   <div>
                     <p className="text-muted-foreground">Vencimento</p>
                     <p className="text-base font-bold text-foreground">
-                      {cc.credit_bill_due_date
-                        ? formatDate(cc.credit_bill_due_date)
-                        : "—"}
+                      {card.credit_bill_due_date ? formatDate(card.credit_bill_due_date) : "—"}
                     </p>
                   </div>
+
                   <div>
                     <p className="text-muted-foreground">Limite Total</p>
                     <p className="font-semibold text-foreground">
-                      {cc.credit_limit != null ? formatCurrency(cc.credit_limit) : "—"}
+                      {card.credit_limit != null ? formatCurrency(card.credit_limit) : "—"}
                     </p>
                   </div>
+
                   <div>
                     <p className="text-muted-foreground">Disponível</p>
-                    <p className="font-semibold text-emerald-600">
-                      {cc.credit_available != null
-                        ? formatCurrency(cc.credit_available)
+                    <p className="font-semibold text-foreground">
+                      {card.credit_available != null
+                        ? formatCurrency(card.credit_available)
                         : "—"}
                     </p>
                   </div>
@@ -300,45 +311,52 @@ export default function ExtratoBancario() {
         </div>
       )}
 
-      {/* Bank Accounts */}
       {bankAccounts.length > 0 && (
         <div className="space-y-3">
-          <h2 className="text-sm font-semibold text-foreground flex items-center gap-2">
-            <Landmark className="w-4 h-4" /> Contas Bancárias
+          <h2 className="flex items-center gap-2 text-sm font-semibold text-foreground">
+            <Landmark className="h-4 w-4" /> Contas Bancárias
           </h2>
+
           <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
-            {bankAccounts.map((acc) => {
-              const invested = getInvestedBalance(acc);
-              const accountTotal = acc.balance + invested;
-              const accountTotals = totalsByAccount[acc.pluggy_account_id] ?? {
+            {bankAccounts.map((account) => {
+              const stored = getStoredBalance(account);
+              const totals = totalsByAccount[account.pluggy_account_id] ?? {
                 income: 0,
                 expense: 0,
               };
 
               return (
-                <Card key={acc.id} className="p-3 space-y-1">
-                  <p className="text-xs text-muted-foreground">{acc.name}</p>
+                <Card key={account.id} className="space-y-1 p-3">
+                  <p className="text-xs text-muted-foreground">{account.name}</p>
                   <p className="text-lg font-bold text-foreground">
-                    {formatCurrency(accountTotal)}
+                    {formatCurrency(getAccountTotalBalance(account))}
                   </p>
-                  <div className="text-[11px] text-muted-foreground space-y-0.5 pt-1 border-t border-border">
-                    <div className="flex justify-between">
+                  <div className="space-y-0.5 border-t border-border pt-1 text-[11px] text-muted-foreground">
+                    <div className="flex justify-between gap-3">
                       <span>Disponível</span>
-                      <span className="font-medium text-foreground">{formatCurrency(acc.balance)}</span>
+                      <span className="font-medium text-foreground">
+                        {formatCurrency(account.balance)}
+                      </span>
                     </div>
-                    {invested > 0 && (
-                      <div className="flex justify-between">
+                    {stored > 0 && (
+                      <div className="flex justify-between gap-3">
                         <span>Caixinhas / Guardado</span>
-                        <span className="font-medium text-foreground">{formatCurrency(invested)}</span>
+                        <span className="font-medium text-foreground">
+                          {formatCurrency(stored)}
+                        </span>
                       </div>
                     )}
-                    <div className="flex justify-between">
+                    <div className="flex justify-between gap-3">
                       <span>Entradas</span>
-                      <span className="font-medium text-foreground">{formatCurrency(accountTotals.income)}</span>
+                      <span className="font-medium text-foreground">
+                        {formatCurrency(totals.income)}
+                      </span>
                     </div>
-                    <div className="flex justify-between">
+                    <div className="flex justify-between gap-3">
                       <span>Saídas</span>
-                      <span className="font-medium text-foreground">{formatCurrency(accountTotals.expense)}</span>
+                      <span className="font-medium text-foreground">
+                        {formatCurrency(totals.expense)}
+                      </span>
                     </div>
                   </div>
                 </Card>
@@ -347,6 +365,113 @@ export default function ExtratoBancario() {
           </div>
         </div>
       )}
+
+      <Card className="p-4">
+        <div className="flex flex-col gap-3 md:flex-row">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              placeholder="Buscar transação..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-9"
+            />
+          </div>
+
+          <Select value={selectedAccount} onValueChange={setSelectedAccount}>
+            <SelectTrigger className="w-full md:w-[220px]">
+              <SelectValue placeholder="Todas as contas" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas as contas</SelectItem>
+              {accounts.map((account) => (
+                <SelectItem key={account.pluggy_account_id} value={account.pluggy_account_id}>
+                  {account.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select value={typeFilter} onValueChange={setTypeFilter}>
+            <SelectTrigger className="w-full md:w-[160px]">
+              <Filter className="mr-2 h-3.5 w-3.5" />
+              <SelectValue placeholder="Tipo" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos</SelectItem>
+              <SelectItem value="CREDIT">Entradas</SelectItem>
+              <SelectItem value="DEBIT">Saídas</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </Card>
+
+      <Card className="divide-y divide-border/30">
+        {loadingAccounts || loadingTx ? (
+          <div className="py-12 text-center text-sm text-muted-foreground">
+            Carregando transações...
+          </div>
+        ) : filteredTx.length === 0 ? (
+          <div className="py-12 text-center text-sm text-muted-foreground">
+            {accounts.length === 0
+              ? "Nenhuma conta conectada. Conecte um banco em Contas Bancárias."
+              : "Nenhuma transação encontrada."}
+          </div>
+        ) : (
+          filteredTx.map((tx) => {
+            const isCredit = tx.type === "CREDIT" || tx.amount > 0;
+
+            return (
+              <div
+                key={tx.id}
+                className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-muted/30"
+              >
+                <div
+                  className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg ${
+                    isCredit ? "bg-primary/10" : "bg-destructive/10"
+                  }`}
+                >
+                  {isCredit ? (
+                    <ArrowDownLeft className="h-4 w-4 text-primary" />
+                  ) : (
+                    <ArrowUpRight className="h-4 w-4 text-destructive" />
+                  )}
+                </div>
+
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <p className="truncate text-sm font-medium text-foreground">
+                      {tx.description || "Sem descrição"}
+                    </p>
+                    {tx.reconciled && (
+                      <Badge variant="outline" className="gap-1 text-[10px]">
+                        <CheckCircle2 className="h-3 w-3" />
+                        Conciliado
+                      </Badge>
+                    )}
+                  </div>
+
+                  <div className="mt-0.5 flex items-center gap-2">
+                    <span className="text-[11px] text-muted-foreground">
+                      {formatDate(tx.date)}
+                    </span>
+                    {tx.category && (
+                      <Badge variant="secondary" className="text-[10px]">
+                        {tx.category}
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+
+                <p
+                  className={`whitespace-nowrap text-sm font-semibold ${
+                    isCredit ? "text-primary" : "text-destructive"
+                  }`}
+                >
+                  {isCredit ? "+" : "-"} {formatCurrency(Math.abs(tx.amount))}
+                </p>
+              </div>
+            );
           })
         )}
       </Card>
