@@ -96,16 +96,17 @@ Deno.serve(async (req) => {
     const accountsData = await accountsRes.json()
     const accounts = accountsData.results || []
 
-    // Sum active investments (caixinhas, guardados, etc.)
+    // Sum active investments and save individual investment details
     let totalInvestments = 0
+    let investmentsList: any[] = []
     if (investmentsRes.ok) {
       const investmentsData = await investmentsRes.json()
-      const investments = investmentsData.results || []
-      totalInvestments = investments
+      investmentsList = investmentsData.results || []
+      totalInvestments = investmentsList
         .filter((inv: any) => (inv.balance ?? 0) > 0 || (inv.value ?? 0) > 0)
         .reduce((sum: number, inv: any) => sum + (inv.balance ?? inv.value ?? 0), 0)
       totalInvestments = Math.round(totalInvestments * 100) / 100
-      console.log(`Total investments for item ${itemId}: R$ ${totalInvestments} from ${investments.length} investments`)
+      console.log(`Total investments for item ${itemId}: R$ ${totalInvestments} from ${investmentsList.length} investments`)
     }
 
     // Get connection and resolve the real owner user_id
