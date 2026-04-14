@@ -33,6 +33,7 @@ export function usePluggyConnections() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["pluggy_connections"] });
+      qc.invalidateQueries({ queryKey: ["pluggy_connections_exist"] });
       toast.success("Conexão removida");
     },
   });
