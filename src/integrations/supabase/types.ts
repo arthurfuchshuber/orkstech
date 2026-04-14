@@ -170,6 +170,143 @@ export type Database = {
           },
         ]
       }
+      accounts_receivable: {
+        Row: {
+          amount: number
+          attachment_url: string | null
+          bank_account_id: string | null
+          categoria_financeira_id: string | null
+          category_id: string | null
+          cliente_id: string | null
+          cost_center_id: string | null
+          created_at: string
+          description: string
+          document_number: string | null
+          due_date: string
+          empresa_id: string | null
+          id: string
+          installment_number: number | null
+          installment_total: number | null
+          is_recurring: boolean
+          juros_multa: number
+          notes: string | null
+          payment_date: string | null
+          payment_method_id: string | null
+          pessoa_tipo: string
+          recurrence_interval: string | null
+          status: string
+          supplier_name: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount?: number
+          attachment_url?: string | null
+          bank_account_id?: string | null
+          categoria_financeira_id?: string | null
+          category_id?: string | null
+          cliente_id?: string | null
+          cost_center_id?: string | null
+          created_at?: string
+          description: string
+          document_number?: string | null
+          due_date: string
+          empresa_id?: string | null
+          id?: string
+          installment_number?: number | null
+          installment_total?: number | null
+          is_recurring?: boolean
+          juros_multa?: number
+          notes?: string | null
+          payment_date?: string | null
+          payment_method_id?: string | null
+          pessoa_tipo?: string
+          recurrence_interval?: string | null
+          status?: string
+          supplier_name?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          attachment_url?: string | null
+          bank_account_id?: string | null
+          categoria_financeira_id?: string | null
+          category_id?: string | null
+          cliente_id?: string | null
+          cost_center_id?: string | null
+          created_at?: string
+          description?: string
+          document_number?: string | null
+          due_date?: string
+          empresa_id?: string | null
+          id?: string
+          installment_number?: number | null
+          installment_total?: number | null
+          is_recurring?: boolean
+          juros_multa?: number
+          notes?: string | null
+          payment_date?: string | null
+          payment_method_id?: string | null
+          pessoa_tipo?: string
+          recurrence_interval?: string | null
+          status?: string
+          supplier_name?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "accounts_receivable_bank_account_id_fkey"
+            columns: ["bank_account_id"]
+            isOneToOne: false
+            referencedRelation: "contas_bancarias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "accounts_receivable_categoria_financeira_id_fkey"
+            columns: ["categoria_financeira_id"]
+            isOneToOne: false
+            referencedRelation: "categorias_financeiras"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "accounts_receivable_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categorias_cadastro"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "accounts_receivable_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "accounts_receivable_cost_center_id_fkey"
+            columns: ["cost_center_id"]
+            isOneToOne: false
+            referencedRelation: "centros_custo"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "accounts_receivable_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "accounts_receivable_payment_method_id_fkey"
+            columns: ["payment_method_id"]
+            isOneToOne: false
+            referencedRelation: "formas_pagamento"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       automacao_acoes_tipo: {
         Row: {
           ativo: boolean
@@ -1623,6 +1760,7 @@ export type Database = {
       pluggy_transactions: {
         Row: {
           amount: number
+          categoria_financeira_id: string | null
           category: string | null
           created_at: string
           date: string
@@ -1639,6 +1777,7 @@ export type Database = {
         }
         Insert: {
           amount?: number
+          categoria_financeira_id?: string | null
           category?: string | null
           created_at?: string
           date: string
@@ -1655,6 +1794,7 @@ export type Database = {
         }
         Update: {
           amount?: number
+          categoria_financeira_id?: string | null
           category?: string | null
           created_at?: string
           date?: string
@@ -1670,6 +1810,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "pluggy_transactions_categoria_financeira_id_fkey"
+            columns: ["categoria_financeira_id"]
+            isOneToOne: false
+            referencedRelation: "categorias_financeiras"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "pluggy_transactions_reconciled_payable_id_fkey"
             columns: ["reconciled_payable_id"]
