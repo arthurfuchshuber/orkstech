@@ -222,14 +222,17 @@ export function AppSidebar() {
     }
   }, [isSuperAdmin, empresa, location.pathname, navigate]);
 
-  // Check if user has open finance connections
+  // Check if user/company has open finance connections
+  const targetUserId = empresa?.user_id;
   const { data: hasOpenFinance } = useQuery({
-    queryKey: ["pluggy_connections_exist", user?.id],
-    enabled: !!user,
+    queryKey: ["pluggy_connections_exist", targetUserId ?? user?.id],
+    enabled: !!(targetUserId ?? user?.id),
     queryFn: async () => {
+      const uid = targetUserId ?? user!.id;
       const { count } = await supabase
         .from("pluggy_connections")
         .select("id", { count: "exact", head: true })
+        .eq("user_id", uid)
         .eq("status", "connected");
       return (count ?? 0) > 0;
     },
