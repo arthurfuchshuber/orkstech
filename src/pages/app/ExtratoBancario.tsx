@@ -325,7 +325,7 @@ export default function ExtratoBancario() {
     .filter((tx) => tx.type === "DEBIT" || tx.amount < 0)
     .reduce((sum, tx) => sum + Math.abs(tx.amount), 0);
 
-  const periodLabel = `${format(dateFrom, "dd/MM/yyyy")} a ${format(dateTo, "dd/MM/yyyy")}`;
+  const periodLabel = allPeriod ? "Todo o período" : `${format(dateFrom, "dd/MM/yyyy")} a ${format(dateTo, "dd/MM/yyyy")}`;
 
   return (
     <div className="space-y-6">
@@ -388,9 +388,10 @@ export default function ExtratoBancario() {
 
           <div className="flex gap-2">
             <Button
-              variant="secondary"
+              variant={!allPeriod && format(dateFrom, "yyyy-MM") === format(now, "yyyy-MM") ? "default" : "secondary"}
               size="sm"
               onClick={() => {
+                setAllPeriod(false);
                 setDateFrom(startOfMonth(now));
                 setDateTo(endOfMonth(now));
               }}
@@ -401,6 +402,7 @@ export default function ExtratoBancario() {
               variant="secondary"
               size="sm"
               onClick={() => {
+                setAllPeriod(false);
                 const prev = new Date(now.getFullYear(), now.getMonth() - 1, 1);
                 setDateFrom(startOfMonth(prev));
                 setDateTo(endOfMonth(prev));
@@ -412,11 +414,19 @@ export default function ExtratoBancario() {
               variant="secondary"
               size="sm"
               onClick={() => {
+                setAllPeriod(false);
                 setDateFrom(new Date(now.getFullYear(), 0, 1));
                 setDateTo(endOfMonth(now));
               }}
             >
               Ano atual
+            </Button>
+            <Button
+              variant={allPeriod ? "default" : "secondary"}
+              size="sm"
+              onClick={() => setAllPeriod(true)}
+            >
+              Todo o período
             </Button>
           </div>
         </div>
