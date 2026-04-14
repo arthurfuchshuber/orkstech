@@ -143,7 +143,7 @@ export default function ExtratoBancario() {
   const bankAccounts = accounts.filter((a) => a.type !== "CREDIT");
 
   const totalBalance = bankAccounts.reduce(
-    (sum, a) => sum + a.balance + (a.bank_data?.automaticallyInvestedBalance ?? 0),
+    (sum, a) => sum + a.balance,
     0
   );
   const totalIncome = filteredTx
@@ -270,14 +270,30 @@ export default function ExtratoBancario() {
             <Landmark className="w-4 h-4" /> Contas Bancárias
           </h2>
           <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
-            {bankAccounts.map((acc) => (
-              <Card key={acc.id} className="p-3">
-                <p className="text-xs text-muted-foreground">{acc.name}</p>
-                <p className="text-lg font-bold text-foreground">
-                  {formatCurrency(acc.balance)}
-                </p>
-              </Card>
-            ))}
+            {bankAccounts.map((acc) => {
+              const invested = acc.bank_data?.automaticallyInvestedBalance ?? 0;
+              const disponivel = acc.balance - invested;
+              return (
+                <Card key={acc.id} className="p-3 space-y-1">
+                  <p className="text-xs text-muted-foreground">{acc.name}</p>
+                  <p className="text-lg font-bold text-foreground">
+                    {formatCurrency(acc.balance)}
+                  </p>
+                  {invested > 0 && (
+                    <div className="text-[11px] text-muted-foreground space-y-0.5 pt-1 border-t border-border">
+                      <div className="flex justify-between">
+                        <span>Disponível</span>
+                        <span className="font-medium text-foreground">{formatCurrency(disponivel)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Caixinhas / Guardado</span>
+                        <span className="font-medium text-foreground">{formatCurrency(invested)}</span>
+                      </div>
+                    </div>
+                  )}
+                </Card>
+              );
+            })}
           </div>
         </div>
       )}
