@@ -94,7 +94,7 @@ export default function ExtratoBancario() {
         .select("pluggy_item_id, connector_name")
         .eq("user_id", targetUserId!);
       if (error) throw error;
-      return data as { pluggy_item_id: string; connector_name: string | null }[];
+      return data as unknown as { pluggy_item_id: string; connector_name: string | null }[];
     },
     enabled: !!user && !!targetUserId,
   });
