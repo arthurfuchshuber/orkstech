@@ -1298,6 +1298,13 @@ export default function ContasAPagar() {
         editingId={catEditingId}
         onSaved={(id) => updateField("category_id", id)}
       />
+      <CategoriaFinanceiraModal
+        open={cfModalOpen}
+        onOpenChange={setCfModalOpen}
+        editingId={cfEditingId}
+        defaultTipo="despesa"
+        onSaved={(id) => updateField("categoria_financeira_id", id)}
+      />
       <CentroCustoModal
         open={ccModalOpen}
         onOpenChange={setCcModalOpen}
