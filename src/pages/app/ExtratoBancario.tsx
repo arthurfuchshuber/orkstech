@@ -142,7 +142,10 @@ export default function ExtratoBancario() {
   const creditCards = accounts.filter((a) => a.type === "CREDIT");
   const bankAccounts = accounts.filter((a) => a.type !== "CREDIT");
 
-  const totalBalance = bankAccounts.reduce((sum, a) => sum + a.balance, 0);
+  const totalBalance = bankAccounts.reduce(
+    (sum, a) => sum + a.balance + (a.bank_data?.automaticallyInvestedBalance ?? 0),
+    0
+  );
   const totalIncome = filteredTx
     .filter((tx) => tx.type === "CREDIT" || tx.amount > 0)
     .reduce((sum, tx) => sum + Math.abs(tx.amount), 0);
@@ -174,7 +177,7 @@ export default function ExtratoBancario() {
           </div>
           <p className="text-xl font-bold text-foreground">{formatCurrency(totalBalance)}</p>
           <p className="text-[11px] text-muted-foreground mt-1">
-            {bankAccounts.length} conta(s) conectada(s)
+            {bankAccounts.length} conta(s) conectada(s), incluindo valores guardados quando enviados pelo banco
           </p>
         </Card>
         <Card className="p-4">
