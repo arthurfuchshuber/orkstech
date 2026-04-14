@@ -121,6 +121,7 @@ export default function ContasAPagar() {
   const centrosCrud = useManagedSelect("centros_custo");
   const contasCrud = useManagedSelect("contas_bancarias");
   const formasCrud = useManagedSelect("formas_pagamento");
+  const catFinCrud = useManagedSelect("categorias_financeiras");
 
   // Entity modal states
   const [catModalOpen, setCatModalOpen] = useState(false);
@@ -131,6 +132,8 @@ export default function ContasAPagar() {
   const [cbEditingId, setCbEditingId] = useState<string | null>(null);
   const [fpModalOpen, setFpModalOpen] = useState(false);
   const [fpEditingId, setFpEditingId] = useState<string | null>(null);
+  const [cfModalOpen, setCfModalOpen] = useState(false);
+  const [cfEditingId, setCfEditingId] = useState<string | null>(null);
   const [fornModalOpen, setFornModalOpen] = useState(false);
   const [fornEditingId, setFornEditingId] = useState<string | null>(null);
   const [fornPrefill, setFornPrefill] = useState<FornecedorPrefill | null>(null);
