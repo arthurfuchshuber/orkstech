@@ -200,6 +200,15 @@ export default function ContasAPagar() {
     },
   });
 
+  // Fetch ALL categories (cross-empresa) to correctly determine parent-child hierarchy
+  const { data: allCategoriasFin = [] } = useQuery({
+    queryKey: ["categorias-financeiras-all-hierarchy"],
+    queryFn: async () => {
+      const { data } = await supabase.from("categorias_financeiras").select("id, categoria_pai_id").eq("ativo", true);
+      return data ?? [];
+    },
+  });
+
   const { data: costCenters = [] } = useQuery({
     queryKey: ["centros-custo", empresaId],
     queryFn: async () => {
