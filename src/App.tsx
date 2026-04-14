@@ -20,7 +20,6 @@ import Fornecedores from "./pages/app/Fornecedores";
 import Automacoes from "./pages/app/Automacoes";
 import Configuracoes from "./pages/app/Configuracoes";
 import PlaceholderPage from "./pages/app/PlaceholderPage";
-import Dashboard from "./pages/app/Dashboard";
 import Financeiro from "./pages/app/Financeiro";
 import ContasBancarias from "./pages/app/ContasBancarias";
 import GerenciarMenu from "./pages/app/GerenciarMenu";
@@ -51,8 +50,8 @@ const App = () => (
               <Route path="/reset-password" element={<ResetPassword />} />
               <Route path="/app/onboarding" element={<OnboardingRoute><Onboarding /></OnboardingRoute>} />
               <Route path="/app" element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
-                <Route index element={<Navigate to="/app/dashboard" replace />} />
-                <Route path="dashboard" element={<Dashboard />} />
+                <Route index element={<Navigate to="/app/financas/cadastros" replace />} />
+                <Route path="dashboard" element={<Navigate to="/app/financas/cadastros" replace />} />
                 <Route path="clientes" element={<Clientes />} />
                 <Route path="clientes/:id" element={<ClienteWorkspace />} />
                 <Route path="fornecedores" element={<Fornecedores />} />
