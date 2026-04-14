@@ -323,7 +323,7 @@ Deno.serve(async (req) => {
       accounts: accounts.length,
       savedAccounts,
       savedTransactions,
-      message: `Sincronizado: ${savedAccounts} contas, ${savedTransactions} transações`,
+      message: `Sincronizado: ${savedAccounts} contas, ${savedTransactions} transações, ${savedInvestments} investimentos`,
     }
 
     return new Response(JSON.stringify(result), {
