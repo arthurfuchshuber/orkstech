@@ -218,6 +218,8 @@ export function useDRE(filters: DREFilters) {
     let totalDeducaoAmount = 0;
     let totalCustoAmount = 0;
     let totalDespesaAmount = 0;
+    let totalReceitaFinAmount = 0;
+    let totalDespesaFinAmount = 0;
     let totalImpostoAmount = 0;
 
     tree.forEach((root, idx) => {
@@ -228,14 +230,18 @@ export function useDRE(filters: DREFilters) {
       else if (root.tipo === "deducao") totalDeducaoAmount += line.amount;
       else if (root.tipo === "custo") totalCustoAmount += line.amount;
       else if (root.tipo === "despesa") totalDespesaAmount += line.amount;
+      else if (root.tipo === "receita_financeira") totalReceitaFinAmount += line.amount;
+      else if (root.tipo === "despesa_financeira") totalDespesaFinAmount += line.amount;
       else if (root.tipo === "imposto") totalImpostoAmount += line.amount;
     });
 
-    // DRE structure based on tipos
+    // DRE completo baseado nos tipos
     const receitaLiquida = totalReceitaAmount - totalDeducaoAmount;
-    const margemBruta = receitaLiquida - totalCustoAmount;
-    const ebitdaVal = margemBruta - totalDespesaAmount;
-    const resultado = ebitdaVal - totalImpostoAmount;
+    const lucroBruto = receitaLiquida - totalCustoAmount;
+    const resultadoOperacional = lucroBruto - totalDespesaAmount;
+    const resultadoFinanceiro = totalReceitaFinAmount - totalDespesaFinAmount;
+    const resultadoAntesImpostos = resultadoOperacional + resultadoFinanceiro;
+    const lucroLiquido = resultadoAntesImpostos - totalImpostoAmount;
 
     // Continue numbering from tree length
     let nextNum = lines.length + 1;
@@ -249,21 +255,23 @@ export function useDRE(filters: DREFilters) {
 
     const indicators: DRELine[] = [
       makeIndicator("receita-liquida", "Receita Líquida", receitaLiquida),
-      makeIndicator("margem-bruta", "Margem Bruta", margemBruta),
-      makeIndicator("ebitda", "EBITDA", ebitdaVal),
-      makeIndicator("resultado", "Resultado", resultado),
+      makeIndicator("lucro-bruto", "Lucro Bruto", lucroBruto),
+      makeIndicator("resultado-operacional", "Resultado Operacional", resultadoOperacional),
+      makeIndicator("resultado-financeiro", "Resultado Financeiro", resultadoFinanceiro),
+      makeIndicator("resultado-antes-impostos", "Resultado antes dos Impostos", resultadoAntesImpostos),
+      makeIndicator("lucro-liquido", "Lucro Líquido", lucroLiquido),
     ];
 
     return {
       lines: [...lines, ...indicators],
       totalRevenue: totalReceitaAmount,
-      totalExpense: totalDespesaAmount + totalCustoAmount + totalDeducaoAmount + totalImpostoAmount,
-      grossProfit: margemBruta,
-      grossMargin: totalReceitaAmount > 0 ? (margemBruta / totalReceitaAmount) * 100 : 0,
-      ebitda: ebitdaVal,
-      operatingResult: ebitdaVal,
-      netIncome: resultado,
-      profitMargin: totalReceitaAmount > 0 ? (resultado / totalReceitaAmount) * 100 : 0,
+      totalExpense: totalDespesaAmount + totalCustoAmount + totalDeducaoAmount + totalImpostoAmount + totalDespesaFinAmount,
+      grossProfit: lucroBruto,
+      grossMargin: totalReceitaAmount > 0 ? (lucroBruto / totalReceitaAmount) * 100 : 0,
+      ebitda: resultadoOperacional,
+      operatingResult: resultadoOperacional,
+      netIncome: lucroLiquido,
+      profitMargin: totalReceitaAmount > 0 ? (lucroLiquido / totalReceitaAmount) * 100 : 0,
     };
   }, [transactions, prevTransactions, categorias]);
 
