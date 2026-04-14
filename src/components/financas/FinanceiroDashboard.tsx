@@ -4,9 +4,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { useEmpresa } from "@/hooks/useEmpresa";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  Users,
-  Truck,
   Receipt,
   AlertTriangle,
   Landmark,
@@ -20,7 +19,6 @@ import {
 import { format, differenceInDays, startOfMonth, endOfMonth, subMonths } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useMemo } from "react";
-
 
 interface BankAccount {
   id: string;
@@ -102,28 +100,6 @@ export default function FinanceiroDashboard() {
   });
 
   // ── KPIs ──
-  const { data: clientes } = useQuery({
-    queryKey: ["dashboard-clientes", user?.id, empresaId],
-    enabled: !!user,
-    queryFn: async () => {
-      let q = supabase.from("clientes").select("id", { count: "exact", head: true }).eq("ativo", true);
-      if (empresaId) q = q.eq("empresa_id", empresaId);
-      const { count } = await q;
-      return count ?? 0;
-    },
-  });
-
-  const { data: fornecedores } = useQuery({
-    queryKey: ["dashboard-fornecedores", user?.id, empresaId],
-    enabled: !!user,
-    queryFn: async () => {
-      let q = supabase.from("fornecedores").select("id", { count: "exact", head: true }).eq("ativo", true);
-      if (empresaId) q = q.eq("empresa_id", empresaId);
-      const { count } = await q;
-      return count ?? 0;
-    },
-  });
-
   const { data: contasPagar } = useQuery({
     queryKey: ["dashboard-contas-pagar", user?.id, empresaId],
     enabled: !!user,
@@ -150,7 +126,6 @@ export default function FinanceiroDashboard() {
     0
   );
 
-  
   const totalCreditAvailable = creditCards.reduce((sum, a) => sum + (a.credit_available ?? 0), 0);
 
   const getConnectorName = (account: BankAccount) => {
@@ -234,271 +209,282 @@ export default function FinanceiroDashboard() {
   const hasPluggyData = accounts.length > 0;
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      {/* ── Saldos e Patrimônio ── */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card className="border-border/50">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center">
+    <Tabs defaultValue="caixa" className="space-y-4 animate-fade-in">
+      <TabsList>
+        <TabsTrigger value="caixa">Caixa da Empresa</TabsTrigger>
+        <TabsTrigger value="contas-pagar">Contas a Pagar</TabsTrigger>
+      </TabsList>
+
+      {/* ═══════════ ABA: Caixa da Empresa ═══════════ */}
+      <TabsContent value="caixa" className="space-y-6">
+        {/* KPIs */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <Card className="border-border/50">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <Landmark className="w-4 h-4 text-primary" />
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Saldo em Contas</p>
+                  <p className="text-xl font-bold text-foreground">{fmt(totalBankBalance)}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-border/50">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <CreditCard className="w-4 h-4 text-primary" />
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Limite Disponível</p>
+                  <p className="text-xl font-bold text-foreground">{fmt(totalCreditAvailable)}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-border/50">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-lg bg-success/10 flex items-center justify-center">
+                  <ArrowDownRight className="w-4 h-4 text-success" />
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Cartões conectados</p>
+                  <p className="text-xl font-bold text-foreground">{creditCards.length}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-border/50">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <Wallet className="w-4 h-4 text-primary" />
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Contas bancárias</p>
+                  <p className="text-xl font-bold text-foreground">{bankAccounts.length}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Contas Bancárias + Cartões */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <Card className="border-border/50">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium flex items-center gap-2">
                 <Landmark className="w-4 h-4 text-primary" />
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Saldo em Contas</p>
-                <p className="text-xl font-bold text-foreground">{fmt(totalBankBalance)}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-border/50">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center">
-                <CreditCard className="w-4 h-4 text-primary" />
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Limite Disponível</p>
-                <p className="text-xl font-bold text-foreground">{fmt(totalCreditAvailable)}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-border/50">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-lg bg-warning/10 flex items-center justify-center">
-                <Receipt className="w-4 h-4 text-warning" />
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">A Pagar (Pendente)</p>
-                <p className="text-xl font-bold text-foreground">{fmt(totalPendente)}</p>
-                <span className="text-[10px] text-muted-foreground">{pendentes.length} título(s)</span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-border/50">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-lg bg-destructive/10 flex items-center justify-center">
-                <AlertTriangle className="w-4 h-4 text-destructive" />
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Vencidas</p>
-                <p className="text-xl font-bold text-foreground">{fmt(totalVencido)}</p>
-                <span className="text-[10px] text-muted-foreground">{vencidas.length} título(s)</span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* ── Contas Bancárias + Cartões ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {/* Contas Bancárias */}
-        <Card className="border-border/50">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <Landmark className="w-4 h-4 text-primary" />
-              Contas Bancárias
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {bankAccounts.length === 0 ? (
-              <p className="text-xs text-muted-foreground py-4 text-center">
-                {hasPluggyData ? "Nenhuma conta corrente encontrada" : "Nenhuma conexão bancária ativa"}
-              </p>
-            ) : (
-              <div className="space-y-2">
-                {bankAccounts.map((account) => (
-                  <div key={account.id} className="flex items-center justify-between py-2 border-b border-border/30 last:border-0">
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center">
-                        <Wallet className="w-3.5 h-3.5 text-primary" />
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium text-foreground">{getBankDisplayName(account)}</p>
-                        {getStoredBalance(account) > 0 && (
-                          <p className="text-[10px] text-muted-foreground flex items-center gap-1">
-                            <PiggyBank className="w-2.5 h-2.5" />
-                            Guardado: {fmt(getStoredBalance(account))}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                    <span className="text-sm font-semibold text-foreground">{fmt(account.balance + getStoredBalance(account))}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Cartões de Crédito */}
-        <Card className="border-border/50">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <CreditCard className="w-4 h-4 text-primary" />
-              Cartões de Crédito
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {creditCards.length === 0 ? (
-              <p className="text-xs text-muted-foreground py-4 text-center">
-                Nenhum cartão de crédito conectado
-              </p>
-            ) : (
-              <div className="space-y-2">
-                {creditCards.map((card) => {
-                  const billAmount = getCreditBillAmount(card);
-                  return (
-                    <div key={card.id} className="flex items-center justify-between py-2 border-b border-border/30 last:border-0">
+                Contas Bancárias
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {bankAccounts.length === 0 ? (
+                <p className="text-xs text-muted-foreground py-4 text-center">
+                  {hasPluggyData ? "Nenhuma conta corrente encontrada" : "Nenhuma conexão bancária ativa"}
+                </p>
+              ) : (
+                <div className="space-y-2">
+                  {bankAccounts.map((account) => (
+                    <div key={account.id} className="flex items-center justify-between py-2 border-b border-border/30 last:border-0">
                       <div className="flex items-center gap-2.5">
-                        <div className="w-7 h-7 rounded-lg bg-accent/50 flex items-center justify-center">
-                          <CreditCard className="w-3.5 h-3.5 text-primary" />
+                        <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center">
+                          <Wallet className="w-3.5 h-3.5 text-primary" />
                         </div>
                         <div>
-                          <p className="text-sm font-medium text-foreground">{getCreditCardLabel(card)}</p>
+                          <p className="text-sm font-medium text-foreground">{getBankDisplayName(account)}</p>
+                          {getStoredBalance(account) > 0 && (
+                            <p className="text-[10px] text-muted-foreground flex items-center gap-1">
+                              <PiggyBank className="w-2.5 h-2.5" />
+                              Guardado: {fmt(getStoredBalance(account))}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                      <span className="text-sm font-semibold text-foreground">{fmt(account.balance + getStoredBalance(account))}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card className="border-border/50">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium flex items-center gap-2">
+                <CreditCard className="w-4 h-4 text-primary" />
+                Cartões de Crédito
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {creditCards.length === 0 ? (
+                <p className="text-xs text-muted-foreground py-4 text-center">
+                  Nenhum cartão de crédito conectado
+                </p>
+              ) : (
+                <div className="space-y-2">
+                  {creditCards.map((card) => {
+                    const billAmount = getCreditBillAmount(card);
+                    return (
+                      <div key={card.id} className="flex items-center justify-between py-2 border-b border-border/30 last:border-0">
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-7 h-7 rounded-lg bg-accent/50 flex items-center justify-center">
+                            <CreditCard className="w-3.5 h-3.5 text-primary" />
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium text-foreground">{getCreditCardLabel(card)}</p>
+                            <p className="text-[10px] text-muted-foreground">
+                              Limite: {fmt(card.credit_limit ?? 0)} · Disponível: {fmt(card.credit_available ?? 0)}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <span className="text-sm font-semibold text-foreground">{fmt(billAmount)}</span>
                           <p className="text-[10px] text-muted-foreground">
-                            Limite: {fmt(card.credit_limit ?? 0)} · Disponível: {fmt(card.credit_available ?? 0)}
+                            {card.credit_bill_due_date ? `Venc. ${format(new Date(card.credit_bill_due_date + "T12:00:00"), "dd/MM")}` : "Fatura"}
                           </p>
                         </div>
                       </div>
-                      <div className="text-right">
-                        <span className="text-sm font-semibold text-foreground">{fmt(billAmount)}</span>
-                        <p className="text-[10px] text-muted-foreground">
-                          {card.credit_bill_due_date ? `Venc. ${format(new Date(card.credit_bill_due_date + "T12:00:00"), "dd/MM")}` : "Fatura"}
-                        </p>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* ── Gráfico + Próximas a vencer ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <Card className="lg:col-span-2 border-border/50">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <TrendingUp className="w-4 h-4 text-primary" />
-              Contas a Pagar — Últimos 6 meses
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-end gap-3 h-44">
-              {monthlyData.map((m, i) => (
-                <div key={i} className="flex-1 flex flex-col items-center gap-1">
-                  <span className="text-[10px] text-muted-foreground">{fmt(m.total)}</span>
-                  <div
-                    className="w-full rounded-t-md bg-primary/80 transition-all duration-500"
-                    style={{ height: `${Math.max((m.total / maxMonthly) * 140, 4)}px` }}
-                  />
-                  <span className="text-[11px] text-muted-foreground capitalize">{m.label}</span>
+                    );
+                  })}
                 </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      </TabsContent>
 
-        <Card className="border-border/50">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <Clock className="w-4 h-4 text-warning" />
-              Vencendo em 7 dias
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {proximasVencer.length === 0 ? (
-              <p className="text-xs text-muted-foreground py-4 text-center">Nenhuma conta próxima do vencimento</p>
-            ) : (
-              <div className="space-y-2">
-                {proximasVencer.map((c) => (
-                  <div key={c.id} className="flex items-center justify-between py-1.5 border-b border-border/30 last:border-0">
-                    <div>
-                      <p className="text-xs text-foreground truncate max-w-[140px]">{(c as any).description || fmt(Number(c.amount))}</p>
-                      <p className="text-[10px] text-muted-foreground">
-                        {format(new Date(c.due_date), "dd/MM/yyyy")}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-semibold text-foreground">{fmt(Number(c.amount))}</span>
-                      <Badge variant="outline" className="text-[10px] border-warning/30 text-warning">
-                        {differenceInDays(new Date(c.due_date), new Date())}d
-                      </Badge>
-                    </div>
+      {/* ═══════════ ABA: Contas a Pagar ═══════════ */}
+      <TabsContent value="contas-pagar" className="space-y-6">
+        {/* KPIs */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <Card className="border-border/50">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-lg bg-warning/10 flex items-center justify-center">
+                  <Receipt className="w-4 h-4 text-warning" />
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">A Pagar (Pendente)</p>
+                  <p className="text-xl font-bold text-foreground">{fmt(totalPendente)}</p>
+                  <span className="text-[10px] text-muted-foreground">{pendentes.length} título(s)</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-border/50">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-lg bg-destructive/10 flex items-center justify-center">
+                  <AlertTriangle className="w-4 h-4 text-destructive" />
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Vencidas</p>
+                  <p className="text-xl font-bold text-foreground">{fmt(totalVencido)}</p>
+                  <span className="text-[10px] text-muted-foreground">{vencidas.length} título(s)</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-border/50">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <Clock className="w-4 h-4 text-primary" />
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Vencendo em 7 dias</p>
+                  <p className="text-xl font-bold text-foreground">{proximasVencer.length}</p>
+                  <span className="text-[10px] text-muted-foreground">título(s)</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-border/50">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <Receipt className="w-4 h-4 text-primary" />
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Total em Aberto</p>
+                  <p className="text-xl font-bold text-foreground">{fmt(totalPendente + totalVencido)}</p>
+                  <span className="text-[10px] text-muted-foreground">{pendentes.length + vencidas.length} título(s)</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Gráfico + Próximas a vencer */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          <Card className="lg:col-span-2 border-border/50">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium flex items-center gap-2">
+                <TrendingUp className="w-4 h-4 text-primary" />
+                Contas a Pagar — Últimos 6 meses
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-end gap-3 h-44">
+                {monthlyData.map((m, i) => (
+                  <div key={i} className="flex-1 flex flex-col items-center gap-1">
+                    <span className="text-[10px] text-muted-foreground">{fmt(m.total)}</span>
+                    <div
+                      className="w-full rounded-t-md bg-primary/80 transition-all duration-500"
+                      style={{ height: `${Math.max((m.total / maxMonthly) * 140, 4)}px` }}
+                    />
+                    <span className="text-[11px] text-muted-foreground capitalize">{m.label}</span>
                   </div>
                 ))}
               </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
+            </CardContent>
+          </Card>
 
-      {/* ── Resumo operacional ── */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card className="border-border/50">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center">
-                <Users className="w-4 h-4 text-primary" />
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Clientes ativos</p>
-                <p className="text-xl font-bold text-foreground">{clientes ?? 0}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-border/50">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center">
-                <Truck className="w-4 h-4 text-primary" />
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Fornecedores ativos</p>
-                <p className="text-xl font-bold text-foreground">{fornecedores ?? 0}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-border/50">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-lg bg-success/10 flex items-center justify-center">
-                <ArrowDownRight className="w-4 h-4 text-success" />
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Cartões conectados</p>
-                <p className="text-xl font-bold text-foreground">{creditCards.length}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-border/50">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center">
-                <Wallet className="w-4 h-4 text-primary" />
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Contas bancárias</p>
-                <p className="text-xl font-bold text-foreground">{bankAccounts.length}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    </div>
+          <Card className="border-border/50">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium flex items-center gap-2">
+                <Clock className="w-4 h-4 text-warning" />
+                Vencendo em 7 dias
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {proximasVencer.length === 0 ? (
+                <p className="text-xs text-muted-foreground py-4 text-center">Nenhuma conta próxima do vencimento</p>
+              ) : (
+                <div className="space-y-2">
+                  {proximasVencer.map((c) => (
+                    <div key={c.id} className="flex items-center justify-between py-1.5 border-b border-border/30 last:border-0">
+                      <div>
+                        <p className="text-xs text-foreground truncate max-w-[140px]">{(c as any).description || fmt(Number(c.amount))}</p>
+                        <p className="text-[10px] text-muted-foreground">
+                          {format(new Date(c.due_date), "dd/MM/yyyy")}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-semibold text-foreground">{fmt(Number(c.amount))}</span>
+                        <Badge variant="outline" className="text-[10px] border-warning/30 text-warning">
+                          {differenceInDays(new Date(c.due_date), new Date())}d
+                        </Badge>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      </TabsContent>
+    </Tabs>
   );
 }
