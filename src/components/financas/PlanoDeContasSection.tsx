@@ -268,6 +268,8 @@ export function PlanoDeContasSection() {
                                 <DropdownMenuItem onClick={() => openEdit(node)}>
                                   <Pencil className="w-4 h-4 mr-2" /> Editar
                                 </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => openMoveModal(node)}>
+                                  <MoveRight className="w-4 h-4 mr-2" /> Mover para
                                 <DropdownMenuItem onClick={() => toggleMutation.mutate({ id: node.id, ativo: !node.ativo })}>
                                   <Power className={`w-4 h-4 mr-2 ${node.ativo ? "text-emerald-400" : "text-muted-foreground"}`} /> {node.ativo ? "Desativar" : "Ativar"}
                                 </DropdownMenuItem>
