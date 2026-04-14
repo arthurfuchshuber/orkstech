@@ -85,6 +85,50 @@ export default function ExtratoBancario() {
     enabled: !!user && !!targetUserId,
   });
 
+  // Fetch connections (connector_name) and profile (nome) for display names
+  const { data: connections = [] } = useQuery({
+    queryKey: ["pluggy_connections_names", targetUserId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("pluggy_connections" as any)
+        .select("pluggy_item_id, connector_name")
+        .eq("user_id", targetUserId!);
+      if (error) throw error;
+      return data as { pluggy_item_id: string; connector_name: string | null }[];
+    },
+    enabled: !!user && !!targetUserId,
+  });
+
+  const { data: profileData } = useQuery({
+    queryKey: ["profile_name", targetUserId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("nome")
+        .eq("user_id", targetUserId!)
+        .maybeSingle();
+      if (error) throw error;
+      return data as { nome: string | null } | null;
+    },
+    enabled: !!user && !!targetUserId,
+  });
+
+  const getDisplayName = (account: BankAccount) => {
+    const conn = connections.find((c) => c.pluggy_item_id === account.pluggy_item_id);
+    const connectorName = conn?.connector_name || "Conta";
+    const ownerName = profileData?.nome || "";
+
+    if (account.type === "CREDIT") {
+      // Get last 4 digits from creditData
+      const creditData = (account.bank_data as any)?.creditData;
+      const last4 = creditData?.disaggregatedCreditLimits?.[0]?.identificationNumber || "";
+      const suffix = last4 ? ` (${last4})` : "";
+      return ownerName ? `${connectorName}${suffix} - ${ownerName}` : `${connectorName}${suffix}`;
+    }
+
+    return ownerName ? `${connectorName} - ${ownerName}` : connectorName;
+  };
+
   const { data: allTransactions = [] } = useQuery({
     queryKey: ["pluggy_transactions_summary", targetUserId],
     queryFn: async () => {
