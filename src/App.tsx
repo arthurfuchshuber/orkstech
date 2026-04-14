@@ -57,6 +57,7 @@ const App = () => (
                 <Route path="clientes/:id" element={<ClienteWorkspace />} />
                 <Route path="fornecedores" element={<Fornecedores />} />
                 <Route path="inventario" element={<PlaceholderPage />} />
+                <Route path="financas/dashboard" element={<FinanceiroDashboardPage />} />
                 <Route path="financas/pagar" element={<ContasAPagar />} />
                 <Route path="financas/receber" element={<PlaceholderPage />} />
                 <Route path="financas/fluxo" element={<PlaceholderPage />} />
