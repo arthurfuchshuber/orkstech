@@ -10,7 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ContaBancariaModal } from "@/components/modals/ContaBancariaModal";
 import { Plus, Pencil, Trash2, Power, Landmark, Wallet, PiggyBank, Banknote, ChevronDown } from "lucide-react";
-import { PluggyConnectButton } from "@/components/PluggyConnectButton";
+import { PluggyConnectButton, PluggyConnectionsList, usePluggyConnections } from "@/components/PluggyConnectButton";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 type TipoConta = "corrente" | "poupanca" | "caixa" | "carteira_digital";
