@@ -261,18 +261,18 @@ export function useDRE(filters: DREFilters) {
     const margemLiquidaPct = totalReceitaAmount > 0 ? (lucroLiquido / totalReceitaAmount) * 100 : 0;
 
     const indicators: DRELine[] = [
-      makeIndicator("receita-liquida", "Receita Líquida", receitaLiquida),
-      makeIndicator("lucro-bruto", "Lucro Bruto", lucroBruto),
-      { ...makeIndicator("margem-bruta", "Margem Bruta", margemBrutaPct), isPercentual: true },
-      makeIndicator("resultado-operacional", "Resultado Operacional", resultadoOperacional),
-      { ...makeIndicator("margem-operacional", "Margem Operacional", margemOperacionalPct), isPercentual: true },
-      makeIndicator("ebitda", "EBITDA", ebitda),
-      { ...makeIndicator("margem-ebitda", "Margem EBITDA", margemEbitdaPct), isPercentual: true },
-      makeIndicator("resultado-financeiro", "Resultado Financeiro", resultadoFinanceiro),
-      makeIndicator("resultado-antes-impostos", "Resultado antes dos Impostos", resultadoAntesImpostos),
+      makeIndicator("receita-liquida", "(=) Receita Líquida", receitaLiquida),
+      makeIndicator("lucro-bruto", "(=) Lucro Bruto", lucroBruto),
+      { ...makeIndicator("margem-bruta", "(%) Margem Bruta", margemBrutaPct), isPercentual: true },
+      makeIndicator("resultado-operacional", "(=) Resultado Operacional", resultadoOperacional),
+      { ...makeIndicator("margem-operacional", "(%) Margem Operacional", margemOperacionalPct), isPercentual: true },
+      makeIndicator("ebitda", "(=) EBITDA", ebitda),
+      { ...makeIndicator("margem-ebitda", "(%) Margem EBITDA", margemEbitdaPct), isPercentual: true },
+      makeIndicator("resultado-financeiro", "(+/-) Resultado Financeiro", resultadoFinanceiro),
+      makeIndicator("resultado-antes-impostos", "(=) Resultado antes dos Impostos", resultadoAntesImpostos),
       makeIndicator("impostos", "(-) Impostos", totalImpostoAmount),
-      makeIndicator("lucro-liquido", "Lucro Líquido", lucroLiquido),
-      { ...makeIndicator("margem-liquida", "Margem Líquida", margemLiquidaPct), isPercentual: true },
+      makeIndicator("lucro-liquido", "(=) Lucro Líquido", lucroLiquido),
+      { ...makeIndicator("margem-liquida", "(%) Margem Líquida", margemLiquidaPct), isPercentual: true },
     ];
 
     return {
