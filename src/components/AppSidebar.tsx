@@ -267,11 +267,15 @@ export function AppSidebar() {
 
   useEffect(() => {
     const ids = findActiveIds(filteredTree, location.pathname);
-    const nextOpenMap: Record<string, boolean> = {};
-    ids.forEach((id) => {
-      nextOpenMap[id] = true;
-    });
-    setOpenMap(nextOpenMap);
+    if (ids.length > 0) {
+      setOpenMap((prev) => {
+        const next = { ...prev };
+        ids.forEach((id) => {
+          next[id] = true;
+        });
+        return next;
+      });
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeIdsKey, location.pathname]);
 
