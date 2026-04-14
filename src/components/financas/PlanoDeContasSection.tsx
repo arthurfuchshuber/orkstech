@@ -153,7 +153,7 @@ export function PlanoDeContasSection() {
         if (error) throw error;
       } else {
         const siblings = categorias.filter((c) => c.categoria_pai_id === form.categoria_pai_id);
-        const { error } = await supabase.from("categorias_financeiras").insert({ nome: form.nome, tipo: form.tipo, categoria_pai_id: form.categoria_pai_id, ordem: siblings.length, user_id: user!.id });
+        const { error } = await supabase.from("categorias_financeiras").insert({ nome: form.nome, tipo: form.tipo, categoria_pai_id: form.categoria_pai_id, ordem: siblings.length, user_id: targetUserId!, empresa_id: empresa?.id || null });
         if (error) throw error;
       }
     },

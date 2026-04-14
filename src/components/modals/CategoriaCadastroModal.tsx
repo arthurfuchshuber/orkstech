@@ -77,7 +77,7 @@ export function CategoriaCadastroModal({ open, onOpenChange, editingId, onSaved 
       } else {
         const { data, error } = await supabase
           .from("categorias_cadastro")
-          .insert({ ...payload, user_id: user!.id, empresa_id: empresaId || null })
+          .insert({ ...payload, user_id: user!.id, empresa_id: empresa?.id || null })
           .select("id")
           .single();
         if (error) throw error;

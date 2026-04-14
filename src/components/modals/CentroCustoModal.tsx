@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useEmpresa } from "@/hooks/useEmpresa";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,6 +20,8 @@ interface CentroCustoModalProps {
 
 export function CentroCustoModal({ open, onOpenChange, editingId, onSaved }: CentroCustoModalProps) {
   const { user } = useAuth();
+  const { empresa } = useEmpresa();
+  const targetUserId = empresa?.user_id ?? user?.id;
   const qc = useQueryClient();
   const [form, setForm] = useState({ nome: "", descricao: "" });
 
@@ -47,7 +50,7 @@ export function CentroCustoModal({ open, onOpenChange, editingId, onSaved }: Cen
         if (error) throw error;
         return editingId;
       } else {
-        const { data, error } = await supabase.from("centros_custo").insert({ nome: form.nome, descricao: form.descricao || null, user_id: user!.id }).select("id").single();
+        const { data, error } = await supabase.from("centros_custo").insert({ nome: form.nome, descricao: form.descricao || null, user_id: targetUserId!, empresa_id: empresa?.id || null }).select("id").single();
         if (error) throw error;
         return data.id;
       }
