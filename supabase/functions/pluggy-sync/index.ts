@@ -114,14 +114,15 @@ Deno.serve(async (req) => {
       // For credit cards, fetch the actual bill from Pluggy Bills API
       let billAmount: number | null = null
       let billDueDate: string | null = null
+      let openBillAmount: number | null = null
 
       if (acc.type === 'CREDIT') {
+        // Try to get bills from the API
         try {
           const billsRes = await fetch(`https://api.pluggy.ai/accounts/${acc.id}/bills`, { headers })
           if (billsRes.ok) {
             const billsData = await billsRes.json()
             const bills = billsData.results || []
-            // Find the next unpaid bill (closest future due date or most recent)
             const now = new Date()
             const futureBills = bills
               .filter((b: any) => new Date(b.dueDate) >= new Date(now.toISOString().split('T')[0]))
@@ -134,6 +135,34 @@ Deno.serve(async (req) => {
           }
         } catch (e) {
           console.error('Bills fetch error:', e)
+        }
+
+        // Calculate open/partial bill from transactions after balanceCloseDate
+        if (billAmount == null) {
+          const closeDate = acc.creditData?.balanceCloseDate || null
+          if (closeDate) {
+            try {
+              // Fetch transactions after the close date (current open cycle)
+              const closeDateStr = typeof closeDate === 'string' ? closeDate.split('T')[0] : closeDate
+              const txRes = await fetch(
+                `https://api.pluggy.ai/transactions?accountId=${acc.id}&from=${closeDateStr}&pageSize=500`,
+                { headers }
+              )
+              if (txRes.ok) {
+                const txData = await txRes.json()
+                const txs = txData.results || []
+                // Sum all debits (purchases) in the open cycle
+                openBillAmount = txs
+                  .filter((tx: any) => tx.type === 'DEBIT' || tx.amount < 0)
+                  .reduce((sum: number, tx: any) => sum + Math.abs(tx.amount), 0)
+                // Round to 2 decimals
+                openBillAmount = Math.round(openBillAmount * 100) / 100
+                console.log(`Open bill calculated: R$ ${openBillAmount} from ${txs.length} transactions since ${closeDateStr}`)
+              }
+            } catch (e) {
+              console.error('Open bill calc error:', e)
+            }
+          }
         }
       }
 
@@ -149,9 +178,17 @@ Deno.serve(async (req) => {
         currency_code: acc.currencyCode || 'BRL',
         credit_limit: acc.creditData?.limit ?? acc.creditData?.creditLimit ?? null,
         credit_available: acc.creditData?.availableCreditLimit ?? null,
-        credit_bill_amount: billAmount ?? (acc.type === 'CREDIT' ? (acc.balance ?? null) : null),
+        credit_bill_amount: billAmount ?? openBillAmount ?? (acc.type === 'CREDIT' ? (acc.balance ?? null) : null),
         credit_bill_due_date: billDueDate || acc.creditData?.balanceDueDate || null,
-        bank_data: acc.bankData || {},
+        bank_data: {
+          ...(acc.bankData || {}),
+          creditData: acc.creditData || null,
+          balanceCloseDate: acc.creditData?.balanceCloseDate || null,
+          openBillAmount: openBillAmount,
+          totalDebt: acc.type === 'CREDIT' ? (acc.balance ?? null) : null,
+          hasBillData: billAmount != null,
+          hasOpenBillCalc: openBillAmount != null,
+        },
         updated_at: new Date().toISOString(),
       }
 

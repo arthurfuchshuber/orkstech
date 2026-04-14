@@ -39,6 +39,13 @@ interface BankAccount {
   pluggy_account_id: string;
   pluggy_item_id: string;
   connection_id: string;
+  bank_data: {
+    balanceCloseDate?: string | null;
+    openBillAmount?: number | null;
+    totalDebt?: number | null;
+    hasBillData?: boolean;
+    hasOpenBillCalc?: boolean;
+  } | null;
 }
 
 interface Transaction {
@@ -209,12 +216,19 @@ export default function ExtratoBancario() {
                 </div>
                 <div className="grid grid-cols-2 gap-3 text-xs">
                   <div>
-                    <p className="text-muted-foreground">Fatura Atual</p>
+                    <p className="text-muted-foreground">
+                      {cc.bank_data?.hasBillData || cc.bank_data?.hasOpenBillCalc
+                        ? "Fatura Aberta"
+                        : "Saldo Devedor"}
+                    </p>
                     <p className="text-base font-bold text-destructive">
                       {cc.credit_bill_amount != null
                         ? formatCurrency(cc.credit_bill_amount)
                         : "—"}
                     </p>
+                    {(cc.bank_data?.hasBillData || cc.bank_data?.hasOpenBillCalc) && (
+                      <p className="text-[10px] text-muted-foreground/70">parcial do ciclo</p>
+                    )}
                   </div>
                   <div>
                     <p className="text-muted-foreground">Vencimento</p>
