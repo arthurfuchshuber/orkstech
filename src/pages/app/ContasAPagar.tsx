@@ -181,6 +181,16 @@ export default function ContasAPagar() {
     },
   });
 
+  const { data: categoriasFinanceiras = [] } = useQuery({
+    queryKey: ["categorias-financeiras", empresaId],
+    queryFn: async () => {
+      let q = supabase.from("categorias_financeiras").select("id, nome, tipo").eq("ativo", true).order("ordem");
+      if (empresaId) q = q.eq("empresa_id", empresaId);
+      const { data } = await q;
+      return data ?? [];
+    },
+  });
+
   const { data: costCenters = [] } = useQuery({
     queryKey: ["centros-custo", empresaId],
     queryFn: async () => {
@@ -355,6 +365,7 @@ export default function ContasAPagar() {
           amount: form.amount / 100,
           due_date: form.due_date!.toISOString().split("T")[0],
           category_id: form.category_id || null,
+          categoria_financeira_id: form.categoria_financeira_id || null,
           cost_center_id: form.cost_center_id || null,
           bank_account_id: form.bank_account_id || null,
           payment_method_id: form.payment_method_id || null,
@@ -387,6 +398,7 @@ export default function ContasAPagar() {
         amount: i === form.installments - 1 ? totalAmount - installmentAmount * (form.installments - 1) : installmentAmount,
         due_date: dueDate.toISOString().split("T")[0],
         category_id: form.category_id || null,
+        categoria_financeira_id: form.categoria_financeira_id || null,
         cost_center_id: form.cost_center_id || null,
         bank_account_id: form.bank_account_id || null,
         payment_method_id: form.payment_method_id || null,
@@ -413,6 +425,7 @@ export default function ContasAPagar() {
       amount: Math.round(item.amount * 100),
       due_date: new Date(item.due_date),
       category_id: item.category_id || "",
+      categoria_financeira_id: item.categoria_financeira_id || "",
       cost_center_id: item.cost_center_id || "",
       bank_account_id: item.bank_account_id || "",
       payment_method_id: item.payment_method_id || "",
@@ -496,6 +509,7 @@ export default function ContasAPagar() {
       amount: Math.round(item.amount * 100),
       due_date: undefined,
       category_id: item.category_id || "",
+      categoria_financeira_id: item.categoria_financeira_id || "",
       cost_center_id: item.cost_center_id || "",
       bank_account_id: item.bank_account_id || "",
       payment_method_id: item.payment_method_id || "",
