@@ -19,6 +19,7 @@ export type Database = {
           amount: number
           attachment_url: string | null
           bank_account_id: string | null
+          categoria_financeira_id: string | null
           category_id: string | null
           cliente_id: string | null
           cost_center_id: string | null
@@ -50,6 +51,7 @@ export type Database = {
           amount?: number
           attachment_url?: string | null
           bank_account_id?: string | null
+          categoria_financeira_id?: string | null
           category_id?: string | null
           cliente_id?: string | null
           cost_center_id?: string | null
@@ -81,6 +83,7 @@ export type Database = {
           amount?: number
           attachment_url?: string | null
           bank_account_id?: string | null
+          categoria_financeira_id?: string | null
           category_id?: string | null
           cliente_id?: string | null
           cost_center_id?: string | null
@@ -114,6 +117,13 @@ export type Database = {
             columns: ["bank_account_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "accounts_payable_categoria_financeira_id_fkey"
+            columns: ["categoria_financeira_id"]
+            isOneToOne: false
+            referencedRelation: "categorias_financeiras"
             referencedColumns: ["id"]
           },
           {
@@ -356,6 +366,7 @@ export type Database = {
           account_payable_id: string | null
           amount: number
           bank_account_id: string | null
+          categoria_financeira_id: string | null
           created_at: string
           description: string | null
           empresa_id: string | null
@@ -369,6 +380,7 @@ export type Database = {
           account_payable_id?: string | null
           amount?: number
           bank_account_id?: string | null
+          categoria_financeira_id?: string | null
           created_at?: string
           description?: string | null
           empresa_id?: string | null
@@ -382,6 +394,7 @@ export type Database = {
           account_payable_id?: string | null
           amount?: number
           bank_account_id?: string | null
+          categoria_financeira_id?: string | null
           created_at?: string
           description?: string | null
           empresa_id?: string | null
@@ -404,6 +417,13 @@ export type Database = {
             columns: ["bank_account_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cash_transactions_categoria_financeira_id_fkey"
+            columns: ["categoria_financeira_id"]
+            isOneToOne: false
+            referencedRelation: "categorias_financeiras"
             referencedColumns: ["id"]
           },
           {
@@ -471,6 +491,7 @@ export type Database = {
           ativo: boolean
           categoria_pai_id: string | null
           created_at: string
+          dre_group: Database["public"]["Enums"]["dre_group"] | null
           empresa_id: string | null
           id: string
           nome: string
@@ -483,6 +504,7 @@ export type Database = {
           ativo?: boolean
           categoria_pai_id?: string | null
           created_at?: string
+          dre_group?: Database["public"]["Enums"]["dre_group"] | null
           empresa_id?: string | null
           id?: string
           nome: string
@@ -495,6 +517,7 @@ export type Database = {
           ativo?: boolean
           categoria_pai_id?: string | null
           created_at?: string
+          dre_group?: Database["public"]["Enums"]["dre_group"] | null
           empresa_id?: string | null
           id?: string
           nome?: string
@@ -1875,6 +1898,14 @@ export type Database = {
     }
     Enums: {
       cash_transaction_type: "income" | "expense"
+      dre_group:
+        | "revenue"
+        | "deductions"
+        | "costs"
+        | "operational_expenses"
+        | "financial_expenses"
+        | "financial_revenue"
+        | "taxes"
       payable_status: "pending" | "paid" | "overdue" | "cancelled"
       pessoa_tipo: "pf" | "pj"
       recurrence_interval: "monthly" | "weekly" | "yearly"
@@ -2030,6 +2061,15 @@ export const Constants = {
   public: {
     Enums: {
       cash_transaction_type: ["income", "expense"],
+      dre_group: [
+        "revenue",
+        "deductions",
+        "costs",
+        "operational_expenses",
+        "financial_expenses",
+        "financial_revenue",
+        "taxes",
+      ],
       payable_status: ["pending", "paid", "overdue", "cancelled"],
       pessoa_tipo: ["pf", "pj"],
       recurrence_interval: ["monthly", "weekly", "yearly"],
