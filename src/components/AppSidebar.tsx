@@ -232,8 +232,7 @@ export function AppSidebar() {
       const { count } = await supabase
         .from("pluggy_connections")
         .select("id", { count: "exact", head: true })
-        .eq("user_id", uid)
-        .eq("status", "connected");
+        .eq("user_id", uid);
       return (count ?? 0) > 0;
     },
   });
