@@ -1,60 +1,84 @@
-import React, { useState, useMemo } from "react";
-import { useMultiMonthDRE, type DRELine } from "@/hooks/useMultiMonthDRE";
+import { useState, useMemo } from "react";
+import { useDRE, type DREFilters, type DRELine, type PeriodPreset } from "@/hooks/useDRE";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { useEmpresa } from "@/hooks/useEmpresa";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+} from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { FileText, ChevronRight, ChevronDown, Download, Settings2 } from "lucide-react";
+import { format } from "date-fns";
 import { PlanoDeContasSection } from "@/components/financas/PlanoDeContasSection";
 
 const fmt = (v: number) =>
-  new Intl.NumberFormat("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(Math.abs(v));
-const fmtPct = (v: number) => `${Math.abs(v).toFixed(1)}%`;
+  new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
+const fmtPct = (v: number) => `${v.toFixed(1)}%`;
 
-const MONTH_NAMES_SHORT = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
-const MONTH_NAMES = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
+const periodLabels: Record<PeriodPreset, string> = {
+  today: "Hoje", "7d": "Últimos 7 dias", "30d": "Últimos 30 dias",
+  this_month: "Este mês", last_month: "Mês anterior", this_year: "Este ano", custom: "Personalizado",
+};
+
+interface FlatLine {
+  line: DRELine;
+  visible: boolean;
+}
 
 export default function DREPage() {
-  const now = new Date();
-  const [selectedYear, setSelectedYear] = useState<number>(now.getFullYear());
-  const [selectedMonths, setSelectedMonths] = useState<number[]>([now.getMonth() + 1]);
+  const { user } = useAuth();
+  const { empresa } = useEmpresa();
+  const targetUserId = empresa?.user_id ?? user?.id;
+
+  const [filters, setFilters] = useState<DREFilters>({ period: "this_month", tipo: "all" });
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
+  const [drillDownCategory, setDrillDownCategory] = useState<{ id: string; label: string } | null>(null);
 
-  const { lines, monthKeys, isLoading, availablePeriods } = useMultiMonthDRE(selectedYear, selectedMonths);
+  const { lines, totalRevenue, transactions, isLoading, dateRange } = useDRE(filters);
 
-  const availableYears = useMemo(() => {
-    const yearsSet = new Set<number>();
-    for (const p of availablePeriods) yearsSet.add(Number(p.split("-")[0]));
-    yearsSet.add(now.getFullYear());
-    return Array.from(yearsSet).sort((a, b) => b - a);
-  }, [availablePeriods]);
+  const { data: bankAccounts = [] } = useQuery({
+    queryKey: ["dre-bank-accounts", targetUserId],
+    enabled: !!user && !!targetUserId,
+    queryFn: async () => {
+      const { data } = await supabase.from("contas_bancarias").select("id, nome").eq("ativo", true).eq("user_id", targetUserId!);
+      return data ?? [];
+    },
+  });
 
-  const toggleMonth = (month: number) => {
-    setSelectedMonths(prev => {
-      if (prev.includes(month)) {
-        if (prev.length === 1) return prev;
-        return prev.filter(m => m !== month);
-      }
-      return [...prev, month].sort((a, b) => a - b);
-    });
-  };
-
-  const selectAllMonths = () => setSelectedMonths(Array.from({ length: 12 }, (_, i) => i + 1));
+  const { data: costCenters = [] } = useQuery({
+    queryKey: ["dre-cost-centers", targetUserId],
+    enabled: !!user && !!targetUserId,
+    queryFn: async () => {
+      const { data } = await supabase.from("centros_custo").select("id, nome").eq("ativo", true).eq("user_id", targetUserId!);
+      return data ?? [];
+    },
+  });
 
   const toggleGroup = (id: string) => {
-    setExpandedGroups(prev => {
+    setExpandedGroups((prev) => {
       const next = new Set(prev);
       next.has(id) ? next.delete(id) : next.add(id);
       return next;
     });
   };
 
-  // Flatten tree respecting expanded state
+  const drillDownData = useMemo(() => {
+    if (!drillDownCategory) return [];
+    return transactions.filter((t) => (t as any).categoria_financeira_id === drillDownCategory.id);
+  }, [drillDownCategory, transactions]);
+
   const flatLines = useMemo(() => {
-    const result: { line: DRELine; visible: boolean }[] = [];
+    const result: FlatLine[] = [];
     function walk(items: DRELine[], parentVisible: boolean) {
       for (const line of items) {
         result.push({ line, visible: parentVisible });
@@ -70,28 +94,19 @@ export default function DREPage() {
 
   const exportCSV = () => {
     const allLines = flatLines.map(f => f.line);
-    const header = ["Estrutura", ...monthKeys.flatMap(mk => {
-      const [y, m] = mk.split("-");
-      const label = `${MONTH_NAMES_SHORT[parseInt(m) - 1]}/${y}`;
-      return [label, `A.V. ${label}`];
-    })].join(";");
-    const rows = allLines.map(l =>
-      [`${l.sign ? l.sign + " " : ""}${l.label}`, ...monthKeys.flatMap(mk =>
-        [(l.amounts[mk] || 0).toFixed(2), (l.percentages[mk] || 0).toFixed(1) + "%"]
-      )].join(";")
-    );
-    const blob = new Blob([[header, ...rows].join("\n")], { type: "text/csv;charset=utf-8" });
+    const csvRows = [
+      ["Número", "Conta", "Valor", "% Receita"].join(";"),
+      ...allLines.map((l) =>
+        [l.number || "", l.label, l.amount.toFixed(2), l.percentage.toFixed(1)].join(";")
+      ),
+    ];
+    const blob = new Blob([csvRows.join("\n")], { type: "text/csv;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `DRE_${selectedYear}.csv`;
+    a.download = `DRE_${format(dateRange.start, "yyyy-MM-dd")}_${format(dateRange.end, "yyyy-MM-dd")}.csv`;
     a.click();
     URL.revokeObjectURL(url);
-  };
-
-  const monthColLabel = (mk: string) => {
-    const [y, m] = mk.split("-");
-    return `${MONTH_NAMES_SHORT[parseInt(m) - 1]}/${y}`;
   };
 
   return (
@@ -119,49 +134,39 @@ export default function DREPage() {
         </TabsList>
 
         <TabsContent value="dre" className="mt-4 space-y-4">
-          {/* Filters: Year + Months */}
-          <div className="flex flex-wrap items-center gap-3">
-            <Select value={String(selectedYear)} onValueChange={(v) => { setSelectedYear(Number(v)); setSelectedMonths([1]); }}>
-              <SelectTrigger className="w-[120px] h-9 text-sm"><SelectValue /></SelectTrigger>
+          {/* Filters */}
+          <div className="flex flex-wrap gap-3">
+            <Select value={filters.period} onValueChange={(v) => setFilters((f) => ({ ...f, period: v as PeriodPreset }))}>
+              <SelectTrigger className="w-[170px] h-9 text-sm"><SelectValue placeholder="Período" /></SelectTrigger>
               <SelectContent>
-                {availableYears.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}
+                {Object.entries(periodLabels).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
               </SelectContent>
             </Select>
-            <div className="flex items-center gap-1.5 flex-wrap">
-              {Array.from({ length: 12 }, (_, i) => i + 1).map(m => {
-                const isSelected = selectedMonths.includes(m);
-                return (
-                  <button
-                    key={m}
-                    onClick={() => toggleMonth(m)}
-                    className={`px-2.5 py-1 text-xs rounded-md border transition-colors ${
-                      isSelected
-                        ? "bg-primary text-primary-foreground border-primary"
-                        : "bg-background text-muted-foreground border-border hover:border-primary/50"
-                    }`}
-                  >
-                    {MONTH_NAMES[m - 1]}
-                  </button>
-                );
-              })}
-              <button
-                onClick={selectAllMonths}
-                className="px-2.5 py-1 text-xs rounded-md border border-border text-muted-foreground hover:border-primary/50 transition-colors"
-              >
-                Todos
-              </button>
-            </div>
+            <Select value={filters.bankAccountId || "all"} onValueChange={(v) => setFilters((f) => ({ ...f, bankAccountId: v === "all" ? undefined : v }))}>
+              <SelectTrigger className="w-[170px] h-9 text-sm"><SelectValue placeholder="Conta bancária" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todas as contas</SelectItem>
+                {bankAccounts.map((b) => <SelectItem key={b.id} value={b.id}>{b.nome}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <Select value={filters.costCenterId || "all"} onValueChange={(v) => setFilters((f) => ({ ...f, costCenterId: v === "all" ? undefined : v }))}>
+              <SelectTrigger className="w-[170px] h-9 text-sm"><SelectValue placeholder="Centro de custo" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os centros</SelectItem>
+                {costCenters.map((c) => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}
+              </SelectContent>
+            </Select>
           </div>
 
           {/* DRE Table */}
-          <div className="w-full overflow-x-auto">
+          <div className="w-full max-w-[50%]">
             <Card className="border-border/50">
               <CardHeader className="py-3 px-4">
                 <CardTitle className="text-sm font-medium flex items-center gap-2">
                   <FileText className="w-4 h-4 text-primary" />
                   DRE
                   <Badge variant="outline" className="text-[10px] ml-2 font-normal">
-                    {selectedYear}
+                    {format(dateRange.start, "dd/MM/yyyy")} — {format(dateRange.end, "dd/MM/yyyy")}
                   </Badge>
                 </CardTitle>
               </CardHeader>
@@ -169,107 +174,67 @@ export default function DREPage() {
                 {isLoading ? (
                   <div className="py-12 text-center text-muted-foreground text-sm">Carregando...</div>
                 ) : (
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-xs border-collapse">
-                      <thead>
-                        <tr className="border-b border-border/30">
-                          <th className="text-left py-2 px-3 font-medium text-muted-foreground sticky left-0 bg-background z-10 min-w-[280px]">
-                            Estrutura
-                          </th>
-                          {monthKeys.map(mk => (
-                            <th key={mk} colSpan={2} className="text-center py-2 px-1 font-medium text-muted-foreground border-l border-border/20 min-w-[160px]">
-                              {monthColLabel(mk)}
-                            </th>
-                          ))}
-                        </tr>
-                        <tr className="border-b border-border/20">
-                          <th className="sticky left-0 bg-background z-10" />
-                          {monthKeys.map(mk => (
-                            <React.Fragment key={mk}>
-                              <th className="text-right py-1 px-2 font-normal text-muted-foreground/70 text-[10px] border-l border-border/20">
-                                Valor
-                              </th>
-                              <th className="text-right py-1 px-2 font-normal text-muted-foreground/70 text-[10px]">
-                                A.V.
-                              </th>
-                            </React.Fragment>
-                          ))}
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {flatLines.filter(f => f.visible).map((f) => {
-                          const { line } = f;
-                          const hasChildren = line.children && line.children.length > 0;
-                          const isExpanded = expandedGroups.has(line.id);
-                          const isSummary = line.isSummary;
-                          const isComputed = line.lineType === "computed";
-                          const isResult = line.sign === "(=)";
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="border-border/30">
+                        <TableHead className="w-[60%] text-xs">Conta</TableHead>
+                        <TableHead className="text-right text-xs">Valor</TableHead>
+                        <TableHead className="text-right text-xs">%</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {flatLines.filter(f => f.visible).map((f) => {
+                        const { line } = f;
+                        const hasChildren = line.children && line.children.length > 0;
+                        const isExpanded = expandedGroups.has(line.id);
+                        const isSummary = line.isSummary;
+                        const isRevenue = line.tipo === "receita";
 
-                          const rowClass = isResult
-                            ? "bg-muted/40 border-t border-border/40 font-semibold"
-                            : isSummary || (isComputed && !isResult)
-                              ? "bg-muted/15"
-                              : "";
+                        const rowBg = isSummary ? "bg-muted/30 border-t border-border/40" : "";
+                        const labelColor = isSummary
+                          ? "font-semibold text-foreground"
+                          : line.depth === 0 ? "font-medium text-foreground" : "text-muted-foreground";
+                        const valueColor = isSummary
+                          ? line.amount >= 0 ? "text-emerald-500 font-semibold" : "text-destructive font-semibold"
+                          : isRevenue ? "text-emerald-500" : line.depth === 0 ? "text-destructive" : "text-foreground";
 
-                          const labelWeight = isResult || (isComputed && line.depth === 0)
-                            ? "font-semibold text-foreground"
-                            : line.depth === 0
-                              ? "font-medium text-foreground"
-                              : "text-muted-foreground";
-
-                          return (
-                            <tr
-                              key={line.id}
-                              className={`${rowClass} border-b border-border/10 hover:bg-muted/10 transition-colors`}
-                            >
-                              <td className="py-1.5 px-3 sticky left-0 bg-background z-10">
-                                <div
-                                  className="flex items-center gap-1.5 cursor-pointer select-none"
-                                  style={{ paddingLeft: `${line.depth * 16}px` }}
-                                  onClick={() => { if (hasChildren) toggleGroup(line.id); }}
-                                >
-                                  {hasChildren ? (
-                                    isExpanded
-                                      ? <ChevronDown className="w-3 h-3 text-muted-foreground flex-shrink-0" />
-                                      : <ChevronRight className="w-3 h-3 text-muted-foreground flex-shrink-0" />
-                                  ) : (
-                                    <span className="w-3 flex-shrink-0" />
-                                  )}
-                                  {line.sign && (
-                                    <span className="text-[10px] text-muted-foreground/60 font-mono flex-shrink-0 min-w-[1.5rem]">
-                                      {line.sign}
-                                    </span>
-                                  )}
-                                  {line.number && (
-                                    <span className="text-[10px] text-muted-foreground/60 font-mono flex-shrink-0 min-w-[2rem]">
-                                      {line.number}
-                                    </span>
-                                  )}
-                                  <span className={`text-xs ${labelWeight} whitespace-nowrap`}>
-                                    {line.label}
+                        return (
+                          <TableRow key={line.id} className={`${rowBg} border-border/15 hover:bg-muted/10 transition-colors`}>
+                            <TableCell className="py-1.5 pr-0">
+                              <div
+                                className="flex items-center gap-1.5 cursor-pointer select-none"
+                                style={{ paddingLeft: `${line.depth * 20}px` }}
+                                onClick={() => {
+                                  if (hasChildren) toggleGroup(line.id);
+                                  else if (line.categoryId) setDrillDownCategory({ id: line.categoryId, label: line.label });
+                                }}
+                              >
+                                {hasChildren && !isSummary ? (
+                                  isExpanded
+                                    ? <ChevronDown className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
+                                    : <ChevronRight className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
+                                ) : (
+                                  !isSummary && <span className="w-3.5 flex-shrink-0" />
+                                )}
+                                {line.number && (
+                                  <span className="text-[10px] text-muted-foreground/60 font-mono min-w-[2.5rem]">
+                                    {line.number}
                                   </span>
-                                </div>
-                              </td>
-                              {monthKeys.map(mk => {
-                                const amt = line.amounts[mk] || 0;
-                                const pct = line.percentages[mk] || 0;
-                                return (
-                                  <React.Fragment key={mk}>
-                                    <td className={`text-right py-1.5 px-2 tabular-nums border-l border-border/10 ${labelWeight}`}>
-                                      {fmt(amt)}
-                                    </td>
-                                    <td className="text-right py-1.5 px-2 tabular-nums text-muted-foreground">
-                                      {fmtPct(pct)}
-                                    </td>
-                                  </React.Fragment>
-                                );
-                              })}
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
+                                )}
+                                <span className={`text-xs ${labelColor}`}>{line.label}</span>
+                              </div>
+                            </TableCell>
+                            <TableCell className={`text-right text-xs py-1.5 ${valueColor}`}>
+                              {isSummary && line.amount < 0 ? `(${fmt(Math.abs(line.amount))})` : fmt(Math.abs(line.amount))}
+                            </TableCell>
+                            <TableCell className="text-right text-xs py-1.5 text-muted-foreground">
+                              {fmtPct(line.percentage)}
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
                 )}
               </CardContent>
             </Card>
@@ -282,8 +247,43 @@ export default function DREPage() {
           </div>
         </TabsContent>
       </Tabs>
+
+      {/* Drill Down Dialog */}
+      <Dialog open={!!drillDownCategory} onOpenChange={() => setDrillDownCategory(null)}>
+        <DialogContent className="max-w-3xl max-h-[80vh] overflow-auto">
+          <DialogHeader>
+            <DialogTitle>Detalhamento: {drillDownCategory?.label}</DialogTitle>
+          </DialogHeader>
+          {drillDownData.length === 0 ? (
+            <p className="text-sm text-muted-foreground py-8 text-center">Nenhum lançamento encontrado para esta categoria no período.</p>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Data</TableHead>
+                  <TableHead>Descrição</TableHead>
+                  <TableHead>Tipo</TableHead>
+                  <TableHead className="text-right">Valor</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {drillDownData.map((t: any) => (
+                  <TableRow key={t.id}>
+                    <TableCell className="text-xs">{format(new Date(t.transaction_date + "T12:00:00"), "dd/MM/yyyy")}</TableCell>
+                    <TableCell className="text-xs">{t.description || "—"}</TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className={`text-[10px] ${t.type === "income" ? "text-emerald-500 border-emerald-500/30" : "text-destructive border-destructive/30"}`}>
+                        {t.type === "income" ? "Receita" : "Despesa"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right text-xs font-medium">{fmt(Math.abs(Number(t.amount)))}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
-
-
