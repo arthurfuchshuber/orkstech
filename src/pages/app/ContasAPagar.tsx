@@ -712,35 +712,6 @@ export default function ContasAPagar() {
         </div>
       </div>
 
-      {/* Stats */}
-      {(() => {
-        const fmt = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-        const openItems = payables.filter((p: any) => p.status === "pending" || p.status === "overdue");
-        const upcomingItems = payables.filter((p: any) => {
-          if (p.status !== "pending") return false;
-          const due = new Date(p.due_date); due.setHours(0,0,0,0);
-          const now = new Date(); now.setHours(0,0,0,0);
-          return due >= now;
-        });
-        const overdueItems = payables.filter((p: any) => p.status === "overdue" || (p.status === "pending" && new Date(p.due_date) < new Date(new Date().toDateString())));
-        const paidItems = payables.filter((p: any) => p.status === "paid");
-        const sum = (items: any[]) => items.reduce((s: number, i: any) => s + Number(i.amount || 0), 0);
-        const jurosMultaTotal = payables.filter((p: any) => p.status === "paid" && Number(p.juros_multa || 0) > 0)
-          .reduce((s: number, i: any) => s + Number(i.juros_multa || 0), 0);
-        return (
-          <div className="space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <StatCard icon={Receipt} title="Total em Aberto" value={fmt(sum(openItems))} subtitle={`(${counts.openTotal})`} />
-              <StatCard icon={Clock} title="A Vencer" value={fmt(sum(upcomingItems))} subtitle={`(${counts.upcoming})`} />
-              <StatCard icon={AlertTriangle} title="Vencidas" value={fmt(sum(overdueItems))} subtitle={`(${counts.overdue})`} />
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <StatCard icon={Check} title="Pagas" value={fmt(sum(paidItems))} subtitle={`(${counts.paid})`} />
-              <StatCard icon={Percent} title="Juros/Multa" value={fmt(jurosMultaTotal)} />
-            </div>
-          </div>
-        );
-      })()}
 
       {nearDue > 0 && (
         <div className="flex items-center gap-2 px-4 py-3 rounded-lg bg-amber-500/10 border border-amber-200">
