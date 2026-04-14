@@ -1921,6 +1921,8 @@ export type Database = {
         | "ajuste"
         | "deducao"
         | "imposto"
+        | "receita_financeira"
+        | "despesa_financeira"
       tipo_forma_pagamento:
         | "pix"
         | "boleto"
@@ -2092,6 +2094,8 @@ export const Constants = {
         "ajuste",
         "deducao",
         "imposto",
+        "receita_financeira",
+        "despesa_financeira",
       ],
       tipo_forma_pagamento: [
         "pix",
