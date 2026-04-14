@@ -1,9 +1,5 @@
 import { useState, useMemo } from "react";
-import { useDRE, type DREFilters, type DRELine, type PeriodPreset } from "@/hooks/useDRE";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/useAuth";
-import { useEmpresa } from "@/hooks/useEmpresa";
+import { useMultiMonthDRE, type DRELine } from "@/hooks/useMultiMonthDRE";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -11,74 +7,71 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle,
-} from "@/components/ui/dialog";
-import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { FileText, ChevronRight, ChevronDown, Download, Settings2 } from "lucide-react";
-import { format } from "date-fns";
 import { PlanoDeContasSection } from "@/components/financas/PlanoDeContasSection";
+import { Checkbox } from "@/components/ui/checkbox";
 
 const fmt = (v: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
 const fmtPct = (v: number) => `${v.toFixed(1)}%`;
 
-const periodLabels: Record<PeriodPreset, string> = {
-  today: "Hoje", "7d": "Últimos 7 dias", "30d": "Últimos 30 dias",
-  this_month: "Este mês", last_month: "Mês anterior", this_year: "Este ano", custom: "Personalizado",
-};
-
-interface FlatLine {
-  line: DRELine;
-  visible: boolean;
-}
+const MONTH_NAMES = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
 
 export default function DREPage() {
-  const { user } = useAuth();
-  const { empresa } = useEmpresa();
-  const targetUserId = empresa?.user_id ?? user?.id;
-
-  const [filters, setFilters] = useState<DREFilters>({ period: "this_month", tipo: "all" });
+  const now = new Date();
+  const [selectedYear, setSelectedYear] = useState<number>(now.getFullYear());
+  const [selectedMonths, setSelectedMonths] = useState<number[]>([now.getMonth() + 1]);
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
-  const [drillDownCategory, setDrillDownCategory] = useState<{ id: string; label: string } | null>(null);
 
-  const { lines, totalRevenue, transactions, isLoading, dateRange } = useDRE(filters);
+  const { lines, monthKeys, isLoading, availablePeriods } = useMultiMonthDRE(selectedYear, selectedMonths);
 
-  const { data: bankAccounts = [] } = useQuery({
-    queryKey: ["dre-bank-accounts", targetUserId],
-    enabled: !!user && !!targetUserId,
-    queryFn: async () => {
-      const { data } = await supabase.from("contas_bancarias").select("id, nome").eq("ativo", true).eq("user_id", targetUserId!);
-      return data ?? [];
-    },
-  });
+  // Derive available years and months from availablePeriods
+  const { availableYears, monthsForYear } = useMemo(() => {
+    const yearsSet = new Set<number>();
+    const monthsByYear = new Map<number, Set<number>>();
+    for (const p of availablePeriods) {
+      const [y, m] = p.split("-").map(Number);
+      yearsSet.add(y);
+      if (!monthsByYear.has(y)) monthsByYear.set(y, new Set());
+      monthsByYear.get(y)!.add(m);
+    }
+    // Always include current year
+    yearsSet.add(now.getFullYear());
+    if (!monthsByYear.has(now.getFullYear())) {
+      monthsByYear.set(now.getFullYear(), new Set([now.getMonth() + 1]));
+    }
+    const years = Array.from(yearsSet).sort((a, b) => b - a);
+    const monthsFor = monthsByYear.get(selectedYear) || new Set<number>();
+    // Always show all 12 months for the selected year
+    return { availableYears: years, monthsForYear: Array.from({ length: 12 }, (_, i) => i + 1) };
+  }, [availablePeriods, selectedYear]);
 
-  const { data: costCenters = [] } = useQuery({
-    queryKey: ["dre-cost-centers", targetUserId],
-    enabled: !!user && !!targetUserId,
-    queryFn: async () => {
-      const { data } = await supabase.from("centros_custo").select("id, nome").eq("ativo", true).eq("user_id", targetUserId!);
-      return data ?? [];
-    },
-  });
+  const toggleMonth = (month: number) => {
+    setSelectedMonths(prev => {
+      if (prev.includes(month)) {
+        if (prev.length === 1) return prev; // keep at least one
+        return prev.filter(m => m !== month);
+      }
+      return [...prev, month].sort((a, b) => a - b);
+    });
+  };
+
+  const selectAllMonths = () => setSelectedMonths(Array.from({ length: 12 }, (_, i) => i + 1));
 
   const toggleGroup = (id: string) => {
-    setExpandedGroups((prev) => {
+    setExpandedGroups(prev => {
       const next = new Set(prev);
       next.has(id) ? next.delete(id) : next.add(id);
       return next;
     });
   };
 
-  const drillDownData = useMemo(() => {
-    if (!drillDownCategory) return [];
-    return transactions.filter((t) => (t as any).categoria_financeira_id === drillDownCategory.id);
-  }, [drillDownCategory, transactions]);
-
+  // Flatten tree respecting expanded state
   const flatLines = useMemo(() => {
-    const result: FlatLine[] = [];
+    const result: { line: DRELine; visible: boolean }[] = [];
     function walk(items: DRELine[], parentVisible: boolean) {
       for (const line of items) {
         result.push({ line, visible: parentVisible });
@@ -94,17 +87,18 @@ export default function DREPage() {
 
   const exportCSV = () => {
     const allLines = flatLines.map(f => f.line);
-    const csvRows = [
-      ["Número", "Conta", "Valor", "% Receita"].join(";"),
-      ...allLines.map((l) =>
-        [l.number || "", l.label, l.amount.toFixed(2), l.percentage.toFixed(1)].join(";")
-      ),
-    ];
-    const blob = new Blob([csvRows.join("\n")], { type: "text/csv;charset=utf-8" });
+    const header = ["Número", "Conta", ...monthKeys.map(mk => {
+      const [, m] = mk.split("-");
+      return MONTH_NAMES[parseInt(m) - 1];
+    })].join(";");
+    const rows = allLines.map(l =>
+      [l.number || "", l.label, ...monthKeys.map(mk => (l.amounts[mk] || 0).toFixed(2))].join(";")
+    );
+    const blob = new Blob([[header, ...rows].join("\n")], { type: "text/csv;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `DRE_${format(dateRange.start, "yyyy-MM-dd")}_${format(dateRange.end, "yyyy-MM-dd")}.csv`;
+    a.download = `DRE_${selectedYear}.csv`;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -134,39 +128,50 @@ export default function DREPage() {
         </TabsList>
 
         <TabsContent value="dre" className="mt-4 space-y-4">
-          {/* Filters */}
-          <div className="flex flex-wrap gap-3">
-            <Select value={filters.period} onValueChange={(v) => setFilters((f) => ({ ...f, period: v as PeriodPreset }))}>
-              <SelectTrigger className="w-[170px] h-9 text-sm"><SelectValue placeholder="Período" /></SelectTrigger>
+          {/* Filters: Year + Months */}
+          <div className="flex flex-wrap items-center gap-3">
+            <Select value={String(selectedYear)} onValueChange={(v) => { setSelectedYear(Number(v)); setSelectedMonths([1]); }}>
+              <SelectTrigger className="w-[120px] h-9 text-sm"><SelectValue /></SelectTrigger>
               <SelectContent>
-                {Object.entries(periodLabels).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
+                {availableYears.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}
               </SelectContent>
             </Select>
-            <Select value={filters.bankAccountId || "all"} onValueChange={(v) => setFilters((f) => ({ ...f, bankAccountId: v === "all" ? undefined : v }))}>
-              <SelectTrigger className="w-[170px] h-9 text-sm"><SelectValue placeholder="Conta bancária" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todas as contas</SelectItem>
-                {bankAccounts.map((b) => <SelectItem key={b.id} value={b.id}>{b.nome}</SelectItem>)}
-              </SelectContent>
-            </Select>
-            <Select value={filters.costCenterId || "all"} onValueChange={(v) => setFilters((f) => ({ ...f, costCenterId: v === "all" ? undefined : v }))}>
-              <SelectTrigger className="w-[170px] h-9 text-sm"><SelectValue placeholder="Centro de custo" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos os centros</SelectItem>
-                {costCenters.map((c) => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}
-              </SelectContent>
-            </Select>
+
+            <div className="flex items-center gap-1.5 flex-wrap">
+              {monthsForYear.map(m => {
+                const isSelected = selectedMonths.includes(m);
+                return (
+                  <button
+                    key={m}
+                    onClick={() => toggleMonth(m)}
+                    className={`px-2.5 py-1 text-xs rounded-md border transition-colors ${
+                      isSelected
+                        ? "bg-primary text-primary-foreground border-primary"
+                        : "bg-background text-muted-foreground border-border hover:border-primary/50"
+                    }`}
+                  >
+                    {MONTH_NAMES[m - 1]}
+                  </button>
+                );
+              })}
+              <button
+                onClick={selectAllMonths}
+                className="px-2.5 py-1 text-xs rounded-md border border-border text-muted-foreground hover:border-primary/50 transition-colors"
+              >
+                Todos
+              </button>
+            </div>
           </div>
 
           {/* DRE Table */}
-          <div className="w-full max-w-[50%]">
+          <div className="w-full overflow-x-auto">
             <Card className="border-border/50">
               <CardHeader className="py-3 px-4">
                 <CardTitle className="text-sm font-medium flex items-center gap-2">
                   <FileText className="w-4 h-4 text-primary" />
                   DRE
                   <Badge variant="outline" className="text-[10px] ml-2 font-normal">
-                    {format(dateRange.start, "dd/MM/yyyy")} — {format(dateRange.end, "dd/MM/yyyy")}
+                    {selectedYear}
                   </Badge>
                 </CardTitle>
               </CardHeader>
@@ -177,9 +182,15 @@ export default function DREPage() {
                   <Table>
                     <TableHeader>
                       <TableRow className="border-border/30">
-                        <TableHead className="w-[60%] text-xs">Conta</TableHead>
-                        <TableHead className="text-right text-xs">Valor</TableHead>
-                        <TableHead className="text-right text-xs">%</TableHead>
+                        <TableHead className="text-xs sticky left-0 bg-background z-10 min-w-[250px]">Conta</TableHead>
+                        {monthKeys.map(mk => {
+                          const [, m] = mk.split("-");
+                          return (
+                            <TableHead key={mk} className="text-right text-xs min-w-[120px]">
+                              {MONTH_NAMES[parseInt(m) - 1]}/{selectedYear}
+                            </TableHead>
+                          );
+                        })}
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -194,20 +205,14 @@ export default function DREPage() {
                         const labelColor = isSummary
                           ? "font-semibold text-foreground"
                           : line.depth === 0 ? "font-medium text-foreground" : "text-muted-foreground";
-                        const valueColor = isSummary
-                          ? line.amount >= 0 ? "text-emerald-500 font-semibold" : "text-destructive font-semibold"
-                          : isRevenue ? "text-emerald-500" : line.depth === 0 ? "text-destructive" : "text-foreground";
 
                         return (
                           <TableRow key={line.id} className={`${rowBg} border-border/15 hover:bg-muted/10 transition-colors`}>
-                            <TableCell className="py-1.5 pr-0">
+                            <TableCell className="py-1.5 pr-0 sticky left-0 bg-background z-10">
                               <div
                                 className="flex items-center gap-1.5 cursor-pointer select-none"
                                 style={{ paddingLeft: `${line.depth * 20}px` }}
-                                onClick={() => {
-                                  if (hasChildren) toggleGroup(line.id);
-                                  else if (line.categoryId) setDrillDownCategory({ id: line.categoryId, label: line.label });
-                                }}
+                                onClick={() => { if (hasChildren) toggleGroup(line.id); }}
                               >
                                 {hasChildren && !isSummary ? (
                                   isExpanded
@@ -221,15 +226,20 @@ export default function DREPage() {
                                     {line.number}
                                   </span>
                                 )}
-                                <span className={`text-xs ${labelColor}`}>{line.label}</span>
+                                <span className={`text-xs ${labelColor} whitespace-nowrap`}>{line.label}</span>
                               </div>
                             </TableCell>
-                            <TableCell className={`text-right text-xs py-1.5 ${valueColor}`}>
-                              {isSummary && line.amount < 0 ? `(${fmt(Math.abs(line.amount))})` : fmt(Math.abs(line.amount))}
-                            </TableCell>
-                            <TableCell className="text-right text-xs py-1.5 text-muted-foreground">
-                              {fmtPct(line.percentage)}
-                            </TableCell>
+                            {monthKeys.map(mk => {
+                              const amt = line.amounts[mk] || 0;
+                              const valueColor = isSummary
+                                ? amt >= 0 ? "text-emerald-500 font-semibold" : "text-destructive font-semibold"
+                                : isRevenue ? "text-emerald-500" : line.depth === 0 ? "text-destructive" : "text-foreground";
+                              return (
+                                <TableCell key={mk} className={`text-right text-xs py-1.5 ${valueColor}`}>
+                                  {isSummary && amt < 0 ? `(${fmt(Math.abs(amt))})` : fmt(Math.abs(amt))}
+                                </TableCell>
+                              );
+                            })}
                           </TableRow>
                         );
                       })}
@@ -247,43 +257,6 @@ export default function DREPage() {
           </div>
         </TabsContent>
       </Tabs>
-
-      {/* Drill Down Dialog */}
-      <Dialog open={!!drillDownCategory} onOpenChange={() => setDrillDownCategory(null)}>
-        <DialogContent className="max-w-3xl max-h-[80vh] overflow-auto">
-          <DialogHeader>
-            <DialogTitle>Detalhamento: {drillDownCategory?.label}</DialogTitle>
-          </DialogHeader>
-          {drillDownData.length === 0 ? (
-            <p className="text-sm text-muted-foreground py-8 text-center">Nenhum lançamento encontrado para esta categoria no período.</p>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Data</TableHead>
-                  <TableHead>Descrição</TableHead>
-                  <TableHead>Tipo</TableHead>
-                  <TableHead className="text-right">Valor</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {drillDownData.map((t: any) => (
-                  <TableRow key={t.id}>
-                    <TableCell className="text-xs">{format(new Date(t.transaction_date + "T12:00:00"), "dd/MM/yyyy")}</TableCell>
-                    <TableCell className="text-xs">{t.description || "—"}</TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className={`text-[10px] ${t.type === "income" ? "text-emerald-500 border-emerald-500/30" : "text-destructive border-destructive/30"}`}>
-                        {t.type === "income" ? "Receita" : "Despesa"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right text-xs font-medium">{fmt(Math.abs(Number(t.amount)))}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
