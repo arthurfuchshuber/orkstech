@@ -128,6 +128,28 @@ export default function ExtratoBancario() {
     enabled: !!user && !!targetUserId,
   });
 
+  // Query real investment data from Pluggy
+  const { data: investments = [] } = useQuery({
+    queryKey: ["pluggy_investments", targetUserId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("pluggy_investments" as any)
+        .select("pluggy_item_id, name, balance, amount_original, amount_profit, status, type")
+        .eq("user_id", targetUserId!);
+      if (error) throw error;
+      return data as unknown as {
+        pluggy_item_id: string;
+        name: string;
+        balance: number;
+        amount_original: number | null;
+        amount_profit: number | null;
+        status: string | null;
+        type: string | null;
+      }[];
+    },
+    enabled: !!user && !!targetUserId,
+  });
+
   const { data: profileData } = useQuery({
     queryKey: ["profile_name", targetUserId],
     queryFn: async () => {
@@ -326,16 +348,11 @@ export default function ExtratoBancario() {
     .filter((tx) => tx.type === "DEBIT" || tx.amount < 0)
     .reduce((sum, tx) => sum + Math.abs(tx.amount), 0);
 
-  // Calculate estimated investment yields (rendimentos)
-  // This is the difference between the current total balance and the net of all transactions
-  // It represents yields from savings/investments that don't generate visible transactions
-  const _totalStoredInvestments = bankAccounts
-    .filter((a) => a.type !== "CREDIT")
-    .reduce((sum, a) => sum + getStoredBalance(a), 0);
-  const netTransactions = totalIncome - totalExpense;
-  const totalRendimentos = allPeriod
-    ? Math.max(0, totalBalance - netTransactions)
-    : 0;
+  // Real investment yields from Pluggy API
+  const totalRendimentos = investments
+    .filter((inv) => inv.status === "ACTIVE" && (inv.amount_profit ?? 0) !== 0)
+    .reduce((sum, inv) => sum + (inv.amount_profit ?? 0), 0);
+  const totalRendimentosRounded = Math.round(totalRendimentos * 100) / 100;
 
   const periodLabel = allPeriod ? "Todo o período" : `${format(dateFrom, "dd/MM/yyyy")} a ${format(dateTo, "dd/MM/yyyy")}`;
 
@@ -444,7 +461,7 @@ export default function ExtratoBancario() {
         </div>
       </Card>
 
-      <div className={cn("grid gap-4", totalRendimentos > 0 ? "md:grid-cols-5" : "md:grid-cols-4")}>
+      <div className={cn("grid gap-4", totalRendimentosRounded !== 0 ? "md:grid-cols-5" : "md:grid-cols-4")}>
         <Card className="p-4">
           <div className="mb-1 flex items-center gap-2">
             <Landmark className="h-4 w-4 text-primary" />
@@ -474,21 +491,23 @@ export default function ExtratoBancario() {
           <p className="mt-1 text-[11px] text-muted-foreground">{periodLabel}</p>
         </Card>
 
-        {totalRendimentos > 0 && (
+        {totalRendimentosRounded !== 0 && (
           <Card className="p-4 border-l-4 border-l-amber-500">
             <div className="mb-1 flex items-center gap-2">
               <PiggyBank className="h-4 w-4 text-amber-500" />
               <span className="text-xs text-muted-foreground">Rendimentos</span>
             </div>
-            <p className="text-xl font-bold text-amber-600">+{formatCurrency(totalRendimentos)}</p>
+            <p className={cn("text-xl font-bold", totalRendimentosRounded >= 0 ? "text-amber-600" : "text-destructive")}>
+              {totalRendimentosRounded >= 0 ? "+" : ""}{formatCurrency(totalRendimentosRounded)}
+            </p>
             <p className="mt-1 text-[11px] text-muted-foreground">
-              Caixinhas e investimentos
+              {investments.filter((i) => i.status === "ACTIVE").length} investimento(s) via API
             </p>
           </Card>
         )}
 
         {(() => {
-          const resultado = totalIncome - totalExpense + totalRendimentos;
+          const resultado = totalIncome - totalExpense + totalRendimentosRounded;
           const isPositive = resultado >= 0;
           return (
             <Card className={cn("p-4 border-l-4", isPositive ? "border-l-primary" : "border-l-destructive")}>

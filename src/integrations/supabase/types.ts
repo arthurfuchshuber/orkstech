@@ -1484,6 +1484,78 @@ export type Database = {
         }
         Relationships: []
       }
+      pluggy_investments: {
+        Row: {
+          amount_original: number | null
+          amount_profit: number | null
+          balance: number
+          code: string | null
+          created_at: string
+          currency_code: string | null
+          due_date: string | null
+          fixed_annual_rate: number | null
+          id: string
+          investment_data: Json | null
+          issuer: string | null
+          name: string
+          pluggy_investment_id: string
+          pluggy_item_id: string
+          rate: number | null
+          rate_type: string | null
+          status: string | null
+          subtype: string | null
+          type: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount_original?: number | null
+          amount_profit?: number | null
+          balance?: number
+          code?: string | null
+          created_at?: string
+          currency_code?: string | null
+          due_date?: string | null
+          fixed_annual_rate?: number | null
+          id?: string
+          investment_data?: Json | null
+          issuer?: string | null
+          name: string
+          pluggy_investment_id: string
+          pluggy_item_id: string
+          rate?: number | null
+          rate_type?: string | null
+          status?: string | null
+          subtype?: string | null
+          type?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount_original?: number | null
+          amount_profit?: number | null
+          balance?: number
+          code?: string | null
+          created_at?: string
+          currency_code?: string | null
+          due_date?: string | null
+          fixed_annual_rate?: number | null
+          id?: string
+          investment_data?: Json | null
+          issuer?: string | null
+          name?: string
+          pluggy_investment_id?: string
+          pluggy_item_id?: string
+          rate?: number | null
+          rate_type?: string | null
+          status?: string | null
+          subtype?: string | null
+          type?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       pluggy_notifications: {
         Row: {
           created_at: string

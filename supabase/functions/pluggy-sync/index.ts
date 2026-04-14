@@ -96,16 +96,17 @@ Deno.serve(async (req) => {
     const accountsData = await accountsRes.json()
     const accounts = accountsData.results || []
 
-    // Sum active investments (caixinhas, guardados, etc.)
+    // Sum active investments and save individual investment details
     let totalInvestments = 0
+    let investmentsList: any[] = []
     if (investmentsRes.ok) {
       const investmentsData = await investmentsRes.json()
-      const investments = investmentsData.results || []
-      totalInvestments = investments
+      investmentsList = investmentsData.results || []
+      totalInvestments = investmentsList
         .filter((inv: any) => (inv.balance ?? 0) > 0 || (inv.value ?? 0) > 0)
         .reduce((sum: number, inv: any) => sum + (inv.balance ?? inv.value ?? 0), 0)
       totalInvestments = Math.round(totalInvestments * 100) / 100
-      console.log(`Total investments for item ${itemId}: R$ ${totalInvestments} from ${investments.length} investments`)
+      console.log(`Total investments for item ${itemId}: R$ ${totalInvestments} from ${investmentsList.length} investments`)
     }
 
     // Get connection and resolve the real owner user_id
@@ -118,6 +119,58 @@ Deno.serve(async (req) => {
     const connectionId = conn?.id || null
     // Use the connection owner's user_id (important for Super Admin syncing on behalf of another user)
     const ownerUserId = conn?.user_id || userId
+
+    // Save individual investments with yield data
+    let savedInvestments = 0
+    if (investmentsList.length > 0) {
+      const BATCH = 200
+      for (let i = 0; i < investmentsList.length; i += BATCH) {
+        const batch = investmentsList.slice(i, i + BATCH).map((inv: any) => ({
+          user_id: ownerUserId,
+          pluggy_item_id: itemId,
+          pluggy_investment_id: inv.id,
+          name: inv.name || 'Investimento',
+          type: inv.type || null,
+          subtype: inv.subtype || null,
+          code: inv.code || null,
+          issuer: inv.issuer || null,
+          balance: inv.balance ?? 0,
+          amount_original: inv.amountOriginal ?? null,
+          amount_profit: inv.amountProfit ?? null,
+          rate: inv.rate ?? null,
+          rate_type: inv.rateType || null,
+          fixed_annual_rate: inv.fixedAnnualRate ?? null,
+          status: inv.status || 'ACTIVE',
+          due_date: inv.dueDate ? inv.dueDate.split('T')[0] : null,
+          currency_code: inv.currencyCode || 'BRL',
+          investment_data: {
+            value: inv.value ?? null,
+            quantity: inv.quantity ?? null,
+            taxes: inv.taxes ?? null,
+            taxes2: inv.taxes2 ?? null,
+            amount: inv.amount ?? null,
+            amountWithdrawal: inv.amountWithdrawal ?? null,
+            lastMonthRate: inv.lastMonthRate ?? null,
+            lastTwelveMonthsRate: inv.lastTwelveMonthsRate ?? null,
+            annualRate: inv.annualRate ?? null,
+            owner: inv.owner || null,
+            date: inv.date || null,
+          },
+          updated_at: new Date().toISOString(),
+        }))
+
+        const { error: invErr } = await supabaseAdmin
+          .from('pluggy_investments')
+          .upsert(batch, { onConflict: 'pluggy_investment_id', ignoreDuplicates: false })
+
+        if (invErr) {
+          console.error('Investment upsert error:', invErr)
+        } else {
+          savedInvestments += batch.length
+        }
+      }
+      console.log(`Saved ${savedInvestments} investments for item ${itemId}`)
+    }
 
     // Upsert bank accounts
     let savedAccounts = 0
@@ -270,7 +323,7 @@ Deno.serve(async (req) => {
       accounts: accounts.length,
       savedAccounts,
       savedTransactions,
-      message: `Sincronizado: ${savedAccounts} contas, ${savedTransactions} transações`,
+      message: `Sincronizado: ${savedAccounts} contas, ${savedTransactions} transações, ${savedInvestments} investimentos`,
     }
 
     return new Response(JSON.stringify(result), {
