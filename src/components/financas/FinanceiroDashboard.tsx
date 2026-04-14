@@ -16,7 +16,7 @@ import {
   ArrowDownRight,
   PiggyBank,
 } from "lucide-react";
-import { format, differenceInDays, startOfMonth, endOfMonth, subMonths } from "date-fns";
+import { format, differenceInDays, startOfMonth, endOfMonth, subMonths, addMonths, isBefore } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useMemo } from "react";
 
@@ -201,16 +201,23 @@ export default function FinanceiroDashboard() {
 
   const monthlyData = useMemo(() => {
     if (!contasPagar) return [];
+    const today = new Date();
+    const currentMonthStart = startOfMonth(today);
     const months = [];
-    for (let i = 5; i >= 0; i--) {
-      const d = subMonths(new Date(), i);
+    for (let i = 0; i < 6; i++) {
+      const d = addMonths(today, i);
       const start = startOfMonth(d);
       const end = endOfMonth(d);
+      const isPast = isBefore(end, currentMonthStart);
       const total = contasPagar.filter((c) => {
         const due = new Date(c.due_date);
         return due >= start && due <= end;
       }).reduce((s, c) => s + Number(c.amount), 0);
-      months.push({ label: format(d, "MMM", { locale: ptBR }), total });
+      const hasOverdue = contasPagar.some((c) => {
+        const due = new Date(c.due_date);
+        return due >= start && due <= end && (c.status === "overdue" || (c.status === "pending" && isBefore(due, today)));
+      });
+      months.push({ label: format(d, "MMM", { locale: ptBR }), total, isOverdue: hasOverdue || isPast });
     }
     return months;
   }, [contasPagar]);
@@ -446,7 +453,7 @@ export default function FinanceiroDashboard() {
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium flex items-center gap-2">
                 <TrendingUp className="w-4 h-4 text-primary" />
-                Contas a Pagar — Últimos 6 meses
+                Contas a Pagar — Próximos 6 meses
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -455,7 +462,7 @@ export default function FinanceiroDashboard() {
                   <div key={i} className="flex-1 flex flex-col items-center gap-1">
                     <span className="text-[10px] text-muted-foreground">{fmt(m.total)}</span>
                     <div
-                      className="w-full rounded-t-md bg-primary/80 transition-all duration-500"
+                      className={`w-full rounded-t-md transition-all duration-500 ${m.isOverdue ? "bg-destructive/80" : "bg-primary/80"}`}
                       style={{ height: `${Math.max((m.total / maxMonthly) * 140, 4)}px` }}
                     />
                     <span className="text-[11px] text-muted-foreground capitalize">{m.label}</span>
