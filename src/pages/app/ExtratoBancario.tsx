@@ -377,9 +377,9 @@ export default function ExtratoBancario() {
 
           <Popover>
             <PopoverTrigger asChild>
-              <Button variant="outline" className={cn("w-[150px] justify-start text-left font-normal text-sm")}>
+              <Button variant="outline" className={cn("w-[150px] justify-start text-left font-normal text-sm", allPeriod && "opacity-50")}>
                 <CalendarIcon className="mr-2 h-3.5 w-3.5" />
-                {format(dateFrom, "dd/MM/yyyy")}
+                {allPeriod ? "Início" : format(dateFrom, "dd/MM/yyyy")}
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0" align="start">
@@ -398,9 +398,9 @@ export default function ExtratoBancario() {
 
           <Popover>
             <PopoverTrigger asChild>
-              <Button variant="outline" className={cn("w-[150px] justify-start text-left font-normal text-sm")}>
+              <Button variant="outline" className={cn("w-[150px] justify-start text-left font-normal text-sm", allPeriod && "opacity-50")}>
                 <CalendarIcon className="mr-2 h-3.5 w-3.5" />
-                {format(dateTo, "dd/MM/yyyy")}
+                {allPeriod ? "Hoje" : format(dateTo, "dd/MM/yyyy")}
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0" align="start">
