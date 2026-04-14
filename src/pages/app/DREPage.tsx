@@ -8,103 +8,56 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
+  Dialog, DialogContent, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import {
-  FileText,
-  ChevronRight,
-  ChevronDown,
-  Download,
-} from "lucide-react";
+import { FileText, ChevronRight, ChevronDown, Download } from "lucide-react";
 import { format } from "date-fns";
 
 const fmt = (v: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
-
 const fmtPct = (v: number) => `${v.toFixed(1)}%`;
 
 const periodLabels: Record<PeriodPreset, string> = {
-  today: "Hoje",
-  "7d": "Últimos 7 dias",
-  "30d": "Últimos 30 dias",
-  this_month: "Este mês",
-  last_month: "Mês anterior",
-  this_year: "Este ano",
-  custom: "Personalizado",
+  today: "Hoje", "7d": "Últimos 7 dias", "30d": "Últimos 30 dias",
+  this_month: "Este mês", last_month: "Mês anterior", this_year: "Este ano", custom: "Personalizado",
 };
 
-// Numbering context to track indices per depth level
-interface NumberingContext {
-  counters: number[];
-}
-
-function getNumber(ctx: NumberingContext, depth: number): string {
-  // Ensure counters array is large enough
-  while (ctx.counters.length <= depth) ctx.counters.push(0);
-  // Reset deeper levels
-  ctx.counters.length = depth + 1;
-  // Increment current level
-  ctx.counters[depth]++;
-  // Build number string
-  return ctx.counters.map((c) => c.toString()).join(".") + ".";
+interface FlatLine {
+  line: DRELine;
+  visible: boolean;
 }
 
 export default function DREPage() {
   const { user } = useAuth();
   const { empresa } = useEmpresa();
-  const empresaId = empresa?.id;
+  const targetUserId = empresa?.user_id ?? user?.id;
 
-  const [filters, setFilters] = useState<DREFilters>({
-    period: "this_month",
-    tipo: "all",
-  });
+  const [filters, setFilters] = useState<DREFilters>({ period: "this_month", tipo: "all" });
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
   const [drillDownCategory, setDrillDownCategory] = useState<{ id: string; label: string } | null>(null);
 
-  const {
-    lines,
-    totalRevenue,
-    transactions,
-    isLoading,
-    dateRange,
-  } = useDRE(filters);
+  const { lines, totalRevenue, transactions, isLoading, dateRange } = useDRE(filters);
 
   const { data: bankAccounts = [] } = useQuery({
-    queryKey: ["dre-bank-accounts", user?.id, empresaId],
-    enabled: !!user,
+    queryKey: ["dre-bank-accounts", targetUserId],
+    enabled: !!user && !!targetUserId,
     queryFn: async () => {
-      let q = supabase.from("contas_bancarias").select("id, nome").eq("ativo", true);
-      if (empresaId) q = q.eq("empresa_id", empresaId);
-      const { data } = await q;
+      const { data } = await supabase.from("contas_bancarias").select("id, nome").eq("ativo", true).eq("user_id", targetUserId!);
       return data ?? [];
     },
   });
 
   const { data: costCenters = [] } = useQuery({
-    queryKey: ["dre-cost-centers", user?.id, empresaId],
-    enabled: !!user,
+    queryKey: ["dre-cost-centers", targetUserId],
+    enabled: !!user && !!targetUserId,
     queryFn: async () => {
-      let q = supabase.from("centros_custo").select("id, nome").eq("ativo", true);
-      if (empresaId) q = q.eq("empresa_id", empresaId);
-      const { data } = await q;
+      const { data } = await supabase.from("centros_custo").select("id, nome").eq("ativo", true).eq("user_id", targetUserId!);
       return data ?? [];
     },
   });
@@ -112,30 +65,38 @@ export default function DREPage() {
   const toggleGroup = (id: string) => {
     setExpandedGroups((prev) => {
       const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
+      next.has(id) ? next.delete(id) : next.add(id);
       return next;
     });
   };
 
   const drillDownData = useMemo(() => {
     if (!drillDownCategory) return [];
-    return transactions.filter(
-      (t) => (t as any).categoria_financeira_id === drillDownCategory.id
-    );
+    return transactions.filter((t) => (t as any).categoria_financeira_id === drillDownCategory.id);
   }, [drillDownCategory, transactions]);
 
+  // Flatten tree for rendering, respecting expanded state
+  const flatLines = useMemo(() => {
+    const result: FlatLine[] = [];
+    function walk(items: DRELine[], parentVisible: boolean) {
+      for (const line of items) {
+        result.push({ line, visible: parentVisible });
+        if (line.children?.length) {
+          const isOpen = expandedGroups.has(line.id);
+          walk(line.children, parentVisible && isOpen);
+        }
+      }
+    }
+    walk(lines, true);
+    return result;
+  }, [lines, expandedGroups]);
+
   const exportCSV = () => {
-    const flatLines = flattenLines(lines);
+    const allLines = flatLines.map(f => f.line);
     const csvRows = [
-      ["Conta", "Categoria", "Valor", "% Receita"].join(";"),
-      ...flatLines.map((l) =>
-        [
-          "  ".repeat(l.depth) + l.label,
-          l.label,
-          l.amount.toFixed(2),
-          l.percentage.toFixed(1),
-        ].join(";")
+      ["Número", "Conta", "Valor", "% Receita"].join(";"),
+      ...allLines.map((l) =>
+        [l.number || "", l.label, l.amount.toFixed(2), l.percentage.toFixed(1)].join(";")
       ),
     ];
     const blob = new Blob([csvRows.join("\n")], { type: "text/csv;charset=utf-8" });
@@ -147,38 +108,12 @@ export default function DREPage() {
     URL.revokeObjectURL(url);
   };
 
-  // Build numbered flat list for rendering
-  const numberedLines = useMemo(() => {
-    const result: { line: DRELine; number: string; visible: boolean }[] = [];
-    const ctx: NumberingContext = { counters: [] };
-
-    function walk(items: DRELine[], parentExpanded: boolean) {
-      for (const line of items) {
-        const num = line.isSummary ? "" : getNumber(ctx, line.depth);
-        result.push({ line, number: num, visible: parentExpanded });
-
-        if (line.children && line.children.length > 0) {
-          const isOpen = expandedGroups.has(line.id);
-          walk(line.children, parentExpanded && isOpen);
-        }
-      }
-    }
-
-    walk(lines, true);
-    return result;
-  }, [lines, expandedGroups]);
-
   return (
     <div className="space-y-4 animate-fade-in">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold tracking-tight text-foreground">
-            Demonstração de Resultado (DRE)
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            Relatório financeiro baseado no plano de contas
-          </p>
+          <h1 className="text-xl font-bold tracking-tight text-foreground">Demonstração de Resultado (DRE)</h1>
+          <p className="text-sm text-muted-foreground">Relatório baseado no plano de contas</p>
         </div>
         <Button variant="outline" size="sm" className="gap-2" onClick={exportCSV}>
           <Download className="w-4 h-4" /> Exportar CSV
@@ -187,52 +122,29 @@ export default function DREPage() {
 
       {/* Filters */}
       <div className="flex flex-wrap gap-3">
-        <Select
-          value={filters.period}
-          onValueChange={(v) => setFilters((f) => ({ ...f, period: v as PeriodPreset }))}
-        >
-          <SelectTrigger className="w-[170px] h-9 text-sm">
-            <SelectValue placeholder="Período" />
-          </SelectTrigger>
+        <Select value={filters.period} onValueChange={(v) => setFilters((f) => ({ ...f, period: v as PeriodPreset }))}>
+          <SelectTrigger className="w-[170px] h-9 text-sm"><SelectValue placeholder="Período" /></SelectTrigger>
           <SelectContent>
-            {Object.entries(periodLabels).map(([k, v]) => (
-              <SelectItem key={k} value={k}>{v}</SelectItem>
-            ))}
+            {Object.entries(periodLabels).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
           </SelectContent>
         </Select>
-
-        <Select
-          value={filters.bankAccountId || "all"}
-          onValueChange={(v) => setFilters((f) => ({ ...f, bankAccountId: v === "all" ? undefined : v }))}
-        >
-          <SelectTrigger className="w-[170px] h-9 text-sm">
-            <SelectValue placeholder="Conta bancária" />
-          </SelectTrigger>
+        <Select value={filters.bankAccountId || "all"} onValueChange={(v) => setFilters((f) => ({ ...f, bankAccountId: v === "all" ? undefined : v }))}>
+          <SelectTrigger className="w-[170px] h-9 text-sm"><SelectValue placeholder="Conta bancária" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Todas as contas</SelectItem>
-            {bankAccounts.map((b) => (
-              <SelectItem key={b.id} value={b.id}>{b.nome}</SelectItem>
-            ))}
+            {bankAccounts.map((b) => <SelectItem key={b.id} value={b.id}>{b.nome}</SelectItem>)}
           </SelectContent>
         </Select>
-
-        <Select
-          value={filters.costCenterId || "all"}
-          onValueChange={(v) => setFilters((f) => ({ ...f, costCenterId: v === "all" ? undefined : v }))}
-        >
-          <SelectTrigger className="w-[170px] h-9 text-sm">
-            <SelectValue placeholder="Centro de custo" />
-          </SelectTrigger>
+        <Select value={filters.costCenterId || "all"} onValueChange={(v) => setFilters((f) => ({ ...f, costCenterId: v === "all" ? undefined : v }))}>
+          <SelectTrigger className="w-[170px] h-9 text-sm"><SelectValue placeholder="Centro de custo" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Todos os centros</SelectItem>
-            {costCenters.map((c) => (
-              <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
-            ))}
+            {costCenters.map((c) => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}
           </SelectContent>
         </Select>
       </div>
 
-      {/* DRE Table - half width */}
+      {/* DRE Table */}
       <div className="w-full max-w-[50%]">
         <Card className="border-border/50">
           <CardHeader className="py-3 px-4">
@@ -257,77 +169,56 @@ export default function DREPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {numberedLines
-                    .filter((n) => n.visible)
-                    .map((n) => {
-                      const { line, number } = n;
-                      const hasChildren = line.children && line.children.length > 0;
-                      const isExpanded = expandedGroups.has(line.id);
-                      const isSummary = line.isSummary;
-                      const isRevenue = line.dreGroup === "revenue" || line.dreGroup === "financial_revenue";
+                  {flatLines.filter(f => f.visible).map((f) => {
+                    const { line } = f;
+                    const hasChildren = line.children && line.children.length > 0;
+                    const isExpanded = expandedGroups.has(line.id);
+                    const isSummary = line.isSummary;
+                    const isRevenue = line.dreGroup === "revenue" || line.dreGroup === "financial_revenue";
 
-                      const rowBg = isSummary
-                        ? "bg-muted/30 border-t border-border/40"
-                        : "";
+                    const rowBg = isSummary ? "bg-muted/30 border-t border-border/40" : "";
+                    const labelColor = isSummary
+                      ? "font-semibold text-foreground"
+                      : line.depth === 0 ? "font-medium text-foreground" : "text-muted-foreground";
+                    const valueColor = isSummary
+                      ? line.amount >= 0 ? "text-emerald-500 font-semibold" : "text-destructive font-semibold"
+                      : isRevenue ? "text-emerald-500" : line.depth === 0 ? "text-destructive" : "text-foreground";
 
-                      const labelColor = isSummary
-                        ? "font-semibold text-foreground"
-                        : line.depth === 0
-                          ? "font-medium text-foreground"
-                          : "text-muted-foreground";
-
-                      const valueColor = isSummary
-                        ? line.amount >= 0 ? "text-emerald-500 font-semibold" : "text-destructive font-semibold"
-                        : isRevenue
-                          ? "text-emerald-500"
-                          : line.depth === 0
-                            ? "text-destructive"
-                            : "text-foreground";
-
-                      return (
-                        <TableRow
-                          key={line.id}
-                          className={`${rowBg} border-border/15 hover:bg-muted/10 transition-colors`}
-                        >
-                          <TableCell className="py-1.5 pr-0">
-                            <div
-                              className="flex items-center gap-1.5 cursor-pointer select-none"
-                              style={{ paddingLeft: `${line.depth * 20}px` }}
-                              onClick={() => {
-                                if (hasChildren) toggleGroup(line.id);
-                                else if (line.categoryId) setDrillDownCategory({ id: line.categoryId, label: line.label });
-                              }}
-                            >
-                              {hasChildren && !isSummary ? (
-                                isExpanded ? (
-                                  <ChevronDown className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
-                                ) : (
-                                  <ChevronRight className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
-                                )
-                              ) : (
-                                !isSummary && <span className="w-3.5 flex-shrink-0" />
-                              )}
-                              {number && (
-                                <span className="text-xs text-muted-foreground/60 font-mono min-w-[40px]">
-                                  {number}
-                                </span>
-                              )}
-                              <span className={`text-xs ${labelColor}`}>
-                                {line.label}
+                    return (
+                      <TableRow key={line.id} className={`${rowBg} border-border/15 hover:bg-muted/10 transition-colors`}>
+                        <TableCell className="py-1.5 pr-0">
+                          <div
+                            className="flex items-center gap-1.5 cursor-pointer select-none"
+                            style={{ paddingLeft: `${line.depth * 20}px` }}
+                            onClick={() => {
+                              if (hasChildren) toggleGroup(line.id);
+                              else if (line.categoryId) setDrillDownCategory({ id: line.categoryId, label: line.label });
+                            }}
+                          >
+                            {hasChildren && !isSummary ? (
+                              isExpanded
+                                ? <ChevronDown className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
+                                : <ChevronRight className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
+                            ) : (
+                              !isSummary && <span className="w-3.5 flex-shrink-0" />
+                            )}
+                            {line.number && (
+                              <span className="text-[10px] text-muted-foreground/60 font-mono min-w-[2.5rem]">
+                                {line.number}
                               </span>
-                            </div>
-                          </TableCell>
-                          <TableCell className={`text-right text-xs py-1.5 ${valueColor}`}>
-                            {isSummary && line.amount < 0
-                              ? `(${fmt(Math.abs(line.amount))})`
-                              : fmt(Math.abs(line.amount))}
-                          </TableCell>
-                          <TableCell className="text-right text-xs py-1.5 text-muted-foreground">
-                            {fmtPct(line.percentage)}
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
+                            )}
+                            <span className={`text-xs ${labelColor}`}>{line.label}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell className={`text-right text-xs py-1.5 ${valueColor}`}>
+                          {isSummary && line.amount < 0 ? `(${fmt(Math.abs(line.amount))})` : fmt(Math.abs(line.amount))}
+                        </TableCell>
+                        <TableCell className="text-right text-xs py-1.5 text-muted-foreground">
+                          {fmtPct(line.percentage)}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             )}
@@ -342,9 +233,7 @@ export default function DREPage() {
             <DialogTitle>Detalhamento: {drillDownCategory?.label}</DialogTitle>
           </DialogHeader>
           {drillDownData.length === 0 ? (
-            <p className="text-sm text-muted-foreground py-8 text-center">
-              Nenhum lançamento encontrado para esta categoria no período.
-            </p>
+            <p className="text-sm text-muted-foreground py-8 text-center">Nenhum lançamento encontrado para esta categoria no período.</p>
           ) : (
             <Table>
               <TableHeader>
@@ -358,18 +247,14 @@ export default function DREPage() {
               <TableBody>
                 {drillDownData.map((t: any) => (
                   <TableRow key={t.id}>
-                    <TableCell className="text-xs">
-                      {format(new Date(t.transaction_date + "T12:00:00"), "dd/MM/yyyy")}
-                    </TableCell>
+                    <TableCell className="text-xs">{format(new Date(t.transaction_date + "T12:00:00"), "dd/MM/yyyy")}</TableCell>
                     <TableCell className="text-xs">{t.description || "—"}</TableCell>
                     <TableCell>
                       <Badge variant="outline" className={`text-[10px] ${t.type === "income" ? "text-emerald-500 border-emerald-500/30" : "text-destructive border-destructive/30"}`}>
                         {t.type === "income" ? "Receita" : "Despesa"}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-right text-xs font-medium">
-                      {fmt(Math.abs(Number(t.amount)))}
-                    </TableCell>
+                    <TableCell className="text-right text-xs font-medium">{fmt(Math.abs(Number(t.amount)))}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -379,15 +264,4 @@ export default function DREPage() {
       </Dialog>
     </div>
   );
-}
-
-function flattenLines(lines: DRELine[]): DRELine[] {
-  const result: DRELine[] = [];
-  for (const line of lines) {
-    result.push(line);
-    if (line.children) {
-      result.push(...flattenLines(line.children));
-    }
-  }
-  return result;
 }

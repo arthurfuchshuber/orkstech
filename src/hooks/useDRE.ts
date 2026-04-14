@@ -31,32 +31,38 @@ export interface DRELine {
   tipo?: string;
   children?: DRELine[];
   categoryId?: string;
+  /** Hierarchical number like "1.", "1.1.", "1.1.1." */
+  number?: string;
+}
+
+interface CatRow {
+  id: string;
+  nome: string;
+  tipo: string;
+  categoria_pai_id: string | null;
+  ordem: number;
+  ativo: boolean;
+  dre_group: string | null;
+}
+
+interface CatNode extends CatRow {
+  children: CatNode[];
 }
 
 function getDateRange(filters: DREFilters): { start: Date; end: Date } {
   const now = new Date();
   switch (filters.period) {
-    case "today":
-      return { start: startOfDay(now), end: endOfDay(now) };
-    case "7d":
-      return { start: startOfDay(subDays(now, 7)), end: endOfDay(now) };
-    case "30d":
-      return { start: startOfDay(subDays(now, 30)), end: endOfDay(now) };
-    case "this_month":
-      return { start: startOfMonth(now), end: endOfMonth(now) };
-    case "last_month": {
-      const lm = subMonths(now, 1);
-      return { start: startOfMonth(lm), end: endOfMonth(lm) };
-    }
-    case "this_year":
-      return { start: startOfYear(now), end: endOfYear(now) };
-    case "custom":
-      return {
-        start: filters.customStart ? startOfDay(filters.customStart) : startOfMonth(now),
-        end: filters.customEnd ? endOfDay(filters.customEnd) : endOfMonth(now),
-      };
-    default:
-      return { start: startOfMonth(now), end: endOfMonth(now) };
+    case "today": return { start: startOfDay(now), end: endOfDay(now) };
+    case "7d": return { start: startOfDay(subDays(now, 7)), end: endOfDay(now) };
+    case "30d": return { start: startOfDay(subDays(now, 30)), end: endOfDay(now) };
+    case "this_month": return { start: startOfMonth(now), end: endOfMonth(now) };
+    case "last_month": { const lm = subMonths(now, 1); return { start: startOfMonth(lm), end: endOfMonth(lm) }; }
+    case "this_year": return { start: startOfYear(now), end: endOfYear(now) };
+    case "custom": return {
+      start: filters.customStart ? startOfDay(filters.customStart) : startOfMonth(now),
+      end: filters.customEnd ? endOfDay(filters.customEnd) : endOfMonth(now),
+    };
+    default: return { start: startOfMonth(now), end: endOfMonth(now) };
   }
 }
 
@@ -67,346 +73,284 @@ function getPreviousRange(start: Date, end: Date): { start: Date; end: Date } {
   return { start: prevStart, end: prevEnd };
 }
 
-export function useDRE(filters: DREFilters) {
-  const { user } = useAuth();
-  const { empresa } = useEmpresa();
-  const empresaId = empresa?.id;
-
-  const { start, end } = getDateRange(filters);
-  const prev = getPreviousRange(start, end);
-
-  const startStr = start.toISOString().split("T")[0];
-  const endStr = end.toISOString().split("T")[0];
-  const prevStartStr = prev.start.toISOString().split("T")[0];
-  const prevEndStr = prev.end.toISOString().split("T")[0];
-
-  // Fetch chart of accounts
-  const { data: categorias = [] } = useQuery({
-    queryKey: ["dre-categorias", user?.id, empresaId],
-    enabled: !!user,
-    queryFn: async () => {
-      let q = supabase.from("categorias_financeiras").select("*").eq("ativo", true).order("ordem");
-      if (empresaId) q = q.eq("empresa_id", empresaId);
-      const { data, error } = await q;
-      if (error) throw error;
-      return data ?? [];
-    },
+/** Build tree from flat list */
+function buildCatTree(cats: CatRow[]): CatNode[] {
+  const map = new Map<string, CatNode>();
+  const roots: CatNode[] = [];
+  cats.forEach(c => map.set(c.id, { ...c, children: [] }));
+  cats.forEach(c => {
+    const node = map.get(c.id)!;
+    if (c.categoria_pai_id && map.has(c.categoria_pai_id)) {
+      map.get(c.categoria_pai_id)!.children.push(node);
+    } else {
+      roots.push(node);
+    }
   });
-
-  // Fetch cash_transactions for current period
-  const { data: transactions = [], isLoading: loadingTx } = useQuery({
-    queryKey: ["dre-transactions", user?.id, empresaId, startStr, endStr, filters.bankAccountId, filters.costCenterId, filters.tipo],
-    enabled: !!user,
-    queryFn: async () => {
-      let q = supabase
-        .from("cash_transactions")
-        .select("*")
-        .gte("transaction_date", startStr)
-        .lte("transaction_date", endStr);
-      if (empresaId) q = q.eq("empresa_id", empresaId);
-      if (filters.bankAccountId) q = q.eq("bank_account_id", filters.bankAccountId);
-      if (filters.tipo === "income") q = q.eq("type", "income");
-      if (filters.tipo === "expense") q = q.eq("type", "expense");
-      const { data, error } = await q;
-      if (error) throw error;
-      return data ?? [];
-    },
-  });
-
-  // Fetch cash_transactions for previous period (comparison)
-  const { data: prevTransactions = [] } = useQuery({
-    queryKey: ["dre-prev-transactions", user?.id, empresaId, prevStartStr, prevEndStr, filters.bankAccountId, filters.costCenterId, filters.tipo],
-    enabled: !!user,
-    queryFn: async () => {
-      let q = supabase
-        .from("cash_transactions")
-        .select("*")
-        .gte("transaction_date", prevStartStr)
-        .lte("transaction_date", prevEndStr);
-      if (empresaId) q = q.eq("empresa_id", empresaId);
-      if (filters.bankAccountId) q = q.eq("bank_account_id", filters.bankAccountId);
-      if (filters.tipo === "income") q = q.eq("type", "income");
-      if (filters.tipo === "expense") q = q.eq("type", "expense");
-      const { data, error } = await q;
-      if (error) throw error;
-      return data ?? [];
-    },
-  });
-
-  // Fetch accounts_payable for drill-down
-  const { data: payables = [] } = useQuery({
-    queryKey: ["dre-payables", user?.id, empresaId, startStr, endStr],
-    enabled: !!user,
-    queryFn: async () => {
-      let q = supabase
-        .from("accounts_payable")
-        .select("*, categoria_financeira_id")
-        .gte("due_date", startStr)
-        .lte("due_date", endStr);
-      if (empresaId) q = q.eq("empresa_id", empresaId);
-      const { data, error } = await q;
-      if (error) throw error;
-      return data ?? [];
-    },
-  });
-
-  // Build DRE structure
-  const dreData = useMemo(() => {
-    const sumByType = (txs: any[], type: string) =>
-      txs.filter((t) => t.type === type).reduce((s, t) => s + Math.abs(Number(t.amount)), 0);
-
-    const sumByCatAndType = (txs: any[], catId: string, type: string) =>
-      txs.filter((t) => t.type === type && t.categoria_financeira_id === catId)
-        .reduce((s, t) => s + Math.abs(Number(t.amount)), 0);
-
-    // Group categories by dre_group
-    const dreGroupMap: Record<string, typeof categorias> = {};
-    categorias.forEach((c) => {
-      const group = (c as any).dre_group || mapTipToDreGroup(c.tipo);
-      if (!dreGroupMap[group]) dreGroupMap[group] = [];
-      dreGroupMap[group].push(c);
-    });
-
-    const totalRevenue = sumByType(transactions, "income");
-    const totalExpense = sumByType(transactions, "expense");
-    const prevRevenue = sumByType(prevTransactions, "income");
-    const prevExpense = sumByType(prevTransactions, "expense");
-
-    // Build structured lines
-    const lines: DRELine[] = [];
-
-    // Helper to build category lines within a group
-    const buildCategoryLines = (cats: typeof categorias, type: string, depth: number): DRELine[] => {
-      return cats
-        .filter((c) => !c.categoria_pai_id)
-        .map((cat) => {
-          const amount = sumByCatAndType(transactions, cat.id, type);
-          const prevAmount = sumByCatAndType(prevTransactions, cat.id, type);
-          const children = cats
-            .filter((c) => c.categoria_pai_id === cat.id)
-            .map((sub) => {
-              const subAmount = sumByCatAndType(transactions, sub.id, type);
-              const subPrev = sumByCatAndType(prevTransactions, sub.id, type);
-              return {
-                id: sub.id,
-                label: sub.nome,
-                depth: depth + 1,
-                amount: subAmount,
-                percentage: totalRevenue > 0 ? (subAmount / totalRevenue) * 100 : 0,
-                previousAmount: subPrev,
-                variation: subPrev > 0 ? ((subAmount - subPrev) / subPrev) * 100 : null,
-                isGroup: false,
-                isSummary: false,
-                categoryId: sub.id,
-              };
-            });
-
-          const totalCatAmount = amount + children.reduce((s, c) => s + c.amount, 0);
-          const totalCatPrev = prevAmount + children.reduce((s, c) => s + c.previousAmount, 0);
-
-          return {
-            id: cat.id,
-            label: cat.nome,
-            depth,
-            amount: totalCatAmount,
-            percentage: totalRevenue > 0 ? (totalCatAmount / totalRevenue) * 100 : 0,
-            previousAmount: totalCatPrev,
-            variation: totalCatPrev > 0 ? ((totalCatAmount - totalCatPrev) / totalCatPrev) * 100 : null,
-            isGroup: children.length > 0,
-            isSummary: false,
-            children,
-            categoryId: cat.id,
-          };
-        })
-        .filter((l) => l.amount > 0 || l.children?.some((c) => c.amount > 0));
-    };
-
-    // RECEITAS
-    const revenueCats = dreGroupMap["revenue"] || [];
-    const revenueCatLines = buildCategoryLines(revenueCats, "income", 1);
-    const categorizedRevenue = revenueCatLines.reduce((s, l) => s + l.amount, 0);
-    const uncategorizedRevenue = totalRevenue - categorizedRevenue;
-
-    lines.push({
-      id: "revenue", label: "RECEITAS", depth: 0, amount: totalRevenue,
-      percentage: 100, previousAmount: prevRevenue,
-      variation: prevRevenue > 0 ? ((totalRevenue - prevRevenue) / prevRevenue) * 100 : null,
-      isGroup: true, isSummary: false, dreGroup: "revenue",
-      children: [
-        ...revenueCatLines,
-        ...(uncategorizedRevenue > 0
-          ? [{
-            id: "uncategorized-revenue", label: "Outras receitas", depth: 1,
-            amount: uncategorizedRevenue, percentage: totalRevenue > 0 ? (uncategorizedRevenue / totalRevenue) * 100 : 0,
-            previousAmount: 0, variation: null, isGroup: false, isSummary: false,
-          }]
-          : []),
-      ],
-    });
-
-    // DEDUÇÕES
-    const deductionCats = dreGroupMap["deductions"] || [];
-    const deductionLines = buildCategoryLines(deductionCats, "expense", 1);
-    const totalDeductions = deductionLines.reduce((s, l) => s + l.amount, 0);
-    if (totalDeductions > 0 || deductionLines.length > 0) {
-      lines.push({
-        id: "deductions", label: "(-) DEDUÇÕES", depth: 0, amount: totalDeductions,
-        percentage: totalRevenue > 0 ? (totalDeductions / totalRevenue) * 100 : 0,
-        previousAmount: 0, variation: null, isGroup: true, isSummary: false, dreGroup: "deductions",
-        children: deductionLines,
-      });
-    }
-
-    // RECEITA LÍQUIDA
-    const netRevenue = totalRevenue - totalDeductions;
-    const prevNetRevenue = prevRevenue;
-    lines.push({
-      id: "net-revenue", label: "RECEITA LÍQUIDA", depth: 0, amount: netRevenue,
-      percentage: totalRevenue > 0 ? (netRevenue / totalRevenue) * 100 : 0,
-      previousAmount: prevNetRevenue,
-      variation: prevNetRevenue > 0 ? ((netRevenue - prevNetRevenue) / prevNetRevenue) * 100 : null,
-      isGroup: false, isSummary: true,
-    });
-
-    // CUSTOS
-    const costCats = dreGroupMap["costs"] || [];
-    const costLines = buildCategoryLines(costCats, "expense", 1);
-    const totalCosts = costLines.reduce((s, l) => s + l.amount, 0);
-    if (totalCosts > 0 || costLines.length > 0) {
-      lines.push({
-        id: "costs", label: "(-) CUSTOS", depth: 0, amount: totalCosts,
-        percentage: totalRevenue > 0 ? (totalCosts / totalRevenue) * 100 : 0,
-        previousAmount: 0, variation: null, isGroup: true, isSummary: false, dreGroup: "costs",
-        children: costLines,
-      });
-    }
-
-    // LUCRO BRUTO
-    const grossProfit = netRevenue - totalCosts;
-    lines.push({
-      id: "gross-profit", label: "LUCRO BRUTO", depth: 0, amount: grossProfit,
-      percentage: totalRevenue > 0 ? (grossProfit / totalRevenue) * 100 : 0,
-      previousAmount: 0, variation: null, isGroup: false, isSummary: true,
-    });
-
-    // DESPESAS OPERACIONAIS
-    const opExCats = dreGroupMap["operational_expenses"] || [];
-    const opExLines = buildCategoryLines(opExCats, "expense", 1);
-    const categorizedExpense = opExLines.reduce((s, l) => s + l.amount, 0);
-    // Uncategorized expenses go to operational
-    const uncategorizedExpense = totalExpense - categorizedExpense - totalDeductions - totalCosts;
-    const totalOpEx = categorizedExpense + Math.max(0, uncategorizedExpense);
-
-    lines.push({
-      id: "operational-expenses", label: "(-) DESPESAS OPERACIONAIS", depth: 0, amount: totalOpEx,
-      percentage: totalRevenue > 0 ? (totalOpEx / totalRevenue) * 100 : 0,
-      previousAmount: prevExpense,
-      variation: prevExpense > 0 ? ((totalOpEx - prevExpense) / prevExpense) * 100 : null,
-      isGroup: true, isSummary: false, dreGroup: "operational_expenses",
-      children: [
-        ...opExLines,
-        ...(uncategorizedExpense > 0
-          ? [{
-            id: "uncategorized-expense", label: "Outras despesas", depth: 1,
-            amount: uncategorizedExpense, percentage: totalRevenue > 0 ? (uncategorizedExpense / totalRevenue) * 100 : 0,
-            previousAmount: 0, variation: null, isGroup: false, isSummary: false,
-          }]
-          : []),
-      ],
-    });
-
-    // RESULTADO OPERACIONAL
-    const operatingResult = grossProfit - totalOpEx;
-    lines.push({
-      id: "operating-result", label: "RESULTADO OPERACIONAL", depth: 0, amount: operatingResult,
-      percentage: totalRevenue > 0 ? (operatingResult / totalRevenue) * 100 : 0,
-      previousAmount: 0, variation: null, isGroup: false, isSummary: true,
-    });
-
-    // DESPESAS FINANCEIRAS
-    const finExpCats = dreGroupMap["financial_expenses"] || [];
-    const finExpLines = buildCategoryLines(finExpCats, "expense", 1);
-    const totalFinExp = finExpLines.reduce((s, l) => s + l.amount, 0);
-    if (totalFinExp > 0) {
-      lines.push({
-        id: "financial-expenses", label: "(-) DESPESAS FINANCEIRAS", depth: 0, amount: totalFinExp,
-        percentage: totalRevenue > 0 ? (totalFinExp / totalRevenue) * 100 : 0,
-        previousAmount: 0, variation: null, isGroup: true, isSummary: false, dreGroup: "financial_expenses",
-        children: finExpLines,
-      });
-    }
-
-    // RECEITAS FINANCEIRAS
-    const finRevCats = dreGroupMap["financial_revenue"] || [];
-    const finRevLines = buildCategoryLines(finRevCats, "income", 1);
-    const totalFinRev = finRevLines.reduce((s, l) => s + l.amount, 0);
-    if (totalFinRev > 0) {
-      lines.push({
-        id: "financial-revenue", label: "(+) RECEITAS FINANCEIRAS", depth: 0, amount: totalFinRev,
-        percentage: totalRevenue > 0 ? (totalFinRev / totalRevenue) * 100 : 0,
-        previousAmount: 0, variation: null, isGroup: true, isSummary: false, dreGroup: "financial_revenue",
-        children: finRevLines,
-      });
-    }
-
-    // RESULTADO ANTES DOS IMPOSTOS
-    const presTax = operatingResult - totalFinExp + totalFinRev;
-    lines.push({
-      id: "pre-tax", label: "RESULTADO ANTES DOS IMPOSTOS", depth: 0, amount: presTax,
-      percentage: totalRevenue > 0 ? (presTax / totalRevenue) * 100 : 0,
-      previousAmount: 0, variation: null, isGroup: false, isSummary: true,
-    });
-
-    // IMPOSTOS
-    const taxCats = dreGroupMap["taxes"] || [];
-    const taxLines = buildCategoryLines(taxCats, "expense", 1);
-    const totalTaxes = taxLines.reduce((s, l) => s + l.amount, 0);
-    if (totalTaxes > 0) {
-      lines.push({
-        id: "taxes", label: "(-) IMPOSTOS", depth: 0, amount: totalTaxes,
-        percentage: totalRevenue > 0 ? (totalTaxes / totalRevenue) * 100 : 0,
-        previousAmount: 0, variation: null, isGroup: true, isSummary: false, dreGroup: "taxes",
-        children: taxLines,
-      });
-    }
-
-    // LUCRO LÍQUIDO
-    const netIncome = presTax - totalTaxes;
-    const prevNet = prevRevenue - prevExpense;
-    lines.push({
-      id: "net-income", label: "LUCRO LÍQUIDO", depth: 0, amount: netIncome,
-      percentage: totalRevenue > 0 ? (netIncome / totalRevenue) * 100 : 0,
-      previousAmount: prevNet,
-      variation: prevNet !== 0 ? ((netIncome - prevNet) / Math.abs(prevNet)) * 100 : null,
-      isGroup: false, isSummary: true,
-    });
-
-    return {
-      lines,
-      totalRevenue,
-      totalExpense,
-      operatingResult,
-      netIncome,
-      profitMargin: totalRevenue > 0 ? (netIncome / totalRevenue) * 100 : 0,
-    };
-  }, [transactions, prevTransactions, categorias, filters]);
-
-  return {
-    ...dreData,
-    transactions,
-    payables,
-    isLoading: loadingTx,
-    dateRange: { start, end },
-    prevRange: prev,
+  const sortNodes = (nodes: CatNode[]) => {
+    nodes.sort((a, b) => a.ordem - b.ordem);
+    nodes.forEach(n => sortNodes(n.children));
   };
+  sortNodes(roots);
+  return roots;
 }
 
-function mapTipToDreGroup(tipo: string): string {
-  switch (tipo) {
+/** Get all descendant IDs (including self) */
+function getAllIds(node: CatNode): string[] {
+  const ids = [node.id];
+  node.children.forEach(c => ids.push(...getAllIds(c)));
+  return ids;
+}
+
+/** Resolve dre_group: explicit or inferred from tipo */
+function resolveDreGroup(cat: CatRow): string {
+  if (cat.dre_group) return cat.dre_group;
+  switch (cat.tipo) {
     case "receita": return "revenue";
     case "despesa": return "operational_expenses";
     case "custo": return "costs";
     case "ajuste": return "deductions";
     default: return "operational_expenses";
   }
+}
+
+/** DRE group ordering and labels */
+const DRE_SECTIONS: { group: string; label: string; prefix: string; txType: string }[] = [
+  { group: "revenue", label: "RECEITAS", prefix: "", txType: "income" },
+  { group: "deductions", label: "(-) DEDUÇÕES", prefix: "(-) ", txType: "expense" },
+  { group: "costs", label: "(-) CUSTOS", prefix: "(-) ", txType: "expense" },
+  { group: "operational_expenses", label: "(-) DESPESAS OPERACIONAIS", prefix: "(-) ", txType: "expense" },
+  { group: "financial_expenses", label: "(-) DESPESAS FINANCEIRAS", prefix: "(-) ", txType: "expense" },
+  { group: "financial_revenue", label: "(+) RECEITAS FINANCEIRAS", prefix: "(+) ", txType: "income" },
+  { group: "taxes", label: "(-) IMPOSTOS", prefix: "(-) ", txType: "expense" },
+];
+
+const SUMMARIES_AFTER: Record<string, { id: string; label: string; calc: (totals: Record<string, number>) => number }[]> = {
+  "deductions": [{ id: "net-revenue", label: "RECEITA LÍQUIDA", calc: t => (t["revenue"] || 0) - (t["deductions"] || 0) }],
+  "costs": [{ id: "gross-profit", label: "LUCRO BRUTO", calc: t => (t["revenue"] || 0) - (t["deductions"] || 0) - (t["costs"] || 0) }],
+  "operational_expenses": [{ id: "operating-result", label: "RESULTADO OPERACIONAL", calc: t => (t["revenue"] || 0) - (t["deductions"] || 0) - (t["costs"] || 0) - (t["operational_expenses"] || 0) }],
+  "financial_revenue": [{ id: "pre-tax", label: "RESULTADO ANTES DOS IMPOSTOS", calc: t => (t["revenue"] || 0) - (t["deductions"] || 0) - (t["costs"] || 0) - (t["operational_expenses"] || 0) - (t["financial_expenses"] || 0) + (t["financial_revenue"] || 0) }],
+  "taxes": [{ id: "net-income", label: "LUCRO LÍQUIDO", calc: t => (t["revenue"] || 0) - (t["deductions"] || 0) - (t["costs"] || 0) - (t["operational_expenses"] || 0) - (t["financial_expenses"] || 0) + (t["financial_revenue"] || 0) - (t["taxes"] || 0) }],
+};
+
+export function useDRE(filters: DREFilters) {
+  const { user } = useAuth();
+  const { empresa } = useEmpresa();
+  const targetUserId = empresa?.user_id ?? user?.id;
+
+  const { start, end } = getDateRange(filters);
+  const prev = getPreviousRange(start, end);
+  const startStr = start.toISOString().split("T")[0];
+  const endStr = end.toISOString().split("T")[0];
+  const prevStartStr = prev.start.toISOString().split("T")[0];
+  const prevEndStr = prev.end.toISOString().split("T")[0];
+
+  // Fetch full chart of accounts
+  const { data: categorias = [] } = useQuery({
+    queryKey: ["dre-categorias", targetUserId],
+    enabled: !!user && !!targetUserId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("categorias_financeiras")
+        .select("*")
+        .eq("user_id", targetUserId!)
+        .eq("ativo", true)
+        .order("ordem");
+      if (error) throw error;
+      return (data ?? []) as CatRow[];
+    },
+  });
+
+  // Fetch cash_transactions for current period
+  const { data: transactions = [], isLoading: loadingTx } = useQuery({
+    queryKey: ["dre-transactions", targetUserId, startStr, endStr, filters.bankAccountId, filters.costCenterId],
+    enabled: !!user && !!targetUserId,
+    queryFn: async () => {
+      let q = supabase
+        .from("cash_transactions")
+        .select("*")
+        .eq("user_id", targetUserId!)
+        .gte("transaction_date", startStr)
+        .lte("transaction_date", endStr);
+      if (filters.bankAccountId) q = q.eq("bank_account_id", filters.bankAccountId);
+      const { data, error } = await q;
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  // Fetch previous period
+  const { data: prevTransactions = [] } = useQuery({
+    queryKey: ["dre-prev-transactions", targetUserId, prevStartStr, prevEndStr, filters.bankAccountId, filters.costCenterId],
+    enabled: !!user && !!targetUserId,
+    queryFn: async () => {
+      let q = supabase
+        .from("cash_transactions")
+        .select("*")
+        .eq("user_id", targetUserId!)
+        .gte("transaction_date", prevStartStr)
+        .lte("transaction_date", prevEndStr);
+      if (filters.bankAccountId) q = q.eq("bank_account_id", filters.bankAccountId);
+      const { data, error } = await q;
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  // Build DRE from chart of accounts tree
+  const dreData = useMemo(() => {
+    const tree = buildCatTree(categorias);
+
+    // Index transactions by categoria_financeira_id
+    const txByCat = new Map<string, number>();
+    const prevTxByCat = new Map<string, number>();
+    for (const t of transactions) {
+      const catId = (t as any).categoria_financeira_id;
+      if (catId) txByCat.set(catId, (txByCat.get(catId) || 0) + Math.abs(Number(t.amount)));
+    }
+    for (const t of prevTransactions) {
+      const catId = (t as any).categoria_financeira_id;
+      if (catId) prevTxByCat.set(catId, (prevTxByCat.get(catId) || 0) + Math.abs(Number(t.amount)));
+    }
+
+    // Sum all IDs under a node
+    const sumNode = (node: CatNode, map: Map<string, number>): number => {
+      const ids = getAllIds(node);
+      return ids.reduce((s, id) => s + (map.get(id) || 0), 0);
+    };
+
+    // Group root nodes by dre_group
+    const rootsByGroup = new Map<string, CatNode[]>();
+    for (const root of tree) {
+      const group = resolveDreGroup(root);
+      if (!rootsByGroup.has(group)) rootsByGroup.set(group, []);
+      rootsByGroup.get(group)!.push(root);
+    }
+
+    // Build DRELine tree for a category node
+    function buildNodeLine(node: CatNode, depth: number, numberPrefix: string, idx: number, totalRevenue: number): DRELine {
+      const num = numberPrefix ? `${numberPrefix}${idx + 1}.` : `${idx + 1}.`;
+      const amount = sumNode(node, txByCat);
+      const prevAmount = sumNode(node, prevTxByCat);
+      const childLines = node.children.map((child, i) =>
+        buildNodeLine(child, depth + 1, num, i, totalRevenue)
+      );
+
+      return {
+        id: node.id,
+        label: node.nome,
+        depth,
+        amount,
+        percentage: totalRevenue > 0 ? (amount / totalRevenue) * 100 : 0,
+        previousAmount: prevAmount,
+        variation: prevAmount > 0 ? ((amount - prevAmount) / prevAmount) * 100 : null,
+        isGroup: childLines.length > 0,
+        isSummary: false,
+        dreGroup: resolveDreGroup(node),
+        tipo: node.tipo,
+        children: childLines.length > 0 ? childLines : undefined,
+        categoryId: node.id,
+        number: num,
+      };
+    }
+
+    // First pass: compute total revenue for percentage calculations
+    const revenueRoots = rootsByGroup.get("revenue") || [];
+    const finRevRoots = rootsByGroup.get("financial_revenue") || [];
+    const totalRevenue = [...revenueRoots].reduce((s, n) => s + sumNode(n, txByCat), 0);
+    const prevTotalRevenue = [...revenueRoots].reduce((s, n) => s + sumNode(n, prevTxByCat), 0);
+
+    // Build all lines following DRE section order
+    const lines: DRELine[] = [];
+    const groupTotals: Record<string, number> = {};
+    let sectionCounter = 0;
+
+    for (const section of DRE_SECTIONS) {
+      const roots = rootsByGroup.get(section.group) || [];
+      if (roots.length === 0) {
+        groupTotals[section.group] = 0;
+        // Still emit summaries even if section is empty
+        const summaries = SUMMARIES_AFTER[section.group];
+        if (summaries) {
+          for (const sum of summaries) {
+            const val = sum.calc(groupTotals);
+            lines.push({
+              id: sum.id, label: sum.label, depth: 0, amount: val,
+              percentage: totalRevenue > 0 ? (val / totalRevenue) * 100 : 0,
+              previousAmount: 0, variation: null, isGroup: false, isSummary: true,
+            });
+          }
+        }
+        continue;
+      }
+
+      sectionCounter++;
+      const sectionPrefix = `${sectionCounter}.`;
+
+      // Build child lines from the chart of accounts
+      const childLines = roots.map((root, i) =>
+        buildNodeLine(root, 1, sectionPrefix, i, totalRevenue)
+      );
+
+      const sectionTotal = childLines.reduce((s, l) => s + l.amount, 0);
+      const prevSectionTotal = roots.reduce((s, n) => s + sumNode(n, prevTxByCat), 0);
+      groupTotals[section.group] = sectionTotal;
+
+      lines.push({
+        id: section.group,
+        label: section.label,
+        depth: 0,
+        amount: sectionTotal,
+        percentage: totalRevenue > 0 ? (sectionTotal / totalRevenue) * 100 : 0,
+        previousAmount: prevSectionTotal,
+        variation: prevSectionTotal > 0 ? ((sectionTotal - prevSectionTotal) / prevSectionTotal) * 100 : null,
+        isGroup: true,
+        isSummary: false,
+        dreGroup: section.group,
+        children: childLines,
+        number: `${sectionCounter}.`,
+      });
+
+      // Insert summary lines after this group
+      const summaries = SUMMARIES_AFTER[section.group];
+      if (summaries) {
+        for (const sum of summaries) {
+          const val = sum.calc(groupTotals);
+          const prevVal = sum.calc(
+            Object.fromEntries(
+              Object.entries(groupTotals).map(([k]) => {
+                const pRoots = rootsByGroup.get(k) || [];
+                return [k, pRoots.reduce((s, n) => s + sumNode(n, prevTxByCat), 0)];
+              })
+            )
+          );
+          lines.push({
+            id: sum.id, label: sum.label, depth: 0, amount: val,
+            percentage: totalRevenue > 0 ? (val / totalRevenue) * 100 : 0,
+            previousAmount: prevVal,
+            variation: prevVal !== 0 ? ((val - prevVal) / Math.abs(prevVal)) * 100 : null,
+            isGroup: false, isSummary: true,
+          });
+        }
+      }
+    }
+
+    const netIncome = (groupTotals["revenue"] || 0) - (groupTotals["deductions"] || 0) - (groupTotals["costs"] || 0) - (groupTotals["operational_expenses"] || 0) - (groupTotals["financial_expenses"] || 0) + (groupTotals["financial_revenue"] || 0) - (groupTotals["taxes"] || 0);
+
+    return {
+      lines,
+      totalRevenue,
+      totalExpense: Object.entries(groupTotals).filter(([k]) => k !== "revenue" && k !== "financial_revenue").reduce((s, [, v]) => s + v, 0),
+      operatingResult: (groupTotals["revenue"] || 0) - (groupTotals["deductions"] || 0) - (groupTotals["costs"] || 0) - (groupTotals["operational_expenses"] || 0),
+      netIncome,
+      profitMargin: totalRevenue > 0 ? (netIncome / totalRevenue) * 100 : 0,
+    };
+  }, [transactions, prevTransactions, categorias]);
+
+  return {
+    ...dreData,
+    transactions,
+    isLoading: loadingTx,
+    dateRange: { start, end },
+    prevRange: prev,
+  };
 }
