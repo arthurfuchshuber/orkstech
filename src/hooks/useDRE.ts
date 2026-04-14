@@ -27,6 +27,7 @@ export interface DRELine {
   variation: number | null;
   isGroup: boolean;
   isSummary: boolean;
+  isPercentual?: boolean;
   dreGroup?: string;
   tipo?: string;
   children?: DRELine[];
@@ -253,13 +254,18 @@ export function useDRE(filters: DREFilters) {
       number: `${nextNum++}.`,
     });
 
+    const margemBrutaPct = totalReceitaAmount > 0 ? (lucroBruto / totalReceitaAmount) * 100 : 0;
+    const margemLiquidaPct = totalReceitaAmount > 0 ? (lucroLiquido / totalReceitaAmount) * 100 : 0;
+
     const indicators: DRELine[] = [
       makeIndicator("receita-liquida", "Receita Líquida", receitaLiquida),
       makeIndicator("lucro-bruto", "Lucro Bruto", lucroBruto),
+      { ...makeIndicator("margem-bruta", "Margem Bruta", margemBrutaPct), isPercentual: true },
       makeIndicator("resultado-operacional", "Resultado Operacional", resultadoOperacional),
       makeIndicator("resultado-financeiro", "Resultado Financeiro", resultadoFinanceiro),
       makeIndicator("resultado-antes-impostos", "Resultado antes dos Impostos", resultadoAntesImpostos),
       makeIndicator("lucro-liquido", "Lucro Líquido", lucroLiquido),
+      { ...makeIndicator("margem-liquida", "Margem Líquida", margemLiquidaPct), isPercentual: true },
     ];
 
     return {

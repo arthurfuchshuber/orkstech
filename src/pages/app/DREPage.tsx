@@ -225,7 +225,9 @@ export default function DREPage() {
                               </div>
                             </TableCell>
                             <TableCell className={`text-right text-xs py-1.5 ${valueColor}`}>
-                              {isSummary && line.amount < 0 ? `(${fmt(Math.abs(line.amount))})` : fmt(Math.abs(line.amount))}
+                              {line.isPercentual
+                                ? fmtPct(line.amount)
+                                : isSummary && line.amount < 0 ? `(${fmt(Math.abs(line.amount))})` : fmt(Math.abs(line.amount))}
                             </TableCell>
                             <TableCell className="text-right text-xs py-1.5 text-muted-foreground">
                               {fmtPct(line.percentage)}
