@@ -377,9 +377,9 @@ export default function ExtratoBancario() {
 
           <Popover>
             <PopoverTrigger asChild>
-              <Button variant="outline" className={cn("w-[150px] justify-start text-left font-normal text-sm")}>
+              <Button variant="outline" className={cn("w-[150px] justify-start text-left font-normal text-sm", allPeriod && "opacity-50")}>
                 <CalendarIcon className="mr-2 h-3.5 w-3.5" />
-                {format(dateFrom, "dd/MM/yyyy")}
+                {allPeriod ? "Início" : format(dateFrom, "dd/MM/yyyy")}
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0" align="start">
@@ -398,9 +398,9 @@ export default function ExtratoBancario() {
 
           <Popover>
             <PopoverTrigger asChild>
-              <Button variant="outline" className={cn("w-[150px] justify-start text-left font-normal text-sm")}>
+              <Button variant="outline" className={cn("w-[150px] justify-start text-left font-normal text-sm", allPeriod && "opacity-50")}>
                 <CalendarIcon className="mr-2 h-3.5 w-3.5" />
-                {format(dateTo, "dd/MM/yyyy")}
+                {allPeriod ? "Hoje" : format(dateTo, "dd/MM/yyyy")}
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0" align="start">
@@ -428,7 +428,7 @@ export default function ExtratoBancario() {
               Mês atual
             </Button>
             <Button
-              variant="secondary"
+              variant={!allPeriod && format(dateFrom, "yyyy-MM") === format(new Date(now.getFullYear(), now.getMonth() - 1, 1), "yyyy-MM") ? "default" : "secondary"}
               size="sm"
               onClick={() => {
                 setAllPeriod(false);
@@ -440,7 +440,7 @@ export default function ExtratoBancario() {
               Mês anterior
             </Button>
             <Button
-              variant="secondary"
+              variant={!allPeriod && format(dateFrom, "yyyy-MM-dd") === format(new Date(now.getFullYear(), 0, 1), "yyyy-MM-dd") && format(dateTo, "yyyy-MM") === format(now, "yyyy-MM") ? "default" : "secondary"}
               size="sm"
               onClick={() => {
                 setAllPeriod(false);
