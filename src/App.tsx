@@ -20,7 +20,6 @@ import Fornecedores from "./pages/app/Fornecedores";
 import Automacoes from "./pages/app/Automacoes";
 import Configuracoes from "./pages/app/Configuracoes";
 import PlaceholderPage from "./pages/app/PlaceholderPage";
-import Dashboard from "./pages/app/Dashboard";
 import Financeiro from "./pages/app/Financeiro";
 import ContasBancarias from "./pages/app/ContasBancarias";
 import GerenciarMenu from "./pages/app/GerenciarMenu";
