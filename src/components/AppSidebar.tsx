@@ -279,10 +279,20 @@ export function AppSidebar() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeIdsKey, location.pathname]);
 
+  const findInTree = (items: MenuItem[], targetId: string): MenuItem | null => {
+    for (const item of items) {
+      if (item.id === targetId) return item;
+      if (item.children?.length) {
+        const found = findInTree(item.children, targetId);
+        if (found) return found;
+      }
+    }
+    return null;
+  };
+
   const handleToggle = (id: string, parentId: string | null) => {
     const isCurrentlyOpen = !!openMap[id];
 
-    // Close siblings
     const siblingIds = flatMenus
       .filter((menu) => menu.parent_id === parentId)
       .map((menu) => menu.id);
@@ -295,17 +305,9 @@ export function AppSidebar() {
     if (!isCurrentlyOpen) {
       next[id] = true;
 
-      // Navigate to the first route in this category
-      const menuItem = flatMenus.find((m) => m.id === id);
+      const menuItem = findInTree(filteredTree, id);
       if (menuItem) {
-        const firstRoute = findFirstRoute({
-          ...menuItem,
-          children: tree
-            .flatMap(function flatten(m): MenuItem[] {
-              return m.id === id ? [m] : (m.children ?? []).flatMap(flatten);
-            })
-            .find((m) => m.id === id)?.children,
-        } as MenuItem);
+        const firstRoute = findFirstRoute(menuItem);
         if (firstRoute && firstRoute !== location.pathname) {
           navigate(firstRoute);
         }
