@@ -49,16 +49,17 @@ export function usePluggyConnections() {
       const token = session.data.session?.access_token;
       const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
       const res = await fetch(
-        `https://${projectId}.supabase.co/functions/v1/pluggy-sync?itemId=${itemId}&action=summary`,
+        `https://${projectId}.supabase.co/functions/v1/pluggy-sync?itemId=${itemId}&action=full_sync`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
       if (!res.ok) {
-        await res.text();
         throw new Error("Sync failed");
       }
-      await res.json();
-      toast.success("Sincronizado com sucesso!");
+      const result = await res.json();
+      toast.success(result.message || "Sincronizado com sucesso!");
       qc.invalidateQueries({ queryKey: ["pluggy_connections"] });
+      qc.invalidateQueries({ queryKey: ["pluggy_bank_accounts"] });
+      qc.invalidateQueries({ queryKey: ["pluggy_transactions"] });
     } catch (err) {
       console.error("Sync error:", err);
       toast.error("Erro ao sincronizar");
@@ -106,9 +107,31 @@ export function PluggyConnectButton({ size = "default" }: { size?: "default" | "
       console.error("Insert error:", insertError);
       toast.error("Erro ao salvar conexão");
     } else {
-      toast.success(`${item.connector?.name || "Banco"} conectado com sucesso!`);
+      toast.success(`${item.connector?.name || "Banco"} conectado! Sincronizando dados...`);
       qc.invalidateQueries({ queryKey: ["pluggy_connections"] });
       qc.invalidateQueries({ queryKey: ["pluggy_connections_exist"] });
+
+      // Auto-sync: fetch accounts and transactions
+      try {
+        const session = await supabase.auth.getSession();
+        const token = session.data.session?.access_token;
+        const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+        const res = await fetch(
+          `https://${projectId}.supabase.co/functions/v1/pluggy-sync?itemId=${item.id}&action=full_sync`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        if (res.ok) {
+          const result = await res.json();
+          toast.success(result.message || "Dados sincronizados!");
+          qc.invalidateQueries({ queryKey: ["pluggy_bank_accounts"] });
+          qc.invalidateQueries({ queryKey: ["pluggy_transactions"] });
+        } else {
+          console.error("Auto-sync failed:", await res.text());
+          toast.error("Conexão salva, mas erro ao sincronizar dados");
+        }
+      } catch (syncErr) {
+        console.error("Auto-sync error:", syncErr);
+      }
     }
     setConnectToken(null);
     setLoading(false);
