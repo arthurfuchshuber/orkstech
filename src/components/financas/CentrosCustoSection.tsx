@@ -20,22 +20,25 @@ interface CentroCusto {
 
 export function CentrosCustoSection() {
   const { user } = useAuth();
+  const { empresa } = useEmpresa();
   const qc = useQueryClient();
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
 
+  const targetUserId = empresa?.user_id ?? user?.id;
+
   const { data: items = [], isLoading } = useQuery({
-    queryKey: ["centros_custo"],
+    queryKey: ["centros_custo", targetUserId],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("centros_custo")
         .select("*")
-        .eq("user_id", user!.id)
+        .eq("user_id", targetUserId!)
         .order("nome");
       if (error) throw error;
       return data as CentroCusto[];
     },
-    enabled: !!user,
+    enabled: !!user && !!targetUserId,
   });
 
   const deleteMutation = useMutation({
