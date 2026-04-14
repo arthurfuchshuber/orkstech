@@ -333,6 +333,33 @@ export function PlanoDeContasSection() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <Dialog open={moveModalOpen} onOpenChange={(v) => !v && closeMoveModal()}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Mover "{movingNode?.nome}"</DialogTitle></DialogHeader>
+          <div className="space-y-4 py-2">
+            <div>
+              <label className="text-sm font-medium text-foreground mb-1.5 block">Mover para dentro de:</label>
+              <Select value={moveTargetId || "__none__"} onValueChange={(v) => setMoveTargetId(v === "__none__" ? null : v)}>
+                <SelectTrigger><SelectValue placeholder="Raiz (sem pai)" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">Raiz (sem pai)</SelectItem>
+                  {moveParentOptions.map((c) => {
+                    const flat = flatItems.find((f) => f.id === c.id);
+                    return <SelectItem key={c.id} value={c.id}>{flat?.number || ""} {c.nome}</SelectItem>;
+                  })}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={closeMoveModal}>Cancelar</Button>
+            <Button onClick={() => movingNode && moveMutation.mutate({ id: movingNode.id, newParentId: moveTargetId })} disabled={moveMutation.isPending}>
+              {moveMutation.isPending ? "Movendo..." : "Mover"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }
