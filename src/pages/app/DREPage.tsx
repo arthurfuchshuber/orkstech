@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import React, { useState, useMemo } from "react";
 import { useMultiMonthDRE, type DRELine } from "@/hooks/useMultiMonthDRE";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -6,18 +6,15 @@ import { Badge } from "@/components/ui/badge";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
-} from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { FileText, ChevronRight, ChevronDown, Download, Settings2 } from "lucide-react";
 import { PlanoDeContasSection } from "@/components/financas/PlanoDeContasSection";
-import { Checkbox } from "@/components/ui/checkbox";
 
 const fmt = (v: number) =>
-  new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
-const fmtPct = (v: number) => `${v.toFixed(1)}%`;
+  new Intl.NumberFormat("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(Math.abs(v));
+const fmtPct = (v: number) => `${Math.abs(v).toFixed(1)}%`;
 
+const MONTH_NAMES_SHORT = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
 const MONTH_NAMES = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
 
 export default function DREPage() {
@@ -28,31 +25,17 @@ export default function DREPage() {
 
   const { lines, monthKeys, isLoading, availablePeriods } = useMultiMonthDRE(selectedYear, selectedMonths);
 
-  // Derive available years and months from availablePeriods
-  const { availableYears, monthsForYear } = useMemo(() => {
+  const availableYears = useMemo(() => {
     const yearsSet = new Set<number>();
-    const monthsByYear = new Map<number, Set<number>>();
-    for (const p of availablePeriods) {
-      const [y, m] = p.split("-").map(Number);
-      yearsSet.add(y);
-      if (!monthsByYear.has(y)) monthsByYear.set(y, new Set());
-      monthsByYear.get(y)!.add(m);
-    }
-    // Always include current year
+    for (const p of availablePeriods) yearsSet.add(Number(p.split("-")[0]));
     yearsSet.add(now.getFullYear());
-    if (!monthsByYear.has(now.getFullYear())) {
-      monthsByYear.set(now.getFullYear(), new Set([now.getMonth() + 1]));
-    }
-    const years = Array.from(yearsSet).sort((a, b) => b - a);
-    const monthsFor = monthsByYear.get(selectedYear) || new Set<number>();
-    // Always show all 12 months for the selected year
-    return { availableYears: years, monthsForYear: Array.from({ length: 12 }, (_, i) => i + 1) };
-  }, [availablePeriods, selectedYear]);
+    return Array.from(yearsSet).sort((a, b) => b - a);
+  }, [availablePeriods]);
 
   const toggleMonth = (month: number) => {
     setSelectedMonths(prev => {
       if (prev.includes(month)) {
-        if (prev.length === 1) return prev; // keep at least one
+        if (prev.length === 1) return prev;
         return prev.filter(m => m !== month);
       }
       return [...prev, month].sort((a, b) => a - b);
@@ -87,12 +70,15 @@ export default function DREPage() {
 
   const exportCSV = () => {
     const allLines = flatLines.map(f => f.line);
-    const header = ["Número", "Conta", ...monthKeys.map(mk => {
-      const [, m] = mk.split("-");
-      return MONTH_NAMES[parseInt(m) - 1];
+    const header = ["Estrutura", ...monthKeys.flatMap(mk => {
+      const [y, m] = mk.split("-");
+      const label = `${MONTH_NAMES_SHORT[parseInt(m) - 1]}/${y}`;
+      return [label, `A.V. ${label}`];
     })].join(";");
     const rows = allLines.map(l =>
-      [l.number || "", l.label, ...monthKeys.map(mk => (l.amounts[mk] || 0).toFixed(2))].join(";")
+      [`${l.sign ? l.sign + " " : ""}${l.label}`, ...monthKeys.flatMap(mk =>
+        [(l.amounts[mk] || 0).toFixed(2), (l.percentages[mk] || 0).toFixed(1) + "%"]
+      )].join(";")
     );
     const blob = new Blob([[header, ...rows].join("\n")], { type: "text/csv;charset=utf-8" });
     const url = URL.createObjectURL(blob);
@@ -101,6 +87,11 @@ export default function DREPage() {
     a.download = `DRE_${selectedYear}.csv`;
     a.click();
     URL.revokeObjectURL(url);
+  };
+
+  const monthColLabel = (mk: string) => {
+    const [y, m] = mk.split("-");
+    return `${MONTH_NAMES_SHORT[parseInt(m) - 1]}/${y}`;
   };
 
   return (
@@ -136,9 +127,8 @@ export default function DREPage() {
                 {availableYears.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}
               </SelectContent>
             </Select>
-
             <div className="flex items-center gap-1.5 flex-wrap">
-              {monthsForYear.map(m => {
+              {Array.from({ length: 12 }, (_, i) => i + 1).map(m => {
                 const isSelected = selectedMonths.includes(m);
                 return (
                   <button
@@ -179,72 +169,107 @@ export default function DREPage() {
                 {isLoading ? (
                   <div className="py-12 text-center text-muted-foreground text-sm">Carregando...</div>
                 ) : (
-                  <Table>
-                    <TableHeader>
-                      <TableRow className="border-border/30">
-                        <TableHead className="text-xs sticky left-0 bg-background z-10 min-w-[250px]">Conta</TableHead>
-                        {monthKeys.map(mk => {
-                          const [, m] = mk.split("-");
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-xs border-collapse">
+                      <thead>
+                        <tr className="border-b border-border/30">
+                          <th className="text-left py-2 px-3 font-medium text-muted-foreground sticky left-0 bg-background z-10 min-w-[280px]">
+                            Estrutura
+                          </th>
+                          {monthKeys.map(mk => (
+                            <th key={mk} colSpan={2} className="text-center py-2 px-1 font-medium text-muted-foreground border-l border-border/20 min-w-[160px]">
+                              {monthColLabel(mk)}
+                            </th>
+                          ))}
+                        </tr>
+                        <tr className="border-b border-border/20">
+                          <th className="sticky left-0 bg-background z-10" />
+                          {monthKeys.map(mk => (
+                            <React.Fragment key={mk}>
+                              <th className="text-right py-1 px-2 font-normal text-muted-foreground/70 text-[10px] border-l border-border/20">
+                                Valor
+                              </th>
+                              <th className="text-right py-1 px-2 font-normal text-muted-foreground/70 text-[10px]">
+                                A.V.
+                              </th>
+                            </React.Fragment>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {flatLines.filter(f => f.visible).map((f) => {
+                          const { line } = f;
+                          const hasChildren = line.children && line.children.length > 0;
+                          const isExpanded = expandedGroups.has(line.id);
+                          const isSummary = line.isSummary;
+                          const isComputed = line.lineType === "computed";
+                          const isResult = line.sign === "(=)";
+
+                          const rowClass = isResult
+                            ? "bg-muted/40 border-t border-border/40 font-semibold"
+                            : isSummary || (isComputed && !isResult)
+                              ? "bg-muted/15"
+                              : "";
+
+                          const labelWeight = isResult || (isComputed && line.depth === 0)
+                            ? "font-semibold text-foreground"
+                            : line.depth === 0
+                              ? "font-medium text-foreground"
+                              : "text-muted-foreground";
+
                           return (
-                            <TableHead key={mk} className="text-right text-xs min-w-[120px]">
-                              {MONTH_NAMES[parseInt(m) - 1]}/{selectedYear}
-                            </TableHead>
+                            <tr
+                              key={line.id}
+                              className={`${rowClass} border-b border-border/10 hover:bg-muted/10 transition-colors`}
+                            >
+                              <td className="py-1.5 px-3 sticky left-0 bg-background z-10">
+                                <div
+                                  className="flex items-center gap-1.5 cursor-pointer select-none"
+                                  style={{ paddingLeft: `${line.depth * 16}px` }}
+                                  onClick={() => { if (hasChildren) toggleGroup(line.id); }}
+                                >
+                                  {hasChildren ? (
+                                    isExpanded
+                                      ? <ChevronDown className="w-3 h-3 text-muted-foreground flex-shrink-0" />
+                                      : <ChevronRight className="w-3 h-3 text-muted-foreground flex-shrink-0" />
+                                  ) : (
+                                    <span className="w-3 flex-shrink-0" />
+                                  )}
+                                  {line.sign && (
+                                    <span className="text-[10px] text-muted-foreground/60 font-mono flex-shrink-0 min-w-[1.5rem]">
+                                      {line.sign}
+                                    </span>
+                                  )}
+                                  {line.number && (
+                                    <span className="text-[10px] text-muted-foreground/60 font-mono flex-shrink-0 min-w-[2rem]">
+                                      {line.number}
+                                    </span>
+                                  )}
+                                  <span className={`text-xs ${labelWeight} whitespace-nowrap`}>
+                                    {line.label}
+                                  </span>
+                                </div>
+                              </td>
+                              {monthKeys.map(mk => {
+                                const amt = line.amounts[mk] || 0;
+                                const pct = line.percentages[mk] || 0;
+                                return (
+                                  <React.Fragment key={mk}>
+                                    <td className={`text-right py-1.5 px-2 tabular-nums border-l border-border/10 ${labelWeight}`}>
+                                      {fmt(amt)}
+                                    </td>
+                                    <td className="text-right py-1.5 px-2 tabular-nums text-muted-foreground">
+                                      {fmtPct(pct)}
+                                    </td>
+                                  </React.Fragment>
+                                );
+                              })}
+                            </tr>
                           );
                         })}
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {flatLines.filter(f => f.visible).map((f) => {
-                        const { line } = f;
-                        const hasChildren = line.children && line.children.length > 0;
-                        const isExpanded = expandedGroups.has(line.id);
-                        const isSummary = line.isSummary;
-                        const isRevenue = line.tipo === "receita";
-
-                        const rowBg = isSummary ? "bg-muted/30 border-t border-border/40" : "";
-                        const labelColor = isSummary
-                          ? "font-semibold text-foreground"
-                          : line.depth === 0 ? "font-medium text-foreground" : "text-muted-foreground";
-
-                        return (
-                          <TableRow key={line.id} className={`${rowBg} border-border/15 hover:bg-muted/10 transition-colors`}>
-                            <TableCell className="py-1.5 pr-0 sticky left-0 bg-background z-10">
-                              <div
-                                className="flex items-center gap-1.5 cursor-pointer select-none"
-                                style={{ paddingLeft: `${line.depth * 20}px` }}
-                                onClick={() => { if (hasChildren) toggleGroup(line.id); }}
-                              >
-                                {hasChildren && !isSummary ? (
-                                  isExpanded
-                                    ? <ChevronDown className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
-                                    : <ChevronRight className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
-                                ) : (
-                                  !isSummary && <span className="w-3.5 flex-shrink-0" />
-                                )}
-                                {line.number && (
-                                  <span className="text-[10px] text-muted-foreground/60 font-mono min-w-[2.5rem]">
-                                    {line.number}
-                                  </span>
-                                )}
-                                <span className={`text-xs ${labelColor} whitespace-nowrap`}>{line.label}</span>
-                              </div>
-                            </TableCell>
-                            {monthKeys.map(mk => {
-                              const amt = line.amounts[mk] || 0;
-                              const valueColor = isSummary
-                                ? amt >= 0 ? "text-emerald-500 font-semibold" : "text-destructive font-semibold"
-                                : isRevenue ? "text-emerald-500" : line.depth === 0 ? "text-destructive" : "text-foreground";
-                              return (
-                                <TableCell key={mk} className={`text-right text-xs py-1.5 ${valueColor}`}>
-                                  {isSummary && amt < 0 ? `(${fmt(Math.abs(amt))})` : fmt(Math.abs(amt))}
-                                </TableCell>
-                              );
-                            })}
-                          </TableRow>
-                        );
-                      })}
-                    </TableBody>
-                  </Table>
+                      </tbody>
+                    </table>
+                  </div>
                 )}
               </CardContent>
             </Card>
@@ -260,3 +285,5 @@ export default function DREPage() {
     </div>
   );
 }
+
+
