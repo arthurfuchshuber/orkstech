@@ -7,6 +7,12 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Calendar } from "@/components/ui/calendar";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import {
   Select,
   SelectContent,
@@ -25,7 +31,17 @@ import {
   CheckCircle2,
   TrendingUp,
   TrendingDown,
+  CalendarIcon,
 } from "lucide-react";
+import { format, startOfMonth, endOfMonth } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import { cn } from "@/lib/utils";
+
+// Categories that represent internal bank movements (caixinhas, investments, etc.)
+const INTERNAL_CATEGORIES = ["Investments", "Same person transfer"];
+
+const isInternalTransaction = (tx: { category: string | null }) =>
+  tx.category != null && INTERNAL_CATEGORIES.includes(tx.category);
 
 interface BankAccount {
   id: string;
@@ -68,7 +84,15 @@ export default function ExtratoBancario() {
   const [searchTerm, setSearchTerm] = useState("");
   const [typeFilter, setTypeFilter] = useState<string>("all");
 
+  // Date range filter — default to current month
+  const now = new Date();
+  const [dateFrom, setDateFrom] = useState<Date>(startOfMonth(now));
+  const [dateTo, setDateTo] = useState<Date>(endOfMonth(now));
+
   const targetUserId = empresa?.user_id ?? user?.id;
+
+  const dateFromStr = format(dateFrom, "yyyy-MM-dd");
+  const dateToStr = format(dateTo, "yyyy-MM-dd");
 
   const { data: accounts = [], isLoading: loadingAccounts } = useQuery({
     queryKey: ["pluggy_bank_accounts", targetUserId],
@@ -85,7 +109,6 @@ export default function ExtratoBancario() {
     enabled: !!user && !!targetUserId,
   });
 
-  // Fetch connections (connector_name) and profile (nome) for display names
   const { data: connections = [] } = useQuery({
     queryKey: ["pluggy_connections_names", targetUserId],
     queryFn: async () => {
@@ -121,7 +144,6 @@ export default function ExtratoBancario() {
     const connectorName = conn?.connector_name || "Conta";
     const isEmpresaConnector = connectorName.toLowerCase().includes("empresa");
 
-    // For empresa connectors use nome_fantasia; for personal use profile name
     const empresaLabel = empresa?.nome_fantasia || empresa?.razao_social || "";
     const profileLabel = profileData?.nome || "";
     const ownerLabel = isEmpresaConnector ? empresaLabel : profileLabel;
@@ -129,7 +151,6 @@ export default function ExtratoBancario() {
 
     if (account.type === "CREDIT") {
       const creditData = (account.bank_data as any)?.creditData;
-      // Use the first identificationNumber as primary card (additional cards are in additionalCards array)
       const last4 = creditData?.disaggregatedCreditLimits?.[0]?.identificationNumber || "";
       const suffix = last4 ? ` (${last4})` : "";
       return `${connectorName} Cartão de Crédito${suffix}`;
@@ -141,24 +162,25 @@ export default function ExtratoBancario() {
   const creditCards = accounts.filter((account) => account.type === "CREDIT");
   const bankAccounts = accounts.filter((account) => account.type !== "CREDIT");
 
-  // Fetch ALL bank account transactions (paginated) for accurate totals
   const bankAccountIds = bankAccounts.map((a) => a.pluggy_account_id);
 
+  // Fetch ALL bank account transactions (paginated) filtered by date range
   const { data: allTransactions = [] } = useQuery({
-    queryKey: ["pluggy_transactions_summary", targetUserId, bankAccountIds.join(",")],
+    queryKey: ["pluggy_transactions_summary", targetUserId, bankAccountIds.join(","), dateFromStr, dateToStr],
     queryFn: async () => {
       if (bankAccountIds.length === 0) return [];
       const allResults: Transaction[] = [];
-      // Fetch per account to avoid 1000-row limit across all accounts
       for (const accId of bankAccountIds) {
         let from = 0;
         const pageSize = 1000;
         while (true) {
           const { data, error } = await supabase
             .from("pluggy_transactions" as any)
-            .select("id, amount, type, pluggy_account_id")
+            .select("id, amount, type, category, pluggy_account_id")
             .eq("user_id", targetUserId!)
             .eq("pluggy_account_id", accId)
+            .gte("date", dateFromStr)
+            .lte("date", dateToStr)
             .range(from, from + pageSize - 1);
           if (error) throw error;
           const rows = data as unknown as Transaction[];
@@ -173,12 +195,14 @@ export default function ExtratoBancario() {
   });
 
   const { data: transactions = [], isLoading: loadingTx } = useQuery({
-    queryKey: ["pluggy_transactions", selectedAccount, typeFilter, targetUserId],
+    queryKey: ["pluggy_transactions", selectedAccount, typeFilter, targetUserId, dateFromStr, dateToStr],
     queryFn: async () => {
       let query = supabase
         .from("pluggy_transactions" as any)
         .select("*")
         .eq("user_id", targetUserId!)
+        .gte("date", dateFromStr)
+        .lte("date", dateToStr)
         .order("date", { ascending: false })
         .limit(1000);
 
@@ -232,7 +256,6 @@ export default function ExtratoBancario() {
   );
 
   const getStoredBalance = (account: BankAccount) => {
-    // Prefer totalInvestments (from investments API), fallback to automaticallyInvestedBalance
     const investments = account.bank_data?.totalInvestments ?? 0;
     const autoInvested = account.bank_data?.automaticallyInvestedBalance ?? 0;
     return investments > 0 ? investments : autoInvested;
@@ -241,7 +264,10 @@ export default function ExtratoBancario() {
   const getAccountTotalBalance = (account: BankAccount) =>
     account.balance + getStoredBalance(account);
 
-  const totalsByAccount = allTransactions.reduce<
+  // Filter out internal transactions (caixinhas/investments) for totals
+  const externalTransactions = allTransactions.filter((tx) => !isInternalTransaction(tx));
+
+  const totalsByAccount = externalTransactions.reduce<
     Record<string, { income: number; expense: number }>
   >((accumulator, tx) => {
     const current = accumulator[tx.pluggy_account_id] ?? { income: 0, expense: 0 };
@@ -262,14 +288,15 @@ export default function ExtratoBancario() {
     0
   );
 
-  // Use allTransactions (unfiltered) so general cards always match per-account cards
-  const totalIncome = allTransactions
+  const totalIncome = externalTransactions
     .filter((tx) => tx.type === "CREDIT" || tx.amount > 0)
     .reduce((sum, tx) => sum + Math.abs(tx.amount), 0);
 
-  const totalExpense = allTransactions
+  const totalExpense = externalTransactions
     .filter((tx) => tx.type === "DEBIT" || tx.amount < 0)
     .reduce((sum, tx) => sum + Math.abs(tx.amount), 0);
+
+  const periodLabel = `${format(dateFrom, "dd/MM/yyyy")} a ${format(dateTo, "dd/MM/yyyy")}`;
 
   return (
     <div className="space-y-6">
@@ -285,6 +312,87 @@ export default function ExtratoBancario() {
         </div>
       </div>
 
+      {/* Date range filter */}
+      <Card className="p-4">
+        <div className="flex flex-wrap items-center gap-3">
+          <span className="text-sm font-medium text-foreground">Período:</span>
+
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" className={cn("w-[150px] justify-start text-left font-normal text-sm")}>
+                <CalendarIcon className="mr-2 h-3.5 w-3.5" />
+                {format(dateFrom, "dd/MM/yyyy")}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar
+                mode="single"
+                selected={dateFrom}
+                onSelect={(d) => d && setDateFrom(d)}
+                locale={ptBR}
+                initialFocus
+                className={cn("p-3 pointer-events-auto")}
+              />
+            </PopoverContent>
+          </Popover>
+
+          <span className="text-sm text-muted-foreground">até</span>
+
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" className={cn("w-[150px] justify-start text-left font-normal text-sm")}>
+                <CalendarIcon className="mr-2 h-3.5 w-3.5" />
+                {format(dateTo, "dd/MM/yyyy")}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar
+                mode="single"
+                selected={dateTo}
+                onSelect={(d) => d && setDateTo(d)}
+                locale={ptBR}
+                initialFocus
+                className={cn("p-3 pointer-events-auto")}
+              />
+            </PopoverContent>
+          </Popover>
+
+          <div className="flex gap-2">
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => {
+                setDateFrom(startOfMonth(now));
+                setDateTo(endOfMonth(now));
+              }}
+            >
+              Mês atual
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => {
+                const prev = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+                setDateFrom(startOfMonth(prev));
+                setDateTo(endOfMonth(prev));
+              }}
+            >
+              Mês anterior
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => {
+                setDateFrom(new Date(now.getFullYear(), 0, 1));
+                setDateTo(endOfMonth(now));
+              }}
+            >
+              Ano atual
+            </Button>
+          </div>
+        </div>
+      </Card>
+
       <div className="grid gap-4 md:grid-cols-3">
         <Card className="p-4">
           <div className="mb-1 flex items-center gap-2">
@@ -293,7 +401,7 @@ export default function ExtratoBancario() {
           </div>
           <p className="text-xl font-bold text-foreground">{formatCurrency(totalBalance)}</p>
           <p className="mt-1 text-[11px] text-muted-foreground">
-            {bankAccounts.length} conta(s) conectada(s), incluindo valores guardados quando enviados separadamente
+            {bankAccounts.length} conta(s) conectada(s), incluindo valores guardados
           </p>
         </Card>
 
@@ -303,7 +411,7 @@ export default function ExtratoBancario() {
             <span className="text-xs text-muted-foreground">Entradas</span>
           </div>
           <p className="text-xl font-bold text-foreground">{formatCurrency(totalIncome)}</p>
-          <p className="mt-1 text-[11px] text-muted-foreground">No período filtrado</p>
+          <p className="mt-1 text-[11px] text-muted-foreground">{periodLabel}</p>
         </Card>
 
         <Card className="p-4">
@@ -312,7 +420,7 @@ export default function ExtratoBancario() {
             <span className="text-xs text-muted-foreground">Saídas</span>
           </div>
           <p className="text-xl font-bold text-destructive">{formatCurrency(totalExpense)}</p>
-          <p className="mt-1 text-[11px] text-muted-foreground">No período filtrado</p>
+          <p className="mt-1 text-[11px] text-muted-foreground">{periodLabel} (excl. caixinhas/investimentos)</p>
         </Card>
       </div>
 
@@ -492,11 +600,15 @@ export default function ExtratoBancario() {
         ) : (
           filteredTx.map((tx) => {
             const isCredit = tx.type === "CREDIT" || tx.amount > 0;
+            const isInternal = isInternalTransaction(tx);
 
             return (
               <div
                 key={tx.id}
-                className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-muted/30"
+                className={cn(
+                  "flex items-center gap-3 px-4 py-3 transition-colors hover:bg-muted/30",
+                  isInternal && "opacity-60"
+                )}
               >
                 <div
                   className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg ${
@@ -515,6 +627,11 @@ export default function ExtratoBancario() {
                     <p className="truncate text-sm font-medium text-foreground">
                       {tx.description || "Sem descrição"}
                     </p>
+                    {isInternal && (
+                      <Badge variant="outline" className="gap-1 text-[10px] border-muted-foreground/30">
+                        Interno
+                      </Badge>
+                    )}
                     {tx.reconciled && (
                       <Badge variant="outline" className="gap-1 text-[10px]">
                         <CheckCircle2 className="h-3 w-3" />
