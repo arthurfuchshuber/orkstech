@@ -49,16 +49,17 @@ export function usePluggyConnections() {
       const token = session.data.session?.access_token;
       const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
       const res = await fetch(
-        `https://${projectId}.supabase.co/functions/v1/pluggy-sync?itemId=${itemId}&action=summary`,
+        `https://${projectId}.supabase.co/functions/v1/pluggy-sync?itemId=${itemId}&action=full_sync`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
       if (!res.ok) {
-        await res.text();
         throw new Error("Sync failed");
       }
-      await res.json();
-      toast.success("Sincronizado com sucesso!");
+      const result = await res.json();
+      toast.success(result.message || "Sincronizado com sucesso!");
       qc.invalidateQueries({ queryKey: ["pluggy_connections"] });
+      qc.invalidateQueries({ queryKey: ["pluggy_bank_accounts"] });
+      qc.invalidateQueries({ queryKey: ["pluggy_transactions"] });
     } catch (err) {
       console.error("Sync error:", err);
       toast.error("Erro ao sincronizar");
