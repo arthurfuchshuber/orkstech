@@ -92,9 +92,16 @@ export function useMenus() {
 
   const reorder = useMutation({
     mutationFn: async (updates: { id: string; order_index: number; parent_id: string | null }[]) => {
-      for (const u of updates) {
-        await supabase.from("menus").update({ order_index: u.order_index, parent_id: u.parent_id }).eq("id", u.id);
-      }
+      await Promise.all(
+        updates.map(async (update) => {
+          const { error } = await supabase
+            .from("menus")
+            .update({ order_index: update.order_index, parent_id: update.parent_id })
+            .eq("id", update.id);
+
+          if (error) throw error;
+        })
+      );
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["menus"] }),
   });
