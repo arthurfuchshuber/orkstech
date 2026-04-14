@@ -151,6 +151,129 @@ export default function GerenciarMenu() {
     reorder.mutate(updates);
   };
 
+  const renderItems = (items: MenuItem[], depth = 0) =>
+    items.map((item, index) => {
+      const hasChildren = !!item.children?.length;
+      const isOpen = openMap[item.id] ?? true;
+      const { rootItems, groups } = getParentOptions(item.id);
+
+      return (
+        <Draggable key={item.id} draggableId={item.id} index={index}>
+          {(prov, dragSnap) => (
+            <div ref={prov.innerRef} {...prov.draggableProps}>
+              <div
+                className={`flex items-center gap-2 px-3 py-2.5 rounded-lg border transition-colors ${
+                  dragSnap.isDragging
+                    ? "border-primary/40 bg-primary/[0.08] shadow-lg ring-1 ring-primary/20"
+                    : "border-border/40 bg-card hover:bg-muted/30"
+                } ${!item.is_active ? "opacity-50" : ""}`}
+              >
+                <div
+                  {...prov.dragHandleProps}
+                  className="cursor-grab active:cursor-grabbing p-1 -m-1 rounded hover:bg-muted/50 transition-colors"
+                >
+                  <GripVertical className="w-4 h-4 text-muted-foreground/50" />
+                </div>
+                <DynamicIcon name={item.icon} className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                <span className="flex-1 text-sm font-medium text-foreground">{item.name}</span>
+
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 rounded-md opacity-50 hover:opacity-100"
+                      title="Mover para outro grupo"
+                    >
+                      <FolderInput className="w-3.5 h-3.5" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-56">
+                    <DropdownMenuItem
+                      disabled={item.parent_id === null}
+                      onClick={() => moveToParent(item.id, item.parent_id, null)}
+                    >
+                      <span className="text-xs">📂 Raiz (nível principal)</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    {rootItems
+                      .filter((r) => r.id !== item.id)
+                      .map((r) => (
+                        <DropdownMenuItem
+                          key={r.id}
+                          disabled={item.parent_id === r.id}
+                          onClick={() => moveToParent(item.id, item.parent_id, r.id)}
+                        >
+                          <DynamicIcon name={r.icon} className="w-3.5 h-3.5 mr-2 text-muted-foreground" />
+                          <span className="text-xs">{r.name}</span>
+                          {item.parent_id === r.id && (
+                            <span className="ml-auto text-[10px] text-muted-foreground">(atual)</span>
+                          )}
+                        </DropdownMenuItem>
+                      ))}
+                    {groups.length > 0 && (
+                      <>
+                        <DropdownMenuSeparator />
+                        {groups.map((g) => (
+                          <DropdownMenuItem
+                            key={g.id}
+                            disabled={item.parent_id === g.id}
+                            onClick={() => moveToParent(item.id, item.parent_id, g.id)}
+                          >
+                            <span className="text-xs ml-3">↳ {g.name}</span>
+                            {item.parent_id === g.id && (
+                              <span className="ml-auto text-[10px] text-muted-foreground">(atual)</span>
+                            )}
+                          </DropdownMenuItem>
+                        ))}
+                      </>
+                    )}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+
+                {hasChildren && (
+                  <button
+                    onClick={() => toggle(item.id)}
+                    className="p-1.5 rounded-md hover:bg-muted/50 transition-colors"
+                  >
+                    {isOpen ? (
+                      <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" />
+                    ) : (
+                      <ChevronRight className="w-3.5 h-3.5 text-muted-foreground" />
+                    )}
+                  </button>
+                )}
+              </div>
+
+              {isOpen && (
+                <Droppable droppableId={item.id}>
+                  {(childProvided, childSnapshot) => (
+                    <div
+                      ref={childProvided.innerRef}
+                      {...childProvided.droppableProps}
+                      className={`ml-6 mt-1 pl-3 border-l-2 rounded-md transition-colors ${
+                        childSnapshot.isDraggingOver
+                          ? "border-primary/50 bg-primary/5"
+                          : "border-border/30"
+                      } ${hasChildren ? "min-h-[4px]" : "min-h-[18px]"}`}
+                    >
+                      {hasChildren && renderItems(item.children!, depth + 1)}
+                      {!hasChildren && childSnapshot.isDraggingOver && (
+                        <div className="px-3 py-2 text-xs text-muted-foreground">
+                          Solte aqui para transformar em submenu
+                        </div>
+                      )}
+                      {childProvided.placeholder}
+                    </div>
+                  )}
+                </Droppable>
+              )}
+            </div>
+          )}
+        </Draggable>
+      );
+    });
+
   const renderDroppable = (items: MenuItem[], droppableId: string, depth = 0) => (
     <Droppable droppableId={droppableId}>
       {(provided, snapshot) => (
@@ -161,106 +284,7 @@ export default function GerenciarMenu() {
             snapshot.isDraggingOver ? "bg-primary/5" : ""
           } ${depth > 0 ? "ml-6 mt-1 pl-3 border-l-2 border-border/30" : ""}`}
         >
-          {items.map((item, index) => {
-            const hasChildren = !!item.children?.length;
-            const isOpen = openMap[item.id] ?? true;
-            const { rootItems, groups } = getParentOptions(item.id);
-
-            return (
-              <Draggable key={item.id} draggableId={item.id} index={index}>
-                {(prov, dragSnap) => (
-                  <div ref={prov.innerRef} {...prov.draggableProps}>
-                    <div
-                      className={`flex items-center gap-2 px-3 py-2.5 rounded-lg border transition-colors ${
-                        dragSnap.isDragging
-                          ? "border-primary/40 bg-primary/[0.08] shadow-lg ring-1 ring-primary/20"
-                          : "border-border/40 bg-card hover:bg-muted/30"
-                      } ${!item.is_active ? "opacity-50" : ""}`}
-                    >
-                      <div
-                        {...prov.dragHandleProps}
-                        className="cursor-grab active:cursor-grabbing p-1 -m-1 rounded hover:bg-muted/50 transition-colors"
-                      >
-                        <GripVertical className="w-4 h-4 text-muted-foreground/50" />
-                      </div>
-                      <DynamicIcon name={item.icon} className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-                      <span className="flex-1 text-sm font-medium text-foreground">{item.name}</span>
-
-                      {/* Move to group dropdown */}
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7 rounded-md opacity-50 hover:opacity-100"
-                            title="Mover para outro grupo"
-                          >
-                            <FolderInput className="w-3.5 h-3.5" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-56">
-                          <DropdownMenuItem
-                            disabled={item.parent_id === null}
-                            onClick={() => moveToParent(item.id, item.parent_id, null)}
-                          >
-                            <span className="text-xs">📂 Raiz (nível principal)</span>
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          {rootItems
-                            .filter((r) => r.id !== item.id)
-                            .map((r) => (
-                              <DropdownMenuItem
-                                key={r.id}
-                                disabled={item.parent_id === r.id}
-                                onClick={() => moveToParent(item.id, item.parent_id, r.id)}
-                              >
-                                <DynamicIcon name={r.icon} className="w-3.5 h-3.5 mr-2 text-muted-foreground" />
-                                <span className="text-xs">{r.name}</span>
-                                {item.parent_id === r.id && (
-                                  <span className="ml-auto text-[10px] text-muted-foreground">(atual)</span>
-                                )}
-                              </DropdownMenuItem>
-                            ))}
-                          {groups.length > 0 && (
-                            <>
-                              <DropdownMenuSeparator />
-                              {groups.map((g) => (
-                                <DropdownMenuItem
-                                  key={g.id}
-                                  disabled={item.parent_id === g.id}
-                                  onClick={() => moveToParent(item.id, item.parent_id, g.id)}
-                                >
-                                  <span className="text-xs ml-3">↳ {g.name}</span>
-                                  {item.parent_id === g.id && (
-                                    <span className="ml-auto text-[10px] text-muted-foreground">(atual)</span>
-                                  )}
-                                </DropdownMenuItem>
-                              ))}
-                            </>
-                          )}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-
-                      {hasChildren && (
-                        <button
-                          onClick={() => toggle(item.id)}
-                          className="p-1.5 rounded-md hover:bg-muted/50 transition-colors"
-                        >
-                          {isOpen ? (
-                            <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" />
-                          ) : (
-                            <ChevronRight className="w-3.5 h-3.5 text-muted-foreground" />
-                          )}
-                        </button>
-                      )}
-                    </div>
-
-                    {isOpen && hasChildren && renderDroppable(item.children!, item.id, depth + 1)}
-                  </div>
-                )}
-              </Draggable>
-            );
-          })}
+          {renderItems(items, depth)}
           {provided.placeholder}
         </div>
       )}
