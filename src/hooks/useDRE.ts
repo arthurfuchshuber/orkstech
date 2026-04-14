@@ -300,10 +300,15 @@ export function useDRE(filters: DREFilters) {
       });
     }
 
+    const grossProfit = totalReceitaAmount - totalCustoAmount;
+
     return {
       lines: [...lines, ...summaryLines],
       totalRevenue: totalReceitaAmount,
       totalExpense: totalDespesaAmount + totalCustoAmount,
+      grossProfit,
+      grossMargin: totalReceitaAmount > 0 ? (grossProfit / totalReceitaAmount) * 100 : 0,
+      ebitda: grossProfit - totalDespesaAmount,
       operatingResult: totalReceitaAmount - totalCustoAmount - totalDespesaAmount,
       netIncome,
       profitMargin: totalRevenue > 0 ? (netIncome / totalRevenue) * 100 : 0,
