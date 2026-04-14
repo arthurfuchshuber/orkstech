@@ -204,11 +204,33 @@ export default function FinanceiroDashboard() {
     const today = new Date();
     const currentMonthStart = startOfMonth(today);
     const months = [];
+    // Include past months with overdue accounts + next 6 months
+    // First, find overdue accounts in past months
+    const pastMonthsWithData = new Map<string, { d: Date; total: number }>();
+    contasPagar.forEach((c) => {
+      const due = new Date(c.due_date);
+      const monthKey = format(due, "yyyy-MM");
+      const monthStart = startOfMonth(due);
+      if (isBefore(monthStart, currentMonthStart)) {
+        const existing = pastMonthsWithData.get(monthKey);
+        if (existing) {
+          existing.total += Number(c.amount);
+        } else {
+          pastMonthsWithData.set(monthKey, { d: due, total: Number(c.amount) });
+        }
+      }
+    });
+    // Add past months (sorted)
+    const sortedPast = Array.from(pastMonthsWithData.entries())
+      .sort(([a], [b]) => a.localeCompare(b));
+    for (const [, { d, total }] of sortedPast) {
+      months.push({ label: format(d, "MMM", { locale: ptBR }), total, isOverdue: true });
+    }
+    // Add current + next 5 months
     for (let i = 0; i < 6; i++) {
-      const d = addMonths(today, i);
+      const d = addMonths(currentMonthStart, i);
       const start = startOfMonth(d);
       const end = endOfMonth(d);
-      const isPast = isBefore(end, currentMonthStart);
       const total = contasPagar.filter((c) => {
         const due = new Date(c.due_date);
         return due >= start && due <= end;
@@ -217,7 +239,7 @@ export default function FinanceiroDashboard() {
         const due = new Date(c.due_date);
         return due >= start && due <= end && (c.status === "overdue" || (c.status === "pending" && isBefore(due, today)));
       });
-      months.push({ label: format(d, "MMM", { locale: ptBR }), total, isOverdue: hasOverdue || isPast });
+      months.push({ label: format(d, "MMM", { locale: ptBR }), total, isOverdue: hasOverdue });
     }
     return months;
   }, [contasPagar]);
