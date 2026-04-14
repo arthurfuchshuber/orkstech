@@ -129,29 +129,47 @@ export default function ExtratoBancario() {
 
     if (account.type === "CREDIT") {
       const creditData = (account.bank_data as any)?.creditData;
+      // Use the first identificationNumber as primary card (additional cards are in additionalCards array)
       const last4 = creditData?.disaggregatedCreditLimits?.[0]?.identificationNumber || "";
       const suffix = last4 ? ` (${last4})` : "";
-      const prefix = `${connectorName} Cartão de Crédito${suffix}`;
-      return displayOwner ? `${prefix} - ${displayOwner}` : prefix;
+      return `${connectorName} Cartão de Crédito${suffix}`;
     }
 
     return displayOwner ? `${connectorName} (${displayOwner})` : connectorName;
   };
 
-  const { data: allTransactions = [] } = useQuery({
-    queryKey: ["pluggy_transactions_summary", targetUserId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("pluggy_transactions" as any)
-        .select("*")
-        .eq("user_id", targetUserId!)
-        .order("date", { ascending: false })
-        .limit(1000);
+  const creditCards = accounts.filter((account) => account.type === "CREDIT");
+  const bankAccounts = accounts.filter((account) => account.type !== "CREDIT");
 
-      if (error) throw error;
-      return data as unknown as Transaction[];
+  // Fetch ALL bank account transactions (paginated) for accurate totals
+  const bankAccountIds = bankAccounts.map((a) => a.pluggy_account_id);
+
+  const { data: allTransactions = [] } = useQuery({
+    queryKey: ["pluggy_transactions_summary", targetUserId, bankAccountIds.join(",")],
+    queryFn: async () => {
+      if (bankAccountIds.length === 0) return [];
+      const allResults: Transaction[] = [];
+      // Fetch per account to avoid 1000-row limit across all accounts
+      for (const accId of bankAccountIds) {
+        let from = 0;
+        const pageSize = 1000;
+        while (true) {
+          const { data, error } = await supabase
+            .from("pluggy_transactions" as any)
+            .select("id, amount, type, pluggy_account_id")
+            .eq("user_id", targetUserId!)
+            .eq("pluggy_account_id", accId)
+            .range(from, from + pageSize - 1);
+          if (error) throw error;
+          const rows = data as unknown as Transaction[];
+          allResults.push(...rows);
+          if (rows.length < pageSize) break;
+          from += pageSize;
+        }
+      }
+      return allResults;
     },
-    enabled: !!user && !!targetUserId,
+    enabled: !!user && !!targetUserId && bankAccountIds.length > 0,
   });
 
   const { data: transactions = [], isLoading: loadingTx } = useQuery({
@@ -212,9 +230,6 @@ export default function ExtratoBancario() {
       ? true
       : tx.description?.toLowerCase().includes(searchTerm.toLowerCase())
   );
-
-  const creditCards = accounts.filter((account) => account.type === "CREDIT");
-  const bankAccounts = accounts.filter((account) => account.type !== "CREDIT");
 
   const getStoredBalance = (account: BankAccount) => {
     // Prefer totalInvestments (from investments API), fallback to automaticallyInvestedBalance
