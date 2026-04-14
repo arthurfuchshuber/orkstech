@@ -44,7 +44,7 @@ export default function DREPage() {
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
   const [drillDownCategory, setDrillDownCategory] = useState<{ id: string; label: string } | null>(null);
 
-  const { lines, totalRevenue, transactions, isLoading, dateRange } = useDRE(filters);
+  const { lines, totalRevenue, grossMargin, ebitda, netIncome, transactions, isLoading, dateRange } = useDRE(filters);
 
   const { data: bankAccounts = [] } = useQuery({
     queryKey: ["dre-bank-accounts", targetUserId],
