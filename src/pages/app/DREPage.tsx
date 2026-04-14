@@ -158,6 +158,23 @@ export default function DREPage() {
             </Select>
           </div>
 
+          {/* Indicators */}
+          <div className="grid grid-cols-4 gap-3 max-w-[50%]">
+            {[
+              { label: "Receita Líquida", value: fmt(totalRevenue) },
+              { label: "Margem Bruta", value: fmtPct(grossMargin) },
+              { label: "EBITDA", value: fmt(ebitda) },
+              { label: "Resultado", value: fmt(netIncome) },
+            ].map((item) => (
+              <Card key={item.label} className="border-border/50">
+                <CardContent className="py-3 px-4">
+                  <p className="text-[11px] text-muted-foreground">{item.label}</p>
+                  <p className="text-sm font-semibold text-foreground mt-0.5">{item.value}</p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+
           {/* DRE Table */}
           <div className="w-full max-w-[50%]">
             <Card className="border-border/50">
