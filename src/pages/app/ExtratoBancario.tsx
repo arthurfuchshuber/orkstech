@@ -348,16 +348,11 @@ export default function ExtratoBancario() {
     .filter((tx) => tx.type === "DEBIT" || tx.amount < 0)
     .reduce((sum, tx) => sum + Math.abs(tx.amount), 0);
 
-  // Calculate estimated investment yields (rendimentos)
-  // This is the difference between the current total balance and the net of all transactions
-  // It represents yields from savings/investments that don't generate visible transactions
-  const _totalStoredInvestments = bankAccounts
-    .filter((a) => a.type !== "CREDIT")
-    .reduce((sum, a) => sum + getStoredBalance(a), 0);
-  const netTransactions = totalIncome - totalExpense;
-  const totalRendimentos = allPeriod
-    ? Math.max(0, totalBalance - netTransactions)
-    : 0;
+  // Real investment yields from Pluggy API
+  const totalRendimentos = investments
+    .filter((inv) => inv.status === "ACTIVE" && (inv.amount_profit ?? 0) !== 0)
+    .reduce((sum, inv) => sum + (inv.amount_profit ?? 0), 0);
+  const totalRendimentosRounded = Math.round(totalRendimentos * 100) / 100;
 
   const periodLabel = allPeriod ? "Todo o período" : `${format(dateFrom, "dd/MM/yyyy")} a ${format(dateTo, "dd/MM/yyyy")}`;
 
