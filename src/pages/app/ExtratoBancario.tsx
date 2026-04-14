@@ -87,6 +87,7 @@ export default function ExtratoBancario() {
   const [selectedAccount, setSelectedAccount] = useState<string>("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [typeFilter, setTypeFilter] = useState<string>("all");
+  const [allPeriod, setAllPeriod] = useState(false);
 
   // Date range filter — default to current month
   const now = new Date();
@@ -95,8 +96,8 @@ export default function ExtratoBancario() {
 
   const targetUserId = empresa?.user_id ?? user?.id;
 
-  const dateFromStr = format(dateFrom, "yyyy-MM-dd");
-  const dateToStr = format(dateTo, "yyyy-MM-dd");
+  const dateFromStr = allPeriod ? "2000-01-01" : format(dateFrom, "yyyy-MM-dd");
+  const dateToStr = allPeriod ? "2099-12-31" : format(dateTo, "yyyy-MM-dd");
 
   const { data: accounts = [], isLoading: loadingAccounts } = useQuery({
     queryKey: ["pluggy_bank_accounts", targetUserId],
@@ -324,7 +325,7 @@ export default function ExtratoBancario() {
     .filter((tx) => tx.type === "DEBIT" || tx.amount < 0)
     .reduce((sum, tx) => sum + Math.abs(tx.amount), 0);
 
-  const periodLabel = `${format(dateFrom, "dd/MM/yyyy")} a ${format(dateTo, "dd/MM/yyyy")}`;
+  const periodLabel = allPeriod ? "Todo o período" : `${format(dateFrom, "dd/MM/yyyy")} a ${format(dateTo, "dd/MM/yyyy")}`;
 
   return (
     <div className="space-y-6">
@@ -356,7 +357,7 @@ export default function ExtratoBancario() {
               <Calendar
                 mode="single"
                 selected={dateFrom}
-                onSelect={(d) => d && setDateFrom(d)}
+                onSelect={(d) => { if (d) { setAllPeriod(false); setDateFrom(d); } }}
                 locale={ptBR}
                 initialFocus
                 className={cn("p-3 pointer-events-auto")}
@@ -377,7 +378,7 @@ export default function ExtratoBancario() {
               <Calendar
                 mode="single"
                 selected={dateTo}
-                onSelect={(d) => d && setDateTo(d)}
+                onSelect={(d) => { if (d) { setAllPeriod(false); setDateTo(d); } }}
                 locale={ptBR}
                 initialFocus
                 className={cn("p-3 pointer-events-auto")}
@@ -387,9 +388,10 @@ export default function ExtratoBancario() {
 
           <div className="flex gap-2">
             <Button
-              variant="secondary"
+              variant={!allPeriod && format(dateFrom, "yyyy-MM") === format(now, "yyyy-MM") ? "default" : "secondary"}
               size="sm"
               onClick={() => {
+                setAllPeriod(false);
                 setDateFrom(startOfMonth(now));
                 setDateTo(endOfMonth(now));
               }}
@@ -400,6 +402,7 @@ export default function ExtratoBancario() {
               variant="secondary"
               size="sm"
               onClick={() => {
+                setAllPeriod(false);
                 const prev = new Date(now.getFullYear(), now.getMonth() - 1, 1);
                 setDateFrom(startOfMonth(prev));
                 setDateTo(endOfMonth(prev));
@@ -411,11 +414,19 @@ export default function ExtratoBancario() {
               variant="secondary"
               size="sm"
               onClick={() => {
+                setAllPeriod(false);
                 setDateFrom(new Date(now.getFullYear(), 0, 1));
                 setDateTo(endOfMonth(now));
               }}
             >
               Ano atual
+            </Button>
+            <Button
+              variant={allPeriod ? "default" : "secondary"}
+              size="sm"
+              onClick={() => setAllPeriod(true)}
+            >
+              Todo o período
             </Button>
           </div>
         </div>
