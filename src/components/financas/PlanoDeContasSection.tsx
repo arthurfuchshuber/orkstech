@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/select";
 import {
   ChevronRight, ChevronDown, Plus, Pencil, Trash2, Power,
-  FolderTree, TrendingUp, TrendingDown, Minus, RefreshCw, GripVertical,
+  FolderTree, TrendingUp, TrendingDown, Minus, RefreshCw, GripVertical, MoveRight,
 } from "lucide-react";
 import { DragDropContext, Droppable, Draggable, type DropResult } from "@hello-pangea/dnd";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
