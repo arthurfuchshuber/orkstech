@@ -8,12 +8,14 @@ export interface DRELine {
   id: string;
   label: string;
   depth: number;
-  /** amount per month key "YYYY-MM" */
   amounts: Record<string, number>;
-  /** percentage per month key */
   percentages: Record<string, number>;
   isGroup: boolean;
   isSummary: boolean;
+  /** "category" = from plano de contas, "computed" = calculated DRE line */
+  lineType: "category" | "computed";
+  /** Sign prefix for display: "(+)", "(-)", "(=)" or "" */
+  sign: string;
   tipo?: string;
   children?: DRELine[];
   categoryId?: string;
@@ -59,9 +61,45 @@ function getAllIds(node: CatNode): string[] {
   return ids;
 }
 
-/** Build a "YYYY-MM" key */
 function monthKey(year: number, month: number): string {
   return `${year}-${String(month).padStart(2, "0")}`;
+}
+
+/** Helper: sum amounts across months */
+function sumAmounts(a: Record<string, number>, b: Record<string, number>, keys: string[]): Record<string, number> {
+  const r: Record<string, number> = {};
+  for (const k of keys) r[k] = (a[k] || 0) + (b[k] || 0);
+  return r;
+}
+
+function subAmounts(a: Record<string, number>, b: Record<string, number>, keys: string[]): Record<string, number> {
+  const r: Record<string, number> = {};
+  for (const k of keys) r[k] = (a[k] || 0) - (b[k] || 0);
+  return r;
+}
+
+function zeroAmounts(keys: string[]): Record<string, number> {
+  const r: Record<string, number> = {};
+  for (const k of keys) r[k] = 0;
+  return r;
+}
+
+function pctAmounts(amounts: Record<string, number>, base: Record<string, number>, keys: string[]): Record<string, number> {
+  const r: Record<string, number> = {};
+  for (const k of keys) r[k] = base[k] > 0 ? (amounts[k] / base[k]) * 100 : 0;
+  return r;
+}
+
+function makeLine(
+  id: string, label: string, sign: string, amounts: Record<string, number>,
+  revenueByMonth: Record<string, number>, keys: string[], opts?: Partial<DRELine>
+): DRELine {
+  return {
+    id, label, sign, depth: 0, amounts,
+    percentages: pctAmounts(amounts, revenueByMonth, keys),
+    isGroup: false, isSummary: true, lineType: "computed",
+    ...opts,
+  };
 }
 
 export function useMultiMonthDRE(year: number, months: number[]) {
@@ -70,9 +108,8 @@ export function useMultiMonthDRE(year: number, months: number[]) {
   const targetUserId = empresa?.user_id ?? user?.id;
 
   const sortedMonths = useMemo(() => [...months].sort((a, b) => a - b), [months]);
-  const monthKeys = useMemo(() => sortedMonths.map(m => monthKey(year, m)), [year, sortedMonths]);
+  const mKeys = useMemo(() => sortedMonths.map(m => monthKey(year, m)), [year, sortedMonths]);
 
-  // Date range spanning all selected months
   const startStr = useMemo(() => {
     if (sortedMonths.length === 0) return "";
     return `${year}-${String(sortedMonths[0]).padStart(2, "0")}-01`;
@@ -90,11 +127,8 @@ export function useMultiMonthDRE(year: number, months: number[]) {
     enabled: !!user && !!targetUserId,
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("categorias_financeiras")
-        .select("*")
-        .eq("user_id", targetUserId!)
-        .eq("ativo", true)
-        .order("ordem");
+        .from("categorias_financeiras").select("*")
+        .eq("user_id", targetUserId!).eq("ativo", true).order("ordem");
       if (error) throw error;
       return (data ?? []) as CatRow[];
     },
@@ -105,47 +139,34 @@ export function useMultiMonthDRE(year: number, months: number[]) {
     enabled: !!user && !!targetUserId && sortedMonths.length > 0,
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("cash_transactions")
-        .select("*")
+        .from("cash_transactions").select("*")
         .eq("user_id", targetUserId!)
-        .gte("transaction_date", startStr)
-        .lte("transaction_date", endStr);
+        .gte("transaction_date", startStr).lte("transaction_date", endStr);
       if (error) throw error;
       return data ?? [];
     },
   });
 
-  // Available years/months from transactions + accounts_payable
   const { data: availablePeriods = [] } = useQuery({
     queryKey: ["dre-available-periods", targetUserId],
     enabled: !!user && !!targetUserId,
     queryFn: async () => {
-      const { data, error } = await supabase.rpc("get_dre_available_periods" as any);
-      // Fallback: query directly
-      if (error) {
-        const { data: txData } = await supabase
-          .from("cash_transactions")
-          .select("transaction_date")
-          .eq("user_id", targetUserId!);
-        const { data: apData } = await supabase
-          .from("accounts_payable")
-          .select("due_date")
-          .eq("user_id", targetUserId!);
-        const periods = new Set<string>();
-        for (const r of (txData ?? [])) {
-          const d = (r as any).transaction_date;
-          if (d) periods.add(d.substring(0, 7));
-        }
-        for (const r of (apData ?? [])) {
-          const d = (r as any).due_date;
-          if (d) periods.add(d.substring(0, 7));
-        }
-        // Also add current month so there's always something
-        const now = new Date();
-        periods.add(monthKey(now.getFullYear(), now.getMonth() + 1));
-        return Array.from(periods).sort();
+      const { data: txData } = await supabase
+        .from("cash_transactions").select("transaction_date").eq("user_id", targetUserId!);
+      const { data: apData } = await supabase
+        .from("accounts_payable").select("due_date").eq("user_id", targetUserId!);
+      const periods = new Set<string>();
+      for (const r of (txData ?? [])) {
+        const d = (r as any).transaction_date;
+        if (d) periods.add(d.substring(0, 7));
       }
-      return (data ?? []) as string[];
+      for (const r of (apData ?? [])) {
+        const d = (r as any).due_date;
+        if (d) periods.add(d.substring(0, 7));
+      }
+      const now = new Date();
+      periods.add(monthKey(now.getFullYear(), now.getMonth() + 1));
+      return Array.from(periods).sort();
     },
   });
 
@@ -153,11 +174,8 @@ export function useMultiMonthDRE(year: number, months: number[]) {
     const tree = buildCatTree(categorias);
 
     // Index transactions by month+category
-    // Map<monthKey, Map<catId, amount>>
     const txByMonthCat = new Map<string, Map<string, number>>();
-    for (const mk of monthKeys) {
-      txByMonthCat.set(mk, new Map());
-    }
+    for (const mk of mKeys) txByMonthCat.set(mk, new Map());
     for (const t of transactions) {
       const catId = (t as any).categoria_financeira_id;
       const date = (t as any).transaction_date as string;
@@ -169,102 +187,147 @@ export function useMultiMonthDRE(year: number, months: number[]) {
     }
 
     const sumNode = (node: CatNode, catMap: Map<string, number>): number => {
-      const ids = getAllIds(node);
-      return ids.reduce((s, id) => s + (catMap.get(id) || 0), 0);
+      return getAllIds(node).reduce((s, id) => s + (catMap.get(id) || 0), 0);
     };
 
-    // Compute total revenue per month
-    const revenueRoots = tree.filter(n => n.tipo === "receita");
-    const totalRevenueByMonth: Record<string, number> = {};
-    for (const mk of monthKeys) {
-      const catMap = txByMonthCat.get(mk) || new Map();
-      totalRevenueByMonth[mk] = revenueRoots.reduce((s, n) => s + sumNode(n, catMap), 0);
-    }
-
+    // Build category line
     function buildNodeLine(node: CatNode, depth: number, numPrefix: string, idx: number): DRELine {
       const num = numPrefix ? `${numPrefix}${idx + 1}.` : `${idx + 1}.`;
       const amounts: Record<string, number> = {};
-      const percentages: Record<string, number> = {};
-      for (const mk of monthKeys) {
-        const catMap = txByMonthCat.get(mk) || new Map();
-        const amt = sumNode(node, catMap);
-        amounts[mk] = amt;
-        const rev = totalRevenueByMonth[mk];
-        percentages[mk] = rev > 0 ? (amt / rev) * 100 : 0;
-      }
+      for (const mk of mKeys) amounts[mk] = sumNode(node, txByMonthCat.get(mk) || new Map());
       const childLines = node.children.map((child, i) => buildNodeLine(child, depth + 1, num, i));
       return {
-        id: node.id,
-        label: node.nome,
-        depth,
-        amounts,
-        percentages,
-        isGroup: childLines.length > 0,
-        isSummary: false,
-        tipo: node.tipo,
+        id: node.id, label: node.nome, depth, amounts,
+        percentages: zeroAmounts(mKeys), // will be filled later
+        isGroup: childLines.length > 0, isSummary: false, lineType: "category",
+        sign: "", tipo: node.tipo,
         children: childLines.length > 0 ? childLines : undefined,
-        categoryId: node.id,
-        number: num,
+        categoryId: node.id, number: num,
       };
     }
 
+    // Separate roots by tipo
+    const receitaRoots = tree.filter(n => n.tipo === "receita");
+    const custoRoots = tree.filter(n => n.tipo === "custo");
+    const despesaRoots = tree.filter(n => n.tipo === "despesa");
+    const ajusteRoots = tree.filter(n => n.tipo === "ajuste");
+
+    // Compute totals by tipo per month
+    function sumRoots(roots: CatNode[]): Record<string, number> {
+      const r = zeroAmounts(mKeys);
+      for (const mk of mKeys) {
+        const catMap = txByMonthCat.get(mk) || new Map();
+        for (const root of roots) r[mk] += sumNode(root, catMap);
+      }
+      return r;
+    }
+
+    const receitaTotal = sumRoots(receitaRoots);
+    const custoTotal = sumRoots(custoRoots);
+    const despesaTotal = sumRoots(despesaRoots);
+    const ajusteTotal = sumRoots(ajusteRoots);
+
+    // DRE computed lines
+    const receitaLiquida = subAmounts(receitaTotal, ajusteTotal, mKeys);
+    const margemBruta = subAmounts(receitaLiquida, custoTotal, mKeys);
+    // For now despesas variáveis = 0 (no separate classification yet)
+    const despesasVariaveis = zeroAmounts(mKeys);
+    const margemContribuicao = subAmounts(margemBruta, despesasVariaveis, mKeys);
+    const ebitda = subAmounts(margemContribuicao, despesaTotal, mKeys);
+    // Depreciação = 0 (no separate classification yet)
+    const depreciacao = zeroAmounts(mKeys);
+    const resultadoOperacional = subAmounts(ebitda, depreciacao, mKeys);
+
+    // Build the full DRE lines array
     const lines: DRELine[] = [];
-    const totalsByTipoMonth: Record<string, Record<string, number>> = { receita: {}, despesa: {}, custo: {} };
-    for (const mk of monthKeys) {
-      totalsByTipoMonth.receita[mk] = 0;
-      totalsByTipoMonth.despesa[mk] = 0;
-      totalsByTipoMonth.custo[mk] = 0;
-    }
+    let catCounter = 0;
 
-    tree.forEach((root, idx) => {
-      const line = buildNodeLine(root, 0, "", idx);
-      lines.push(line);
-      for (const mk of monthKeys) {
-        if (root.tipo === "receita") totalsByTipoMonth.receita[mk] += line.amounts[mk];
-        else if (root.tipo === "despesa") totalsByTipoMonth.despesa[mk] += line.amounts[mk];
-        else if (root.tipo === "custo") totalsByTipoMonth.custo[mk] += line.amounts[mk];
-      }
+    // --- (+) RECEITA BRUTA (group with category children)
+    const receitaCatLines = receitaRoots.map((root, i) => {
+      const line = buildNodeLine(root, 1, `${catCounter + 1}.`, i);
+      // Fill percentages based on receita bruta
+      fillPercentages(line, receitaTotal);
+      return line;
     });
+    lines.push({
+      id: "receita-bruta", label: "RECEITA BRUTA", sign: "(+)", depth: 0,
+      amounts: receitaTotal, percentages: pctAmounts(receitaTotal, receitaTotal, mKeys),
+      isGroup: true, isSummary: false, lineType: "computed",
+      children: receitaCatLines,
+    });
+    catCounter++;
 
-    // Summary lines
-    const makeSummary = (id: string, label: string, calcAmounts: Record<string, number>): DRELine => {
-      const percentages: Record<string, number> = {};
-      for (const mk of monthKeys) {
-        const rev = totalRevenueByMonth[mk];
-        percentages[mk] = rev > 0 ? (calcAmounts[mk] / rev) * 100 : 0;
-      }
-      return { id, label, depth: 0, amounts: calcAmounts, percentages, isGroup: false, isSummary: true };
-    };
+    // --- (-) DEDUÇÕES DA RECEITA
+    const ajusteCatLines = ajusteRoots.map((root, i) => {
+      const line = buildNodeLine(root, 1, `${catCounter + 1}.`, i);
+      fillPercentages(line, receitaTotal);
+      return line;
+    });
+    lines.push({
+      id: "deducoes-receita", label: "DEDUÇÕES DA RECEITA", sign: "(-)", depth: 0,
+      amounts: ajusteTotal, percentages: pctAmounts(ajusteTotal, receitaTotal, mKeys),
+      isGroup: ajusteCatLines.length > 0, isSummary: false, lineType: "computed",
+      children: ajusteCatLines.length > 0 ? ajusteCatLines : undefined,
+    });
+    catCounter++;
 
-    const hasData = monthKeys.some(mk =>
-      totalsByTipoMonth.receita[mk] > 0 || totalsByTipoMonth.despesa[mk] > 0 || totalsByTipoMonth.custo[mk] > 0
-    );
+    // --- (=) RECEITA LÍQUIDA
+    lines.push(makeLine("receita-liquida", "RECEITA VENDAS LÍQUIDA", "(=)", receitaLiquida, receitaTotal, mKeys));
 
-    if (hasData || tree.length > 0) {
-      lines.push(makeSummary("total-receitas", "TOTAL RECEITAS", totalsByTipoMonth.receita));
+    // --- (-) CUSTO DOS PRODUTOS/SERVIÇOS VENDIDOS
+    const custoCatLines = custoRoots.map((root, i) => {
+      const line = buildNodeLine(root, 1, `${catCounter + 1}.`, i);
+      fillPercentages(line, receitaTotal);
+      return line;
+    });
+    lines.push({
+      id: "cpv", label: "CUSTO DOS PRODUTOS E SERVIÇOS VENDIDOS", sign: "(-)", depth: 0,
+      amounts: custoTotal, percentages: pctAmounts(custoTotal, receitaTotal, mKeys),
+      isGroup: custoCatLines.length > 0, isSummary: false, lineType: "computed",
+      children: custoCatLines.length > 0 ? custoCatLines : undefined,
+    });
+    catCounter++;
 
-      const hasCusto = monthKeys.some(mk => totalsByTipoMonth.custo[mk] > 0);
-      if (hasCusto) {
-        lines.push(makeSummary("total-custos", "(-) TOTAL CUSTOS", totalsByTipoMonth.custo));
-        const lucBruto: Record<string, number> = {};
-        for (const mk of monthKeys) lucBruto[mk] = totalsByTipoMonth.receita[mk] - totalsByTipoMonth.custo[mk];
-        lines.push(makeSummary("lucro-bruto", "LUCRO BRUTO", lucBruto));
-      }
+    // --- (=) MARGEM BRUTA
+    lines.push(makeLine("margem-bruta", "MARGEM BRUTA", "(=)", margemBruta, receitaTotal, mKeys));
 
-      const hasDespesa = monthKeys.some(mk => totalsByTipoMonth.despesa[mk] > 0);
-      if (hasDespesa) {
-        lines.push(makeSummary("total-despesas", "(-) TOTAL DESPESAS", totalsByTipoMonth.despesa));
-      }
+    // --- DESPESAS VARIÁVEIS (placeholder)
+    lines.push(makeLine("despesas-variaveis", "DESPESAS VARIÁVEIS", "", despesasVariaveis, receitaTotal, mKeys, { isSummary: false }));
 
-      const resultado: Record<string, number> = {};
-      for (const mk of monthKeys) {
-        resultado[mk] = totalsByTipoMonth.receita[mk] - totalsByTipoMonth.despesa[mk] - totalsByTipoMonth.custo[mk];
-      }
-      lines.push(makeSummary("resultado-liquido", "RESULTADO LÍQUIDO", resultado));
+    // --- (=) MARGEM DE CONTRIBUIÇÃO
+    lines.push(makeLine("margem-contribuicao", "MARGEM DE CONTRIBUIÇÃO", "(=)", margemContribuicao, receitaTotal, mKeys));
+
+    // --- (-) GASTOS E DESPESAS (group with category children)
+    const despesaCatLines = despesaRoots.map((root, i) => {
+      const line = buildNodeLine(root, 1, `${catCounter + 1}.`, i);
+      fillPercentages(line, receitaTotal);
+      return line;
+    });
+    lines.push({
+      id: "gastos-despesas", label: "GASTOS E DESPESAS", sign: "(-)", depth: 0,
+      amounts: despesaTotal, percentages: pctAmounts(despesaTotal, receitaTotal, mKeys),
+      isGroup: despesaCatLines.length > 0, isSummary: false, lineType: "computed",
+      children: despesaCatLines.length > 0 ? despesaCatLines : undefined,
+    });
+    catCounter++;
+
+    // --- (=) EBITDA
+    lines.push(makeLine("ebitda", "EBITDA", "(=)", ebitda, receitaTotal, mKeys));
+
+    // --- (-) DEPRECIAÇÃO
+    lines.push(makeLine("depreciacao", "DEPRECIAÇÃO", "(-)", depreciacao, receitaTotal, mKeys, { isSummary: false }));
+
+    // --- (=) RESULTADO OPERACIONAL
+    lines.push(makeLine("resultado-operacional", "RESULTADO OPERACIONAL", "(=)", resultadoOperacional, receitaTotal, mKeys));
+
+    // Fill percentages recursively
+    function fillPercentages(line: DRELine, base: Record<string, number>) {
+      line.percentages = pctAmounts(line.amounts, base, mKeys);
+      if (line.children) line.children.forEach(c => fillPercentages(c, base));
     }
 
-    return { lines, monthKeys, totalRevenueByMonth };
-  }, [transactions, categorias, monthKeys]);
+    return { lines, monthKeys: mKeys, totalRevenueByMonth: receitaTotal };
+  }, [transactions, categorias, mKeys]);
 
   return {
     ...dreData,
