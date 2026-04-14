@@ -34,6 +34,7 @@ interface ManagedSelectInputProps {
   onEditModal?: (id: string) => void;
   /** Label for the "add new" input/button */
   addLabel?: string;
+  disabled?: boolean;
 }
 
 export function ManagedSelectInput({
@@ -51,6 +52,7 @@ export function ManagedSelectInput({
   onAddModal,
   onEditModal,
   addLabel = "Novo item",
+  disabled = false,
 }: ManagedSelectInputProps) {
   const [open, setOpen] = useState(false);
   const [mode, setMode] = useState<"select" | "add" | "edit">("select");
