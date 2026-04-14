@@ -232,7 +232,6 @@ Deno.serve(async (req) => {
         }
       }
     }
-    }
 
     // Update connection last_sync_at
     await supabaseAdmin
