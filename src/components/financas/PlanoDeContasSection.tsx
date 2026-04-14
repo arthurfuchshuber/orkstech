@@ -127,27 +127,71 @@ export function PlanoDeContasSection() {
   };
 
   const reorderMutation = useMutation({
-    mutationFn: async (updates: { id: string; ordem: number }[]) => {
-      await Promise.all(updates.map(({ id, ordem }) => supabase.from("categorias_financeiras").update({ ordem }).eq("id", id)));
+    mutationFn: async (updates: { id: string; ordem: number; categoria_pai_id?: string | null }[]) => {
+      await Promise.all(updates.map(({ id, ordem, categoria_pai_id }) => {
+        const payload: any = { ordem };
+        if (categoria_pai_id !== undefined) payload.categoria_pai_id = categoria_pai_id;
+        return supabase.from("categorias_financeiras").update(payload).eq("id", id);
+      }));
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["categorias_financeiras"] }),
     onError: () => toast.error("Erro ao reordenar"),
   });
 
+  // Helper to get all descendant IDs to prevent circular moves
+  const getDescendantIds = (id: string): string[] => {
+    const children = categorias.filter((c) => c.categoria_pai_id === id);
+    return children.flatMap((c) => [c.id, ...getDescendantIds(c.id)]);
+  };
+
   const handleDragEnd = (result: DropResult) => {
     if (!result.destination || result.source.index === result.destination.index) return;
     const sourceItem = visibleItems[result.source.index];
     const destItem = visibleItems[result.destination.index];
-    if (sourceItem.parentId !== destItem.parentId) { toast.error("Arraste apenas entre categorias do mesmo nível. Use 'Mover para' no menu."); return; }
-    const parentId = sourceItem.parentId;
-    const siblings = categorias.filter((c) => c.categoria_pai_id === parentId).sort((a, b) => a.ordem - b.ordem);
-    const srcIdx = siblings.findIndex((s) => s.id === sourceItem.id);
-    const destIdx = siblings.findIndex((s) => s.id === destItem.id);
-    if (srcIdx === -1 || destIdx === -1) return;
-    const reordered = [...siblings];
-    const [moved] = reordered.splice(srcIdx, 1);
-    reordered.splice(destIdx, 0, moved);
-    reorderMutation.mutate(reordered.map((item, i) => ({ id: item.id, ordem: i })));
+    const newParentId = destItem.parentId;
+
+    // Prevent circular: can't drop into own descendants
+    const descendantIds = getDescendantIds(sourceItem.id);
+    if (newParentId === sourceItem.id || descendantIds.includes(newParentId || "")) {
+      toast.error("Não é possível mover para dentro de si mesmo");
+      return;
+    }
+
+    if (sourceItem.parentId === newParentId) {
+      // Same level: simple reorder
+      const siblings = categorias.filter((c) => c.categoria_pai_id === newParentId).sort((a, b) => a.ordem - b.ordem);
+      const srcIdx = siblings.findIndex((s) => s.id === sourceItem.id);
+      const destIdx = siblings.findIndex((s) => s.id === destItem.id);
+      if (srcIdx === -1 || destIdx === -1) return;
+      const reordered = [...siblings];
+      const [moved] = reordered.splice(srcIdx, 1);
+      reordered.splice(destIdx, 0, moved);
+      reorderMutation.mutate(reordered.map((item, i) => ({ id: item.id, ordem: i })));
+    } else {
+      // Cross-level: move to new parent
+      // Remove from old siblings and reorder them
+      const oldSiblings = categorias
+        .filter((c) => c.categoria_pai_id === sourceItem.parentId && c.id !== sourceItem.id)
+        .sort((a, b) => a.ordem - b.ordem);
+      const oldUpdates = oldSiblings.map((item, i) => ({ id: item.id, ordem: i }));
+
+      // Insert into new siblings at destination position
+      const newSiblings = categorias
+        .filter((c) => c.categoria_pai_id === newParentId)
+        .sort((a, b) => a.ordem - b.ordem);
+      const destIdx = newSiblings.findIndex((s) => s.id === destItem.id);
+      const insertAt = destIdx === -1 ? newSiblings.length : destIdx;
+      const reordered = [...newSiblings];
+      reordered.splice(insertAt, 0, { ...categorias.find((c) => c.id === sourceItem.id)! });
+      const newUpdates = reordered.map((item, i) => ({
+        id: item.id,
+        ordem: i,
+        ...(item.id === sourceItem.id ? { categoria_pai_id: newParentId } : {}),
+      }));
+
+      reorderMutation.mutate([...oldUpdates, ...newUpdates]);
+      toast.success("Categoria movida");
+    }
   };
 
   const moveMutation = useMutation({
@@ -193,11 +237,6 @@ export function PlanoDeContasSection() {
   const closeMoveModal = () => { setMoveModalOpen(false); setMovingNode(null); setMoveTargetId(null); };
   const openMoveModal = (c: Categoria) => { setMovingNode(c); setMoveTargetId(c.categoria_pai_id); setMoveModalOpen(true); };
 
-  // Helper to get all descendant IDs to prevent circular moves
-  const getDescendantIds = (id: string): string[] => {
-    const children = categorias.filter((c) => c.categoria_pai_id === id);
-    return children.flatMap((c) => [c.id, ...getDescendantIds(c.id)]);
-  };
 
   const moveParentOptions = movingNode
     ? categorias.filter((c) => c.id !== movingNode.id && !getDescendantIds(movingNode.id).includes(c.id))
@@ -214,7 +253,7 @@ export function PlanoDeContasSection() {
           </div>
           <div>
             <CardTitle className="text-sm font-semibold">Plano de Contas</CardTitle>
-            <p className="text-[11px] text-muted-foreground mt-0.5">Arraste para reordenar</p>
+            <p className="text-[11px] text-muted-foreground mt-0.5">Arraste para reordenar ou mover entre níveis</p>
           </div>
         </div>
         <Button onClick={() => openNew()} size="sm" variant="outline" className="h-7 text-xs gap-1.5 rounded-md">
