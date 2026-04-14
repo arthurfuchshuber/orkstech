@@ -113,20 +113,43 @@ export default function ExtratoBancario() {
     enabled: !!user && !!targetUserId,
   });
 
+  const { data: empresaData } = useQuery({
+    queryKey: ["empresa_name", empresa?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("empresas")
+        .select("nome_fantasia, razao_social")
+        .eq("id", empresa!.id)
+        .maybeSingle();
+      if (error) throw error;
+      return data as { nome_fantasia: string | null; razao_social: string } | null;
+    },
+    enabled: !!empresa?.id,
+  });
+
   const getDisplayName = (account: BankAccount) => {
     const conn = connections.find((c) => c.pluggy_item_id === account.pluggy_item_id);
     const connectorName = conn?.connector_name || "Conta";
-    const ownerName = profileData?.nome || "";
+    const isEmpresaConnector = connectorName.toLowerCase().includes("empresa");
+    const ownerLabel = isEmpresaConnector
+      ? (empresaData?.nome_fantasia || empresaData?.razao_social || "")
+      : (profileData?.nome || "");
+
+    // Title case helper
+    const toTitleCase = (str: string) =>
+      str.toLowerCase().replace(/(?:^|\s)\S/g, (c) => c.toUpperCase());
+
+    const displayOwner = ownerLabel ? toTitleCase(ownerLabel) : "";
 
     if (account.type === "CREDIT") {
-      // Get last 4 digits from creditData
       const creditData = (account.bank_data as any)?.creditData;
       const last4 = creditData?.disaggregatedCreditLimits?.[0]?.identificationNumber || "";
       const suffix = last4 ? ` (${last4})` : "";
-      return ownerName ? `${connectorName}${suffix} - ${ownerName}` : `${connectorName}${suffix}`;
+      const prefix = `${connectorName} Cartão de Crédito${suffix}`;
+      return displayOwner ? `${prefix} - ${displayOwner}` : prefix;
     }
 
-    return ownerName ? `${connectorName} - ${ownerName}` : connectorName;
+    return displayOwner ? `${connectorName} (${displayOwner})` : connectorName;
   };
 
   const { data: allTransactions = [] } = useQuery({
