@@ -5,7 +5,7 @@ import {
   Receipt, Plus, Check, Loader2, AlertTriangle, Clock, Ban,
   FileText, Search, CreditCard,
   Building2, Target, Landmark, FolderTree, Copy, Pencil, Trash2,
-  Banknote, ChevronDown, ScanLine, MoreHorizontal
+  Banknote, ChevronDown, ScanLine, MoreHorizontal, BarChart3
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -20,6 +20,7 @@ import { FileAttachment } from "@/components/inputs/FileAttachment";
 
 import { useManagedSelect } from "@/hooks/useManagedSelect";
 import { CategoriaCadastroModal } from "@/components/modals/CategoriaCadastroModal";
+import { CategoriaFinanceiraModal } from "@/components/modals/CategoriaFinanceiraModal";
 import { CentroCustoModal } from "@/components/modals/CentroCustoModal";
 import { ContaBancariaModal } from "@/components/modals/ContaBancariaModal";
 import { FormaPagamentoModal } from "@/components/modals/FormaPagamentoModal";
@@ -53,6 +54,7 @@ interface PayableForm {
   amount: number;
   due_date?: Date;
   category_id: string;
+  categoria_financeira_id: string;
   cost_center_id: string;
   bank_account_id: string;
   payment_method_id: string;
@@ -72,6 +74,7 @@ const initialForm: PayableForm = {
   amount: 0,
   due_date: undefined,
   category_id: "",
+  categoria_financeira_id: "",
   cost_center_id: "",
   bank_account_id: "",
   payment_method_id: "",
