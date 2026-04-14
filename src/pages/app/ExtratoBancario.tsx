@@ -357,7 +357,7 @@ export default function ExtratoBancario() {
               <Calendar
                 mode="single"
                 selected={dateFrom}
-                onSelect={(d) => d && setDateFrom(d)}
+                onSelect={(d) => { if (d) { setAllPeriod(false); setDateFrom(d); } }}
                 locale={ptBR}
                 initialFocus
                 className={cn("p-3 pointer-events-auto")}
@@ -378,7 +378,7 @@ export default function ExtratoBancario() {
               <Calendar
                 mode="single"
                 selected={dateTo}
-                onSelect={(d) => d && setDateTo(d)}
+                onSelect={(d) => { if (d) { setAllPeriod(false); setDateTo(d); } }}
                 locale={ptBR}
                 initialFocus
                 className={cn("p-3 pointer-events-auto")}
