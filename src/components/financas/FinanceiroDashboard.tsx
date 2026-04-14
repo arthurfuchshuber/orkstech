@@ -365,36 +365,23 @@ export default function FinanceiroDashboard() {
       <TabsContent value="contas-pagar" className="space-y-6">
         {/* KPIs */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {/* 1. Total em Aberto */}
           <Card className="border-border/50">
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-lg bg-warning/10 flex items-center justify-center">
-                  <Receipt className="w-4 h-4 text-warning" />
+                <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <Receipt className="w-4 h-4 text-primary" />
                 </div>
                 <div>
-                  <p className="text-xs text-muted-foreground">A Pagar (Pendente)</p>
-                  <p className="text-xl font-bold text-foreground">{fmt(totalPendente)}</p>
-                  <span className="text-[10px] text-muted-foreground">{pendentes.length} título(s)</span>
+                  <p className="text-xs text-muted-foreground">Total em Aberto</p>
+                  <p className="text-xl font-bold text-foreground">{fmt(totalPendente + totalVencido)}</p>
+                  <span className="text-[10px] text-muted-foreground">{pendentes.length + vencidas.length} título(s)</span>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="border-border/50">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-lg bg-destructive/10 flex items-center justify-center">
-                  <AlertTriangle className="w-4 h-4 text-destructive" />
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">Vencidas</p>
-                  <p className="text-xl font-bold text-foreground">{fmt(totalVencido)}</p>
-                  <span className="text-[10px] text-muted-foreground">{vencidas.length} título(s)</span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
+          {/* 2. Vencendo em 7 Dias */}
           <Card className="border-border/50">
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
@@ -410,16 +397,33 @@ export default function FinanceiroDashboard() {
             </CardContent>
           </Card>
 
+          {/* 3. A Pagar (Pendente) */}
           <Card className="border-border/50">
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center">
-                  <Receipt className="w-4 h-4 text-primary" />
+                <div className="w-9 h-9 rounded-lg bg-warning/10 flex items-center justify-center">
+                  <Receipt className="w-4 h-4 text-warning" />
                 </div>
                 <div>
-                  <p className="text-xs text-muted-foreground">Total em Aberto</p>
-                  <p className="text-xl font-bold text-foreground">{fmt(totalPendente + totalVencido)}</p>
-                  <span className="text-[10px] text-muted-foreground">{pendentes.length + vencidas.length} título(s)</span>
+                  <p className="text-xs text-muted-foreground">A Pagar (Pendente)</p>
+                  <p className="text-xl font-bold text-foreground">{fmt(totalPendente)}</p>
+                  <span className="text-[10px] text-muted-foreground">{pendentes.length} título(s)</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* 4. Vencidas */}
+          <Card className="border-border/50">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-lg bg-destructive/10 flex items-center justify-center">
+                  <AlertTriangle className="w-4 h-4 text-destructive" />
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Vencidas</p>
+                  <p className="text-xl font-bold text-foreground">{fmt(totalVencido)}</p>
+                  <span className="text-[10px] text-muted-foreground">{vencidas.length} título(s)</span>
                 </div>
               </div>
             </CardContent>
