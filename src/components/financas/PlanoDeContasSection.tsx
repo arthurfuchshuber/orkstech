@@ -21,7 +21,7 @@ import {
 import { DragDropContext, Droppable, Draggable, type DropResult } from "@hello-pangea/dnd";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
-type TipoFinanceiro = "receita" | "despesa" | "custo" | "ajuste";
+type TipoFinanceiro = "receita" | "despesa" | "custo" | "deducao" | "imposto" | "ajuste";
 
 interface Categoria {
   id: string;
@@ -372,8 +372,10 @@ export function PlanoDeContasSection() {
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="receita">Receita</SelectItem>
-                  <SelectItem value="despesa">Despesa</SelectItem>
+                  <SelectItem value="deducao">Dedução</SelectItem>
                   <SelectItem value="custo">Custo</SelectItem>
+                  <SelectItem value="despesa">Despesa</SelectItem>
+                  <SelectItem value="imposto">Imposto</SelectItem>
                   <SelectItem value="ajuste">Ajuste</SelectItem>
                 </SelectContent>
               </Select>
