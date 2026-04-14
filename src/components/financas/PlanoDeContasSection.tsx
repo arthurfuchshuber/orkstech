@@ -138,7 +138,13 @@ export function PlanoDeContasSection() {
     onError: () => toast.error("Erro ao reordenar"),
   });
 
-  const handleDragEnd = (result: DropResult) => {
+  // Helper to get all descendant IDs to prevent circular moves
+  const getDescendantIds = (id: string): string[] => {
+    const children = categorias.filter((c) => c.categoria_pai_id === id);
+    return children.flatMap((c) => [c.id, ...getDescendantIds(c.id)]);
+  };
+
+
     if (!result.destination || result.source.index === result.destination.index) return;
     const sourceItem = visibleItems[result.source.index];
     const destItem = visibleItems[result.destination.index];
