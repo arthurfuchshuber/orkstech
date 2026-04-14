@@ -88,6 +88,10 @@ export default function ContasBancarias({ embedded = false }: { embedded?: boole
 
   const formatCurrency = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
+  // eslint-disable-next-line react-hooks/rules-of-hooks
+  const { connections } = embedded ? usePluggyConnections() : { connections: [] };
+  const hasAnyData = items.length > 0 || connections.length > 0;
+
   if (embedded) {
     return (
       <>
@@ -106,17 +110,18 @@ export default function ContasBancarias({ embedded = false }: { embedded?: boole
               <Button onClick={openNew} size="sm" variant="outline" className="h-7 text-xs gap-1.5 rounded-md">
                 <Plus className="w-3 h-3" /> Nova Conta Manual
               </Button>
-              <PluggyConnectButton />
+              <PluggyConnectButton size="sm" />
             </div>
           </CardHeader>
 
           <CardContent className="px-2 pb-3 flex-1 overflow-auto">
             {isLoading ? (
               <div className="py-8 text-center text-muted-foreground text-xs">Carregando...</div>
-            ) : items.length === 0 ? (
+            ) : !hasAnyData ? (
               <div className="py-8 text-center text-muted-foreground text-xs">Nenhuma conta cadastrada.</div>
             ) : (
               <div className="space-y-0.5">
+                <PluggyConnectionsList />
                 {items.map((item) => {
                   const Icon = tipoIcons[item.tipo];
                   return (
