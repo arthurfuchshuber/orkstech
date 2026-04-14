@@ -228,69 +228,29 @@ export function useDRE(filters: DREFilters) {
       else if (root.tipo === "custo") totalCustoAmount += line.amount;
     });
 
-    // Add summary lines at the end
     const netIncome = totalReceitaAmount - totalDespesaAmount - totalCustoAmount;
-
-    // Insert summary lines
-    const summaryLines: DRELine[] = [];
-    
-    // Always show summary/indicator lines
-    summaryLines.push({
-      id: "receita-liquida",
-      label: "RECEITA LÍQUIDA",
-      depth: 0, amount: totalReceitaAmount,
-      percentage: totalRevenue > 0 ? (totalReceitaAmount / totalRevenue) * 100 : 0,
-      previousAmount: 0, variation: null, isGroup: false, isSummary: true,
-    });
-
-    summaryLines.push({
-      id: "total-custos",
-      label: "(-) TOTAL CUSTOS",
-      depth: 0, amount: totalCustoAmount,
-      percentage: totalRevenue > 0 ? (totalCustoAmount / totalRevenue) * 100 : 0,
-      previousAmount: 0, variation: null, isGroup: false, isSummary: true,
-    });
-
     const grossProfitVal = totalReceitaAmount - totalCustoAmount;
     const grossMarginPct = totalReceitaAmount > 0 ? (grossProfitVal / totalReceitaAmount) * 100 : 0;
-
-    summaryLines.push({
-      id: "margem-bruta",
-      label: "MARGEM BRUTA",
-      depth: 0, amount: grossProfitVal, percentage: grossMarginPct,
-      previousAmount: 0, variation: null, isGroup: false, isSummary: true,
-    });
-
-    summaryLines.push({
-      id: "total-despesas",
-      label: "(-) TOTAL DESPESAS",
-      depth: 0, amount: totalDespesaAmount,
-      percentage: totalRevenue > 0 ? (totalDespesaAmount / totalRevenue) * 100 : 0,
-      previousAmount: 0, variation: null, isGroup: false, isSummary: true,
-    });
-
     const ebitdaVal = grossProfitVal - totalDespesaAmount;
 
-    summaryLines.push({
-      id: "ebitda",
-      label: "EBITDA",
-      depth: 0, amount: ebitdaVal,
-      percentage: totalRevenue > 0 ? (ebitdaVal / totalRevenue) * 100 : 0,
-      previousAmount: 0, variation: null, isGroup: false, isSummary: true,
+    // Continue numbering from tree length
+    let nextNum = lines.length + 1;
+
+    const makeIndicator = (id: string, label: string, amount: number, pct: number): DRELine => ({
+      id, label, depth: 0, amount, percentage: pct,
+      previousAmount: 0, variation: null, isGroup: false, isSummary: false,
+      number: `${nextNum++}.`,
     });
 
-    summaryLines.push({
-      id: "resultado",
-      label: "RESULTADO",
-      depth: 0, amount: netIncome,
-      percentage: totalRevenue > 0 ? (netIncome / totalRevenue) * 100 : 0,
-      previousAmount: 0, variation: null, isGroup: false, isSummary: true,
-    });
-
-    const grossProfit = totalReceitaAmount - totalCustoAmount;
+    const indicators: DRELine[] = [
+      makeIndicator("receita-liquida", "Receita Líquida", totalReceitaAmount, totalRevenue > 0 ? (totalReceitaAmount / totalRevenue) * 100 : 0),
+      makeIndicator("margem-bruta", "Margem Bruta", grossProfitVal, grossMarginPct),
+      makeIndicator("ebitda", "EBITDA", ebitdaVal, totalRevenue > 0 ? (ebitdaVal / totalRevenue) * 100 : 0),
+      makeIndicator("resultado", "Resultado", netIncome, totalRevenue > 0 ? (netIncome / totalRevenue) * 100 : 0),
+    ];
 
     return {
-      lines: [...lines, ...summaryLines],
+      lines: [...lines, ...indicators],
       totalRevenue: totalReceitaAmount,
       totalExpense: totalDespesaAmount + totalCustoAmount,
       grossProfit,
