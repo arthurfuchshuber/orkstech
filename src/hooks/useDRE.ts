@@ -260,12 +260,12 @@ export function useDRE(filters: DREFilters) {
     const indicators: DRELine[] = [
       makeIndicator("receita-liquida", "Receita Líquida", receitaLiquida),
       makeIndicator("lucro-bruto", "Lucro Bruto", lucroBruto),
-      makeIndicator("margem-bruta", "Margem Bruta", margemBrutaPct),
+      { ...makeIndicator("margem-bruta", "Margem Bruta", margemBrutaPct), isPercentual: true },
       makeIndicator("resultado-operacional", "Resultado Operacional", resultadoOperacional),
       makeIndicator("resultado-financeiro", "Resultado Financeiro", resultadoFinanceiro),
       makeIndicator("resultado-antes-impostos", "Resultado antes dos Impostos", resultadoAntesImpostos),
       makeIndicator("lucro-liquido", "Lucro Líquido", lucroLiquido),
-      makeIndicator("margem-liquida", "Margem Líquida", margemLiquidaPct),
+      { ...makeIndicator("margem-liquida", "Margem Líquida", margemLiquidaPct), isPercentual: true },
     ];
 
     return {
