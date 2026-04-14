@@ -1161,21 +1161,6 @@ export default function ContasAPagar() {
             <div className="h-px flex-1 bg-border/30" />
           </div>
 
-          {/* Categoria */}
-          <ManagedSelectInput
-            label="Categoria"
-            value={form.category_id}
-            onValueChange={(v) => updateField("category_id", v)}
-            options={categories.map((c: any) => ({ value: c.id, label: c.nome }))}
-            placeholder="Selecione a categoria..."
-            icon={<FolderTree className="w-4 h-4" />}
-            onAddModal={() => { setCatEditingId(null); setCatModalOpen(true); }}
-            onEditModal={(id) => { setCatEditingId(id); setCatModalOpen(true); }}
-            onDelete={categoriasCrud.onDelete}
-            onReorder={categoriasCrud.onReorder}
-            addLabel="Nova categoria"
-          />
-
           {/* Tipo Financeiro */}
           <ManagedSelectInput
             label="Tipo Financeiro (DRE)"
