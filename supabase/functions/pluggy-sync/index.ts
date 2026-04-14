@@ -196,6 +196,10 @@ Deno.serve(async (req) => {
         bank_data: {
           ...(acc.bankData || {}),
           creditData: acc.creditData || null,
+          owner: acc.owner || null,
+          taxNumber: acc.taxNumber || null,
+          marketingName: acc.marketingName || null,
+          number: acc.number || null,
           balanceCloseDate: acc.creditData?.balanceCloseDate || null,
           openBillAmount: openBillAmount,
           totalDebt: acc.type === 'CREDIT' ? (acc.balance ?? null) : null,

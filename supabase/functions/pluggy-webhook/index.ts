@@ -287,6 +287,7 @@ async function processItemUpdated(
 
   // Upsert accounts
   for (const account of accounts || []) {
+    const creditData = account.creditData || {}
     const accountData: Record<string, unknown> = {
       user_id: userId,
       connection_id: connectionId,
@@ -297,22 +298,28 @@ async function processItemUpdated(
       subtype: account.subtype || null,
       balance: account.balance ?? 0,
       currency_code: account.currencyCode || 'BRL',
-      bank_data: account.bankData || {},
+      bank_data: {
+        ...(account.bankData || {}),
+        creditData,
+        owner: account.owner || null,
+        taxNumber: account.taxNumber || null,
+        marketingName: account.marketingName || null,
+        number: account.number || null,
+      },
     }
 
     // Credit card data
     if (account.type === 'CREDIT') {
-      const cd = account.creditData || {}
-      accountData.credit_limit = cd.limit ?? null
-      accountData.credit_available = cd.availableCreditLimit ?? null
-      accountData.credit_bill_amount = cd.balanceClose ?? null
-      accountData.credit_bill_due_date = cd.balanceCloseDate?.split('T')[0] ?? null
+      accountData.credit_limit = creditData.limit ?? null
+      accountData.credit_available = creditData.availableCreditLimit ?? null
+      accountData.credit_bill_amount = creditData.balanceClose ?? null
+      accountData.credit_bill_due_date = creditData.balanceCloseDate?.split('T')[0] ?? null
 
       creditCards.push({
         name: account.name || 'Cartão',
-        billAmount: cd.balanceClose ?? null,
-        billDueDate: cd.balanceCloseDate?.split('T')[0] ?? null,
-        available: cd.availableCreditLimit ?? null,
+        billAmount: creditData.balanceClose ?? null,
+        billDueDate: creditData.balanceCloseDate?.split('T')[0] ?? null,
+        available: creditData.availableCreditLimit ?? null,
       })
     }
 
