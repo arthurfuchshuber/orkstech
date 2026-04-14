@@ -329,7 +329,7 @@ export default function ExtratoBancario() {
   // Calculate estimated investment yields (rendimentos)
   // This is the difference between the current total balance and the net of all transactions
   // It represents yields from savings/investments that don't generate visible transactions
-  const totalStoredInvestments = bankAccounts
+  const _totalStoredInvestments = bankAccounts
     .filter((a) => a.type !== "CREDIT")
     .reduce((sum, a) => sum + getStoredBalance(a), 0);
   const netTransactions = totalIncome - totalExpense;
