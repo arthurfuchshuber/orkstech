@@ -83,10 +83,11 @@ Deno.serve(async (req) => {
     const apiKey = await getPluggyApiKey()
     const headers = { 'X-API-KEY': apiKey, 'Content-Type': 'application/json' }
 
-    // Fetch item details and accounts from Pluggy
-    const [itemRes, accountsRes] = await Promise.all([
+    // Fetch item details, accounts, and investments from Pluggy
+    const [itemRes, accountsRes, investmentsRes] = await Promise.all([
       fetch(`https://api.pluggy.ai/items/${itemId}`, { headers }),
       fetch(`https://api.pluggy.ai/accounts?itemId=${itemId}`, { headers }),
+      fetch(`https://api.pluggy.ai/investments?itemId=${itemId}&pageSize=500`, { headers }),
     ])
     if (!itemRes.ok) throw new Error(`Pluggy item error: ${itemRes.status}`)
     if (!accountsRes.ok) throw new Error(`Pluggy accounts error: ${accountsRes.status}`)
@@ -94,6 +95,18 @@ Deno.serve(async (req) => {
     const item = await itemRes.json()
     const accountsData = await accountsRes.json()
     const accounts = accountsData.results || []
+
+    // Sum active investments (caixinhas, guardados, etc.)
+    let totalInvestments = 0
+    if (investmentsRes.ok) {
+      const investmentsData = await investmentsRes.json()
+      const investments = investmentsData.results || []
+      totalInvestments = investments
+        .filter((inv: any) => (inv.balance ?? 0) > 0 || (inv.value ?? 0) > 0)
+        .reduce((sum: number, inv: any) => sum + (inv.balance ?? inv.value ?? 0), 0)
+      totalInvestments = Math.round(totalInvestments * 100) / 100
+      console.log(`Total investments for item ${itemId}: R$ ${totalInvestments} from ${investments.length} investments`)
+    }
 
     // Get connection and resolve the real owner user_id
     const { data: conn } = await supabaseAdmin
