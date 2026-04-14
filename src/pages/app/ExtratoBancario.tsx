@@ -349,9 +349,16 @@ export default function ExtratoBancario() {
     .reduce((sum, tx) => sum + Math.abs(tx.amount), 0);
 
   // Real investment yields from Pluggy API
+  // Use amountProfit when available, otherwise calculate from balance - amountOriginal
   const totalRendimentos = investments
-    .filter((inv) => inv.status === "ACTIVE" && (inv.amount_profit ?? 0) !== 0)
-    .reduce((sum, inv) => sum + (inv.amount_profit ?? 0), 0);
+    .filter((inv) => inv.status === "ACTIVE")
+    .reduce((sum, inv) => {
+      if (inv.amount_profit != null) return sum + inv.amount_profit;
+      if (inv.amount_original != null && inv.balance > 0) {
+        return sum + (inv.balance - inv.amount_original);
+      }
+      return sum;
+    }, 0);
   const totalRendimentosRounded = Math.round(totalRendimentos * 100) / 100;
 
   const periodLabel = allPeriod ? "Todo o período" : `${format(dateFrom, "dd/MM/yyyy")} a ${format(dateTo, "dd/MM/yyyy")}`;
