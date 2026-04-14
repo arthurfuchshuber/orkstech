@@ -22,25 +22,25 @@ interface Categoria {
 export function CategoriasCadastroSection() {
   const { user } = useAuth();
   const { empresa } = useEmpresa();
-  const empresaId = empresa?.id;
   const qc = useQueryClient();
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
 
+  const targetUserId = empresa?.user_id ?? user?.id;
+
   const { data: items = [], isLoading } = useQuery({
-    queryKey: ["categorias_cadastro", empresaId],
+    queryKey: ["categorias_cadastro", targetUserId],
     queryFn: async () => {
-      let q = supabase
+      const { data, error } = await supabase
         .from("categorias_cadastro")
         .select("*")
+        .eq("user_id", targetUserId!)
         .order("ordem");
-      if (empresaId) q = q.eq("empresa_id", empresaId);
-      const { data, error } = await q;
       if (error) throw error;
       return (data ?? []) as Categoria[];
     },
-    enabled: !!user,
+    enabled: !!user && !!targetUserId,
   });
 
   const parents = items.filter((i) => !i.categoria_pai_id);

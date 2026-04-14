@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useEmpresa } from "@/hooks/useEmpresa";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,6 +23,8 @@ interface FormaPagamentoModalProps {
 
 export function FormaPagamentoModal({ open, onOpenChange, editingId, onSaved }: FormaPagamentoModalProps) {
   const { user } = useAuth();
+  const { empresa } = useEmpresa();
+  const targetUserId = empresa?.user_id ?? user?.id;
   const qc = useQueryClient();
   const [form, setForm] = useState({ nome: "", tipo_id: "", numero_cartao: "" });
   const [tipoModalOpen, setTipoModalOpen] = useState(false);
@@ -84,7 +87,7 @@ export function FormaPagamentoModal({ open, onOpenChange, editingId, onSaved }: 
         if (error) throw error;
         return editingId;
       } else {
-        const { data, error } = await supabase.from("formas_pagamento").insert({ ...payload, user_id: user!.id }).select("id").single();
+        const { data, error } = await supabase.from("formas_pagamento").insert({ ...payload, user_id: targetUserId!, empresa_id: empresa?.id || null }).select("id").single();
         if (error) throw error;
         return data.id;
       }

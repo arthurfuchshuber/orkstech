@@ -21,21 +21,21 @@ interface CategoriaCadastroModalProps {
 export function CategoriaCadastroModal({ open, onOpenChange, editingId, onSaved }: CategoriaCadastroModalProps) {
   const { user } = useAuth();
   const { empresa } = useEmpresa();
-  const empresaId = empresa?.id;
+  const targetUserId = empresa?.user_id ?? user?.id;
   const qc = useQueryClient();
   const [form, setForm] = useState({ nome: "", categoria_pai_id: "" });
 
   const { data: categorias = [] } = useQuery({
-    queryKey: ["categorias_cadastro", empresaId],
+    queryKey: ["categorias_cadastro", targetUserId],
     enabled: !!user && open,
     queryFn: async () => {
       let q = supabase
         .from("categorias_cadastro")
         .select("id, nome, categoria_pai_id")
         .eq("ativo", true)
+        .eq("user_id", targetUserId!)
         .is("categoria_pai_id", null)
         .order("ordem");
-      if (empresaId) q = q.eq("empresa_id", empresaId);
       const { data, error } = await q;
       if (error) throw error;
       return data ?? [];
@@ -77,7 +77,7 @@ export function CategoriaCadastroModal({ open, onOpenChange, editingId, onSaved 
       } else {
         const { data, error } = await supabase
           .from("categorias_cadastro")
-          .insert({ ...payload, user_id: user!.id, empresa_id: empresaId || null })
+          .insert({ ...payload, user_id: user!.id, empresa_id: empresa?.id || null })
           .select("id")
           .single();
         if (error) throw error;

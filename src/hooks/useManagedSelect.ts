@@ -64,7 +64,7 @@ export function useManagedSelect(
   const { empresa } = useEmpresa();
   const queryClient = useQueryClient();
   const config = configs[tableName];
-
+  const targetUserId = empresa?.user_id ?? user?.id;
   const invalidate = useCallback(() => {
     if (config) {
       queryClient.invalidateQueries({ queryKey: [config.queryKey] });
@@ -77,7 +77,7 @@ export function useManagedSelect(
     try {
       const payload: any = {
         [config.labelField]: label,
-        user_id: user.id,
+        user_id: targetUserId,
         empresa_id: empresa?.id || null,
         ...opts?.insertDefaults,
       };
