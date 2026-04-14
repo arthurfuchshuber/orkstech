@@ -66,7 +66,8 @@ const App = () => (
                 <Route path="financas/centros-de-custo" element={<Navigate to="/app/financas/cadastros" replace />} />
                 <Route path="financas/formas-de-pagamento" element={<Navigate to="/app/financas/cadastros" replace />} />
                 <Route path="financas/contas-bancarias" element={<Navigate to="/app/financas/cadastros" replace />} />
-                <Route path="financas/extrato" element={<ExtratoBancario />} />
+                <Route path="extrato-bancario" element={<ExtratoBancario />} />
+                <Route path="financas/extrato" element={<Navigate to="/app/extrato-bancario" replace />} />
                 <Route path="financas/conciliacao" element={<Conciliacao />} />
                 <Route path="automacoes/config" element={<Automacoes />} />
                 <Route path="automacoes/workflows" element={<Navigate to="/app/automacoes/config" replace />} />
