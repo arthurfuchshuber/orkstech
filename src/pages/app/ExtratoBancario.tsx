@@ -32,6 +32,7 @@ import {
   TrendingUp,
   TrendingDown,
   CalendarIcon,
+  PiggyBank,
 } from "lucide-react";
 import { format, startOfMonth, endOfMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -325,6 +326,17 @@ export default function ExtratoBancario() {
     .filter((tx) => tx.type === "DEBIT" || tx.amount < 0)
     .reduce((sum, tx) => sum + Math.abs(tx.amount), 0);
 
+  // Calculate estimated investment yields (rendimentos)
+  // This is the difference between the current total balance and the net of all transactions
+  // It represents yields from savings/investments that don't generate visible transactions
+  const _totalStoredInvestments = bankAccounts
+    .filter((a) => a.type !== "CREDIT")
+    .reduce((sum, a) => sum + getStoredBalance(a), 0);
+  const netTransactions = totalIncome - totalExpense;
+  const totalRendimentos = allPeriod
+    ? Math.max(0, totalBalance - netTransactions)
+    : 0;
+
   const periodLabel = allPeriod ? "Todo o período" : `${format(dateFrom, "dd/MM/yyyy")} a ${format(dateTo, "dd/MM/yyyy")}`;
 
   return (
@@ -432,7 +444,7 @@ export default function ExtratoBancario() {
         </div>
       </Card>
 
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className={cn("grid gap-4", totalRendimentos > 0 ? "md:grid-cols-5" : "md:grid-cols-4")}>
         <Card className="p-4">
           <div className="mb-1 flex items-center gap-2">
             <Landmark className="h-4 w-4 text-primary" />
@@ -462,8 +474,21 @@ export default function ExtratoBancario() {
           <p className="mt-1 text-[11px] text-muted-foreground">{periodLabel}</p>
         </Card>
 
+        {totalRendimentos > 0 && (
+          <Card className="p-4 border-l-4 border-l-amber-500">
+            <div className="mb-1 flex items-center gap-2">
+              <PiggyBank className="h-4 w-4 text-amber-500" />
+              <span className="text-xs text-muted-foreground">Rendimentos</span>
+            </div>
+            <p className="text-xl font-bold text-amber-600">+{formatCurrency(totalRendimentos)}</p>
+            <p className="mt-1 text-[11px] text-muted-foreground">
+              Caixinhas e investimentos
+            </p>
+          </Card>
+        )}
+
         {(() => {
-          const resultado = totalIncome - totalExpense;
+          const resultado = totalIncome - totalExpense + totalRendimentos;
           const isPositive = resultado >= 0;
           return (
             <Card className={cn("p-4 border-l-4", isPositive ? "border-l-primary" : "border-l-destructive")}>
