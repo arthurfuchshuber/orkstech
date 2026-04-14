@@ -21,6 +21,7 @@ import Automacoes from "./pages/app/Automacoes";
 import Configuracoes from "./pages/app/Configuracoes";
 import PlaceholderPage from "./pages/app/PlaceholderPage";
 import Financeiro from "./pages/app/Financeiro";
+import FinanceiroDashboardPage from "./pages/app/FinanceiroDashboardPage";
 import ContasBancarias from "./pages/app/ContasBancarias";
 import GerenciarMenu from "./pages/app/GerenciarMenu";
 import ContasAPagar from "./pages/app/ContasAPagar";
@@ -50,8 +51,8 @@ const App = () => (
               <Route path="/reset-password" element={<ResetPassword />} />
               <Route path="/app/onboarding" element={<OnboardingRoute><Onboarding /></OnboardingRoute>} />
               <Route path="/app" element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
-                <Route index element={<Navigate to="/app/financas/cadastros" replace />} />
-                <Route path="dashboard" element={<Navigate to="/app/financas/cadastros" replace />} />
+                <Route index element={<Navigate to="/app/financas/dashboard" replace />} />
+                <Route path="dashboard" element={<Navigate to="/app/financas/dashboard" replace />} />
                 <Route path="clientes" element={<Clientes />} />
                 <Route path="clientes/:id" element={<ClienteWorkspace />} />
                 <Route path="fornecedores" element={<Fornecedores />} />
