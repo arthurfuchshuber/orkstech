@@ -138,20 +138,23 @@ export default function ExtratoBancario() {
     return displayOwner ? `${connectorName} (${displayOwner})` : connectorName;
   };
 
+  // Fetch ALL transactions (no limit) for accurate totals
+  const bankAccountIds = bankAccounts.map((a) => a.pluggy_account_id);
+
   const { data: allTransactions = [] } = useQuery({
-    queryKey: ["pluggy_transactions_summary", targetUserId],
+    queryKey: ["pluggy_transactions_summary", targetUserId, bankAccountIds.join(",")],
     queryFn: async () => {
+      if (bankAccountIds.length === 0) return [];
       const { data, error } = await supabase
         .from("pluggy_transactions" as any)
-        .select("*")
+        .select("id, amount, type, pluggy_account_id")
         .eq("user_id", targetUserId!)
-        .order("date", { ascending: false })
-        .limit(1000);
+        .in("pluggy_account_id", bankAccountIds);
 
       if (error) throw error;
       return data as unknown as Transaction[];
     },
-    enabled: !!user && !!targetUserId,
+    enabled: !!user && !!targetUserId && bankAccountIds.length > 0,
   });
 
   const { data: transactions = [], isLoading: loadingTx } = useQuery({
