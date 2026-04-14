@@ -1,0 +1,1 @@
+DELETE FROM menus WHERE id = '54771d06-2c2f-4ae7-9a80-cff171e0730a' AND slug = 'dashboard'
