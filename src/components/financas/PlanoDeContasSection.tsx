@@ -253,7 +253,7 @@ export function PlanoDeContasSection() {
           </div>
           <div>
             <CardTitle className="text-sm font-semibold">Plano de Contas</CardTitle>
-            <p className="text-[11px] text-muted-foreground mt-0.5">Arraste para reordenar</p>
+            <p className="text-[11px] text-muted-foreground mt-0.5">Arraste para reordenar ou mover entre níveis</p>
           </div>
         </div>
         <Button onClick={() => openNew()} size="sm" variant="outline" className="h-7 text-xs gap-1.5 rounded-md">
