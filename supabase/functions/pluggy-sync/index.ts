@@ -111,6 +111,32 @@ Deno.serve(async (req) => {
     let savedTransactions = 0
 
     for (const acc of accounts) {
+      // For credit cards, fetch the actual bill from Pluggy Bills API
+      let billAmount: number | null = null
+      let billDueDate: string | null = null
+
+      if (acc.type === 'CREDIT') {
+        try {
+          const billsRes = await fetch(`https://api.pluggy.ai/accounts/${acc.id}/bills`, { headers })
+          if (billsRes.ok) {
+            const billsData = await billsRes.json()
+            const bills = billsData.results || []
+            // Find the next unpaid bill (closest future due date or most recent)
+            const now = new Date()
+            const futureBills = bills
+              .filter((b: any) => new Date(b.dueDate) >= new Date(now.toISOString().split('T')[0]))
+              .sort((a: any, b: any) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime())
+            const nextBill = futureBills[0] || bills[0]
+            if (nextBill) {
+              billAmount = nextBill.totalAmount ?? null
+              billDueDate = nextBill.dueDate ? nextBill.dueDate.split('T')[0] : null
+            }
+          }
+        } catch (e) {
+          console.error('Bills fetch error:', e)
+        }
+      }
+
       const accountPayload = {
         user_id: ownerUserId,
         connection_id: connectionId,
@@ -123,8 +149,8 @@ Deno.serve(async (req) => {
         currency_code: acc.currencyCode || 'BRL',
         credit_limit: acc.creditData?.limit ?? acc.creditData?.creditLimit ?? null,
         credit_available: acc.creditData?.availableCreditLimit ?? null,
-        credit_bill_amount: acc.type === 'CREDIT' ? (acc.balance ?? null) : null,
-        credit_bill_due_date: acc.creditData?.balanceDueDate || acc.creditData?.billDueDate || null,
+        credit_bill_amount: billAmount ?? (acc.type === 'CREDIT' ? (acc.balance ?? null) : null),
+        credit_bill_due_date: billDueDate || acc.creditData?.balanceDueDate || null,
         bank_data: acc.bankData || {},
         updated_at: new Date().toISOString(),
       }
