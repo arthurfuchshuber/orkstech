@@ -87,6 +87,7 @@ export default function ExtratoBancario() {
   const [selectedAccount, setSelectedAccount] = useState<string>("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [typeFilter, setTypeFilter] = useState<string>("all");
+  const [allPeriod, setAllPeriod] = useState(false);
 
   // Date range filter — default to current month
   const now = new Date();
@@ -95,8 +96,8 @@ export default function ExtratoBancario() {
 
   const targetUserId = empresa?.user_id ?? user?.id;
 
-  const dateFromStr = format(dateFrom, "yyyy-MM-dd");
-  const dateToStr = format(dateTo, "yyyy-MM-dd");
+  const dateFromStr = allPeriod ? "2000-01-01" : format(dateFrom, "yyyy-MM-dd");
+  const dateToStr = allPeriod ? "2099-12-31" : format(dateTo, "yyyy-MM-dd");
 
   const { data: accounts = [], isLoading: loadingAccounts } = useQuery({
     queryKey: ["pluggy_bank_accounts", targetUserId],
