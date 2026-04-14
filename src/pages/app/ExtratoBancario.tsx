@@ -214,13 +214,17 @@ export default function ExtratoBancario() {
                 </div>
                 <div className="grid grid-cols-2 gap-3 text-xs">
                   <div>
-                    <p className="text-muted-foreground">Fatura Aberta</p>
+                    <p className="text-muted-foreground">
+                      {cc.bank_data?.hasBillData || cc.bank_data?.hasOpenBillCalc
+                        ? "Fatura Aberta"
+                        : "Saldo Devedor"}
+                    </p>
                     <p className="text-base font-bold text-destructive">
                       {cc.credit_bill_amount != null
                         ? formatCurrency(cc.credit_bill_amount)
                         : "—"}
                     </p>
-                    {cc.credit_bill_amount != null && (
+                    {(cc.bank_data?.hasBillData || cc.bank_data?.hasOpenBillCalc) && (
                       <p className="text-[10px] text-muted-foreground/70">parcial do ciclo</p>
                     )}
                   </div>
@@ -230,12 +234,6 @@ export default function ExtratoBancario() {
                       {cc.credit_bill_due_date
                         ? formatDate(cc.credit_bill_due_date)
                         : "—"}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground">Saldo Utilizado</p>
-                    <p className="font-semibold text-foreground">
-                      {formatCurrency(cc.balance)}
                     </p>
                   </div>
                   <div>
