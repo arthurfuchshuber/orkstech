@@ -14,14 +14,13 @@ import {
   Clock,
   CreditCard,
   Wallet,
-  ArrowUpRight,
   ArrowDownRight,
   PiggyBank,
 } from "lucide-react";
 import { format, differenceInDays, startOfMonth, endOfMonth, subMonths } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useMemo } from "react";
-import { cn } from "@/lib/utils";
+
 
 interface BankAccount {
   id: string;

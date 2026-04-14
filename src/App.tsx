@@ -50,8 +50,8 @@ const App = () => (
               <Route path="/reset-password" element={<ResetPassword />} />
               <Route path="/app/onboarding" element={<OnboardingRoute><Onboarding /></OnboardingRoute>} />
               <Route path="/app" element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
-                <Route index element={<Navigate to="/app/dashboard" replace />} />
-                <Route path="dashboard" element={<Dashboard />} />
+                <Route index element={<Navigate to="/app/financas/cadastros" replace />} />
+                <Route path="dashboard" element={<Navigate to="/app/financas/cadastros" replace />} />
                 <Route path="clientes" element={<Clientes />} />
                 <Route path="clientes/:id" element={<ClienteWorkspace />} />
                 <Route path="fornecedores" element={<Fornecedores />} />
