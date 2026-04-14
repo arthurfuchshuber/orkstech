@@ -426,6 +426,7 @@ export default function ContasAPagar() {
 
   const handleEdit = (item: any) => {
     setEditingId(item.id);
+    const catFin = categoriasFinanceiras.find((c: any) => c.id === item.categoria_financeira_id);
     setForm({
       description: item.description,
       supplier_id: item.supplier_id || "",
@@ -434,6 +435,7 @@ export default function ContasAPagar() {
       amount: Math.round(item.amount * 100),
       due_date: new Date(item.due_date),
       category_id: item.category_id || "",
+      tipo_financeiro: catFin?.tipo || "",
       categoria_financeira_id: item.categoria_financeira_id || "",
       cost_center_id: item.cost_center_id || "",
       bank_account_id: item.bank_account_id || "",
@@ -511,6 +513,7 @@ export default function ContasAPagar() {
   const handleDuplicate = (item: any) => {
     setEditingId(null);
     setForm({
+      const catFin2 = categoriasFinanceiras.find((c: any) => c.id === item.categoria_financeira_id);
       description: item.description,
       supplier_id: item.supplier_id || "",
       supplier_name: item.supplier_name || "",
@@ -518,6 +521,7 @@ export default function ContasAPagar() {
       amount: Math.round(item.amount * 100),
       due_date: undefined,
       category_id: item.category_id || "",
+      tipo_financeiro: catFin2?.tipo || "",
       categoria_financeira_id: item.categoria_financeira_id || "",
       cost_center_id: item.cost_center_id || "",
       bank_account_id: item.bank_account_id || "",
