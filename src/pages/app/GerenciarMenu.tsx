@@ -1,83 +1,113 @@
 import { useState } from "react";
-import { DragDropContext } from "@hello-pangea/dnd";
 import { useMenus, type MenuItem } from "@/hooks/useMenus";
 import { DynamicIcon } from "@/components/DynamicIcon";
 import { Card } from "@/components/ui/card";
-import { ChevronRight, ChevronDown, GripVertical, Menu } from "lucide-react";
-import { Droppable, Draggable, type DropResult } from "@hello-pangea/dnd";
+import { Button } from "@/components/ui/button";
+import {
+  ChevronRight,
+  ChevronDown,
+  Menu,
+  ArrowUp,
+  ArrowDown,
+} from "lucide-react";
 
 export default function GerenciarMenu() {
   const { tree, flatMenus, isLoading, reorder } = useMenus();
-  const [openMap, setOpenMap] = useState<Record<string, boolean>>({});
+  const [openMap, setOpenMap] = useState<Record<string, boolean>>(() => {
+    // Start with all groups open
+    const map: Record<string, boolean> = {};
+    flatMenus.forEach((m) => {
+      if (flatMenus.some((c) => c.parent_id === m.id)) {
+        map[m.id] = true;
+      }
+    });
+    return map;
+  });
 
   const toggle = (id: string) => setOpenMap((p) => ({ ...p, [id]: !p[id] }));
 
-  const handleDragEnd = (result: DropResult) => {
-    if (!result.destination) return;
-    if (result.source.index === result.destination.index) return;
-    const parentId = result.source.droppableId === "root" ? null : result.source.droppableId;
+  const moveItem = (parentId: string | null, currentIndex: number, direction: "up" | "down") => {
     const siblings = flatMenus
       .filter((m) => m.parent_id === parentId)
       .sort((a, b) => a.order_index - b.order_index);
-    const moved = siblings.splice(result.source.index, 1)[0];
-    siblings.splice(result.destination.index, 0, moved);
+
+    const newIndex = direction === "up" ? currentIndex - 1 : currentIndex + 1;
+    if (newIndex < 0 || newIndex >= siblings.length) return;
+
+    // Swap
+    const temp = siblings[currentIndex];
+    siblings[currentIndex] = siblings[newIndex];
+    siblings[newIndex] = temp;
+
     const updates = siblings.map((s, i) => ({ id: s.id, order_index: i, parent_id: parentId }));
     reorder.mutate(updates);
   };
 
-  const renderDroppable = (items: MenuItem[], droppableId: string) => (
-    <Droppable droppableId={droppableId}>
-      {(provided) => (
-        <div ref={provided.innerRef} {...provided.droppableProps} className="space-y-1">
-          {items.map((item, index) => {
-            const hasChildren = !!item.children?.length;
-            const isOpen = openMap[item.id] ?? false;
+  const renderItems = (items: MenuItem[], parentId: string | null, depth = 0) => (
+    <div className={depth > 0 ? "ml-6 pl-3 border-l-2 border-border/30 space-y-1 mt-1" : "space-y-1"}>
+      {items.map((item, index) => {
+        const hasChildren = !!item.children?.length;
+        const isOpen = openMap[item.id] ?? true;
+        const isFirst = index === 0;
+        const isLast = index === items.length - 1;
 
-            return (
-              <Draggable key={item.id} draggableId={item.id} index={index}>
-                {(prov, snapshot) => (
-                  <div ref={prov.innerRef} {...prov.draggableProps}>
-                    <div
-                      className={`flex items-center gap-2 px-3 py-2 rounded-lg border transition-colors ${
-                        snapshot.isDragging
-                          ? "border-primary/30 bg-primary/[0.05] shadow-lg"
-                          : "border-border/40 bg-card hover:bg-muted/30"
-                      } ${!item.is_active ? "opacity-50" : ""}`}
-                    >
-                      <div {...prov.dragHandleProps} className="cursor-grab active:cursor-grabbing">
-                        <GripVertical className="w-4 h-4 text-muted-foreground/40" />
-                      </div>
-                      <DynamicIcon name={item.icon} className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-                      <span className="flex-1 text-sm font-medium text-foreground">{item.name}</span>
+        return (
+          <div key={item.id}>
+            <div
+              className={`flex items-center gap-2 px-3 py-2.5 rounded-lg border transition-colors
+                border-border/40 bg-card hover:bg-muted/30
+                ${!item.is_active ? "opacity-50" : ""}`}
+            >
+              {/* Move buttons */}
+              <div className="flex flex-col gap-0.5">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-5 w-5 rounded"
+                  disabled={isFirst || reorder.isPending}
+                  onClick={() => moveItem(parentId, index, "up")}
+                >
+                  <ArrowUp className="w-3 h-3" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-5 w-5 rounded"
+                  disabled={isLast || reorder.isPending}
+                  onClick={() => moveItem(parentId, index, "down")}
+                >
+                  <ArrowDown className="w-3 h-3" />
+                </Button>
+              </div>
 
-                      {hasChildren && (
-                        <button
-                          onClick={() => toggle(item.id)}
-                          className="p-1 rounded hover:bg-muted/50"
-                        >
-                          {isOpen ? (
-                            <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" />
-                          ) : (
-                            <ChevronRight className="w-3.5 h-3.5 text-muted-foreground" />
-                          )}
-                        </button>
-                      )}
-                    </div>
+              <DynamicIcon name={item.icon} className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+              <span className="flex-1 text-sm font-medium text-foreground">{item.name}</span>
 
-                    {isOpen && hasChildren && (
-                      <div className="ml-6 mt-1 pl-3 border-l-2 border-border/30 space-y-1">
-                        {renderDroppable(item.children!, item.id)}
-                      </div>
-                    )}
-                  </div>
-                )}
-              </Draggable>
-            );
-          })}
-          {provided.placeholder}
-        </div>
-      )}
-    </Droppable>
+              {item.route && (
+                <span className="text-[10px] text-muted-foreground/50 font-mono hidden md:inline">
+                  {item.route}
+                </span>
+              )}
+
+              {hasChildren && (
+                <button
+                  onClick={() => toggle(item.id)}
+                  className="p-1.5 rounded-md hover:bg-muted/50 transition-colors"
+                >
+                  {isOpen ? (
+                    <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" />
+                  ) : (
+                    <ChevronRight className="w-3.5 h-3.5 text-muted-foreground" />
+                  )}
+                </button>
+              )}
+            </div>
+
+            {isOpen && hasChildren && renderItems(item.children!, item.id, depth + 1)}
+          </div>
+        );
+      })}
+    </div>
   );
 
   if (isLoading) {
@@ -91,7 +121,7 @@ export default function GerenciarMenu() {
         <div>
           <h1 className="text-xl font-bold text-foreground">Gerenciar Menu</h1>
           <p className="text-sm text-muted-foreground mt-0.5">
-            Arraste para reordenar os itens de navegação do sistema
+            Use as setas para reordenar os itens de navegação do sistema
           </p>
         </div>
       </div>
@@ -102,9 +132,7 @@ export default function GerenciarMenu() {
             Nenhum menu encontrado
           </div>
         ) : (
-          <DragDropContext onDragEnd={handleDragEnd}>
-            {renderDroppable(tree, "root")}
-          </DragDropContext>
+          renderItems(tree, null)
         )}
       </Card>
     </div>
