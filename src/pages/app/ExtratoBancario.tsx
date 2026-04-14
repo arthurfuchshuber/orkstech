@@ -141,21 +141,33 @@ export default function ExtratoBancario() {
   const creditCards = accounts.filter((account) => account.type === "CREDIT");
   const bankAccounts = accounts.filter((account) => account.type !== "CREDIT");
 
-  // Fetch ALL bank account transactions (no limit) for accurate totals
+  // Fetch ALL bank account transactions (paginated) for accurate totals
   const bankAccountIds = bankAccounts.map((a) => a.pluggy_account_id);
 
   const { data: allTransactions = [] } = useQuery({
     queryKey: ["pluggy_transactions_summary", targetUserId, bankAccountIds.join(",")],
     queryFn: async () => {
       if (bankAccountIds.length === 0) return [];
-      const { data, error } = await supabase
-        .from("pluggy_transactions" as any)
-        .select("id, amount, type, pluggy_account_id")
-        .eq("user_id", targetUserId!)
-        .in("pluggy_account_id", bankAccountIds);
-
-      if (error) throw error;
-      return data as unknown as Transaction[];
+      const allResults: Transaction[] = [];
+      // Fetch per account to avoid 1000-row limit across all accounts
+      for (const accId of bankAccountIds) {
+        let from = 0;
+        const pageSize = 1000;
+        while (true) {
+          const { data, error } = await supabase
+            .from("pluggy_transactions" as any)
+            .select("id, amount, type, pluggy_account_id")
+            .eq("user_id", targetUserId!)
+            .eq("pluggy_account_id", accId)
+            .range(from, from + pageSize - 1);
+          if (error) throw error;
+          const rows = data as unknown as Transaction[];
+          allResults.push(...rows);
+          if (rows.length < pageSize) break;
+          from += pageSize;
+        }
+      }
+      return allResults;
     },
     enabled: !!user && !!targetUserId && bankAccountIds.length > 0,
   });
