@@ -302,7 +302,7 @@ export default function ExtratoBancario() {
             {creditCards.map((card) => (
               <Card key={card.id} className="space-y-3 border-l-4 border-l-primary p-4">
                 <div className="flex items-center justify-between">
-                  <p className="text-sm font-semibold text-foreground">{card.name}</p>
+                  <p className="text-sm font-semibold text-foreground">{getDisplayName(card)}</p>
                   <Button
                     variant="ghost"
                     size="icon"
@@ -375,7 +375,7 @@ export default function ExtratoBancario() {
 
               return (
                 <Card key={account.id} className="space-y-1 p-3">
-                  <p className="text-xs text-muted-foreground">{account.name}</p>
+                  <p className="text-xs text-muted-foreground">{getDisplayName(account)}</p>
                   <p className="text-lg font-bold text-foreground">
                     {formatCurrency(getAccountTotalBalance(account))}
                   </p>
@@ -434,7 +434,7 @@ export default function ExtratoBancario() {
               <SelectItem value="all">Todas as contas</SelectItem>
               {accounts.map((account) => (
                 <SelectItem key={account.pluggy_account_id} value={account.pluggy_account_id}>
-                  {account.name}
+                  {getDisplayName(account)}
                 </SelectItem>
               ))}
             </SelectContent>
