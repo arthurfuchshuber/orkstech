@@ -511,6 +511,7 @@ export default function ContasAPagar() {
   };
 
   const handleDuplicate = (item: any) => {
+    setEditingId(null);
     const catFin2 = categoriasFinanceiras.find((c: any) => c.id === item.categoria_financeira_id);
     setForm({
       description: item.description,
