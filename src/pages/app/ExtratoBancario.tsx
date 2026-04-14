@@ -516,7 +516,7 @@ export default function ExtratoBancario() {
               {totalRendimentosRounded >= 0 ? "+" : ""}{formatCurrency(totalRendimentosRounded)}
             </p>
             <p className="mt-1 text-[11px] text-muted-foreground">
-              {investments.filter((i) => i.status === "ACTIVE").length} investimento(s) via API
+              Investimentos e caixinhas
             </p>
           </Card>
         )}
