@@ -348,9 +348,9 @@ export default function ExtratoBancario() {
     .filter((tx) => tx.type === "DEBIT" || tx.amount < 0)
     .reduce((sum, tx) => sum + Math.abs(tx.amount), 0);
 
-  // Real investment yields from Pluggy API
-  // Use amountProfit when available, otherwise calculate from balance - amountOriginal
-  const totalRendimentos = investments
+  // Investment yields: use API data for active investments, plus infer
+  // historical yields from withdrawn investments (Pluggy zeroes their data)
+  const apiRendimentos = investments
     .filter((inv) => inv.status === "ACTIVE")
     .reduce((sum, inv) => {
       if (inv.amount_profit != null) return sum + inv.amount_profit;
@@ -359,7 +359,15 @@ export default function ExtratoBancario() {
       }
       return sum;
     }, 0);
-  const totalRendimentosRounded = Math.round(totalRendimentos * 100) / 100;
+
+  // Total yields = difference between total balance and net external transactions
+  // This captures both current and historical (withdrawn) investment yields
+  const netExternal = totalIncome - totalExpense;
+  const inferredRendimentos = totalBalance - netExternal;
+  // Use the larger of API-calculated or inferred (inferred includes historical yields)
+  const totalRendimentosRounded = Math.round(
+    Math.max(apiRendimentos, inferredRendimentos > 0 ? inferredRendimentos : 0) * 100
+  ) / 100;
 
   const periodLabel = allPeriod ? "Todo o período" : `${format(dateFrom, "dd/MM/yyyy")} a ${format(dateTo, "dd/MM/yyyy")}`;
 
