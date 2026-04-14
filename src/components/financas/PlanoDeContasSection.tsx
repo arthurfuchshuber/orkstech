@@ -237,11 +237,6 @@ export function PlanoDeContasSection() {
   const closeMoveModal = () => { setMoveModalOpen(false); setMovingNode(null); setMoveTargetId(null); };
   const openMoveModal = (c: Categoria) => { setMovingNode(c); setMoveTargetId(c.categoria_pai_id); setMoveModalOpen(true); };
 
-  // Helper to get all descendant IDs to prevent circular moves
-  const getDescendantIds = (id: string): string[] => {
-    const children = categorias.filter((c) => c.categoria_pai_id === id);
-    return children.flatMap((c) => [c.id, ...getDescendantIds(c.id)]);
-  };
 
   const moveParentOptions = movingNode
     ? categorias.filter((c) => c.id !== movingNode.id && !getDescendantIds(movingNode.id).includes(c.id))
