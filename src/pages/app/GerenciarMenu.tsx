@@ -101,17 +101,53 @@ export default function GerenciarMenu() {
     if (!destination) return;
     if (source.droppableId === destination.droppableId && source.index === destination.index) return;
 
-    const parentId = source.droppableId === "root" ? null : source.droppableId;
-    // Only allow reorder within same list
-    if (source.droppableId !== destination.droppableId) return;
+    const sourceParentId = source.droppableId === "root" ? null : source.droppableId;
+    const destParentId = destination.droppableId === "root" ? null : destination.droppableId;
 
-    const siblings = flatMenus
-      .filter((m) => m.parent_id === parentId)
-      .sort((a, b) => a.order_index - b.order_index);
-    const moved = siblings.splice(source.index, 1)[0];
-    siblings.splice(destination.index, 0, moved);
+    const updates: { id: string; order_index: number; parent_id: string | null }[] = [];
 
-    const updates = siblings.map((s, i) => ({ id: s.id, order_index: i, parent_id: parentId }));
+    if (sourceParentId === destParentId) {
+      // Same list reorder
+      const siblings = flatMenus
+        .filter((m) => m.parent_id === sourceParentId)
+        .sort((a, b) => a.order_index - b.order_index);
+      const moved = siblings.splice(source.index, 1)[0];
+      siblings.splice(destination.index, 0, moved);
+      siblings.forEach((s, i) => updates.push({ id: s.id, order_index: i, parent_id: sourceParentId }));
+    } else {
+      // Cross-list move
+      const sourceSiblings = flatMenus
+        .filter((m) => m.parent_id === sourceParentId)
+        .sort((a, b) => a.order_index - b.order_index);
+      const [moved] = sourceSiblings.splice(source.index, 1);
+
+      // Prevent moving into own descendants
+      const descendants = new Set<string>();
+      const collectDesc = (pid: string) => {
+        flatMenus.filter((m) => m.parent_id === pid).forEach((m) => {
+          descendants.add(m.id);
+          collectDesc(m.id);
+        });
+      };
+      collectDesc(moved.id);
+      if (destParentId && (descendants.has(destParentId) || moved.id === destParentId)) return;
+
+      // Reindex source
+      sourceSiblings.forEach((s, i) => updates.push({ id: s.id, order_index: i, parent_id: sourceParentId }));
+
+      // Insert into destination
+      const destSiblings = flatMenus
+        .filter((m) => m.parent_id === destParentId && m.id !== moved.id)
+        .sort((a, b) => a.order_index - b.order_index);
+      destSiblings.splice(destination.index, 0, moved);
+      destSiblings.forEach((s, i) => updates.push({ id: s.id, order_index: i, parent_id: destParentId }));
+
+      // Open destination parent
+      if (destParentId) {
+        setOpenMap((p) => ({ ...p, [destParentId]: true }));
+      }
+    }
+
     reorder.mutate(updates);
   };
 
