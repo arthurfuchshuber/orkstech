@@ -121,10 +121,10 @@ Deno.serve(async (req) => {
         subtype: acc.subtype || null,
         balance: acc.balance ?? 0,
         currency_code: acc.currencyCode || 'BRL',
-        credit_limit: acc.creditData?.limit ?? null,
+        credit_limit: acc.creditData?.limit ?? acc.creditData?.creditLimit ?? null,
         credit_available: acc.creditData?.availableCreditLimit ?? null,
-        credit_bill_amount: acc.creditData?.balanceCloseDate ? acc.balance : null,
-        credit_bill_due_date: acc.creditData?.balanceDueDate || null,
+        credit_bill_amount: acc.type === 'CREDIT' ? (acc.balance ?? null) : null,
+        credit_bill_due_date: acc.creditData?.balanceDueDate || acc.creditData?.billDueDate || null,
         bank_data: acc.bankData || {},
         updated_at: new Date().toISOString(),
       }
