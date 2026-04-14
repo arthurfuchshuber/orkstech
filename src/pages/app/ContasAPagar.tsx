@@ -1196,9 +1196,9 @@ export default function ContasAPagar() {
             onValueChange={(v) => updateField("categoria_financeira_id", v)}
             options={(() => {
               const filtered = categoriasFinanceiras.filter((c: any) => !form.tipo_financeiro || c.tipo === form.tipo_financeiro);
-              // Leaf = not a parent of any other category (check against ALL categories, not just filtered)
+              // Leaf = not a parent of any other category (using full hierarchy across all empresas)
               return filtered
-                .filter((c: any) => !categoriasFinanceiras.some((child: any) => child.categoria_pai_id === c.id))
+                .filter((c: any) => !allCategoriasFin.some((child: any) => child.categoria_pai_id === c.id))
                 .map((c: any) => ({ value: c.id, label: c.nome }));
             })()}
             placeholder={form.tipo_financeiro ? "Selecione a subcategoria..." : "Selecione o tipo financeiro primeiro..."}
