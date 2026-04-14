@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { DragDropContext, Droppable, Draggable, type DropResult } from "@hello-pangea/dnd";
 import { useMenus, type MenuItem } from "@/hooks/useMenus";
 import { DynamicIcon } from "@/components/DynamicIcon";
@@ -22,42 +22,41 @@ import {
 export default function GerenciarMenu() {
   const { tree, flatMenus, isLoading, reorder } = useMenus();
   const [openMap, setOpenMap] = useState<Record<string, boolean>>({});
-  const [activeDragId, setActiveDragId] = useState<string | null>(null);
 
   useEffect(() => {
     if (flatMenus.length > 0) {
       const map: Record<string, boolean> = {};
-      flatMenus.forEach((m) => {
-        if (flatMenus.some((c) => c.parent_id === m.id)) {
-          map[m.id] = true;
+      flatMenus.forEach((menu) => {
+        if (flatMenus.some((child) => child.parent_id === menu.id)) {
+          map[menu.id] = true;
         }
       });
       setOpenMap((prev) => ({ ...map, ...prev }));
     }
   }, [flatMenus]);
 
-  const toggle = (id: string) => setOpenMap((p) => ({ ...p, [id]: !p[id] }));
+  const toggle = (id: string) => setOpenMap((prev) => ({ ...prev, [id]: !prev[id] }));
 
   const getDescendantIds = (itemId: string) => {
     const descendants = new Set<string>();
 
-    const collectDescendants = (parentId: string) => {
+    const collect = (parentId: string) => {
       flatMenus
-        .filter((m) => m.parent_id === parentId)
-        .forEach((m) => {
-          descendants.add(m.id);
-          collectDescendants(m.id);
+        .filter((menu) => menu.parent_id === parentId)
+        .forEach((menu) => {
+          descendants.add(menu.id);
+          collect(menu.id);
         });
     };
 
-    collectDescendants(itemId);
+    collect(itemId);
     return descendants;
   };
 
-  const canMoveIntoParent = (itemId: string, parentId: string | null) => {
-    if (parentId === null) return true;
-    if (itemId === parentId) return false;
-    return !getDescendantIds(itemId).has(parentId);
+  const canMoveToParent = (itemId: string, targetParentId: string | null) => {
+    if (targetParentId === null) return true;
+    if (itemId === targetParentId) return false;
+    return !getDescendantIds(itemId).has(targetParentId);
   };
 
   const getParentOptions = (itemId: string) => {
@@ -65,14 +64,14 @@ export default function GerenciarMenu() {
     blockedIds.add(itemId);
 
     const rootItems = flatMenus.filter(
-      (m) => m.parent_id === null && !blockedIds.has(m.id)
+      (menu) => menu.parent_id === null && !blockedIds.has(menu.id)
     );
 
     const groups = flatMenus.filter(
-      (m) =>
-        !blockedIds.has(m.id) &&
-        m.parent_id !== null &&
-        flatMenus.some((c) => c.parent_id === m.id)
+      (menu) =>
+        !blockedIds.has(menu.id) &&
+        menu.parent_id !== null &&
+        flatMenus.some((child) => child.parent_id === menu.id)
     );
 
     return { rootItems, groups };
@@ -83,58 +82,61 @@ export default function GerenciarMenu() {
     currentParentId: string | null,
     newParentId: string | null
   ) => {
-    if (currentParentId === newParentId || !canMoveIntoParent(itemId, newParentId)) return;
-
-    const updates: { id: string; order_index: number; parent_id: string | null }[] = [];
+    if (currentParentId === newParentId || !canMoveToParent(itemId, newParentId)) return;
 
     const currentSiblings = flatMenus
-      .filter((m) => m.parent_id === currentParentId && m.id !== itemId)
+      .filter((menu) => menu.parent_id === currentParentId && menu.id !== itemId)
       .sort((a, b) => a.order_index - b.order_index);
-
-    currentSiblings.forEach((s, i) => {
-      updates.push({ id: s.id, order_index: i, parent_id: currentParentId });
-    });
 
     const newSiblings = flatMenus
-      .filter((m) => m.parent_id === newParentId && m.id !== itemId)
+      .filter((menu) => menu.parent_id === newParentId && menu.id !== itemId)
       .sort((a, b) => a.order_index - b.order_index);
 
-    updates.push({ id: itemId, order_index: newSiblings.length, parent_id: newParentId });
+    const updates = [
+      ...currentSiblings.map((menu, index) => ({
+        id: menu.id,
+        order_index: index,
+        parent_id: currentParentId,
+      })),
+      {
+        id: itemId,
+        order_index: newSiblings.length,
+        parent_id: newParentId,
+      },
+    ];
 
     if (newParentId) {
-      setOpenMap((p) => ({ ...p, [newParentId]: true }));
+      setOpenMap((prev) => ({ ...prev, [newParentId]: true }));
     }
 
     reorder.mutate(updates);
   };
 
   const handleDragEnd = (result: DropResult) => {
-    setActiveDragId(null);
-
     const { source, destination, draggableId } = result;
     if (!destination) return;
     if (source.droppableId === destination.droppableId && source.index === destination.index) return;
 
     const sourceParentId = source.droppableId === "root" ? null : source.droppableId;
-    const destParentId = destination.droppableId === "root" ? null : destination.droppableId;
+    const destinationParentId = destination.droppableId === "root" ? null : destination.droppableId;
 
-    if (!canMoveIntoParent(draggableId, destParentId)) return;
+    if (!canMoveToParent(draggableId, destinationParentId)) return;
 
     const sourceSiblings = flatMenus
-      .filter((m) => m.parent_id === sourceParentId)
+      .filter((menu) => menu.parent_id === sourceParentId)
       .sort((a, b) => a.order_index - b.order_index);
 
-    const moved = sourceSiblings[source.index];
-    if (!moved) return;
+    const movedItem = sourceSiblings[source.index];
+    if (!movedItem) return;
 
-    if (sourceParentId === destParentId) {
+    if (sourceParentId === destinationParentId) {
       const reordered = [...sourceSiblings];
       reordered.splice(source.index, 1);
-      reordered.splice(destination.index, 0, moved);
+      reordered.splice(destination.index, 0, movedItem);
 
       reorder.mutate(
-        reordered.map((item, index) => ({
-          id: item.id,
+        reordered.map((menu, index) => ({
+          id: menu.id,
           order_index: index,
           parent_id: sourceParentId,
         }))
@@ -142,30 +144,30 @@ export default function GerenciarMenu() {
       return;
     }
 
-    const nextSourceSiblings = sourceSiblings.filter((item) => item.id !== moved.id);
-    const destSiblings = flatMenus
-      .filter((m) => m.parent_id === destParentId && m.id !== moved.id)
+    const nextSourceSiblings = sourceSiblings.filter((menu) => menu.id !== movedItem.id);
+    const destinationSiblings = flatMenus
+      .filter((menu) => menu.parent_id === destinationParentId && menu.id !== movedItem.id)
       .sort((a, b) => a.order_index - b.order_index);
 
-    const nextDestSiblings = [...destSiblings];
-    const destinationIndex = Math.min(destination.index, nextDestSiblings.length);
-    nextDestSiblings.splice(destinationIndex, 0, moved);
+    const nextDestinationSiblings = [...destinationSiblings];
+    const insertIndex = Math.min(destination.index, nextDestinationSiblings.length);
+    nextDestinationSiblings.splice(insertIndex, 0, movedItem);
 
     const updates = [
-      ...nextSourceSiblings.map((item, index) => ({
-        id: item.id,
+      ...nextSourceSiblings.map((menu, index) => ({
+        id: menu.id,
         order_index: index,
         parent_id: sourceParentId,
       })),
-      ...nextDestSiblings.map((item, index) => ({
-        id: item.id,
+      ...nextDestinationSiblings.map((menu, index) => ({
+        id: menu.id,
         order_index: index,
-        parent_id: destParentId,
+        parent_id: destinationParentId,
       })),
     ];
 
-    if (destParentId) {
-      setOpenMap((p) => ({ ...p, [destParentId]: true }));
+    if (destinationParentId) {
+      setOpenMap((prev) => ({ ...prev, [destinationParentId]: true }));
     }
 
     reorder.mutate(updates);
@@ -175,7 +177,7 @@ export default function GerenciarMenu() {
     items: MenuItem[],
     droppableId: string,
     depth = 0,
-    showEmptyDropZone = false
+    emptyHint = false
   ) => (
     <Droppable droppableId={droppableId}>
       {(provided, snapshot) => (
@@ -184,16 +186,15 @@ export default function GerenciarMenu() {
           {...provided.droppableProps}
           className={`rounded-md transition-colors ${
             snapshot.isDraggingOver ? "bg-primary/5" : ""
-          } ${
-            depth > 0 ? "ml-6 mt-1 pl-3 border-l-2 border-border/30" : "space-y-1"
-          } ${items.length === 0 ? "min-h-[18px]" : "space-y-1 min-h-[4px]"}`}
+          } ${depth > 0 ? "ml-6 mt-1 pl-3 border-l-2 border-border/30" : "space-y-1"} ${
+            items.length === 0 ? "min-h-[18px]" : "space-y-1 min-h-[4px]"
+          }`}
         >
           {items.map((item, index) => {
             const hasChildren = !!item.children?.length;
             const isOpen = openMap[item.id] ?? true;
             const { rootItems, groups } = getParentOptions(item.id);
-            const allowDropIntoItem = !!activeDragId && canMoveIntoParent(activeDragId, item.id);
-            const shouldRenderChildDroppable = (hasChildren && isOpen) || allowDropIntoItem;
+            const showChildList = !hasChildren || isOpen;
 
             return (
               <Draggable key={item.id} draggableId={item.id} index={index}>
@@ -238,19 +239,19 @@ export default function GerenciarMenu() {
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
                           {rootItems
-                            .filter((r) => r.id !== item.id)
-                            .map((r) => (
+                            .filter((rootItem) => rootItem.id !== item.id)
+                            .map((rootItem) => (
                               <DropdownMenuItem
-                                key={r.id}
-                                disabled={item.parent_id === r.id}
-                                onClick={() => moveToParent(item.id, item.parent_id, r.id)}
+                                key={rootItem.id}
+                                disabled={item.parent_id === rootItem.id}
+                                onClick={() => moveToParent(item.id, item.parent_id, rootItem.id)}
                               >
                                 <DynamicIcon
-                                  name={r.icon}
+                                  name={rootItem.icon}
                                   className="w-3.5 h-3.5 mr-2 text-muted-foreground"
                                 />
-                                <span className="text-xs">{r.name}</span>
-                                {item.parent_id === r.id && (
+                                <span className="text-xs">{rootItem.name}</span>
+                                {item.parent_id === rootItem.id && (
                                   <span className="ml-auto text-[10px] text-muted-foreground">
                                     (atual)
                                   </span>
@@ -260,14 +261,14 @@ export default function GerenciarMenu() {
                           {groups.length > 0 && (
                             <>
                               <DropdownMenuSeparator />
-                              {groups.map((g) => (
+                              {groups.map((group) => (
                                 <DropdownMenuItem
-                                  key={g.id}
-                                  disabled={item.parent_id === g.id}
-                                  onClick={() => moveToParent(item.id, item.parent_id, g.id)}
+                                  key={group.id}
+                                  disabled={item.parent_id === group.id}
+                                  onClick={() => moveToParent(item.id, item.parent_id, group.id)}
                                 >
-                                  <span className="text-xs ml-3">↳ {g.name}</span>
-                                  {item.parent_id === g.id && (
+                                  <span className="text-xs ml-3">↳ {group.name}</span>
+                                  {item.parent_id === group.id && (
                                     <span className="ml-auto text-[10px] text-muted-foreground">
                                       (atual)
                                     </span>
@@ -293,8 +294,7 @@ export default function GerenciarMenu() {
                       )}
                     </div>
 
-                    {shouldRenderChildDroppable &&
-                      renderDroppable(item.children ?? [], item.id, depth + 1, allowDropIntoItem)}
+                    {showChildList && renderDroppable(item.children ?? [], item.id, depth + 1, true)}
                   </div>
                 )}
               </Draggable>
@@ -303,12 +303,8 @@ export default function GerenciarMenu() {
 
           {provided.placeholder}
 
-          {showEmptyDropZone && items.length === 0 && (
-            <div
-              className={`px-3 py-2 text-xs text-muted-foreground rounded-md border border-dashed transition-colors ${
-                snapshot.isDraggingOver ? "border-primary/50 bg-primary/5" : "border-border/40"
-              }`}
-            >
+          {emptyHint && items.length === 0 && snapshot.isDraggingOver && (
+            <div className="px-3 py-2 text-xs text-muted-foreground rounded-md border border-dashed border-primary/40 bg-primary/5">
               Solte aqui para transformar em submenu
             </div>
           )}
@@ -339,10 +335,7 @@ export default function GerenciarMenu() {
             Nenhum menu encontrado
           </div>
         ) : (
-          <DragDropContext
-            onDragStart={(start) => setActiveDragId(start.draggableId)}
-            onDragEnd={handleDragEnd}
-          >
+          <DragDropContext onDragEnd={handleDragEnd}>
             {renderDroppable(tree, "root")}
           </DragDropContext>
         )}
