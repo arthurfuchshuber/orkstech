@@ -461,7 +461,7 @@ export default function ExtratoBancario() {
         </div>
       </Card>
 
-      <div className={cn("grid gap-4", totalRendimentos > 0 ? "md:grid-cols-5" : "md:grid-cols-4")}>
+      <div className={cn("grid gap-4", totalRendimentosRounded !== 0 ? "md:grid-cols-5" : "md:grid-cols-4")}>
         <Card className="p-4">
           <div className="mb-1 flex items-center gap-2">
             <Landmark className="h-4 w-4 text-primary" />
@@ -491,21 +491,23 @@ export default function ExtratoBancario() {
           <p className="mt-1 text-[11px] text-muted-foreground">{periodLabel}</p>
         </Card>
 
-        {totalRendimentos > 0 && (
+        {totalRendimentosRounded !== 0 && (
           <Card className="p-4 border-l-4 border-l-amber-500">
             <div className="mb-1 flex items-center gap-2">
               <PiggyBank className="h-4 w-4 text-amber-500" />
               <span className="text-xs text-muted-foreground">Rendimentos</span>
             </div>
-            <p className="text-xl font-bold text-amber-600">+{formatCurrency(totalRendimentos)}</p>
+            <p className={cn("text-xl font-bold", totalRendimentosRounded >= 0 ? "text-amber-600" : "text-destructive")}>
+              {totalRendimentosRounded >= 0 ? "+" : ""}{formatCurrency(totalRendimentosRounded)}
+            </p>
             <p className="mt-1 text-[11px] text-muted-foreground">
-              Caixinhas e investimentos
+              {investments.filter((i) => i.status === "ACTIVE").length} investimento(s) via API
             </p>
           </Card>
         )}
 
         {(() => {
-          const resultado = totalIncome - totalExpense + totalRendimentos;
+          const resultado = totalIncome - totalExpense + totalRendimentosRounded;
           const isPositive = resultado >= 0;
           return (
             <Card className={cn("p-4 border-l-4", isPositive ? "border-l-primary" : "border-l-destructive")}>
