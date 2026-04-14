@@ -111,6 +111,17 @@ export default function FinanceiroDashboard() {
     },
   });
 
+  const { data: jurosMultaTotal = 0 } = useQuery({
+    queryKey: ["dashboard-juros-multa", user?.id, empresaId],
+    enabled: !!user,
+    queryFn: async () => {
+      let q = supabase.from("accounts_payable").select("juros_multa").eq("status", "paid");
+      if (empresaId) q = q.eq("empresa_id", empresaId);
+      const { data } = await q;
+      return (data ?? []).reduce((s, c) => s + Number(c.juros_multa || 0), 0);
+    },
+  });
+
   // ── Derived data ──
   const bankAccounts = accounts.filter((a) => a.type !== "CREDIT");
   const creditCards = accounts.filter((a) => a.type === "CREDIT");
@@ -390,14 +401,14 @@ export default function FinanceiroDashboard() {
                 </div>
                 <div>
                   <p className="text-xs text-muted-foreground">Vencendo em 7 dias</p>
-                  <p className="text-xl font-bold text-foreground">{proximasVencer.length}</p>
-                  <span className="text-[10px] text-muted-foreground">título(s)</span>
+                  <p className="text-xl font-bold text-foreground">{fmt(proximasVencer.reduce((s, c) => s + Number(c.amount), 0))}</p>
+                  <span className="text-[10px] text-muted-foreground">{proximasVencer.length} título(s)</span>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          {/* 3. A Pagar (Pendente) */}
+          {/* 3. Juros/Multa */}
           <Card className="border-border/50">
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
@@ -405,9 +416,8 @@ export default function FinanceiroDashboard() {
                   <Receipt className="w-4 h-4 text-warning" />
                 </div>
                 <div>
-                  <p className="text-xs text-muted-foreground">A Pagar (Pendente)</p>
-                  <p className="text-xl font-bold text-foreground">{fmt(totalPendente)}</p>
-                  <span className="text-[10px] text-muted-foreground">{pendentes.length} título(s)</span>
+                  <p className="text-xs text-muted-foreground">Juros/Multa</p>
+                  <p className="text-xl font-bold text-foreground">{fmt(jurosMultaTotal)}</p>
                 </div>
               </div>
             </CardContent>
