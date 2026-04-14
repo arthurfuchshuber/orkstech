@@ -1185,9 +1185,15 @@ export default function ContasAPagar() {
             label="Subcategoria (Plano de Contas)"
             value={form.categoria_financeira_id}
             onValueChange={(v) => updateField("categoria_financeira_id", v)}
-            options={categoriasFinanceiras
-              .filter((c: any) => !form.tipo_financeiro || c.tipo === form.tipo_financeiro)
-              .map((c: any) => ({ value: c.id, label: c.nome }))}
+            options={(() => {
+              const filtered = categoriasFinanceiras.filter((c: any) => !form.tipo_financeiro || c.tipo === form.tipo_financeiro);
+              const parentIds = new Set(filtered.map((c: any) => c.categoria_pai_id).filter(Boolean));
+              const allIds = new Set(filtered.map((c: any) => c.id));
+              // Leaf = not a parent of any other category in the same filtered set
+              return filtered
+                .filter((c: any) => !filtered.some((child: any) => child.categoria_pai_id === c.id))
+                .map((c: any) => ({ value: c.id, label: c.nome }));
+            })()}
             placeholder={form.tipo_financeiro ? "Selecione a subcategoria..." : "Selecione o tipo financeiro primeiro..."}
             icon={<FolderTree className="w-4 h-4" />}
             onAddModal={() => { setCfEditingId(null); setCfModalOpen(true); }}
