@@ -1914,7 +1914,13 @@ export type Database = {
         | "poupanca"
         | "caixa"
         | "carteira_digital"
-      tipo_financeiro: "receita" | "despesa" | "custo" | "ajuste"
+      tipo_financeiro:
+        | "receita"
+        | "despesa"
+        | "custo"
+        | "ajuste"
+        | "deducao"
+        | "imposto"
       tipo_forma_pagamento:
         | "pix"
         | "boleto"
@@ -2079,7 +2085,14 @@ export const Constants = {
         "caixa",
         "carteira_digital",
       ],
-      tipo_financeiro: ["receita", "despesa", "custo", "ajuste"],
+      tipo_financeiro: [
+        "receita",
+        "despesa",
+        "custo",
+        "ajuste",
+        "deducao",
+        "imposto",
+      ],
       tipo_forma_pagamento: [
         "pix",
         "boleto",

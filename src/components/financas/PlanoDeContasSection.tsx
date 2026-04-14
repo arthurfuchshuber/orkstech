@@ -21,7 +21,7 @@ import {
 import { DragDropContext, Droppable, Draggable, type DropResult } from "@hello-pangea/dnd";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
-type TipoFinanceiro = "receita" | "despesa" | "custo" | "ajuste";
+type TipoFinanceiro = "receita" | "despesa" | "custo" | "deducao" | "imposto" | "ajuste";
 
 interface Categoria {
   id: string;
@@ -34,18 +34,20 @@ interface Categoria {
 }
 
 const tipoLabels: Record<TipoFinanceiro, string> = {
-  receita: "Receita", despesa: "Despesa", custo: "Custo", ajuste: "Ajuste",
+  receita: "Receita", deducao: "Dedução", custo: "Custo", despesa: "Despesa", imposto: "Imposto", ajuste: "Ajuste",
 };
 
 const tipoColors: Record<TipoFinanceiro, string> = {
   receita: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
-  despesa: "bg-red-500/10 text-red-400 border-red-500/20",
+  deducao: "bg-orange-500/10 text-orange-400 border-orange-500/20",
   custo: "bg-amber-500/10 text-amber-400 border-amber-500/20",
+  despesa: "bg-red-500/10 text-red-400 border-red-500/20",
+  imposto: "bg-purple-500/10 text-purple-400 border-purple-500/20",
   ajuste: "bg-blue-500/10 text-blue-400 border-blue-500/20",
 };
 
 const tipoIcons: Record<TipoFinanceiro, typeof TrendingUp> = {
-  receita: TrendingUp, despesa: TrendingDown, custo: Minus, ajuste: RefreshCw,
+  receita: TrendingUp, deducao: Minus, custo: Minus, despesa: TrendingDown, imposto: Minus, ajuste: RefreshCw,
 };
 
 function flattenTree(nodes: Categoria[]): { id: string; node: Categoria; level: number; parentId: string | null; number: string }[] {
@@ -372,8 +374,10 @@ export function PlanoDeContasSection() {
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="receita">Receita</SelectItem>
-                  <SelectItem value="despesa">Despesa</SelectItem>
+                  <SelectItem value="deducao">Dedução</SelectItem>
                   <SelectItem value="custo">Custo</SelectItem>
+                  <SelectItem value="despesa">Despesa</SelectItem>
+                  <SelectItem value="imposto">Imposto</SelectItem>
                   <SelectItem value="ajuste">Ajuste</SelectItem>
                 </SelectContent>
               </Select>

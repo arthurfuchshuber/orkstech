@@ -215,50 +215,55 @@ export function useDRE(filters: DREFilters) {
     // Build lines directly from tree – same order as plano de contas
     const lines: DRELine[] = [];
     let totalReceitaAmount = 0;
-    let totalDespesaAmount = 0;
+    let totalDeducaoAmount = 0;
     let totalCustoAmount = 0;
+    let totalDespesaAmount = 0;
+    let totalImpostoAmount = 0;
 
     tree.forEach((root, idx) => {
       const line = buildNodeLine(root, 0, "", idx, totalRevenue);
       lines.push(line);
 
-      // Accumulate totals by tipo
       if (root.tipo === "receita") totalReceitaAmount += line.amount;
-      else if (root.tipo === "despesa") totalDespesaAmount += line.amount;
+      else if (root.tipo === "deducao") totalDeducaoAmount += line.amount;
       else if (root.tipo === "custo") totalCustoAmount += line.amount;
+      else if (root.tipo === "despesa") totalDespesaAmount += line.amount;
+      else if (root.tipo === "imposto") totalImpostoAmount += line.amount;
     });
 
-    const netIncome = totalReceitaAmount - totalDespesaAmount - totalCustoAmount;
-    const grossProfitVal = totalReceitaAmount - totalCustoAmount;
-    const grossMarginPct = totalReceitaAmount > 0 ? (grossProfitVal / totalReceitaAmount) * 100 : 0;
-    const ebitdaVal = grossProfitVal - totalDespesaAmount;
+    // DRE structure based on tipos
+    const receitaLiquida = totalReceitaAmount - totalDeducaoAmount;
+    const margemBruta = receitaLiquida - totalCustoAmount;
+    const ebitdaVal = margemBruta - totalDespesaAmount;
+    const resultado = ebitdaVal - totalImpostoAmount;
 
     // Continue numbering from tree length
     let nextNum = lines.length + 1;
 
-    const makeIndicator = (id: string, label: string, amount: number, pct: number): DRELine => ({
-      id, label, depth: 0, amount, percentage: pct,
+    const makeIndicator = (id: string, label: string, amount: number): DRELine => ({
+      id, label, depth: 0, amount,
+      percentage: totalReceitaAmount > 0 ? (amount / totalReceitaAmount) * 100 : 0,
       previousAmount: 0, variation: null, isGroup: false, isSummary: false,
       number: `${nextNum++}.`,
     });
 
     const indicators: DRELine[] = [
-      makeIndicator("receita-liquida", "Receita Líquida", totalReceitaAmount, totalRevenue > 0 ? (totalReceitaAmount / totalRevenue) * 100 : 0),
-      makeIndicator("margem-bruta", "Margem Bruta", grossProfitVal, grossMarginPct),
-      makeIndicator("ebitda", "EBITDA", ebitdaVal, totalRevenue > 0 ? (ebitdaVal / totalRevenue) * 100 : 0),
-      makeIndicator("resultado", "Resultado", netIncome, totalRevenue > 0 ? (netIncome / totalRevenue) * 100 : 0),
+      makeIndicator("receita-liquida", "Receita Líquida", receitaLiquida),
+      makeIndicator("margem-bruta", "Margem Bruta", margemBruta),
+      makeIndicator("ebitda", "EBITDA", ebitdaVal),
+      makeIndicator("resultado", "Resultado", resultado),
     ];
 
     return {
       lines: [...lines, ...indicators],
       totalRevenue: totalReceitaAmount,
-      totalExpense: totalDespesaAmount + totalCustoAmount,
-      grossProfit: grossProfitVal,
-      grossMargin: grossMarginPct,
+      totalExpense: totalDespesaAmount + totalCustoAmount + totalDeducaoAmount + totalImpostoAmount,
+      grossProfit: margemBruta,
+      grossMargin: totalReceitaAmount > 0 ? (margemBruta / totalReceitaAmount) * 100 : 0,
       ebitda: ebitdaVal,
-      operatingResult: totalReceitaAmount - totalCustoAmount - totalDespesaAmount,
-      netIncome,
-      profitMargin: totalRevenue > 0 ? (netIncome / totalRevenue) * 100 : 0,
+      operatingResult: ebitdaVal,
+      netIncome: resultado,
+      profitMargin: totalReceitaAmount > 0 ? (resultado / totalReceitaAmount) * 100 : 0,
     };
   }, [transactions, prevTransactions, categorias]);
 
