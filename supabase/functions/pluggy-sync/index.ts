@@ -18,6 +18,32 @@ async function getPluggyApiKey(): Promise<string> {
   return apiKey
 }
 
+async function fetchAllTransactions(apiKey: string, accountId: string): Promise<any[]> {
+  const headers = { 'X-API-KEY': apiKey, 'Content-Type': 'application/json' }
+  const allTxs: any[] = []
+  let page = 1
+  const pageSize = 500
+
+  while (true) {
+    const url = `https://api.pluggy.ai/transactions?accountId=${accountId}&pageSize=${pageSize}&page=${page}`
+    const res = await fetch(url, { headers })
+    if (!res.ok) {
+      console.error(`Transactions fetch error page ${page}: ${res.status}`)
+      break
+    }
+    const data = await res.json()
+    const results = data.results || []
+    allTxs.push(...results)
+
+    if (results.length < pageSize || allTxs.length >= (data.total || Infinity)) {
+      break
+    }
+    page++
+  }
+
+  return allTxs
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
@@ -29,22 +55,26 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
     }
 
+    const supabaseAdmin = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+    )
+
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_ANON_KEY')!,
       { global: { headers: { Authorization: authHeader } } }
     )
 
-    const token = authHeader.replace('Bearer ', '')
-    const { data: claims, error: claimsError } = await supabase.auth.getClaims(token)
-    if (claimsError || !claims?.claims) {
+    const { data: { user }, error: userError } = await supabase.auth.getUser()
+    if (userError || !user) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
     }
-    const userId = claims.claims.sub as string
+    const userId = user.id
 
     const url = new URL(req.url)
     const itemId = url.searchParams.get('itemId')
-    const action = url.searchParams.get('action') || 'summary' // summary | transactions | accounts
+    const action = url.searchParams.get('action') || 'full_sync'
 
     if (!itemId) {
       return new Response(JSON.stringify({ error: 'itemId is required' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
@@ -53,42 +83,112 @@ Deno.serve(async (req) => {
     const apiKey = await getPluggyApiKey()
     const headers = { 'X-API-KEY': apiKey, 'Content-Type': 'application/json' }
 
-    let result: unknown
+    // Fetch item details and accounts from Pluggy
+    const [itemRes, accountsRes] = await Promise.all([
+      fetch(`https://api.pluggy.ai/items/${itemId}`, { headers }),
+      fetch(`https://api.pluggy.ai/accounts?itemId=${itemId}`, { headers }),
+    ])
+    if (!itemRes.ok) throw new Error(`Pluggy item error: ${itemRes.status}`)
+    if (!accountsRes.ok) throw new Error(`Pluggy accounts error: ${accountsRes.status}`)
 
-    if (action === 'accounts') {
-      const res = await fetch(`https://api.pluggy.ai/accounts?itemId=${itemId}`, { headers })
-      if (!res.ok) throw new Error(`Pluggy accounts error: ${res.status}`)
-      result = await res.json()
-    } else if (action === 'transactions') {
-      const from = url.searchParams.get('from') || ''
-      const to = url.searchParams.get('to') || ''
-      const accountId = url.searchParams.get('accountId') || ''
-      let txUrl = `https://api.pluggy.ai/transactions?accountId=${accountId}`
-      if (from) txUrl += `&from=${from}`
-      if (to) txUrl += `&to=${to}`
-      const res = await fetch(txUrl, { headers })
-      if (!res.ok) throw new Error(`Pluggy transactions error: ${res.status}`)
-      result = await res.json()
-    } else {
-      // summary: item details + accounts
-      const [itemRes, accountsRes] = await Promise.all([
-        fetch(`https://api.pluggy.ai/items/${itemId}`, { headers }),
-        fetch(`https://api.pluggy.ai/accounts?itemId=${itemId}`, { headers }),
-      ])
-      if (!itemRes.ok) throw new Error(`Pluggy item error: ${itemRes.status}`)
-      if (!accountsRes.ok) throw new Error(`Pluggy accounts error: ${accountsRes.status}`)
-      
-      const item = await itemRes.json()
-      const accounts = await accountsRes.json()
+    const item = await itemRes.json()
+    const accountsData = await accountsRes.json()
+    const accounts = accountsData.results || []
 
-      result = { item, accounts: accounts.results || [] }
+    // Get connection ID
+    const { data: conn } = await supabaseAdmin
+      .from('pluggy_connections')
+      .select('id')
+      .eq('pluggy_item_id', itemId)
+      .eq('user_id', userId)
+      .single()
 
-      // Update last_sync_at
-      await supabase
-        .from('pluggy_connections')
-        .update({ last_sync_at: new Date().toISOString(), status: item.status || 'connected', connector_name: item.connector?.name || null })
-        .eq('pluggy_item_id', itemId)
-        .eq('user_id', userId)
+    const connectionId = conn?.id || null
+
+    // Upsert bank accounts
+    let savedAccounts = 0
+    let savedTransactions = 0
+
+    for (const acc of accounts) {
+      const accountPayload = {
+        user_id: userId,
+        connection_id: connectionId,
+        pluggy_item_id: itemId,
+        pluggy_account_id: acc.id,
+        name: acc.name || 'Conta',
+        type: acc.type || 'BANK',
+        subtype: acc.subtype || null,
+        balance: acc.balance ?? 0,
+        currency_code: acc.currencyCode || 'BRL',
+        credit_limit: acc.creditData?.limit ?? null,
+        credit_available: acc.creditData?.availableCreditLimit ?? null,
+        credit_bill_amount: acc.creditData?.balanceCloseDate ? acc.balance : null,
+        credit_bill_due_date: acc.creditData?.balanceDueDate || null,
+        bank_data: acc.bankData || {},
+        updated_at: new Date().toISOString(),
+      }
+
+      const { error: accErr } = await supabaseAdmin
+        .from('pluggy_bank_accounts')
+        .upsert(accountPayload, { onConflict: 'pluggy_account_id' })
+
+      if (accErr) {
+        console.error('Account upsert error:', accErr)
+      } else {
+        savedAccounts++
+      }
+
+      // Fetch and save transactions for this account
+      if (action === 'full_sync' || action === 'transactions') {
+        const transactions = await fetchAllTransactions(apiKey, acc.id)
+
+        if (transactions.length > 0) {
+          const BATCH = 200
+          for (let i = 0; i < transactions.length; i += BATCH) {
+            const batch = transactions.slice(i, i + BATCH).map((tx: any) => ({
+              user_id: userId,
+              pluggy_account_id: acc.id,
+              pluggy_transaction_id: tx.id,
+              description: tx.description || tx.descriptionRaw || null,
+              amount: tx.amount ?? 0,
+              type: tx.type || 'DEBIT',
+              date: tx.date ? tx.date.split('T')[0] : new Date().toISOString().split('T')[0],
+              category: tx.category || null,
+              payment_data: tx.paymentData || {},
+              updated_at: new Date().toISOString(),
+            }))
+
+            const { error: txErr } = await supabaseAdmin
+              .from('pluggy_transactions')
+              .upsert(batch, { onConflict: 'pluggy_transaction_id', ignoreDuplicates: false })
+
+            if (txErr) {
+              console.error('Transaction upsert error:', txErr)
+            } else {
+              savedTransactions += batch.length
+            }
+          }
+        }
+      }
+    }
+
+    // Update connection last_sync_at
+    await supabaseAdmin
+      .from('pluggy_connections')
+      .update({
+        last_sync_at: new Date().toISOString(),
+        status: item.status || 'connected',
+        connector_name: item.connector?.name || null,
+      })
+      .eq('pluggy_item_id', itemId)
+      .eq('user_id', userId)
+
+    const result = {
+      item: { id: item.id, status: item.status, connector: item.connector },
+      accounts: accounts.length,
+      savedAccounts,
+      savedTransactions,
+      message: `Sincronizado: ${savedAccounts} contas, ${savedTransactions} transações`,
     }
 
     return new Response(JSON.stringify(result), {
