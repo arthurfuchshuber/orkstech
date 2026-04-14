@@ -16,8 +16,10 @@ import {
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import { FileText, ChevronRight, ChevronDown, Download } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { FileText, ChevronRight, ChevronDown, Download, Settings2 } from "lucide-react";
 import { format } from "date-fns";
+import { PlanoDeContasSection } from "@/components/financas/PlanoDeContasSection";
 
 const fmt = (v: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
@@ -75,7 +77,6 @@ export default function DREPage() {
     return transactions.filter((t) => (t as any).categoria_financeira_id === drillDownCategory.id);
   }, [drillDownCategory, transactions]);
 
-  // Flatten tree for rendering, respecting expanded state
   const flatLines = useMemo(() => {
     const result: FlatLine[] = [];
     function walk(items: DRELine[], parentVisible: boolean) {
@@ -120,111 +121,132 @@ export default function DREPage() {
         </Button>
       </div>
 
-      {/* Filters */}
-      <div className="flex flex-wrap gap-3">
-        <Select value={filters.period} onValueChange={(v) => setFilters((f) => ({ ...f, period: v as PeriodPreset }))}>
-          <SelectTrigger className="w-[170px] h-9 text-sm"><SelectValue placeholder="Período" /></SelectTrigger>
-          <SelectContent>
-            {Object.entries(periodLabels).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
-          </SelectContent>
-        </Select>
-        <Select value={filters.bankAccountId || "all"} onValueChange={(v) => setFilters((f) => ({ ...f, bankAccountId: v === "all" ? undefined : v }))}>
-          <SelectTrigger className="w-[170px] h-9 text-sm"><SelectValue placeholder="Conta bancária" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todas as contas</SelectItem>
-            {bankAccounts.map((b) => <SelectItem key={b.id} value={b.id}>{b.nome}</SelectItem>)}
-          </SelectContent>
-        </Select>
-        <Select value={filters.costCenterId || "all"} onValueChange={(v) => setFilters((f) => ({ ...f, costCenterId: v === "all" ? undefined : v }))}>
-          <SelectTrigger className="w-[170px] h-9 text-sm"><SelectValue placeholder="Centro de custo" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todos os centros</SelectItem>
-            {costCenters.map((c) => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}
-          </SelectContent>
-        </Select>
-      </div>
+      <Tabs defaultValue="dre" className="w-full">
+        <TabsList>
+          <TabsTrigger value="dre" className="gap-1.5">
+            <FileText className="w-3.5 h-3.5" />
+            DRE
+          </TabsTrigger>
+          <TabsTrigger value="personalizar" className="gap-1.5">
+            <Settings2 className="w-3.5 h-3.5" />
+            Personalize seu DRE
+          </TabsTrigger>
+        </TabsList>
 
-      {/* DRE Table */}
-      <div className="w-full max-w-[50%]">
-        <Card className="border-border/50">
-          <CardHeader className="py-3 px-4">
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <FileText className="w-4 h-4 text-primary" />
-              DRE
-              <Badge variant="outline" className="text-[10px] ml-2 font-normal">
-                {format(dateRange.start, "dd/MM/yyyy")} — {format(dateRange.end, "dd/MM/yyyy")}
-              </Badge>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-0">
-            {isLoading ? (
-              <div className="py-12 text-center text-muted-foreground text-sm">Carregando...</div>
-            ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow className="border-border/30">
-                    <TableHead className="w-[60%] text-xs">Conta</TableHead>
-                    <TableHead className="text-right text-xs">Valor</TableHead>
-                    <TableHead className="text-right text-xs">%</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {flatLines.filter(f => f.visible).map((f) => {
-                    const { line } = f;
-                    const hasChildren = line.children && line.children.length > 0;
-                    const isExpanded = expandedGroups.has(line.id);
-                    const isSummary = line.isSummary;
-                    const isRevenue = line.dreGroup === "revenue" || line.dreGroup === "financial_revenue";
+        <TabsContent value="dre" className="mt-4 space-y-4">
+          {/* Filters */}
+          <div className="flex flex-wrap gap-3">
+            <Select value={filters.period} onValueChange={(v) => setFilters((f) => ({ ...f, period: v as PeriodPreset }))}>
+              <SelectTrigger className="w-[170px] h-9 text-sm"><SelectValue placeholder="Período" /></SelectTrigger>
+              <SelectContent>
+                {Object.entries(periodLabels).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <Select value={filters.bankAccountId || "all"} onValueChange={(v) => setFilters((f) => ({ ...f, bankAccountId: v === "all" ? undefined : v }))}>
+              <SelectTrigger className="w-[170px] h-9 text-sm"><SelectValue placeholder="Conta bancária" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todas as contas</SelectItem>
+                {bankAccounts.map((b) => <SelectItem key={b.id} value={b.id}>{b.nome}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <Select value={filters.costCenterId || "all"} onValueChange={(v) => setFilters((f) => ({ ...f, costCenterId: v === "all" ? undefined : v }))}>
+              <SelectTrigger className="w-[170px] h-9 text-sm"><SelectValue placeholder="Centro de custo" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os centros</SelectItem>
+                {costCenters.map((c) => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
 
-                    const rowBg = isSummary ? "bg-muted/30 border-t border-border/40" : "";
-                    const labelColor = isSummary
-                      ? "font-semibold text-foreground"
-                      : line.depth === 0 ? "font-medium text-foreground" : "text-muted-foreground";
-                    const valueColor = isSummary
-                      ? line.amount >= 0 ? "text-emerald-500 font-semibold" : "text-destructive font-semibold"
-                      : isRevenue ? "text-emerald-500" : line.depth === 0 ? "text-destructive" : "text-foreground";
-
-                    return (
-                      <TableRow key={line.id} className={`${rowBg} border-border/15 hover:bg-muted/10 transition-colors`}>
-                        <TableCell className="py-1.5 pr-0">
-                          <div
-                            className="flex items-center gap-1.5 cursor-pointer select-none"
-                            style={{ paddingLeft: `${line.depth * 20}px` }}
-                            onClick={() => {
-                              if (hasChildren) toggleGroup(line.id);
-                              else if (line.categoryId) setDrillDownCategory({ id: line.categoryId, label: line.label });
-                            }}
-                          >
-                            {hasChildren && !isSummary ? (
-                              isExpanded
-                                ? <ChevronDown className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
-                                : <ChevronRight className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
-                            ) : (
-                              !isSummary && <span className="w-3.5 flex-shrink-0" />
-                            )}
-                            {line.number && (
-                              <span className="text-[10px] text-muted-foreground/60 font-mono min-w-[2.5rem]">
-                                {line.number}
-                              </span>
-                            )}
-                            <span className={`text-xs ${labelColor}`}>{line.label}</span>
-                          </div>
-                        </TableCell>
-                        <TableCell className={`text-right text-xs py-1.5 ${valueColor}`}>
-                          {isSummary && line.amount < 0 ? `(${fmt(Math.abs(line.amount))})` : fmt(Math.abs(line.amount))}
-                        </TableCell>
-                        <TableCell className="text-right text-xs py-1.5 text-muted-foreground">
-                          {fmtPct(line.percentage)}
-                        </TableCell>
+          {/* DRE Table */}
+          <div className="w-full max-w-[50%]">
+            <Card className="border-border/50">
+              <CardHeader className="py-3 px-4">
+                <CardTitle className="text-sm font-medium flex items-center gap-2">
+                  <FileText className="w-4 h-4 text-primary" />
+                  DRE
+                  <Badge variant="outline" className="text-[10px] ml-2 font-normal">
+                    {format(dateRange.start, "dd/MM/yyyy")} — {format(dateRange.end, "dd/MM/yyyy")}
+                  </Badge>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-0">
+                {isLoading ? (
+                  <div className="py-12 text-center text-muted-foreground text-sm">Carregando...</div>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="border-border/30">
+                        <TableHead className="w-[60%] text-xs">Conta</TableHead>
+                        <TableHead className="text-right text-xs">Valor</TableHead>
+                        <TableHead className="text-right text-xs">%</TableHead>
                       </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            )}
-          </CardContent>
-        </Card>
-      </div>
+                    </TableHeader>
+                    <TableBody>
+                      {flatLines.filter(f => f.visible).map((f) => {
+                        const { line } = f;
+                        const hasChildren = line.children && line.children.length > 0;
+                        const isExpanded = expandedGroups.has(line.id);
+                        const isSummary = line.isSummary;
+                        const isRevenue = line.tipo === "receita";
+
+                        const rowBg = isSummary ? "bg-muted/30 border-t border-border/40" : "";
+                        const labelColor = isSummary
+                          ? "font-semibold text-foreground"
+                          : line.depth === 0 ? "font-medium text-foreground" : "text-muted-foreground";
+                        const valueColor = isSummary
+                          ? line.amount >= 0 ? "text-emerald-500 font-semibold" : "text-destructive font-semibold"
+                          : isRevenue ? "text-emerald-500" : line.depth === 0 ? "text-destructive" : "text-foreground";
+
+                        return (
+                          <TableRow key={line.id} className={`${rowBg} border-border/15 hover:bg-muted/10 transition-colors`}>
+                            <TableCell className="py-1.5 pr-0">
+                              <div
+                                className="flex items-center gap-1.5 cursor-pointer select-none"
+                                style={{ paddingLeft: `${line.depth * 20}px` }}
+                                onClick={() => {
+                                  if (hasChildren) toggleGroup(line.id);
+                                  else if (line.categoryId) setDrillDownCategory({ id: line.categoryId, label: line.label });
+                                }}
+                              >
+                                {hasChildren && !isSummary ? (
+                                  isExpanded
+                                    ? <ChevronDown className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
+                                    : <ChevronRight className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
+                                ) : (
+                                  !isSummary && <span className="w-3.5 flex-shrink-0" />
+                                )}
+                                {line.number && (
+                                  <span className="text-[10px] text-muted-foreground/60 font-mono min-w-[2.5rem]">
+                                    {line.number}
+                                  </span>
+                                )}
+                                <span className={`text-xs ${labelColor}`}>{line.label}</span>
+                              </div>
+                            </TableCell>
+                            <TableCell className={`text-right text-xs py-1.5 ${valueColor}`}>
+                              {isSummary && line.amount < 0 ? `(${fmt(Math.abs(line.amount))})` : fmt(Math.abs(line.amount))}
+                            </TableCell>
+                            <TableCell className="text-right text-xs py-1.5 text-muted-foreground">
+                              {fmtPct(line.percentage)}
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="personalizar" className="mt-4">
+          <div className="max-w-2xl">
+            <PlanoDeContasSection />
+          </div>
+        </TabsContent>
+      </Tabs>
 
       {/* Drill Down Dialog */}
       <Dialog open={!!drillDownCategory} onOpenChange={() => setDrillDownCategory(null)}>
