@@ -1,0 +1,1 @@
+CREATE POLICY "Super admins can view all profiles" ON public.profiles FOR SELECT TO authenticated USING (is_super_admin());

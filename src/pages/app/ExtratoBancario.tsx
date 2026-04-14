@@ -113,32 +113,18 @@ export default function ExtratoBancario() {
     enabled: !!user && !!targetUserId,
   });
 
-  const { data: empresaData } = useQuery({
-    queryKey: ["empresa_name", empresa?.id],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("empresas")
-        .select("nome_fantasia, razao_social")
-        .eq("id", empresa!.id)
-        .maybeSingle();
-      if (error) throw error;
-      return data as { nome_fantasia: string | null; razao_social: string } | null;
-    },
-    enabled: !!empresa?.id,
-  });
+  const toTitleCase = (str: string) =>
+    str.toLowerCase().replace(/(?:^|\s)\S/g, (c) => c.toUpperCase());
 
   const getDisplayName = (account: BankAccount) => {
     const conn = connections.find((c) => c.pluggy_item_id === account.pluggy_item_id);
     const connectorName = conn?.connector_name || "Conta";
     const isEmpresaConnector = connectorName.toLowerCase().includes("empresa");
-    const ownerLabel = isEmpresaConnector
-      ? (empresaData?.nome_fantasia || empresaData?.razao_social || "")
-      : (profileData?.nome || "");
 
-    // Title case helper
-    const toTitleCase = (str: string) =>
-      str.toLowerCase().replace(/(?:^|\s)\S/g, (c) => c.toUpperCase());
-
+    // For empresa connectors use nome_fantasia; for personal use profile name
+    const empresaLabel = empresa?.nome_fantasia || empresa?.razao_social || "";
+    const profileLabel = profileData?.nome || "";
+    const ownerLabel = isEmpresaConnector ? empresaLabel : profileLabel;
     const displayOwner = ownerLabel ? toTitleCase(ownerLabel) : "";
 
     if (account.type === "CREDIT") {
