@@ -63,6 +63,10 @@ interface BankAccount {
     totalInvestments?: number | null;
     hasBillData?: boolean;
     hasOpenBillCalc?: boolean;
+    owner?: string | null;
+    taxNumber?: string | null;
+    marketingName?: string | null;
+    number?: string | null;
   } | null;
 }
 
@@ -127,11 +131,11 @@ export default function ExtratoBancario() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("profiles")
-        .select("nome")
+        .select("nome, cpf")
         .eq("user_id", targetUserId!)
         .maybeSingle();
       if (error) throw error;
-      return data as { nome: string | null } | null;
+      return data as { nome: string | null; cpf: string | null } | null;
     },
     enabled: !!user && !!targetUserId,
   });
@@ -139,21 +143,45 @@ export default function ExtratoBancario() {
   const toTitleCase = (str: string) =>
     str.toLowerCase().replace(/(?:^|\s)\S/g, (c) => c.toUpperCase());
 
-  const getDisplayName = (account: BankAccount) => {
+  const normalizeDocument = (value?: string | null) => value?.replace(/\D/g, "") ?? "";
+
+  const getAccountOwner = (account: BankAccount) => {
+    const syncedOwner = account.bank_data?.owner?.trim();
+    if (syncedOwner) return toTitleCase(syncedOwner);
+
+    const accountDocument = normalizeDocument(account.bank_data?.taxNumber);
+    const empresaDocument = normalizeDocument(empresa?.cnpj);
+    const profileDocument = normalizeDocument(profileData?.cpf);
+
+    if (accountDocument && empresaDocument && accountDocument === empresaDocument) {
+      return toTitleCase(empresa?.nome_fantasia || empresa?.razao_social || "");
+    }
+
+    if (accountDocument && profileDocument && accountDocument === profileDocument) {
+      return toTitleCase(profileData?.nome || "");
+    }
+
     const conn = connections.find((c) => c.pluggy_item_id === account.pluggy_item_id);
     const connectorName = conn?.connector_name || "Conta";
     const isEmpresaConnector = connectorName.toLowerCase().includes("empresa");
+    const fallbackOwner = isEmpresaConnector
+      ? empresa?.nome_fantasia || empresa?.razao_social || ""
+      : profileData?.nome || "";
 
-    const empresaLabel = empresa?.nome_fantasia || empresa?.razao_social || "";
-    const profileLabel = profileData?.nome || "";
-    const ownerLabel = isEmpresaConnector ? empresaLabel : profileLabel;
-    const displayOwner = ownerLabel ? toTitleCase(ownerLabel) : "";
+    return fallbackOwner ? toTitleCase(fallbackOwner) : "";
+  };
+
+  const getDisplayName = (account: BankAccount) => {
+    const conn = connections.find((c) => c.pluggy_item_id === account.pluggy_item_id);
+    const connectorName = conn?.connector_name || "Conta";
+    const displayOwner = getAccountOwner(account);
 
     if (account.type === "CREDIT") {
       const creditData = (account.bank_data as any)?.creditData;
       const last4 = creditData?.disaggregatedCreditLimits?.[0]?.identificationNumber || "";
       const suffix = last4 ? ` (${last4})` : "";
-      return `${connectorName} Cartão de Crédito${suffix}`;
+      const ownerSuffix = displayOwner ? ` - ${displayOwner}` : "";
+      return `${connectorName} Cartão de Crédito${suffix}${ownerSuffix}`;
     }
 
     return displayOwner ? `${connectorName} (${displayOwner})` : connectorName;
