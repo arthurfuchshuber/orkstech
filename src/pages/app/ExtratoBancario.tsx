@@ -128,6 +128,28 @@ export default function ExtratoBancario() {
     enabled: !!user && !!targetUserId,
   });
 
+  // Query real investment data from Pluggy
+  const { data: investments = [] } = useQuery({
+    queryKey: ["pluggy_investments", targetUserId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("pluggy_investments" as any)
+        .select("pluggy_item_id, name, balance, amount_original, amount_profit, status, type")
+        .eq("user_id", targetUserId!);
+      if (error) throw error;
+      return data as unknown as {
+        pluggy_item_id: string;
+        name: string;
+        balance: number;
+        amount_original: number | null;
+        amount_profit: number | null;
+        status: string | null;
+        type: string | null;
+      }[];
+    },
+    enabled: !!user && !!targetUserId,
+  });
+
   const { data: profileData } = useQuery({
     queryKey: ["profile_name", targetUserId],
     queryFn: async () => {
