@@ -309,6 +309,11 @@ export function AppSidebar() {
       if (menuItem) {
         const firstRoute = findFirstRoute(menuItem);
         if (firstRoute && firstRoute !== location.pathname) {
+          // Open all ancestors in the path to the first route
+          const pathIds = findActiveIds(filteredTree, firstRoute);
+          pathIds.forEach((pid) => {
+            next[pid] = true;
+          });
           navigate(firstRoute);
         }
       }
