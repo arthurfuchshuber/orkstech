@@ -236,7 +236,7 @@ export default function ContasAPagar() {
       // Pluggy (Open Finance) — only checking accounts
       const { data: pluggy } = await supabase
         .from("pluggy_bank_accounts")
-        .select("id, name, pluggy_item_id, type, subtype")
+        .select("id, name, pluggy_item_id, type, subtype, bank_data")
         .eq("type", "BANK")
         .eq("subtype", "CHECKING_ACCOUNT")
         .order("name");
@@ -254,11 +254,12 @@ export default function ContasAPagar() {
         }
       }
 
-      const pluggyMapped = (pluggy ?? []).map((p: any) => ({
-        id: p.id,
-        nome: connectorMap[p.pluggy_item_id] || p.name,
-        banco: "Open Finance",
-      }));
+      const pluggyMapped = (pluggy ?? []).map((p: any) => {
+        const connName = connectorMap[p.pluggy_item_id] || p.name;
+        const ownerName = (p.bank_data as any)?.owner || "";
+        const label = ownerName ? `${connName} - ${ownerName}` : connName;
+        return { id: p.id, nome: label, banco: "Open Finance" };
+      });
 
       return [...(manual ?? []), ...pluggyMapped];
     },
