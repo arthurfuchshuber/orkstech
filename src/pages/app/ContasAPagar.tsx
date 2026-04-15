@@ -582,7 +582,12 @@ export default function ContasAPagar() {
 
       const [{ data, error }, attachmentUrl] = await Promise.all([
         supabase.functions.invoke("scan-boleto", {
-          body: { file_base64: base64, file_type: file.type },
+          body: {
+            file_base64: base64,
+            file_type: file.type,
+            categorias_financeiras: categoriasFinanceiras.map((c: any) => ({ id: c.id, nome: c.nome, tipo: c.tipo })),
+            centros_custo: costCenters.map((c: any) => ({ id: c.id, nome: c.nome })),
+          },
         }),
         uploadPromise,
       ]);
