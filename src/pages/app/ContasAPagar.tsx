@@ -1026,6 +1026,8 @@ export default function ContasAPagar() {
                             <Plus className="w-3.5 h-3.5 mr-1.5" /> Nova forma de pagamento
                           </DropdownMenuItem>
                         </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
                     {/* Conta Bancária dropdown */}
                     <TableCell>
                       <DropdownMenu>
@@ -1049,6 +1051,10 @@ export default function ContasAPagar() {
                               Limpar
                             </DropdownMenuItem>
                           )}
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem onClick={() => { setCbEditingId(null); setCbModalOpen(true); }} className="text-primary">
+                            <Plus className="w-3.5 h-3.5 mr-1.5" /> Nova conta bancária
+                          </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </TableCell>
