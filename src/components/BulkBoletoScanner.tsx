@@ -304,6 +304,8 @@ export function BulkBoletoScanner({ open, onOpenChange, fornecedores, categorias
           notes: extracted.barcode ? `Linha digitável: ${extracted.barcode}` : null,
           attachment_url: attachmentUrl || null,
           pessoa_tipo: "pj",
+          categoria_financeira_id: extracted.suggested_categoria_financeira_id || null,
+          cost_center_id: extracted.suggested_centro_custo_id || null,
         };
 
         // Check duplicates
