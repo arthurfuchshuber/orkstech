@@ -301,7 +301,6 @@ export function ManagedSelectInput({
                   </div>
                 ))
               )}
-            </div>
           </div>
 
           {/* Add button */}
