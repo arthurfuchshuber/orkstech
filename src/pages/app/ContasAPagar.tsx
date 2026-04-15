@@ -884,12 +884,17 @@ export default function ContasAPagar() {
                 const dueDate = new Date(item.due_date);
                 const isNearDue = item.status === "pending" && isBefore(dueDate, addDays(new Date(), 7)) && !isPast(dueDate);
                 const catFin = categoriasFinanceiras.find((c: any) => c.id === item.categoria_financeira_id);
-                const tipoFinLabel = catFin ? tiposFinanceiros.find(t => t.value === catFin.tipo)?.label : null;
+                // Derive tipo: from inline override, or from existing catFin, or empty
+                const rowTipo = inlineTipoMap[item.id] || catFin?.tipo || "";
+                const tipoFinLabel = rowTipo ? tiposFinanceiros.find(t => t.value === rowTipo)?.label : null;
                 const formaPgto = paymentMethods.find((m: any) => m.id === item.payment_method_id);
                 const contaBanc = bankAccounts.find((b: any) => b.id === item.bank_account_id);
-
-
-
+                // Subcategoria options: only leaf nodes of the selected tipo
+                const subcatOptions = rowTipo
+                  ? categoriasFinanceiras
+                      .filter((c: any) => c.tipo === rowTipo)
+                      .filter((c: any) => !allCategoriasFin.some((child: any) => child.categoria_pai_id === c.id))
+                  : [];
                 return (
                   <TableRow key={item.id} className={isNearDue ? "bg-amber-500/5" : ""}>
                     <TableCell>
