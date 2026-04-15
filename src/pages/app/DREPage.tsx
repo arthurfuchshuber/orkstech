@@ -196,26 +196,28 @@ export default function DREPage() {
                           : line.depth === 0 ? "font-medium text-foreground" : "text-muted-foreground";
 
                         // Dynamic color: green = positive/good, red = negative/bad
+                        // Zero values use neutral color
                         const getValueColor = () => {
                           const bold = isSummary ? " font-semibold" : "";
+                          if (line.amount === 0) return "text-muted-foreground" + bold;
+
                           // Percentual indicators follow their sign
                           if (line.isPercentual) {
-                            return (line.amount >= 0 ? "text-success" : "text-destructive") + bold;
+                            return (line.amount > 0 ? "text-success" : "text-destructive") + bold;
                           }
-                          // Summary/indicator lines (receita líquida, lucro bruto, etc.)
+                          // Summary/indicator lines follow their sign (positive = good)
                           if (isSummary || line.id?.startsWith("receita-liquida") || line.id?.startsWith("lucro-") || line.id?.startsWith("resultado-") || line.id?.startsWith("ebitda")) {
-                            return (line.amount >= 0 ? "text-success" : "text-destructive") + bold;
+                            return (line.amount > 0 ? "text-success" : "text-destructive") + bold;
                           }
-                          // Revenue types = green (money coming in is good)
+                          // Revenue types = green (money coming in)
                           if (line.tipo === "receita" || line.tipo === "receita_financeira") {
                             return "text-success" + bold;
                           }
-                          // Expense/cost/deduction/tax types = red (money going out is bad)
+                          // Expense/cost/deduction/tax = red (money going out)
                           if (line.tipo === "despesa" || line.tipo === "custo" || line.tipo === "deducao" || line.tipo === "despesa_financeira" || line.tipo === "imposto") {
                             return "text-destructive" + bold;
                           }
-                          // Fallback
-                          return (line.amount >= 0 ? "text-success" : "text-destructive") + bold;
+                          return (line.amount > 0 ? "text-success" : "text-destructive") + bold;
                         };
                         const valueColor = getValueColor();
 
