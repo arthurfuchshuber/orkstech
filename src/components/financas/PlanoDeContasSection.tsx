@@ -391,14 +391,9 @@ export function PlanoDeContasSection() {
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {(Object.keys(tipoLabels) as TipoFinanceiro[]).map((tipo) => (
-                    <Tooltip key={tipo}>
-                      <TooltipTrigger asChild>
-                        <SelectItem value={tipo}>{tipoLabels[tipo]}</SelectItem>
-                      </TooltipTrigger>
-                      <TooltipContent side="right" className="max-w-[240px] text-xs">
-                        {tipoDescriptions[tipo]}
-                      </TooltipContent>
-                    </Tooltip>
+                    <SelectItem key={tipo} value={tipo} title={tipoDescriptions[tipo]}>
+                      {tipoLabels[tipo]}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
