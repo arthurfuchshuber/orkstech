@@ -227,7 +227,7 @@ export function ManagedSelectInput({
           )}
 
           {/* Options list */}
-          <ScrollArea className="max-h-[240px]">
+          <ScrollArea className="max-h-[280px] overflow-auto">
             <div className="p-1">
               {filtered.length === 0 ? (
                 <div className="py-4 text-center text-xs text-muted-foreground">
