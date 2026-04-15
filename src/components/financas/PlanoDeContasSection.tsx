@@ -39,6 +39,17 @@ const tipoLabels: Record<TipoFinanceiro, string> = {
   imposto: "Imposto", ajuste: "Ajuste",
 };
 
+const tipoDescriptions: Record<TipoFinanceiro, string> = {
+  receita: "Entradas operacionais do negócio, como vendas de produtos ou prestação de serviços.",
+  deducao: "Valores descontados da receita bruta, como impostos sobre vendas (ISS, ICMS) e devoluções.",
+  custo: "Gastos diretamente ligados à produção ou entrega do serviço/produto (ex: matéria-prima, mão de obra direta).",
+  despesa: "Gastos operacionais para manter a empresa funcionando (ex: aluguel, salários administrativos, marketing).",
+  receita_financeira: "Ganhos financeiros como rendimentos de aplicações, juros recebidos e descontos obtidos.",
+  despesa_financeira: "Gastos financeiros como juros de empréstimos, tarifas bancárias e multas.",
+  imposto: "Tributos sobre o lucro da empresa, como Imposto de Renda (IRPJ) e Contribuição Social (CSLL).",
+  ajuste: "Lançamentos de correção ou reclassificação contábil que não se encaixam nas categorias acima.",
+};
+
 const tipoColors: Record<TipoFinanceiro, string> = {
   receita: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
   deducao: "bg-orange-500/10 text-orange-400 border-orange-500/20",
@@ -379,14 +390,14 @@ export function PlanoDeContasSection() {
               <Select value={form.tipo} onValueChange={(v) => setForm({ ...form, tipo: v as TipoFinanceiro })}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="receita">Receita</SelectItem>
-                  <SelectItem value="deducao">Dedução</SelectItem>
-                  <SelectItem value="custo">Custo</SelectItem>
-                  <SelectItem value="despesa">Despesa</SelectItem>
-                  <SelectItem value="receita_financeira">Receita Financeira</SelectItem>
-                  <SelectItem value="despesa_financeira">Despesa Financeira</SelectItem>
-                  <SelectItem value="imposto">Imposto</SelectItem>
-                  <SelectItem value="ajuste">Ajuste</SelectItem>
+                  {(Object.keys(tipoLabels) as TipoFinanceiro[]).map((tipo) => (
+                    <SelectItem key={tipo} value={tipo}>
+                      <div className="flex flex-col gap-0.5">
+                        <span>{tipoLabels[tipo]}</span>
+                        <span className="text-[10px] text-muted-foreground leading-tight">{tipoDescriptions[tipo]}</span>
+                      </div>
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
