@@ -89,14 +89,14 @@ const initialForm: PayableForm = {
 };
 
 const tiposFinanceiros = [
-  { value: "receita", label: "💰 Receita" },
-  { value: "deducao", label: "➖ Dedução" },
-  { value: "custo", label: "🏭 Custo" },
-  { value: "despesa", label: "💸 Despesa" },
-  { value: "receita_financeira", label: "📈 Rec. Financeira" },
-  { value: "despesa_financeira", label: "📉 Desp. Financeira" },
-  { value: "imposto", label: "🏛️ Imposto" },
-  { value: "ajuste", label: "🔄 Ajuste" },
+  { value: "receita", label: "💰 Receita", tooltip: "Entradas operacionais do negócio, como vendas de produtos ou prestação de serviços." },
+  { value: "deducao", label: "➖ Dedução", tooltip: "Valores descontados da receita bruta, como impostos sobre vendas (ISS, ICMS) e devoluções." },
+  { value: "custo", label: "🏭 Custo", tooltip: "Gastos diretamente ligados à produção ou entrega do serviço/produto (ex: matéria-prima, mão de obra direta)." },
+  { value: "despesa", label: "💸 Despesa", tooltip: "Gastos operacionais para manter a empresa funcionando (ex: aluguel, salários administrativos, marketing)." },
+  { value: "receita_financeira", label: "📈 Rec. Financeira", tooltip: "Ganhos financeiros como rendimentos de aplicações, juros recebidos e descontos obtidos." },
+  { value: "despesa_financeira", label: "📉 Desp. Financeira", tooltip: "Gastos financeiros como juros de empréstimos, tarifas bancárias e multas." },
+  { value: "imposto", label: "🏛️ Imposto", tooltip: "Tributos sobre o lucro da empresa, como Imposto de Renda (IRPJ) e Contribuição Social (CSLL)." },
+  { value: "ajuste", label: "🔄 Ajuste", tooltip: "Lançamentos de correção ou reclassificação contábil que não se encaixam nas categorias acima." },
 ];
 
 const statusConfig: Record<string, { label: string; color: string; icon: typeof Clock }> = {
