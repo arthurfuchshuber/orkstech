@@ -582,7 +582,12 @@ export default function ContasAPagar() {
 
       const [{ data, error }, attachmentUrl] = await Promise.all([
         supabase.functions.invoke("scan-boleto", {
-          body: { file_base64: base64, file_type: file.type },
+          body: {
+            file_base64: base64,
+            file_type: file.type,
+            categorias_financeiras: categoriasFinanceiras.map((c: any) => ({ id: c.id, nome: c.nome, tipo: c.tipo })),
+            centros_custo: costCenters.map((c: any) => ({ id: c.id, nome: c.nome })),
+          },
         }),
         uploadPromise,
       ]);
@@ -609,6 +614,9 @@ export default function ContasAPagar() {
         due_date: extracted.due_date ? new Date(extracted.due_date + "T12:00:00") : undefined,
         notes: extracted.barcode ? `Linha digitável: ${extracted.barcode}` : "",
         attachment_url: attachmentUrl || null,
+        tipo_financeiro: extracted.suggested_tipo_financeiro || "",
+        categoria_financeira_id: extracted.suggested_categoria_financeira_id || "",
+        cost_center_id: extracted.suggested_centro_custo_id || "",
       };
 
       // Try to match supplier by name or CNPJ
@@ -848,27 +856,35 @@ export default function ContasAPagar() {
             <p className="text-sm text-muted-foreground font-medium">Nenhuma conta encontrada</p>
           </div>
         ) : (
-          <Table className="table-fixed w-full">
+          <Table className="w-full">
             <TableHeader>
               <TableRow>
-                <TableHead className="w-[4%]">
+                <TableHead className="w-[3%]">
                   <Checkbox
                     checked={filtered.length > 0 && selectedIds.size === filtered.length}
                     onCheckedChange={toggleSelectAll}
                   />
                 </TableHead>
-                <TableHead className="w-[18%]">Fornecedor</TableHead>
-                <TableHead className="w-[23%]">Descrição</TableHead>
-                <TableHead className="w-[11%]">Valor</TableHead>
-                <TableHead className="w-[12%]">Vencimento</TableHead>
-                <TableHead className="w-[14%]">Status</TableHead>
-                <TableHead className="w-[8%] text-right">Ações</TableHead>
+                <TableHead className="w-[13%]">Fornecedor</TableHead>
+                <TableHead className="w-[15%]">Descrição</TableHead>
+                <TableHead className="w-[8%]">Valor</TableHead>
+                <TableHead className="w-[8%]">Vencimento</TableHead>
+                <TableHead className="w-[9%]">Tipo Fin.</TableHead>
+                <TableHead className="w-[10%]">Subcategoria</TableHead>
+                <TableHead className="w-[9%]">Forma Pgto.</TableHead>
+                <TableHead className="w-[9%]">Conta</TableHead>
+                <TableHead className="w-[9%]">Status</TableHead>
+                <TableHead className="w-[5%] text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filtered.map((item: any) => {
                 const dueDate = new Date(item.due_date);
                 const isNearDue = item.status === "pending" && isBefore(dueDate, addDays(new Date(), 7)) && !isPast(dueDate);
+                const catFin = categoriasFinanceiras.find((c: any) => c.id === item.categoria_financeira_id);
+                const tipoFinLabel = catFin ? tiposFinanceiros.find(t => t.value === catFin.tipo)?.label : null;
+                const formaPgto = paymentMethods.find((m: any) => m.id === item.payment_method_id);
+                const contaBanc = bankAccounts.find((b: any) => b.id === item.bank_account_id);
                 return (
                   <TableRow key={item.id} className={isNearDue ? "bg-amber-500/5" : ""}>
                     <TableCell>
@@ -877,7 +893,7 @@ export default function ContasAPagar() {
                         onCheckedChange={() => toggleSelectItem(item.id)}
                       />
                     </TableCell>
-                    <TableCell className="font-medium truncate">{item.supplier_name || "—"}</TableCell>
+                    <TableCell className="font-medium truncate text-sm">{item.supplier_name || "—"}</TableCell>
                     <TableCell className="truncate">
                       <div>
                         <span className="text-sm">{item.description}</span>
@@ -888,12 +904,16 @@ export default function ContasAPagar() {
                         )}
                       </div>
                     </TableCell>
-                    <TableCell className="font-medium">{formatCurrency(item.amount)}</TableCell>
+                    <TableCell className="font-medium text-sm">{formatCurrency(item.amount)}</TableCell>
                     <TableCell>
-                      <span className={isNearDue ? "text-amber-600 font-medium" : ""}>
+                      <span className={`text-sm ${isNearDue ? "text-amber-600 font-medium" : ""}`}>
                         {format(dueDate, "dd/MM/yyyy")}
                       </span>
                     </TableCell>
+                    <TableCell className="text-sm text-muted-foreground truncate">{tipoFinLabel || "—"}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground truncate">{catFin?.nome || "—"}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground truncate">{formaPgto?.nome || "—"}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground truncate">{contaBanc?.nome || "—"}</TableCell>
                     <TableCell>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
@@ -1375,6 +1395,8 @@ export default function ContasAPagar() {
         open={bulkScanOpen}
         onOpenChange={setBulkScanOpen}
         fornecedores={fornecedores}
+        categoriasFinanceiras={categoriasFinanceiras}
+        centrosCusto={costCenters}
       />
 
       {/* Duplicate detection alert */}

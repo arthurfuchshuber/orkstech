@@ -32,9 +32,11 @@ interface BulkBoletoScannerProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   fornecedores: any[];
+  categoriasFinanceiras?: any[];
+  centrosCusto?: any[];
 }
 
-export function BulkBoletoScanner({ open, onOpenChange, fornecedores }: BulkBoletoScannerProps) {
+export function BulkBoletoScanner({ open, onOpenChange, fornecedores, categoriasFinanceiras = [], centrosCusto = [] }: BulkBoletoScannerProps) {
   const { user } = useAuth();
   const { empresa } = useEmpresa();
   const empresaId = empresa?.id;
@@ -270,7 +272,12 @@ export function BulkBoletoScanner({ open, onOpenChange, fornecedores }: BulkBole
         ]);
 
         const { data, error } = await supabase.functions.invoke("scan-boleto", {
-          body: { file_base64: base64, file_type: files[i].type },
+          body: {
+            file_base64: base64,
+            file_type: files[i].type,
+            categorias_financeiras: categoriasFinanceiras.map((c: any) => ({ id: c.id, nome: c.nome, tipo: c.tipo })),
+            centros_custo: centrosCusto.map((c: any) => ({ id: c.id, nome: c.nome })),
+          },
         });
 
         if (error) throw new Error("Erro na análise");
@@ -297,6 +304,8 @@ export function BulkBoletoScanner({ open, onOpenChange, fornecedores }: BulkBole
           notes: extracted.barcode ? `Linha digitável: ${extracted.barcode}` : null,
           attachment_url: attachmentUrl || null,
           pessoa_tipo: "pj",
+          categoria_financeira_id: extracted.suggested_categoria_financeira_id || null,
+          cost_center_id: extracted.suggested_centro_custo_id || null,
         };
 
         // Check duplicates

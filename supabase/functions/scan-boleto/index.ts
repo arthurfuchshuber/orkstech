@@ -20,7 +20,7 @@ serve(async (req) => {
       });
     }
 
-    const { file_base64, file_type } = await req.json();
+    const { file_base64, file_type, categorias_financeiras, centros_custo } = await req.json();
 
     if (!file_base64) {
       return new Response(JSON.stringify({ error: "file_base64 is required" }), {
@@ -31,7 +31,18 @@ serve(async (req) => {
 
     const mimeType = file_type || "application/pdf";
 
-    const systemPrompt = `Você é um especialista em leitura de boletos bancários brasileiros. 
+    // Build dynamic context for AI classification
+    let classificationContext = "";
+    if (categorias_financeiras && categorias_financeiras.length > 0) {
+      classificationContext += `\n\nCATEGORIAS FINANCEIRAS DISPONÍVEIS (use o id exato para suggested_categoria_financeira_id):
+${categorias_financeiras.map((c: any) => `- id: "${c.id}" | tipo: "${c.tipo}" | nome: "${c.nome}"`).join("\n")}`;
+    }
+    if (centros_custo && centros_custo.length > 0) {
+      classificationContext += `\n\nCENTROS DE CUSTO DISPONÍVEIS (use o id exato para suggested_centro_custo_id):
+${centros_custo.map((c: any) => `- id: "${c.id}" | nome: "${c.nome}"`).join("\n")}`;
+    }
+
+    const systemPrompt = `Você é um especialista em leitura de boletos bancários brasileiros e classificação financeira.
 Analise a imagem/PDF do boleto e extraia as seguintes informações:
 - description: descrição/finalidade do boleto
 - supplier_name: nome do beneficiário/cedente (empresa que vai receber o pagamento)
@@ -44,9 +55,17 @@ Analise a imagem/PDF do boleto e extraia as seguintes informações:
 - due_date: data de vencimento no formato YYYY-MM-DD
 - barcode: código de barras ou linha digitável completa
 
-Se algum campo não for encontrado, retorne null para ele.
+CLASSIFICAÇÃO FINANCEIRA:
+Com base na descrição e beneficiário do boleto, sugira a melhor classificação:
+- suggested_tipo_financeiro: o tipo financeiro mais adequado entre: receita, deducao, custo, despesa, receita_financeira, despesa_financeira, imposto, ajuste
+  Dica: boletos de pagamento geralmente são "custo" (ligado à produção) ou "despesa" (operacional). Impostos usam "imposto". Tarifas bancárias usam "despesa_financeira".
+- suggested_categoria_financeira_id: o ID da categoria financeira mais adequada da lista fornecida (deve corresponder ao tipo financeiro sugerido)
+- suggested_centro_custo_id: o ID do centro de custo mais adequado da lista fornecida
+
+Se algum campo não for encontrado ou não for possível classificar, retorne null para ele.
 IMPORTANTE: O amount DEVE ser em centavos (inteiro). Ex: R$ 1.234,56 = 123456
-IMPORTANTE: O supplier_cnpj deve conter APENAS os 14 dígitos numéricos, sem pontuação.`;
+IMPORTANTE: O supplier_cnpj deve conter APENAS os 14 dígitos numéricos, sem pontuação.
+IMPORTANTE: Para suggested_categoria_financeira_id e suggested_centro_custo_id, use APENAS os IDs exatos fornecidos na lista.${classificationContext}`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -69,7 +88,7 @@ IMPORTANTE: O supplier_cnpj deve conter APENAS os 14 dígitos numéricos, sem po
               },
               {
                 type: "text",
-                text: "Extraia todos os dados deste boleto bancário, incluindo dados do beneficiário/cedente como CNPJ, telefone, email e endereço.",
+                text: "Extraia todos os dados deste boleto bancário e sugira a classificação financeira mais adequada.",
               },
             ],
           },
@@ -79,7 +98,7 @@ IMPORTANTE: O supplier_cnpj deve conter APENAS os 14 dígitos numéricos, sem po
             type: "function",
             function: {
               name: "extract_boleto",
-              description: "Extrai dados estruturados de um boleto bancário",
+              description: "Extrai dados estruturados de um boleto bancário e sugere classificação financeira",
               parameters: {
                 type: "object",
                 properties: {
@@ -93,6 +112,9 @@ IMPORTANTE: O supplier_cnpj deve conter APENAS os 14 dígitos numéricos, sem po
                   amount: { type: "integer", description: "Valor em centavos (ex: R$ 150,00 = 15000)" },
                   due_date: { type: "string", description: "Data de vencimento no formato YYYY-MM-DD" },
                   barcode: { type: "string", description: "Linha digitável ou código de barras" },
+                  suggested_tipo_financeiro: { type: "string", description: "Tipo financeiro sugerido: receita, deducao, custo, despesa, receita_financeira, despesa_financeira, imposto, ajuste", enum: ["receita", "deducao", "custo", "despesa", "receita_financeira", "despesa_financeira", "imposto", "ajuste"] },
+                  suggested_categoria_financeira_id: { type: "string", description: "ID da categoria financeira sugerida" },
+                  suggested_centro_custo_id: { type: "string", description: "ID do centro de custo sugerido" },
                 },
                 required: ["description", "supplier_name", "amount", "due_date"],
                 additionalProperties: false,
