@@ -974,7 +974,6 @@ export default function ContasAPagar() {
                                 key={c.id}
                                 onClick={() => {
                                   updateMutation.mutate({ id: item.id, data: { categoria_financeira_id: c.id } });
-                                  // Clear inline override since DB catFin will now carry the tipo
                                   setInlineTipoMap(prev => { const n = { ...prev }; delete n[item.id]; return n; });
                                 }}
                               >
@@ -991,6 +990,10 @@ export default function ContasAPagar() {
                                 Limpar
                               </DropdownMenuItem>
                             )}
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem onClick={() => { setCfEditingId(null); setCfModalOpen(true); }} className="text-primary">
+                              <Plus className="w-3.5 h-3.5 mr-1.5" /> Nova subcategoria
+                            </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
                       )}
