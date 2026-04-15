@@ -228,10 +228,24 @@ export default function ContasAPagar() {
   const { data: bankAccounts = [] } = useQuery({
     queryKey: ["contas-bancarias", empresaId],
     queryFn: async () => {
+      // Manual accounts
       let q = supabase.from("contas_bancarias").select("id, nome, banco").eq("ativo", true).order("nome");
       if (empresaId) q = q.eq("empresa_id", empresaId);
-      const { data } = await q;
-      return data ?? [];
+      const { data: manual } = await q;
+
+      // Pluggy (Open Finance) accounts
+      const { data: pluggy } = await supabase
+        .from("pluggy_bank_accounts")
+        .select("id, name, bank_data")
+        .order("name");
+
+      const pluggyMapped = (pluggy ?? []).map((p: any) => ({
+        id: p.id,
+        nome: p.name,
+        banco: (p.bank_data as any)?.name || "Open Finance",
+      }));
+
+      return [...(manual ?? []), ...pluggyMapped];
     },
   });
 
