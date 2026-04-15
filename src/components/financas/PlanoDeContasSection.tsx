@@ -390,14 +390,14 @@ export function PlanoDeContasSection() {
               <Select value={form.tipo} onValueChange={(v) => setForm({ ...form, tipo: v as TipoFinanceiro })}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="receita">Receita</SelectItem>
-                  <SelectItem value="deducao">Dedução</SelectItem>
-                  <SelectItem value="custo">Custo</SelectItem>
-                  <SelectItem value="despesa">Despesa</SelectItem>
-                  <SelectItem value="receita_financeira">Receita Financeira</SelectItem>
-                  <SelectItem value="despesa_financeira">Despesa Financeira</SelectItem>
-                  <SelectItem value="imposto">Imposto</SelectItem>
-                  <SelectItem value="ajuste">Ajuste</SelectItem>
+                  {(Object.keys(tipoLabels) as TipoFinanceiro[]).map((tipo) => (
+                    <SelectItem key={tipo} value={tipo}>
+                      <div className="flex flex-col gap-0.5">
+                        <span>{tipoLabels[tipo]}</span>
+                        <span className="text-[10px] text-muted-foreground leading-tight">{tipoDescriptions[tipo]}</span>
+                      </div>
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
