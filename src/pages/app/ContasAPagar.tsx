@@ -614,6 +614,9 @@ export default function ContasAPagar() {
         due_date: extracted.due_date ? new Date(extracted.due_date + "T12:00:00") : undefined,
         notes: extracted.barcode ? `Linha digitável: ${extracted.barcode}` : "",
         attachment_url: attachmentUrl || null,
+        tipo_financeiro: extracted.suggested_tipo_financeiro || "",
+        categoria_financeira_id: extracted.suggested_categoria_financeira_id || "",
+        cost_center_id: extracted.suggested_centro_custo_id || "",
       };
 
       // Try to match supplier by name or CNPJ
