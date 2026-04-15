@@ -1395,6 +1395,8 @@ export default function ContasAPagar() {
         open={bulkScanOpen}
         onOpenChange={setBulkScanOpen}
         fornecedores={fornecedores}
+        categoriasFinanceiras={categoriasFinanceiras}
+        centrosCusto={costCenters}
       />
 
       {/* Duplicate detection alert */}
