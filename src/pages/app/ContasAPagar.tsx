@@ -90,8 +90,12 @@ const initialForm: PayableForm = {
 
 const tiposFinanceiros = [
   { value: "receita", label: "💰 Receita" },
-  { value: "despesa", label: "💸 Despesa" },
+  { value: "deducao", label: "➖ Dedução" },
   { value: "custo", label: "🏭 Custo" },
+  { value: "despesa", label: "💸 Despesa" },
+  { value: "receita_financeira", label: "📈 Rec. Financeira" },
+  { value: "despesa_financeira", label: "📉 Desp. Financeira" },
+  { value: "imposto", label: "🏛️ Imposto" },
   { value: "ajuste", label: "🔄 Ajuste" },
 ];
 
