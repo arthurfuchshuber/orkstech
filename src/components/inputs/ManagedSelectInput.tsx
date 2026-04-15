@@ -8,7 +8,7 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ScrollArea } from "@/components/ui/scroll-area";
+
 import { toast } from "sonner";
 
 export interface ManagedOption {
@@ -227,8 +227,7 @@ export function ManagedSelectInput({
           )}
 
           {/* Options list */}
-          <ScrollArea className="max-h-[280px] overflow-auto">
-            <div className="p-1">
+          <div className="max-h-[240px] overflow-y-auto p-1">
               {filtered.length === 0 ? (
                 <div className="py-4 text-center text-xs text-muted-foreground">
                   Nenhuma opção encontrada
@@ -302,8 +301,7 @@ export function ManagedSelectInput({
                   </div>
                 ))
               )}
-            </div>
-          </ScrollArea>
+          </div>
 
           {/* Add button */}
           {hasAdd && mode === "select" && (
