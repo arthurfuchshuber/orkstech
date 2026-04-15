@@ -859,22 +859,22 @@ export default function ContasAPagar() {
           <Table className="w-full">
             <TableHeader>
               <TableRow>
-                <TableHead className="w-[3%]">
+                <TableHead style={{ width: 40, minWidth: 40 }}>
                   <Checkbox
                     checked={filtered.length > 0 && selectedIds.size === filtered.length}
                     onCheckedChange={toggleSelectAll}
                   />
                 </TableHead>
-                <TableHead className="w-[13%]">Fornecedor</TableHead>
-                <TableHead className="w-[15%]">Descrição</TableHead>
-                <TableHead className="w-[8%]">Valor</TableHead>
-                <TableHead className="w-[8%]">Vencimento</TableHead>
-                <TableHead className="w-[9%]">Tipo Fin.</TableHead>
-                <TableHead className="w-[10%]">Subcategoria</TableHead>
-                <TableHead className="w-[9%]">Forma Pgto.</TableHead>
-                <TableHead className="w-[9%]">Conta</TableHead>
-                <TableHead className="w-[9%]">Status</TableHead>
-                <TableHead className="w-[5%] text-right">Ações</TableHead>
+                <TableHead style={{ minWidth: 150 }}>Fornecedor</TableHead>
+                <TableHead style={{ minWidth: 200 }}>Descrição</TableHead>
+                <TableHead style={{ minWidth: 100 }}>Valor</TableHead>
+                <TableHead style={{ minWidth: 100 }}>Vencimento</TableHead>
+                <TableHead style={{ minWidth: 150 }}>Tipo Financeiro</TableHead>
+                <TableHead style={{ minWidth: 150 }}>Subcategoria</TableHead>
+                <TableHead style={{ minWidth: 140 }}>Forma Pagamento</TableHead>
+                <TableHead style={{ minWidth: 140 }}>Conta Bancária</TableHead>
+                <TableHead style={{ minWidth: 110 }}>Status</TableHead>
+                <TableHead style={{ width: 50, minWidth: 50 }} className="text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -885,6 +885,9 @@ export default function ContasAPagar() {
                 const tipoFinLabel = catFin ? tiposFinanceiros.find(t => t.value === catFin.tipo)?.label : null;
                 const formaPgto = paymentMethods.find((m: any) => m.id === item.payment_method_id);
                 const contaBanc = bankAccounts.find((b: any) => b.id === item.bank_account_id);
+
+
+
                 return (
                   <TableRow key={item.id} className={isNearDue ? "bg-amber-500/5" : ""}>
                     <TableCell>
@@ -910,10 +913,115 @@ export default function ContasAPagar() {
                         {format(dueDate, "dd/MM/yyyy")}
                       </span>
                     </TableCell>
-                    <TableCell className="text-sm text-muted-foreground truncate">{tipoFinLabel || "—"}</TableCell>
-                    <TableCell className="text-sm text-muted-foreground truncate">{catFin?.nome || "—"}</TableCell>
-                    <TableCell className="text-sm text-muted-foreground truncate">{formaPgto?.nome || "—"}</TableCell>
-                    <TableCell className="text-sm text-muted-foreground truncate">{contaBanc?.nome || "—"}</TableCell>
+                    {/* Tipo Financeiro dropdown */}
+                    <TableCell>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <button className="flex items-center gap-1 text-sm cursor-pointer hover:text-foreground transition-colors group w-full">
+                            <span className="truncate">{tipoFinLabel || <span className="text-muted-foreground/50">Selecionar</span>}</span>
+                            <ChevronDown className="w-3 h-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
+                          </button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="start" className="max-h-[260px] overflow-y-auto custom-scrollbar">
+                          {tiposFinanceiros.map((t) => (
+                            <DropdownMenuItem
+                              key={t.value}
+                              title={t.tooltip}
+                              onClick={() => {
+                                // Find first subcategoria of this type
+                                const firstSub = categoriasFinanceiras.find((c: any) => c.tipo === t.value && !c.categoria_pai_id);
+                                updateMutation.mutate({ id: item.id, data: { categoria_financeira_id: firstSub?.id || null } });
+                              }}
+                            >
+                              {t.label}
+                            </DropdownMenuItem>
+                          ))}
+                          {catFin && (
+                            <DropdownMenuItem onClick={() => updateMutation.mutate({ id: item.id, data: { categoria_financeira_id: null } })} className="text-muted-foreground">
+                              Limpar
+                            </DropdownMenuItem>
+                          )}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                    {/* Subcategoria dropdown */}
+                    <TableCell>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <button className="flex items-center gap-1 text-sm cursor-pointer hover:text-foreground transition-colors group w-full">
+                            <span className="truncate">{catFin?.nome || <span className="text-muted-foreground/50">Selecionar</span>}</span>
+                            <ChevronDown className="w-3 h-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
+                          </button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="start" className="max-h-[260px] overflow-y-auto custom-scrollbar">
+                          {categoriasFinanceiras.filter((c: any) => !c.categoria_pai_id).map((c: any) => (
+                            <DropdownMenuItem
+                              key={c.id}
+                              onClick={() => updateMutation.mutate({ id: item.id, data: { categoria_financeira_id: c.id } })}
+                            >
+                              {c.nome}
+                            </DropdownMenuItem>
+                          ))}
+                          {catFin && (
+                            <DropdownMenuItem onClick={() => updateMutation.mutate({ id: item.id, data: { categoria_financeira_id: null } })} className="text-muted-foreground">
+                              Limpar
+                            </DropdownMenuItem>
+                          )}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                    {/* Forma Pagamento dropdown */}
+                    <TableCell>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <button className="flex items-center gap-1 text-sm cursor-pointer hover:text-foreground transition-colors group w-full">
+                            <span className="truncate">{formaPgto?.nome || <span className="text-muted-foreground/50">Selecionar</span>}</span>
+                            <ChevronDown className="w-3 h-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
+                          </button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="start" className="max-h-[260px] overflow-y-auto custom-scrollbar">
+                          {paymentMethods.map((m: any) => (
+                            <DropdownMenuItem
+                              key={m.id}
+                              onClick={() => updateMutation.mutate({ id: item.id, data: { payment_method_id: m.id } })}
+                            >
+                              {m.nome}
+                            </DropdownMenuItem>
+                          ))}
+                          {formaPgto && (
+                            <DropdownMenuItem onClick={() => updateMutation.mutate({ id: item.id, data: { payment_method_id: null } })} className="text-muted-foreground">
+                              Limpar
+                            </DropdownMenuItem>
+                          )}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                    {/* Conta Bancária dropdown */}
+                    <TableCell>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <button className="flex items-center gap-1 text-sm cursor-pointer hover:text-foreground transition-colors group w-full">
+                            <span className="truncate">{contaBanc?.nome || <span className="text-muted-foreground/50">Selecionar</span>}</span>
+                            <ChevronDown className="w-3 h-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
+                          </button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="start" className="max-h-[260px] overflow-y-auto custom-scrollbar">
+                          {bankAccounts.map((b: any) => (
+                            <DropdownMenuItem
+                              key={b.id}
+                              onClick={() => updateMutation.mutate({ id: item.id, data: { bank_account_id: b.id } })}
+                            >
+                              {b.nome}
+                            </DropdownMenuItem>
+                          ))}
+                          {contaBanc && (
+                            <DropdownMenuItem onClick={() => updateMutation.mutate({ id: item.id, data: { bank_account_id: null } })} className="text-muted-foreground">
+                              Limpar
+                            </DropdownMenuItem>
+                          )}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
                     <TableCell>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
