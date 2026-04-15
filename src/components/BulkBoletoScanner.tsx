@@ -32,9 +32,11 @@ interface BulkBoletoScannerProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   fornecedores: any[];
+  categoriasFinanceiras?: any[];
+  centrosCusto?: any[];
 }
 
-export function BulkBoletoScanner({ open, onOpenChange, fornecedores }: BulkBoletoScannerProps) {
+export function BulkBoletoScanner({ open, onOpenChange, fornecedores, categoriasFinanceiras = [], centrosCusto = [] }: BulkBoletoScannerProps) {
   const { user } = useAuth();
   const { empresa } = useEmpresa();
   const empresaId = empresa?.id;
