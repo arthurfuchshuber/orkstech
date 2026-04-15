@@ -886,24 +886,7 @@ export default function ContasAPagar() {
                 const formaPgto = paymentMethods.find((m: any) => m.id === item.payment_method_id);
                 const contaBanc = bankAccounts.find((b: any) => b.id === item.bank_account_id);
 
-                const inlineUpdate = (field: string, value: string) => {
-                  const updates: any = { [field]: value || null };
-                  // When changing tipo_financeiro via inline, we clear the subcategoria
-                  if (field === "tipo_financeiro_inline") {
-                    // Find first matching subcategory of this type
-                    const newTipo = value;
-                    updates.categoria_financeira_id = null;
-                    // We don't actually store tipo_financeiro — we just need to update subcategoria
-                    return; // tipo_financeiro is derived from subcategoria, not stored directly
-                  }
-                  updateMutation.mutate({ id: item.id, data: updates });
-                };
 
-                // Build subcategoria options filtered by the current tipo
-                const currentTipo = catFin?.tipo || "";
-                const subOptions = categoriasFinanceiras
-                  .filter((c: any) => !c.categoria_pai_id && (!currentTipo || c.tipo === currentTipo))
-                  .map((c: any) => ({ value: c.id, label: c.nome }));
 
                 return (
                   <TableRow key={item.id} className={isNearDue ? "bg-amber-500/5" : ""}>
