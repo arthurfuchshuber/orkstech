@@ -233,16 +233,31 @@ export default function ContasAPagar() {
       if (empresaId) q = q.eq("empresa_id", empresaId);
       const { data: manual } = await q;
 
-      // Pluggy (Open Finance) accounts
+      // Pluggy (Open Finance) — only checking accounts
       const { data: pluggy } = await supabase
         .from("pluggy_bank_accounts")
-        .select("id, name, bank_data")
+        .select("id, name, pluggy_item_id, type, subtype")
+        .eq("type", "BANK")
+        .eq("subtype", "CHECKING_ACCOUNT")
         .order("name");
+
+      // Get connector names for friendly labels
+      const itemIds = [...new Set((pluggy ?? []).map((p: any) => p.pluggy_item_id))];
+      let connectorMap: Record<string, string> = {};
+      if (itemIds.length) {
+        const { data: conns } = await supabase
+          .from("pluggy_connections")
+          .select("pluggy_item_id, connector_name")
+          .in("pluggy_item_id", itemIds);
+        for (const c of conns ?? []) {
+          connectorMap[c.pluggy_item_id] = c.connector_name || "";
+        }
+      }
 
       const pluggyMapped = (pluggy ?? []).map((p: any) => ({
         id: p.id,
-        nome: p.name,
-        banco: (p.bank_data as any)?.name || "Open Finance",
+        nome: connectorMap[p.pluggy_item_id] || p.name,
+        banco: "Open Finance",
       }));
 
       return [...(manual ?? []), ...pluggyMapped];
