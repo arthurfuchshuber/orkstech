@@ -14,6 +14,7 @@ import { toast } from "sonner";
 export interface ManagedOption {
   value: string;
   label: string;
+  tooltip?: string;
 }
 
 interface ManagedSelectInputProps {
@@ -236,6 +237,7 @@ export function ManagedSelectInput({
                 filtered.map((opt, idx) => (
                   <div
                     key={opt.value}
+                    title={opt.tooltip}
                     className={cn(
                       "flex items-center gap-1 rounded-md px-2 py-1.5 text-sm cursor-pointer group transition-colors",
                       "hover:bg-accent/50",
