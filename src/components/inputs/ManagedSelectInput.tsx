@@ -302,7 +302,7 @@ export function ManagedSelectInput({
                 ))
               )}
             </div>
-          </ScrollArea>
+          </div>
 
           {/* Add button */}
           {hasAdd && mode === "select" && (
