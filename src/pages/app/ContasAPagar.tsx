@@ -935,47 +935,65 @@ export default function ContasAPagar() {
                               key={t.value}
                               title={t.tooltip}
                               onClick={() => {
-                                // Find first subcategoria of this type
-                                const firstSub = categoriasFinanceiras.find((c: any) => c.tipo === t.value && !c.categoria_pai_id);
-                                updateMutation.mutate({ id: item.id, data: { categoria_financeira_id: firstSub?.id || null } });
+                                // Set inline tipo and clear subcategoria if tipo changed
+                                setInlineTipoMap(prev => ({ ...prev, [item.id]: t.value }));
+                                if (catFin?.tipo !== t.value) {
+                                  updateMutation.mutate({ id: item.id, data: { categoria_financeira_id: null } });
+                                }
                               }}
                             >
                               {t.label}
                             </DropdownMenuItem>
                           ))}
-                          {catFin && (
-                            <DropdownMenuItem onClick={() => updateMutation.mutate({ id: item.id, data: { categoria_financeira_id: null } })} className="text-muted-foreground">
+                          {rowTipo && (
+                            <DropdownMenuItem onClick={() => {
+                              setInlineTipoMap(prev => { const n = { ...prev }; delete n[item.id]; return n; });
+                              updateMutation.mutate({ id: item.id, data: { categoria_financeira_id: null } });
+                            }} className="text-muted-foreground">
                               Limpar
                             </DropdownMenuItem>
                           )}
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </TableCell>
-                    {/* Subcategoria dropdown */}
+                    {/* Subcategoria dropdown - locked until tipo selected, shows only leaf nodes */}
                     <TableCell>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <button className="flex items-center gap-1 text-sm cursor-pointer hover:text-foreground transition-colors group w-full">
-                            <span className="truncate">{catFin?.nome || <span className="text-muted-foreground/50">Selecionar</span>}</span>
-                            <ChevronDown className="w-3 h-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
-                          </button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="start" className="max-h-[260px] overflow-y-auto custom-scrollbar">
-                          {categoriasFinanceiras.filter((c: any) => !c.categoria_pai_id).map((c: any) => (
-                            <DropdownMenuItem
-                              key={c.id}
-                              onClick={() => updateMutation.mutate({ id: item.id, data: { categoria_financeira_id: c.id } })}
-                            >
-                              {c.nome}
-                            </DropdownMenuItem>
-                          ))}
-                          {catFin && (
-                            <DropdownMenuItem onClick={() => updateMutation.mutate({ id: item.id, data: { categoria_financeira_id: null } })} className="text-muted-foreground">
-                              Limpar
-                            </DropdownMenuItem>
-                          )}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                      {!rowTipo ? (
+                        <span className="text-sm text-muted-foreground/30">Selecione o tipo...</span>
+                      ) : (
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <button className="flex items-center gap-1 text-sm cursor-pointer hover:text-foreground transition-colors group w-full">
+                              <span className="truncate">{catFin?.nome || <span className="text-muted-foreground/50">Selecionar</span>}</span>
+                              <ChevronDown className="w-3 h-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
+                            </button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="start" className="max-h-[260px] overflow-y-auto custom-scrollbar">
+                            {subcatOptions.map((c: any) => (
+                              <DropdownMenuItem
+                                key={c.id}
+                                onClick={() => {
+                                  updateMutation.mutate({ id: item.id, data: { categoria_financeira_id: c.id } });
+                                  // Clear inline override since DB catFin will now carry the tipo
+                                  setInlineTipoMap(prev => { const n = { ...prev }; delete n[item.id]; return n; });
+                                }}
+                              >
+                                {c.nome}
+                              </DropdownMenuItem>
+                            ))}
+                            {subcatOptions.length === 0 && (
+                              <DropdownMenuItem disabled className="text-muted-foreground text-xs">
+                                Nenhuma subcategoria cadastrada
+                              </DropdownMenuItem>
+                            )}
+                            {catFin && (
+                              <DropdownMenuItem onClick={() => updateMutation.mutate({ id: item.id, data: { categoria_financeira_id: null } })} className="text-muted-foreground">
+                                Limpar
+                              </DropdownMenuItem>
+                            )}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      )}
                     </TableCell>
                     {/* Forma Pagamento dropdown */}
                     <TableCell>
