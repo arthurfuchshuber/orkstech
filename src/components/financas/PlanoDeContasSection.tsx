@@ -5,6 +5,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useEmpresa } from "@/hooks/useEmpresa";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -391,12 +392,14 @@ export function PlanoDeContasSection() {
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {(Object.keys(tipoLabels) as TipoFinanceiro[]).map((tipo) => (
-                    <SelectItem key={tipo} value={tipo}>
-                      <div className="flex flex-col gap-0.5">
-                        <span>{tipoLabels[tipo]}</span>
-                        <span className="text-[10px] text-muted-foreground leading-tight">{tipoDescriptions[tipo]}</span>
-                      </div>
-                    </SelectItem>
+                    <Tooltip key={tipo}>
+                      <TooltipTrigger asChild>
+                        <SelectItem value={tipo}>{tipoLabels[tipo]}</SelectItem>
+                      </TooltipTrigger>
+                      <TooltipContent side="right" className="max-w-[240px] text-xs">
+                        {tipoDescriptions[tipo]}
+                      </TooltipContent>
+                    </Tooltip>
                   ))}
                 </SelectContent>
               </Select>
