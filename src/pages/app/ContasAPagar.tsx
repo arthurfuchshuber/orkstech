@@ -128,6 +128,8 @@ export default function ContasAPagar() {
   const [showDuplicateAlert, setShowDuplicateAlert] = useState(false);
   const [duplicateMatches, setDuplicateMatches] = useState<any[]>([]);
   const [dupDetailItem, setDupDetailItem] = useState<any | null>(null);
+  // Track inline tipo_financeiro selection per row (when user picks tipo but hasn't picked subcategoria yet)
+  const [inlineTipoMap, setInlineTipoMap] = useState<Record<string, string>>({});
 
   // Managed select hooks
   const categoriasCrud = useManagedSelect("categorias_cadastro");
