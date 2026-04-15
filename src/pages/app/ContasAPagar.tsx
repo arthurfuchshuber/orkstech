@@ -503,9 +503,19 @@ export default function ContasAPagar() {
       await updateAccountPayable(id, { status: newStatus as any, ...(newStatus !== "paid" ? { payment_date: null } : {}) });
     }
     setSelectedIds(new Set());
-    queryClient.invalidateQueries({ queryKey: ["accounts-payable"] });
-    queryClient.invalidateQueries({ queryKey: ["accounts-payable-counts"] });
+    await refreshQueries(queryClient, [["accounts-payable"], ["accounts-payable-counts"]]);
     toast.success(`${ids.length} conta(s) atualizada(s) para ${statusConfig[newStatus]?.label || newStatus}`);
+  };
+
+  const handleBulkUpdate = async (data: Record<string, any>) => {
+    const ids = Array.from(selectedIds);
+    if (ids.length === 0) return;
+    for (const id of ids) {
+      await updateAccountPayable(id, data);
+    }
+    setSelectedIds(new Set());
+    await refreshQueries(queryClient, [["accounts-payable"], ["accounts-payable-counts"]]);
+    toast.success(`${ids.length} conta(s) atualizada(s)!`);
   };
 
   const toggleSelectAll = () => {
