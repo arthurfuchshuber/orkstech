@@ -254,9 +254,23 @@ export default function ContasAPagar() {
         }
       }
 
+      // Get empresa names for PJ accounts without owner
+      const { data: empresasList } = await supabase
+        .from("empresas")
+        .select("cnpj, nome_fantasia, razao_social");
+      const empresaByDoc: Record<string, string> = {};
+      for (const e of empresasList ?? []) {
+        const cleanCnpj = (e.cnpj || "").replace(/\D/g, "");
+        if (cleanCnpj) empresaByDoc[cleanCnpj] = e.nome_fantasia || e.razao_social || "";
+      }
+
       const pluggyMapped = (pluggy ?? []).map((p: any) => {
         const connName = connectorMap[p.pluggy_item_id] || p.name;
-        const ownerName = (p.bank_data as any)?.owner || "";
+        let ownerName = (p.bank_data as any)?.owner || "";
+        if (!ownerName) {
+          const taxNum = ((p.bank_data as any)?.taxNumber || "").replace(/\D/g, "");
+          ownerName = empresaByDoc[taxNum] || "";
+        }
         const label = ownerName ? `${connName} - ${ownerName}` : connName;
         return { id: p.id, nome: label, banco: "Open Finance" };
       });
