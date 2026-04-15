@@ -272,7 +272,12 @@ export function BulkBoletoScanner({ open, onOpenChange, fornecedores, categorias
         ]);
 
         const { data, error } = await supabase.functions.invoke("scan-boleto", {
-          body: { file_base64: base64, file_type: files[i].type },
+          body: {
+            file_base64: base64,
+            file_type: files[i].type,
+            categorias_financeiras: categoriasFinanceiras.map((c: any) => ({ id: c.id, nome: c.nome, tipo: c.tipo })),
+            centros_custo: centrosCusto.map((c: any) => ({ id: c.id, nome: c.nome })),
+          },
         });
 
         if (error) throw new Error("Erro na análise");
