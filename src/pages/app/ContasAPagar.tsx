@@ -128,6 +128,8 @@ export default function ContasAPagar() {
   const [showDuplicateAlert, setShowDuplicateAlert] = useState(false);
   const [duplicateMatches, setDuplicateMatches] = useState<any[]>([]);
   const [dupDetailItem, setDupDetailItem] = useState<any | null>(null);
+  // Track inline tipo_financeiro selection per row (when user picks tipo but hasn't picked subcategoria yet)
+  const [inlineTipoMap, setInlineTipoMap] = useState<Record<string, string>>({});
 
   // Managed select hooks
   const categoriasCrud = useManagedSelect("categorias_cadastro");
@@ -865,15 +867,15 @@ export default function ContasAPagar() {
                     onCheckedChange={toggleSelectAll}
                   />
                 </TableHead>
-                <TableHead style={{ minWidth: 150 }}>Fornecedor</TableHead>
-                <TableHead style={{ minWidth: 200 }}>Descrição</TableHead>
-                <TableHead style={{ minWidth: 100 }}>Valor</TableHead>
-                <TableHead style={{ minWidth: 100 }}>Vencimento</TableHead>
-                <TableHead style={{ minWidth: 150 }}>Tipo Financeiro</TableHead>
-                <TableHead style={{ minWidth: 150 }}>Subcategoria</TableHead>
-                <TableHead style={{ minWidth: 140 }}>Forma Pagamento</TableHead>
-                <TableHead style={{ minWidth: 140 }}>Conta Bancária</TableHead>
-                <TableHead style={{ minWidth: 110 }}>Status</TableHead>
+                <TableHead style={{ minWidth: 180 }}>Fornecedor</TableHead>
+                <TableHead style={{ minWidth: 220 }}>Descrição</TableHead>
+                <TableHead style={{ minWidth: 110 }}>Valor</TableHead>
+                <TableHead style={{ minWidth: 110 }}>Vencimento</TableHead>
+                <TableHead style={{ minWidth: 180 }}>Tipo Financeiro</TableHead>
+                <TableHead style={{ minWidth: 200 }}>Subcategoria</TableHead>
+                <TableHead style={{ minWidth: 180 }}>Forma Pagamento</TableHead>
+                <TableHead style={{ minWidth: 180 }}>Conta Bancária</TableHead>
+                <TableHead style={{ minWidth: 120 }}>Status</TableHead>
                 <TableHead style={{ width: 50, minWidth: 50 }} className="text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
@@ -882,12 +884,17 @@ export default function ContasAPagar() {
                 const dueDate = new Date(item.due_date);
                 const isNearDue = item.status === "pending" && isBefore(dueDate, addDays(new Date(), 7)) && !isPast(dueDate);
                 const catFin = categoriasFinanceiras.find((c: any) => c.id === item.categoria_financeira_id);
-                const tipoFinLabel = catFin ? tiposFinanceiros.find(t => t.value === catFin.tipo)?.label : null;
+                // Derive tipo: from inline override, or from existing catFin, or empty
+                const rowTipo = inlineTipoMap[item.id] || catFin?.tipo || "";
+                const tipoFinLabel = rowTipo ? tiposFinanceiros.find(t => t.value === rowTipo)?.label : null;
                 const formaPgto = paymentMethods.find((m: any) => m.id === item.payment_method_id);
                 const contaBanc = bankAccounts.find((b: any) => b.id === item.bank_account_id);
-
-
-
+                // Subcategoria options: only leaf nodes of the selected tipo
+                const subcatOptions = rowTipo
+                  ? categoriasFinanceiras
+                      .filter((c: any) => c.tipo === rowTipo)
+                      .filter((c: any) => !allCategoriasFin.some((child: any) => child.categoria_pai_id === c.id))
+                  : [];
                 return (
                   <TableRow key={item.id} className={isNearDue ? "bg-amber-500/5" : ""}>
                     <TableCell>
@@ -928,47 +935,65 @@ export default function ContasAPagar() {
                               key={t.value}
                               title={t.tooltip}
                               onClick={() => {
-                                // Find first subcategoria of this type
-                                const firstSub = categoriasFinanceiras.find((c: any) => c.tipo === t.value && !c.categoria_pai_id);
-                                updateMutation.mutate({ id: item.id, data: { categoria_financeira_id: firstSub?.id || null } });
+                                // Set inline tipo and clear subcategoria if tipo changed
+                                setInlineTipoMap(prev => ({ ...prev, [item.id]: t.value }));
+                                if (catFin?.tipo !== t.value) {
+                                  updateMutation.mutate({ id: item.id, data: { categoria_financeira_id: null } });
+                                }
                               }}
                             >
                               {t.label}
                             </DropdownMenuItem>
                           ))}
-                          {catFin && (
-                            <DropdownMenuItem onClick={() => updateMutation.mutate({ id: item.id, data: { categoria_financeira_id: null } })} className="text-muted-foreground">
+                          {rowTipo && (
+                            <DropdownMenuItem onClick={() => {
+                              setInlineTipoMap(prev => { const n = { ...prev }; delete n[item.id]; return n; });
+                              updateMutation.mutate({ id: item.id, data: { categoria_financeira_id: null } });
+                            }} className="text-muted-foreground">
                               Limpar
                             </DropdownMenuItem>
                           )}
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </TableCell>
-                    {/* Subcategoria dropdown */}
+                    {/* Subcategoria dropdown - locked until tipo selected, shows only leaf nodes */}
                     <TableCell>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <button className="flex items-center gap-1 text-sm cursor-pointer hover:text-foreground transition-colors group w-full">
-                            <span className="truncate">{catFin?.nome || <span className="text-muted-foreground/50">Selecionar</span>}</span>
-                            <ChevronDown className="w-3 h-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
-                          </button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="start" className="max-h-[260px] overflow-y-auto custom-scrollbar">
-                          {categoriasFinanceiras.filter((c: any) => !c.categoria_pai_id).map((c: any) => (
-                            <DropdownMenuItem
-                              key={c.id}
-                              onClick={() => updateMutation.mutate({ id: item.id, data: { categoria_financeira_id: c.id } })}
-                            >
-                              {c.nome}
-                            </DropdownMenuItem>
-                          ))}
-                          {catFin && (
-                            <DropdownMenuItem onClick={() => updateMutation.mutate({ id: item.id, data: { categoria_financeira_id: null } })} className="text-muted-foreground">
-                              Limpar
-                            </DropdownMenuItem>
-                          )}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                      {!rowTipo ? (
+                        <span className="text-sm text-muted-foreground/30">Selecione o tipo...</span>
+                      ) : (
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <button className="flex items-center gap-1 text-sm cursor-pointer hover:text-foreground transition-colors group w-full">
+                              <span className="truncate">{catFin?.nome || <span className="text-muted-foreground/50">Selecionar</span>}</span>
+                              <ChevronDown className="w-3 h-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
+                            </button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="start" className="max-h-[260px] overflow-y-auto custom-scrollbar">
+                            {subcatOptions.map((c: any) => (
+                              <DropdownMenuItem
+                                key={c.id}
+                                onClick={() => {
+                                  updateMutation.mutate({ id: item.id, data: { categoria_financeira_id: c.id } });
+                                  // Clear inline override since DB catFin will now carry the tipo
+                                  setInlineTipoMap(prev => { const n = { ...prev }; delete n[item.id]; return n; });
+                                }}
+                              >
+                                {c.nome}
+                              </DropdownMenuItem>
+                            ))}
+                            {subcatOptions.length === 0 && (
+                              <DropdownMenuItem disabled className="text-muted-foreground text-xs">
+                                Nenhuma subcategoria cadastrada
+                              </DropdownMenuItem>
+                            )}
+                            {catFin && (
+                              <DropdownMenuItem onClick={() => updateMutation.mutate({ id: item.id, data: { categoria_financeira_id: null } })} className="text-muted-foreground">
+                                Limpar
+                              </DropdownMenuItem>
+                            )}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      )}
                     </TableCell>
                     {/* Forma Pagamento dropdown */}
                     <TableCell>
