@@ -828,24 +828,103 @@ export default function ContasAPagar() {
       {/* Bulk Action Bar */}
       {selectedIds.size > 0 && (
         <Card className="border-primary/30 bg-primary/5 shadow-sm p-3">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between flex-wrap gap-2">
             <span className="text-sm font-medium text-foreground">
               {selectedIds.size} item(ns) selecionado(s)
             </span>
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-muted-foreground mr-1">Alterar status para:</span>
-              {Object.entries(statusConfig).filter(([key]) => key !== "cancelled").map(([key, cfg]) => (
-                <Button
-                  key={key}
-                  size="sm"
-                  variant="outline"
-                  className="rounded-lg text-xs gap-1"
-                  onClick={() => handleBulkChangeStatus(key)}
-                >
-                  <cfg.icon className="w-3 h-3" />
-                  {cfg.label}
-                </Button>
-              ))}
+            <div className="flex items-center gap-2 flex-wrap">
+              {/* Bulk: Tipo Financeiro */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button size="sm" variant="outline" className="rounded-lg text-xs gap-1">
+                    <BarChart3 className="w-3 h-3" /> Tipo Financeiro <ChevronDown className="w-3 h-3" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="max-h-[260px] overflow-y-auto custom-scrollbar">
+                  {tiposFinanceiros.map((t) => (
+                    <DropdownMenuItem key={t.value} title={t.tooltip} onClick={() => {
+                      // For bulk, set inline tipo for all selected and clear subcategoria
+                      const ids = Array.from(selectedIds);
+                      setInlineTipoMap(prev => {
+                        const n = { ...prev };
+                        ids.forEach(id => { n[id] = t.value; });
+                        return n;
+                      });
+                      handleBulkUpdate({ categoria_financeira_id: null });
+                    }}>
+                      {t.label}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              {/* Bulk: Subcategoria */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button size="sm" variant="outline" className="rounded-lg text-xs gap-1">
+                    <FolderTree className="w-3 h-3" /> Subcategoria <ChevronDown className="w-3 h-3" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="max-h-[260px] overflow-y-auto custom-scrollbar">
+                  {categoriasFinanceiras
+                    .filter((c: any) => !allCategoriasFin.some((child: any) => child.categoria_pai_id === c.id))
+                    .map((c: any) => (
+                      <DropdownMenuItem key={c.id} onClick={() => handleBulkUpdate({ categoria_financeira_id: c.id })}>
+                        {c.nome}
+                      </DropdownMenuItem>
+                    ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              {/* Bulk: Forma Pagamento */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button size="sm" variant="outline" className="rounded-lg text-xs gap-1">
+                    <CreditCard className="w-3 h-3" /> Forma Pgto. <ChevronDown className="w-3 h-3" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="max-h-[260px] overflow-y-auto custom-scrollbar">
+                  {paymentMethods.map((m: any) => (
+                    <DropdownMenuItem key={m.id} onClick={() => handleBulkUpdate({ payment_method_id: m.id })}>
+                      {m.nome}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              {/* Bulk: Conta Bancária */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button size="sm" variant="outline" className="rounded-lg text-xs gap-1">
+                    <Landmark className="w-3 h-3" /> Conta <ChevronDown className="w-3 h-3" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="max-h-[260px] overflow-y-auto custom-scrollbar">
+                  {bankAccounts.map((b: any) => (
+                    <DropdownMenuItem key={b.id} onClick={() => handleBulkUpdate({ bank_account_id: b.id })}>
+                      {b.nome}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              {/* Bulk: Status */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button size="sm" variant="outline" className="rounded-lg text-xs gap-1">
+                    <Clock className="w-3 h-3" /> Status <ChevronDown className="w-3 h-3" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent>
+                  {Object.entries(statusConfig).filter(([key]) => key !== "cancelled").map(([key, cfg]) => (
+                    <DropdownMenuItem key={key} onClick={() => handleBulkChangeStatus(key)}>
+                      <cfg.icon className="w-4 h-4 mr-2" />
+                      {cfg.label}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+
               <Button size="sm" variant="ghost" className="rounded-lg text-xs" onClick={() => setSelectedIds(new Set())}>
                 Limpar seleção
               </Button>
