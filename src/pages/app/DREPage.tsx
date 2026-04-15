@@ -194,9 +194,30 @@ export default function DREPage() {
                         const labelColor = isSummary
                           ? "font-semibold text-foreground"
                           : line.depth === 0 ? "font-medium text-foreground" : "text-muted-foreground";
-                        const valueColor = isSummary
-                          ? line.amount >= 0 ? "text-emerald-500 font-semibold" : "text-destructive font-semibold"
-                          : isRevenue ? "text-emerald-500" : line.depth === 0 ? "text-destructive" : "text-foreground";
+
+                        // Dynamic color: green = positive/good, red = negative/bad
+                        const getValueColor = () => {
+                          const bold = isSummary ? " font-semibold" : "";
+                          // Percentual indicators follow their sign
+                          if (line.isPercentual) {
+                            return (line.amount >= 0 ? "text-success" : "text-destructive") + bold;
+                          }
+                          // Summary/indicator lines (receita líquida, lucro bruto, etc.)
+                          if (isSummary || line.id?.startsWith("receita-liquida") || line.id?.startsWith("lucro-") || line.id?.startsWith("resultado-") || line.id?.startsWith("ebitda")) {
+                            return (line.amount >= 0 ? "text-success" : "text-destructive") + bold;
+                          }
+                          // Revenue types = green (money coming in is good)
+                          if (line.tipo === "receita" || line.tipo === "receita_financeira") {
+                            return "text-success" + bold;
+                          }
+                          // Expense/cost/deduction/tax types = red (money going out is bad)
+                          if (line.tipo === "despesa" || line.tipo === "custo" || line.tipo === "deducao" || line.tipo === "despesa_financeira" || line.tipo === "imposto") {
+                            return "text-destructive" + bold;
+                          }
+                          // Fallback
+                          return (line.amount >= 0 ? "text-success" : "text-destructive") + bold;
+                        };
+                        const valueColor = getValueColor();
 
                         return (
                           <TableRow key={line.id} className={`${rowBg} border-border/15 hover:bg-muted/10 transition-colors`}>
