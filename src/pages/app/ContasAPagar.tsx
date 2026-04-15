@@ -1021,9 +1021,11 @@ export default function ContasAPagar() {
                               Limpar
                             </DropdownMenuItem>
                           )}
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem onClick={() => { setFpEditingId(null); setFpModalOpen(true); }} className="text-primary">
+                            <Plus className="w-3.5 h-3.5 mr-1.5" /> Nova forma de pagamento
+                          </DropdownMenuItem>
                         </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
                     {/* Conta Bancária dropdown */}
                     <TableCell>
                       <DropdownMenu>
