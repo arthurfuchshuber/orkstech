@@ -881,6 +881,41 @@ export default function ContasAPagar() {
     return list;
   }, [payables, filterStatus, searchTerm]);
 
+  // Group rows by grupo_id; ungrouped rows stay solo
+  type GroupedRow = { type: "single"; item: any } | { type: "group"; groupId: string; parent: any; children: any[] };
+  const groupedRows = useMemo<GroupedRow[]>(() => {
+    const groupsMap = new Map<string, any[]>();
+    const singles: any[] = [];
+    for (const p of filtered) {
+      if (p.grupo_id) {
+        if (!groupsMap.has(p.grupo_id)) groupsMap.set(p.grupo_id, []);
+        groupsMap.get(p.grupo_id)!.push(p);
+      } else {
+        singles.push(p);
+      }
+    }
+    const rows: GroupedRow[] = [];
+    // Group rows
+    for (const [groupId, items] of groupsMap.entries()) {
+      const sorted = [...items].sort((a, b) =>
+        (a.installment_number || 0) - (b.installment_number || 0) ||
+        a.due_date.localeCompare(b.due_date)
+      );
+      rows.push({ type: "group", groupId, parent: sorted[0], children: sorted });
+    }
+    // Singles
+    for (const item of singles) {
+      rows.push({ type: "single", item });
+    }
+    // Sort all rows by earliest due_date
+    rows.sort((a, b) => {
+      const da = a.type === "single" ? a.item.due_date : a.parent.due_date;
+      const db = b.type === "single" ? b.item.due_date : b.parent.due_date;
+      return da.localeCompare(db);
+    });
+    return rows;
+  }, [filtered]);
+
   // Near due warning (7 days)
   const nearDue = useMemo(() => {
     return payables.filter((p: any) => {
@@ -892,6 +927,22 @@ export default function ContasAPagar() {
 
   const formatCurrency = (val: number) =>
     new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(val);
+
+  // Group expand/collapse + summary modal state
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
+  const [summaryGroupId, setSummaryGroupId] = useState<string | null>(null);
+  const toggleGroup = (id: string) =>
+    setExpandedGroups(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  const summaryGroup = useMemo(() => {
+    if (!summaryGroupId) return null;
+    return groupedRows.find(r => r.type === "group" && r.groupId === summaryGroupId) || null;
+  }, [summaryGroupId, groupedRows]);
+
 
 
 
