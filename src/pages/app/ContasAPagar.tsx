@@ -1666,89 +1666,6 @@ export default function ContasAPagar() {
           {/* Vencimento */}
           <DateInput label="Vencimento" value={form.due_date} onValueChange={(d) => updateField("due_date", d)} error={errors.due_date} />
 
-          {/* Separador com label */}
-          <div className="flex items-center gap-3 pt-1">
-            <div className="h-px flex-1 bg-border/30" />
-            <span className="text-[11px] uppercase tracking-widest text-muted-foreground/60 font-medium">Classificação</span>
-            <div className="h-px flex-1 bg-border/30" />
-          </div>
-
-          {/* Tipo Financeiro */}
-          <ManagedSelectInput
-            label="Tipo Financeiro (DRE)"
-            value={form.tipo_financeiro}
-            onValueChange={(v) => {
-              updateField("tipo_financeiro", v);
-              updateField("categoria_financeira_id", "");
-            }}
-            options={tiposFinanceiros}
-            placeholder="Selecione o tipo financeiro..."
-            icon={<BarChart3 className="w-4 h-4" />}
-          />
-
-          {/* Subcategoria Financeira (Plano de Contas / DRE) */}
-          <ManagedSelectInput
-            label="Subcategoria (Plano de Contas)"
-            value={form.categoria_financeira_id}
-            onValueChange={(v) => updateField("categoria_financeira_id", v)}
-            options={(() => {
-              const filtered = categoriasFinanceiras.filter((c: any) => !form.tipo_financeiro || c.tipo === form.tipo_financeiro);
-              // Leaf = not a parent of any other category (using full hierarchy across all empresas)
-              return filtered
-                .filter((c: any) => !allCategoriasFin.some((child: any) => child.categoria_pai_id === c.id))
-                .map((c: any) => ({ value: c.id, label: c.nome }));
-            })()}
-            placeholder={form.tipo_financeiro ? "Selecione a subcategoria..." : "Selecione o tipo financeiro primeiro..."}
-            icon={<FolderTree className="w-4 h-4" />}
-            onAddModal={() => { setCfEditingId(null); setCfModalOpen(true); }}
-            onEditModal={(id) => { setCfEditingId(id); setCfModalOpen(true); }}
-            onDelete={catFinCrud.onDelete}
-            addLabel="Nova subcategoria"
-            disabled={!form.tipo_financeiro}
-          />
-
-          {/* Centro de Custo */}
-          <ManagedSelectInput
-            label="Centro de Custo"
-            value={form.cost_center_id}
-            onValueChange={(v) => updateField("cost_center_id", v)}
-            options={costCenters.map((c: any) => ({ value: c.id, label: c.nome }))}
-            placeholder="Selecione o centro de custo..."
-            icon={<Target className="w-4 h-4" />}
-            onAddModal={() => { setCcEditingId(null); setCcModalOpen(true); }}
-            onEditModal={(id) => { setCcEditingId(id); setCcModalOpen(true); }}
-            onDelete={centrosCrud.onDelete}
-            addLabel="Novo centro de custo"
-          />
-
-          {/* Conta Bancária */}
-          <ManagedSelectInput
-            label="Conta Bancária"
-            value={form.bank_account_id}
-            onValueChange={(v) => updateField("bank_account_id", v)}
-            options={bankAccounts.map((b: any) => ({ value: b.id, label: `${b.nome}${b.banco ? ` - ${b.banco}` : ""}` }))}
-            placeholder="Selecione a conta..."
-            icon={<Landmark className="w-4 h-4" />}
-            onAddModal={() => { setCbEditingId(null); setCbModalOpen(true); }}
-            onEditModal={(id) => { setCbEditingId(id); setCbModalOpen(true); }}
-            onDelete={contasCrud.onDelete}
-            addLabel="Nova conta bancária"
-          />
-
-          {/* Forma de Pagamento */}
-          <ManagedSelectInput
-            label="Forma de Pagamento"
-            value={form.payment_method_id}
-            onValueChange={(v) => updateField("payment_method_id", v)}
-            options={paymentMethods.map((p: any) => ({ value: p.id, label: p.nome }))}
-            placeholder="Selecione a forma..."
-            icon={<CreditCard className="w-4 h-4" />}
-            onAddModal={() => { setFpEditingId(null); setFpModalOpen(true); }}
-            onEditModal={(id) => { setFpEditingId(id); setFpModalOpen(true); }}
-            onDelete={formasCrud.onDelete}
-            addLabel="Nova forma de pagamento"
-          />
-
           {/* Modo de Pagamento */}
           {!editingId && (
             <>
@@ -1872,6 +1789,89 @@ export default function ContasAPagar() {
               )}
             </>
           )}
+
+          {/* Separador com label */}
+          <div className="flex items-center gap-3 pt-1">
+            <div className="h-px flex-1 bg-border/30" />
+            <span className="text-[11px] uppercase tracking-widest text-muted-foreground/60 font-medium">Classificação</span>
+            <div className="h-px flex-1 bg-border/30" />
+          </div>
+
+          {/* Tipo Financeiro */}
+          <ManagedSelectInput
+            label="Tipo Financeiro (DRE)"
+            value={form.tipo_financeiro}
+            onValueChange={(v) => {
+              updateField("tipo_financeiro", v);
+              updateField("categoria_financeira_id", "");
+            }}
+            options={tiposFinanceiros}
+            placeholder="Selecione o tipo financeiro..."
+            icon={<BarChart3 className="w-4 h-4" />}
+          />
+
+          {/* Subcategoria Financeira (Plano de Contas / DRE) */}
+          <ManagedSelectInput
+            label="Subcategoria (Plano de Contas)"
+            value={form.categoria_financeira_id}
+            onValueChange={(v) => updateField("categoria_financeira_id", v)}
+            options={(() => {
+              const filtered = categoriasFinanceiras.filter((c: any) => !form.tipo_financeiro || c.tipo === form.tipo_financeiro);
+              // Leaf = not a parent of any other category (using full hierarchy across all empresas)
+              return filtered
+                .filter((c: any) => !allCategoriasFin.some((child: any) => child.categoria_pai_id === c.id))
+                .map((c: any) => ({ value: c.id, label: c.nome }));
+            })()}
+            placeholder={form.tipo_financeiro ? "Selecione a subcategoria..." : "Selecione o tipo financeiro primeiro..."}
+            icon={<FolderTree className="w-4 h-4" />}
+            onAddModal={() => { setCfEditingId(null); setCfModalOpen(true); }}
+            onEditModal={(id) => { setCfEditingId(id); setCfModalOpen(true); }}
+            onDelete={catFinCrud.onDelete}
+            addLabel="Nova subcategoria"
+            disabled={!form.tipo_financeiro}
+          />
+
+          {/* Centro de Custo */}
+          <ManagedSelectInput
+            label="Centro de Custo"
+            value={form.cost_center_id}
+            onValueChange={(v) => updateField("cost_center_id", v)}
+            options={costCenters.map((c: any) => ({ value: c.id, label: c.nome }))}
+            placeholder="Selecione o centro de custo..."
+            icon={<Target className="w-4 h-4" />}
+            onAddModal={() => { setCcEditingId(null); setCcModalOpen(true); }}
+            onEditModal={(id) => { setCcEditingId(id); setCcModalOpen(true); }}
+            onDelete={centrosCrud.onDelete}
+            addLabel="Novo centro de custo"
+          />
+
+          {/* Conta Bancária */}
+          <ManagedSelectInput
+            label="Conta Bancária"
+            value={form.bank_account_id}
+            onValueChange={(v) => updateField("bank_account_id", v)}
+            options={bankAccounts.map((b: any) => ({ value: b.id, label: `${b.nome}${b.banco ? ` - ${b.banco}` : ""}` }))}
+            placeholder="Selecione a conta..."
+            icon={<Landmark className="w-4 h-4" />}
+            onAddModal={() => { setCbEditingId(null); setCbModalOpen(true); }}
+            onEditModal={(id) => { setCbEditingId(id); setCbModalOpen(true); }}
+            onDelete={contasCrud.onDelete}
+            addLabel="Nova conta bancária"
+          />
+
+          {/* Forma de Pagamento */}
+          <ManagedSelectInput
+            label="Forma de Pagamento"
+            value={form.payment_method_id}
+            onValueChange={(v) => updateField("payment_method_id", v)}
+            options={paymentMethods.map((p: any) => ({ value: p.id, label: p.nome }))}
+            placeholder="Selecione a forma..."
+            icon={<CreditCard className="w-4 h-4" />}
+            onAddModal={() => { setFpEditingId(null); setFpModalOpen(true); }}
+            onEditModal={(id) => { setFpEditingId(id); setFpModalOpen(true); }}
+            onDelete={formasCrud.onDelete}
+            addLabel="Nova forma de pagamento"
+          />
 
           {/* Extras */}
           <div className="flex items-center gap-3 pt-1">
