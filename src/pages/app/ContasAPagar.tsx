@@ -46,6 +46,8 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
+type PaymentMode = "avista" | "parcelado" | "recorrente" | "sazonal";
+
 interface PayableForm {
   description: string;
   supplier_id: string;
@@ -59,9 +61,12 @@ interface PayableForm {
   cost_center_id: string;
   bank_account_id: string;
   payment_method_id: string;
+  payment_mode: PaymentMode;
   installments: number;
   is_recurring: boolean;
   recurrence_interval: string;
+  recurrence_count: number;
+  sazonal_dates: (Date | undefined)[];
   notes: string;
   pessoa_tipo: "pj" | "pf";
   attachment_url: string | null;
@@ -80,9 +85,12 @@ const initialForm: PayableForm = {
   cost_center_id: "",
   bank_account_id: "",
   payment_method_id: "",
+  payment_mode: "avista",
   installments: 1,
   is_recurring: false,
-  recurrence_interval: "",
+  recurrence_interval: "monthly",
+  recurrence_count: 12,
+  sazonal_dates: [undefined],
   notes: "",
   pessoa_tipo: "pj",
   attachment_url: null,
