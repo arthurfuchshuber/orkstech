@@ -25,6 +25,7 @@ import FinanceiroDashboardPage from "./pages/app/FinanceiroDashboardPage";
 import ContasBancarias from "./pages/app/ContasBancarias";
 import GerenciarMenu from "./pages/app/GerenciarMenu";
 import ContasAPagar from "./pages/app/ContasAPagar";
+import ContasAReceber from "./pages/app/ContasAReceber";
 import NotFound from "./pages/NotFound";
 import ExtratoBancario from "./pages/app/ExtratoBancario";
 import Conciliacao from "./pages/app/Conciliacao";
@@ -60,7 +61,7 @@ const App = () => (
                 <Route path="inventario" element={<PlaceholderPage />} />
                 <Route path="financas/dashboard" element={<FinanceiroDashboardPage />} />
                 <Route path="financas/pagar" element={<ContasAPagar />} />
-                <Route path="financas/receber" element={<PlaceholderPage />} />
+                <Route path="financas/receber" element={<ContasAReceber />} />
                 <Route path="financas/fluxo" element={<PlaceholderPage />} />
                 <Route path="financas/dre" element={<DREPage />} />
                 <Route path="financas/cadastros" element={<Financeiro />} />
