@@ -531,8 +531,9 @@ export default function ExtratoBancario() {
                     size="icon"
                     className="h-7 w-7"
                     onClick={() => handleSync(card.pluggy_item_id)}
+                    disabled={syncing === card.pluggy_item_id}
                   >
-                    <RefreshCw className="h-3.5 w-3.5" />
+                    <RefreshCw className={cn("h-3.5 w-3.5", syncing === card.pluggy_item_id && "animate-spin")} />
                   </Button>
                 </div>
 
