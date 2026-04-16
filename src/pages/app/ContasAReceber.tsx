@@ -45,6 +45,7 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { AsaasChargeDialog } from "@/components/asaas/AsaasChargeDialog";
 
 type PaymentMode = "avista" | "parcelado" | "recorrente" | "sazonal";
 type PayerKind = "cliente" | "fornecedor";
@@ -153,6 +154,7 @@ export default function ContasAReceber() {
   const [fornEditingId, setFornEditingId] = useState<string | null>(null);
   const [fornPrefill, setFornPrefill] = useState<FornecedorPrefill | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [asaasReceivableId, setAsaasReceivableId] = useState<string | null>(null);
 
   const { data: receivables = [], isLoading } = useQuery({
     queryKey: ["accounts-receivable", empresaId],
@@ -1076,6 +1078,11 @@ export default function ContasAReceber() {
                             <DropdownMenuItem onClick={() => handleDuplicate(item)}>
                               <Copy className="w-4 h-4 mr-2" /> Duplicar
                             </DropdownMenuItem>
+                            {item.cliente_id && (item.status === "pending" || item.status === "overdue") && (
+                              <DropdownMenuItem onClick={() => setAsaasReceivableId(item.id)}>
+                                <Banknote className="w-4 h-4 mr-2" /> Gerar cobrança Asaas
+                              </DropdownMenuItem>
+                            )}
                             <DropdownMenuItem onClick={() => setDeleteId(item.id)} className="text-destructive">
                               <Trash2 className="w-4 h-4 mr-2" /> Excluir
                             </DropdownMenuItem>
@@ -1823,6 +1830,13 @@ export default function ContasAReceber() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <AsaasChargeDialog
+        receivableId={asaasReceivableId}
+        empresaId={empresaId || null}
+        onOpenChange={(open) => { if (!open) setAsaasReceivableId(null); }}
+        onChanged={() => refreshQueries(queryClient, ["accounts-receivable", empresaId])}
+      />
     </div>
   );
 }
