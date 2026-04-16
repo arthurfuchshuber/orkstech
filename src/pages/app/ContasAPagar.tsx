@@ -5,7 +5,7 @@ import {
   Receipt, Plus, Check, Loader2, AlertTriangle, Clock, Ban,
   FileText, Search, CreditCard,
   Building2, Target, Landmark, FolderTree, Copy, Pencil, Trash2,
-  Banknote, ChevronDown, ScanLine, MoreHorizontal, BarChart3
+  Banknote, ChevronDown, ChevronRight, ScanLine, MoreHorizontal, BarChart3, Layers, Eye
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
