@@ -458,6 +458,14 @@ export default function ContasAPagar() {
     // Create records based on payment_mode
     const totalAmount = form.amount / 100;
     const records: AccountPayableInsert[] = [];
+    // Group ID for multi-record creations (parcelado, recorrente, sazonal)
+    const willGroup =
+      form.payment_mode === "parcelado" ||
+      form.payment_mode === "recorrente" ||
+      (form.payment_mode === "sazonal" && form.sazonal_dates.filter(Boolean).length > 1);
+    const grupoId = willGroup
+      ? (typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `grp-${Date.now()}-${Math.random()}`)
+      : null;
 
     const baseRecord = (overrides: Partial<AccountPayableInsert>): AccountPayableInsert => ({
       user_id: user!.id,
@@ -480,6 +488,7 @@ export default function ContasAPagar() {
       notes: form.notes || null,
       pessoa_tipo: form.pessoa_tipo,
       attachment_url: form.attachment_url,
+      grupo_id: grupoId,
       ...overrides,
     });
 
