@@ -28,6 +28,7 @@ export type Database = {
           document_number: string | null
           due_date: string
           empresa_id: string | null
+          grupo_id: string | null
           id: string
           installment_number: number | null
           installment_total: number | null
@@ -60,6 +61,7 @@ export type Database = {
           document_number?: string | null
           due_date: string
           empresa_id?: string | null
+          grupo_id?: string | null
           id?: string
           installment_number?: number | null
           installment_total?: number | null
@@ -92,6 +94,7 @@ export type Database = {
           document_number?: string | null
           due_date?: string
           empresa_id?: string | null
+          grupo_id?: string | null
           id?: string
           installment_number?: number | null
           installment_total?: number | null
@@ -184,6 +187,7 @@ export type Database = {
           document_number: string | null
           due_date: string
           empresa_id: string | null
+          grupo_id: string | null
           id: string
           installment_number: number | null
           installment_total: number | null
@@ -212,6 +216,7 @@ export type Database = {
           document_number?: string | null
           due_date: string
           empresa_id?: string | null
+          grupo_id?: string | null
           id?: string
           installment_number?: number | null
           installment_total?: number | null
@@ -240,6 +245,7 @@ export type Database = {
           document_number?: string | null
           due_date?: string
           empresa_id?: string | null
+          grupo_id?: string | null
           id?: string
           installment_number?: number | null
           installment_total?: number | null
