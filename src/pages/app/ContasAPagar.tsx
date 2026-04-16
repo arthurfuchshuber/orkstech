@@ -36,7 +36,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { refreshQueries } from "@/lib/query-refresh";
 import {
   fetchAccountsPayable, createAccountPayable, updateAccountPayable,
-  countAccountsPayable, registerPayment, type AccountPayableInsert
+  countAccountsPayable, registerPayment, deleteAccountPayable, type AccountPayableInsert
 } from "@/lib/accounts-payable-helpers";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -575,20 +575,10 @@ export default function ContasAPagar() {
   };
 
   const handleDelete = async (id: string) => {
-    const { data, error } = await supabase
-      .from("accounts_payable")
-      .delete()
-      .eq("id", id)
-      .select("id")
-      .maybeSingle();
-
-    if (error) {
-      toast.error(error.message || "Erro ao excluir");
-      return;
-    }
-
-    if (!data) {
-      toast.error("A conta não pôde ser excluída.");
+    try {
+      await deleteAccountPayable(id);
+    } catch (error: any) {
+      toast.error(error?.message || "Erro ao excluir");
       return;
     }
 

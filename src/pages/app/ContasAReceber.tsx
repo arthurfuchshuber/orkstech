@@ -36,7 +36,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { refreshQueries } from "@/lib/query-refresh";
 import {
   fetchAccountsReceivable, createAccountReceivable, updateAccountReceivable,
-  countAccountsReceivable, registerReceipt, type AccountReceivableInsert,
+  countAccountsReceivable, registerReceipt, deleteAccountReceivable, type AccountReceivableInsert,
 } from "@/lib/accounts-receivable-helpers";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -551,9 +551,10 @@ export default function ContasAReceber() {
   };
 
   const handleDelete = async (id: string) => {
-    const { error } = await supabase.from("accounts_receivable").delete().eq("id", id);
-    if (error) {
-      toast.error(error.message || "Erro ao excluir");
+    try {
+      await deleteAccountReceivable(id);
+    } catch (error: any) {
+      toast.error(error?.message || "Erro ao excluir");
       return;
     }
     queryClient.setQueryData<any[]>(["accounts-receivable", empresaId], (current = []) =>
