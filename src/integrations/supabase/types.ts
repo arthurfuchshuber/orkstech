@@ -313,6 +313,83 @@ export type Database = {
           },
         ]
       }
+      asaas_cobrancas: {
+        Row: {
+          account_receivable_id: string | null
+          asaas_customer_id: string | null
+          asaas_payment_id: string
+          bank_slip_url: string | null
+          billing_type: string
+          cliente_id: string | null
+          created_at: string
+          due_date: string
+          empresa_id: string | null
+          id: string
+          identification_field: string | null
+          invoice_url: string | null
+          payment_date: string | null
+          pix_payload: string | null
+          pix_qr_code: string | null
+          raw_data: Json | null
+          status: string
+          updated_at: string
+          user_id: string
+          value: number
+        }
+        Insert: {
+          account_receivable_id?: string | null
+          asaas_customer_id?: string | null
+          asaas_payment_id: string
+          bank_slip_url?: string | null
+          billing_type: string
+          cliente_id?: string | null
+          created_at?: string
+          due_date: string
+          empresa_id?: string | null
+          id?: string
+          identification_field?: string | null
+          invoice_url?: string | null
+          payment_date?: string | null
+          pix_payload?: string | null
+          pix_qr_code?: string | null
+          raw_data?: Json | null
+          status?: string
+          updated_at?: string
+          user_id: string
+          value?: number
+        }
+        Update: {
+          account_receivable_id?: string | null
+          asaas_customer_id?: string | null
+          asaas_payment_id?: string
+          bank_slip_url?: string | null
+          billing_type?: string
+          cliente_id?: string | null
+          created_at?: string
+          due_date?: string
+          empresa_id?: string | null
+          id?: string
+          identification_field?: string | null
+          invoice_url?: string | null
+          payment_date?: string | null
+          pix_payload?: string | null
+          pix_qr_code?: string | null
+          raw_data?: Json | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+          value?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "asaas_cobrancas_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       automacao_acoes_tipo: {
         Row: {
           ativo: boolean
@@ -720,6 +797,65 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "centros_custo_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      clicksign_documentos: {
+        Row: {
+          clicksign_document_key: string
+          cliente_id: string | null
+          created_at: string
+          empresa_id: string | null
+          finalizado_em: string | null
+          id: string
+          nome: string
+          raw_data: Json | null
+          signatarios: Json
+          status: string
+          updated_at: string
+          url_assinado: string | null
+          url_original: string | null
+          user_id: string
+        }
+        Insert: {
+          clicksign_document_key: string
+          cliente_id?: string | null
+          created_at?: string
+          empresa_id?: string | null
+          finalizado_em?: string | null
+          id?: string
+          nome: string
+          raw_data?: Json | null
+          signatarios?: Json
+          status?: string
+          updated_at?: string
+          url_assinado?: string | null
+          url_original?: string | null
+          user_id: string
+        }
+        Update: {
+          clicksign_document_key?: string
+          cliente_id?: string | null
+          created_at?: string
+          empresa_id?: string | null
+          finalizado_em?: string | null
+          id?: string
+          nome?: string
+          raw_data?: Json | null
+          signatarios?: Json
+          status?: string
+          updated_at?: string
+          url_assinado?: string | null
+          url_original?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clicksign_documentos_empresa_id_fkey"
             columns: ["empresa_id"]
             isOneToOne: false
             referencedRelation: "empresas"
@@ -1357,6 +1493,59 @@ export type Database = {
           },
           {
             foreignKeyName: "historico_sistema_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      integracoes_credenciais: {
+        Row: {
+          ambiente: string
+          api_key: string
+          ativo: boolean
+          created_at: string
+          empresa_id: string | null
+          id: string
+          metadata: Json
+          provider: string
+          ultima_validacao: string | null
+          updated_at: string
+          user_id: string
+          webhook_token: string | null
+        }
+        Insert: {
+          ambiente?: string
+          api_key: string
+          ativo?: boolean
+          created_at?: string
+          empresa_id?: string | null
+          id?: string
+          metadata?: Json
+          provider: string
+          ultima_validacao?: string | null
+          updated_at?: string
+          user_id: string
+          webhook_token?: string | null
+        }
+        Update: {
+          ambiente?: string
+          api_key?: string
+          ativo?: boolean
+          created_at?: string
+          empresa_id?: string | null
+          id?: string
+          metadata?: Json
+          provider?: string
+          ultima_validacao?: string | null
+          updated_at?: string
+          user_id?: string
+          webhook_token?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "integracoes_credenciais_empresa_id_fkey"
             columns: ["empresa_id"]
             isOneToOne: false
             referencedRelation: "empresas"
