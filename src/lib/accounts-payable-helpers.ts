@@ -1,4 +1,10 @@
 import { supabase } from "@/integrations/supabase/client";
+import {
+  logFinancialCreated,
+  logFinancialPaid,
+  logFinancialStatus,
+  logFinancialDeleted,
+} from "./cliente-history";
 
 export type AccountPayableInsert = {
   user_id: string;
@@ -6,6 +12,7 @@ export type AccountPayableInsert = {
   description: string;
   supplier_id?: string | null;
   supplier_name?: string | null;
+  cliente_id?: string | null;
   document_number?: string | null;
   amount: number;
   due_date: string;
@@ -69,10 +76,33 @@ export async function createAccountPayable(records: AccountPayableInsert[]) {
     .insert(records as any)
     .select();
   if (error) throw error;
+
+  // Log to cliente history (only for first installment to avoid spam)
+  for (const rec of (data ?? [])) {
+    if (rec.cliente_id && (!rec.installment_number || rec.installment_number === 1)) {
+      logFinancialCreated({
+        clienteId: rec.cliente_id,
+        userId: rec.user_id,
+        empresaId: rec.empresa_id,
+        kind: "pagar",
+        description: rec.description,
+        amount: Number(rec.amount),
+        dueDate: rec.due_date,
+        installmentTotal: rec.installment_total,
+      });
+    }
+  }
   return data;
 }
 
 export async function updateAccountPayable(id: string, updates: any) {
+  // Capture previous status to detect status changes
+  const { data: prev } = await supabase
+    .from("accounts_payable")
+    .select("status, cliente_id, user_id, empresa_id, description, amount")
+    .eq("id", id)
+    .single();
+
   const { data, error } = await supabase
     .from("accounts_payable")
     .update(updates as any)
@@ -80,7 +110,41 @@ export async function updateAccountPayable(id: string, updates: any) {
     .select()
     .single();
   if (error) throw error;
+
+  // Log status change (excluding "paid" — handled by registerPayment)
+  if (prev && updates.status && updates.status !== prev.status && updates.status !== "paid" && prev.cliente_id) {
+    logFinancialStatus({
+      clienteId: prev.cliente_id,
+      userId: prev.user_id,
+      empresaId: prev.empresa_id,
+      description: prev.description,
+      newStatus: updates.status,
+    });
+  }
   return data;
+}
+
+export async function deleteAccountPayable(id: string) {
+  // Capture before delete to log
+  const { data: prev } = await supabase
+    .from("accounts_payable")
+    .select("cliente_id, user_id, empresa_id, description, amount")
+    .eq("id", id)
+    .single();
+
+  const { error } = await supabase.from("accounts_payable").delete().eq("id", id);
+  if (error) throw error;
+
+  if (prev?.cliente_id) {
+    logFinancialDeleted({
+      clienteId: prev.cliente_id,
+      userId: prev.user_id,
+      empresaId: prev.empresa_id,
+      kind: "pagar",
+      description: prev.description,
+      amount: Number(prev.amount),
+    });
+  }
 }
 
 export async function countAccountsPayable(empresaId?: string) {
@@ -142,6 +206,19 @@ export async function registerPayment(id: string, bankAccountId: string, payment
     categoria_financeira_id: catFinId || null,
   });
   if (txError) throw txError;
+
+  // Log to cliente history
+  if ((updated as any).cliente_id) {
+    logFinancialPaid({
+      clienteId: (updated as any).cliente_id,
+      userId,
+      empresaId,
+      kind: "pagar",
+      description: (updated as any).description,
+      amount: totalPaid,
+      paymentDate,
+    });
+  }
 
   return updated;
 }

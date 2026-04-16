@@ -1,4 +1,10 @@
 import { supabase } from "@/integrations/supabase/client";
+import {
+  logFinancialCreated,
+  logFinancialPaid,
+  logFinancialStatus,
+  logFinancialDeleted,
+} from "./cliente-history";
 
 export type AccountReceivableInsert = {
   user_id: string;
@@ -68,10 +74,31 @@ export async function createAccountReceivable(records: AccountReceivableInsert[]
     .insert(records as any)
     .select();
   if (error) throw error;
+
+  for (const rec of (data ?? [])) {
+    if (rec.cliente_id && (!rec.installment_number || rec.installment_number === 1)) {
+      logFinancialCreated({
+        clienteId: rec.cliente_id,
+        userId: rec.user_id,
+        empresaId: rec.empresa_id,
+        kind: "receber",
+        description: rec.description,
+        amount: Number(rec.amount),
+        dueDate: rec.due_date,
+        installmentTotal: rec.installment_total,
+      });
+    }
+  }
   return data;
 }
 
 export async function updateAccountReceivable(id: string, updates: any) {
+  const { data: prev } = await supabase
+    .from("accounts_receivable")
+    .select("status, cliente_id, user_id, empresa_id, description, amount")
+    .eq("id", id)
+    .single();
+
   const { data, error } = await supabase
     .from("accounts_receivable")
     .update(updates as any)
@@ -79,7 +106,39 @@ export async function updateAccountReceivable(id: string, updates: any) {
     .select()
     .single();
   if (error) throw error;
+
+  if (prev && updates.status && updates.status !== prev.status && updates.status !== "paid" && prev.cliente_id) {
+    logFinancialStatus({
+      clienteId: prev.cliente_id,
+      userId: prev.user_id,
+      empresaId: prev.empresa_id,
+      description: prev.description,
+      newStatus: updates.status,
+    });
+  }
   return data;
+}
+
+export async function deleteAccountReceivable(id: string) {
+  const { data: prev } = await supabase
+    .from("accounts_receivable")
+    .select("cliente_id, user_id, empresa_id, description, amount")
+    .eq("id", id)
+    .single();
+
+  const { error } = await supabase.from("accounts_receivable").delete().eq("id", id);
+  if (error) throw error;
+
+  if (prev?.cliente_id) {
+    logFinancialDeleted({
+      clienteId: prev.cliente_id,
+      userId: prev.user_id,
+      empresaId: prev.empresa_id,
+      kind: "receber",
+      description: prev.description,
+      amount: Number(prev.amount),
+    });
+  }
 }
 
 export async function countAccountsReceivable(empresaId?: string) {
@@ -147,6 +206,18 @@ export async function registerReceipt(
     categoria_financeira_id: catFinId || null,
   });
   if (txError) throw txError;
+
+  if ((updated as any).cliente_id) {
+    logFinancialPaid({
+      clienteId: (updated as any).cliente_id,
+      userId,
+      empresaId,
+      kind: "receber",
+      description: (updated as any).description,
+      amount: totalReceived,
+      paymentDate,
+    });
+  }
 
   return updated;
 }
