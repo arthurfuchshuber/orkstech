@@ -154,6 +154,7 @@ export default function ContasAReceber() {
   const [fornEditingId, setFornEditingId] = useState<string | null>(null);
   const [fornPrefill, setFornPrefill] = useState<FornecedorPrefill | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [asaasReceivableId, setAsaasReceivableId] = useState<string | null>(null);
 
   const { data: receivables = [], isLoading } = useQuery({
     queryKey: ["accounts-receivable", empresaId],
@@ -1077,6 +1078,11 @@ export default function ContasAReceber() {
                             <DropdownMenuItem onClick={() => handleDuplicate(item)}>
                               <Copy className="w-4 h-4 mr-2" /> Duplicar
                             </DropdownMenuItem>
+                            {item.cliente_id && (item.status === "pending" || item.status === "overdue") && (
+                              <DropdownMenuItem onClick={() => setAsaasReceivableId(item.id)}>
+                                <Banknote className="w-4 h-4 mr-2" /> Gerar cobrança Asaas
+                              </DropdownMenuItem>
+                            )}
                             <DropdownMenuItem onClick={() => setDeleteId(item.id)} className="text-destructive">
                               <Trash2 className="w-4 h-4 mr-2" /> Excluir
                             </DropdownMenuItem>
