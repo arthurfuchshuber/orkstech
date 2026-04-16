@@ -1718,8 +1718,9 @@ export default function ContasAPagar() {
                       <div key={idx} className="flex items-center gap-2">
                         <div className="flex-1">
                           <DateInput
+                            label=""
                             value={d}
-                            onChange={(date) => {
+                            onValueChange={(date) => {
                               const next = [...form.sazonal_dates];
                               next[idx] = date;
                               updateField("sazonal_dates", next);
