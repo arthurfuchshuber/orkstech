@@ -1803,7 +1803,7 @@ export default function ContasAPagar() {
               )}
 
               {form.payment_mode === "recorrente" && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-2">
                   <ManagedSelectInput
                     label="Intervalo"
                     value={form.recurrence_interval}
@@ -1815,21 +1815,9 @@ export default function ContasAPagar() {
                     ]}
                     placeholder="Selecione..."
                   />
-                  <div className="space-y-1.5">
-                    <label className="text-sm font-medium text-foreground">Quantidade de ocorrências</label>
-                    <Input
-                      type="number"
-                      min={1}
-                      max={120}
-                      value={form.recurrence_count}
-                      onChange={(e) => updateField("recurrence_count", parseInt(e.target.value) || 1)}
-                    />
-                    {form.amount > 0 && form.recurrence_count > 0 && (
-                      <p className="text-xs text-muted-foreground">
-                        {form.recurrence_count}x de {formatCurrency(form.amount / 100)}
-                      </p>
-                    )}
-                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Será criado um lançamento recorrente no valor de {formatCurrency(form.amount / 100)} a cada {form.recurrence_interval === "weekly" ? "semana" : form.recurrence_interval === "yearly" ? "ano" : "mês"}.
+                  </p>
                 </div>
               )}
 
