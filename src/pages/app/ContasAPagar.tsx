@@ -509,22 +509,13 @@ export default function ContasAPagar() {
         }));
       }
     } else if (form.payment_mode === "recorrente") {
-      const n = Math.max(1, form.recurrence_count);
       const interval = form.recurrence_interval || "monthly";
-      for (let i = 0; i < n; i++) {
-        const dueDate = new Date(form.due_date!);
-        if (interval === "weekly") dueDate.setDate(dueDate.getDate() + 7 * i);
-        else if (interval === "yearly") dueDate.setFullYear(dueDate.getFullYear() + i);
-        else dueDate.setMonth(dueDate.getMonth() + i);
-        records.push(baseRecord({
-          description: `${form.description} (${i + 1}/${n})`,
-          due_date: dueDate.toISOString().split("T")[0],
-          installment_number: i + 1,
-          installment_total: n,
-          is_recurring: true,
-          recurrence_interval: interval as any,
-        }));
-      }
+      records.push(baseRecord({
+        amount: totalAmount,
+        due_date: form.due_date!,
+        is_recurring: true,
+        recurrence_interval: interval as any,
+      }));
     } else if (form.payment_mode === "sazonal") {
       const validDates = form.sazonal_dates.filter((d): d is Date => !!d);
       if (validDates.length === 0) {
