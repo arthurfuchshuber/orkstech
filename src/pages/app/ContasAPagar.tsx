@@ -507,9 +507,16 @@ export default function ContasAPagar() {
       cost_center_id: item.cost_center_id || "",
       bank_account_id: item.bank_account_id || "",
       payment_method_id: item.payment_method_id || "",
+      payment_mode: item.is_recurring
+        ? "recorrente"
+        : (item.installment_total || 1) > 1
+        ? "parcelado"
+        : "avista",
       installments: item.installment_total || 1,
       is_recurring: item.is_recurring,
-      recurrence_interval: item.recurrence_interval || "",
+      recurrence_interval: item.recurrence_interval || "monthly",
+      recurrence_count: 12,
+      sazonal_dates: [undefined],
       notes: item.notes || "",
       pessoa_tipo: item.pessoa_tipo || "pj",
       attachment_url: item.attachment_url || null,
@@ -625,9 +632,12 @@ export default function ContasAPagar() {
       cost_center_id: item.cost_center_id || "",
       bank_account_id: item.bank_account_id || "",
       payment_method_id: item.payment_method_id || "",
+      payment_mode: "avista",
       installments: 1,
-      is_recurring: item.is_recurring,
-      recurrence_interval: item.recurrence_interval || "",
+      is_recurring: false,
+      recurrence_interval: "monthly",
+      recurrence_count: 12,
+      sazonal_dates: [undefined],
       notes: item.notes || "",
       pessoa_tipo: item.pessoa_tipo || "pj",
       attachment_url: null,
