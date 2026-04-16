@@ -420,16 +420,19 @@ function IntegrationCard({
           <Icon className={cn("w-5 h-5", statusKey === "ativa" ? "text-primary" : "text-muted-foreground")} />
         </div>
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
-            <h3 className="text-sm font-semibold text-foreground truncate">{cfg.nome}</h3>
+          <h3 className="text-sm font-semibold text-foreground truncate leading-tight">{cfg.nome}</h3>
+          <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+            <span className="text-[11px] text-muted-foreground">{cfg.categoria}</span>
+            {cred?.ambiente && !isComingSoon && (
+              <>
+                <span className="text-muted-foreground/40 text-[10px]">•</span>
+                <span className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                  {cred.ambiente === "sandbox" ? "Sandbox" : "Produção"}
+                </span>
+              </>
+            )}
             <StatusBadge />
           </div>
-          <p className="text-[11px] text-muted-foreground mt-0.5">
-            {cfg.categoria}
-            {cred?.ambiente && !isComingSoon && (
-              <> • <span className="uppercase">{cred.ambiente === "sandbox" ? "Sandbox" : "Produção"}</span></>
-            )}
-          </p>
         </div>
         <ChevronDown className={cn(
           "w-4 h-4 text-muted-foreground transition-transform shrink-0",
