@@ -517,10 +517,32 @@ export default function ContasAPagar() {
   };
 
   const handleDelete = async (id: string) => {
-    const { error } = await supabase.from("accounts_payable").delete().eq("id", id);
-    if (error) { toast.error("Erro ao excluir"); return; }
-    queryClient.invalidateQueries({ queryKey: ["accounts-payable"] });
-    queryClient.invalidateQueries({ queryKey: ["accounts-payable-counts"] });
+    const { data, error } = await supabase
+      .from("accounts_payable")
+      .delete()
+      .eq("id", id)
+      .select("id")
+      .maybeSingle();
+
+    if (error) {
+      toast.error(error.message || "Erro ao excluir");
+      return;
+    }
+
+    if (!data) {
+      toast.error("A conta não pôde ser excluída.");
+      return;
+    }
+
+    queryClient.setQueryData<any[]>(["accounts-payable", empresaId], (current = []) =>
+      current.filter((item) => item.id !== id)
+    );
+    setSelectedIds((current) => {
+      const next = new Set(current);
+      next.delete(id);
+      return next;
+    });
+    await refreshQueries(queryClient, [["accounts-payable"], ["accounts-payable-counts"]]);
     toast.success("Conta excluída");
     setDeleteId(null);
   };
