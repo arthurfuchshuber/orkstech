@@ -511,8 +511,6 @@ export default function ContasAPagar() {
     } else if (form.payment_mode === "recorrente") {
       const interval = form.recurrence_interval || "monthly";
       records.push(baseRecord({
-        amount: totalAmount,
-        due_date: form.due_date!,
         is_recurring: true,
         recurrence_interval: interval as any,
       }));
