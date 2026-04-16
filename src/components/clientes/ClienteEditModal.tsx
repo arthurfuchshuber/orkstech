@@ -11,6 +11,8 @@ import { TextareaInput } from "@/components/inputs/TextareaInput";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useDocumentValidation } from "@/hooks/useDocumentValidation";
+import { useAuth } from "@/hooks/useAuth";
+import { logClienteUpdated } from "@/lib/cliente-history";
 import type { Tables } from "@/integrations/supabase/types";
 
 interface Props {
@@ -21,6 +23,7 @@ interface Props {
 
 export function ClienteEditModal({ cliente, open, onOpenChange }: Props) {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
   const { validatingCnpj, cnpjError, cpfError, validateCpfField, validateCnpjField, clearErrors } = useDocumentValidation();
 
   const [tipo, setTipo] = useState<"pf" | "pj">(cliente.tipo);
@@ -117,12 +120,36 @@ export function ClienteEditModal({ cliente, open, onOpenChange }: Props) {
         update.inscricao_estadual = form.inscricao_estadual || null;
         update.inscricao_municipal = form.inscricao_municipal || null;
       }
+      // Detect changed fields for richer history log
+      const changed: string[] = [];
+      const fieldLabels: Record<string, string> = {
+        nome_completo: "Nome", cpf: "CPF", razao_social: "Razão Social",
+        nome_fantasia: "Nome Fantasia", cnpj: "CNPJ", telefone: "Telefone",
+        whatsapp: "WhatsApp", email: "E-mail", logradouro: "Endereço",
+        cep: "CEP", responsavel_interno: "Responsável", observacoes: "Observações",
+      };
+      for (const [key, label] of Object.entries(fieldLabels)) {
+        const newVal = (update as any)[key];
+        const oldVal = (cliente as any)[key];
+        if ((newVal || "") !== (oldVal || "")) changed.push(label);
+      }
+
       const { error } = await supabase.from("clientes").update(update).eq("id", cliente.id);
       if (error) throw error;
+
+      if (user && changed.length > 0) {
+        await logClienteUpdated({
+          clienteId: cliente.id,
+          userId: user.id,
+          empresaId: cliente.empresa_id,
+          changedFields: changed,
+        });
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["cliente", cliente.id] });
       queryClient.invalidateQueries({ queryKey: ["clientes"] });
+      queryClient.invalidateQueries({ queryKey: ["cliente-interacoes", cliente.id] });
       toast.success("Cliente atualizado");
       onOpenChange(false);
     },
