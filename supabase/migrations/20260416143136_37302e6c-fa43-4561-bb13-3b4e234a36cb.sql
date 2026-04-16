@@ -1,0 +1,2 @@
+ALTER TABLE public.cash_transactions DROP CONSTRAINT cash_transactions_account_payable_id_fkey;
+ALTER TABLE public.cash_transactions ADD CONSTRAINT cash_transactions_account_payable_id_fkey FOREIGN KEY (account_payable_id) REFERENCES public.accounts_payable(id) ON DELETE CASCADE;
