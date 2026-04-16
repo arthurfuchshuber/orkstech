@@ -45,6 +45,7 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { AsaasChargeDialog } from "@/components/asaas/AsaasChargeDialog";
 
 type PaymentMode = "avista" | "parcelado" | "recorrente" | "sazonal";
 type PayerKind = "cliente" | "fornecedor";
