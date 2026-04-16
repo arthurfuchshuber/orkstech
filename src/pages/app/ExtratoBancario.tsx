@@ -273,7 +273,10 @@ export default function ExtratoBancario() {
     enabled: !!user && !!targetUserId,
   });
 
+  const [syncing, setSyncing] = useState<string | null>(null);
+
   const handleSync = async (itemId: string) => {
+    setSyncing(itemId);
     try {
       const session = await supabase.auth.getSession();
       const token = session.data.session?.access_token;
@@ -292,6 +295,8 @@ export default function ExtratoBancario() {
       window.location.reload();
     } catch (err) {
       console.error("Sync error:", err);
+    } finally {
+      setSyncing(null);
     }
   };
 
