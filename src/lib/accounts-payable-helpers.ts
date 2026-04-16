@@ -22,6 +22,7 @@ export type AccountPayableInsert = {
   notes?: string | null;
   attachment_url?: string | null;
   pessoa_tipo?: "pj" | "pf";
+  grupo_id?: string | null;
 };
 
 export async function fetchAccountsPayable(empresaId?: string) {
