@@ -377,26 +377,26 @@ function IntegrationCard({
   const StatusBadge = () => {
     if (statusKey === "em_breve") {
       return (
-        <Badge variant="outline" className="border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400 gap-1 text-[10px]">
+        <Badge variant="outline" className="border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400 gap-1 text-[10px] whitespace-nowrap shrink-0 px-2 py-0">
           <Sparkles className="w-2.5 h-2.5" /> Em breve
         </Badge>
       );
     }
     if (statusKey === "ativa") {
       return (
-        <Badge variant="default" className="bg-green-500/15 text-green-600 hover:bg-green-500/20 border-0 gap-1 text-[10px]">
+        <Badge variant="default" className="bg-green-500/15 text-green-600 hover:bg-green-500/20 border-0 gap-1 text-[10px] whitespace-nowrap shrink-0 px-2 py-0">
           <CheckCircle2 className="w-2.5 h-2.5" /> Ativa
         </Badge>
       );
     }
     if (statusKey === "inativa") {
       return (
-        <Badge variant="secondary" className="gap-1 text-[10px]">
+        <Badge variant="secondary" className="gap-1 text-[10px] whitespace-nowrap shrink-0 px-2 py-0">
           <XCircle className="w-2.5 h-2.5" /> Pausada
         </Badge>
       );
     }
-    return <Badge variant="outline" className="text-[10px]">Não conectada</Badge>;
+    return <Badge variant="outline" className="text-[10px] whitespace-nowrap shrink-0 px-2 py-0">Não conectada</Badge>;
   };
 
   return (
