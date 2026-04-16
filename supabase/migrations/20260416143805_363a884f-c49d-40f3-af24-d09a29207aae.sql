@@ -1,0 +1,1 @@
+DROP POLICY IF EXISTS "Super admins can delete all accounts_payable" ON public.accounts_payable;
