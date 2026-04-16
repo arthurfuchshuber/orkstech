@@ -32,6 +32,7 @@ import Conciliacao from "./pages/app/Conciliacao";
 import DREPage from "./pages/app/DREPage";
 import ConfigConta from "./pages/app/ConfigConta";
 import ConfigPlanos from "./pages/app/ConfigPlanos";
+import ConfigIntegracoes from "./pages/app/ConfigIntegracoes";
 import { SuperAdminRoute } from "./components/SuperAdminRoute";
 import AdminPanel from "./pages/app/admin/AdminPanel";
 
@@ -83,7 +84,7 @@ const App = () => (
                 <Route path="config/permissoes" element={<Navigate to="/app/config/conta" replace />} />
                 <Route path="config/planos" element={<ConfigPlanos />} />
                 <Route path="config/menus" element={<GerenciarMenu />} />
-                <Route path="config/integracoes" element={<PlaceholderPage />} />
+                <Route path="config/integracoes" element={<ConfigIntegracoes />} />
                 <Route path="admin" element={<SuperAdminRoute><AdminPanel /></SuperAdminRoute>} />
               </Route>
               <Route path="*" element={<NotFound />} />
