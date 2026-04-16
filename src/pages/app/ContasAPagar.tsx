@@ -2082,7 +2082,142 @@ export default function ContasAPagar() {
         </DialogContent>
       </Dialog>
 
-      {/* Delete confirmation */}
+      {/* Group Summary Modal */}
+      <Dialog open={!!summaryGroupId} onOpenChange={(open) => !open && setSummaryGroupId(null)}>
+        <DialogContent className="max-w-3xl max-h-[85vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Layers className="w-5 h-5 text-primary" />
+              Resumo da Conta Agrupada
+            </DialogTitle>
+            <DialogDescription>
+              {summaryGroup && summaryGroup.type === "group"
+                ? summaryGroup.parent.description.replace(/\s*\(\d+\/\d+\)\s*$/, "")
+                : ""}
+            </DialogDescription>
+          </DialogHeader>
+          {summaryGroup && summaryGroup.type === "group" && (() => {
+            const { children, parent } = summaryGroup;
+            const totalAmount = children.reduce((s, c) => s + Number(c.amount || 0), 0);
+            const paidAmount = children.filter(c => c.status === "paid").reduce((s, c) => s + Number(c.amount || 0), 0);
+            const pendingAmount = children.filter(c => c.status !== "paid" && c.status !== "cancelled").reduce((s, c) => s + Number(c.amount || 0), 0);
+            const paidCount = children.filter(c => c.status === "paid").length;
+            const overdueCount = children.filter(c => c.status === "overdue").length;
+            const pendingCount = children.filter(c => c.status === "pending").length;
+            const earliest = children.reduce((min, c) => c.due_date < min ? c.due_date : min, children[0].due_date);
+            const latest = children.reduce((max, c) => c.due_date > max ? c.due_date : max, children[0].due_date);
+            const groupKind = parent.is_recurring ? "Recorrente" : "Parcelado / Sazonal";
+            const forn = parent.supplier_name || "—";
+            const progress = totalAmount > 0 ? (paidAmount / totalAmount) * 100 : 0;
+
+            return (
+              <div className="overflow-y-auto custom-scrollbar space-y-5 pr-1">
+                {/* Aggregated metrics */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  <div className="p-3 rounded-xl border border-border/40 bg-muted/20">
+                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Tipo</p>
+                    <p className="text-sm font-semibold mt-1">{groupKind}</p>
+                  </div>
+                  <div className="p-3 rounded-xl border border-border/40 bg-muted/20">
+                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Fornecedor</p>
+                    <p className="text-sm font-semibold mt-1 truncate">{forn}</p>
+                  </div>
+                  <div className="p-3 rounded-xl border border-border/40 bg-muted/20">
+                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Período</p>
+                    <p className="text-sm font-semibold mt-1">
+                      {format(new Date(earliest), "dd/MM/yy")} → {format(new Date(latest), "dd/MM/yy")}
+                    </p>
+                  </div>
+                  <div className="p-3 rounded-xl border border-border/40 bg-muted/20">
+                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Parcelas</p>
+                    <p className="text-sm font-semibold mt-1">{children.length} ocorrências</p>
+                  </div>
+                </div>
+
+                {/* Totals */}
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="p-4 rounded-xl border border-primary/20 bg-primary/5">
+                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Valor total</p>
+                    <p className="text-lg font-bold mt-1 text-primary">{formatCurrency(totalAmount)}</p>
+                  </div>
+                  <div className="p-4 rounded-xl border border-success/20 bg-success/5">
+                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Pago</p>
+                    <p className="text-lg font-bold mt-1 text-success">{formatCurrency(paidAmount)}</p>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">{paidCount} de {children.length}</p>
+                  </div>
+                  <div className="p-4 rounded-xl border border-warning/20 bg-warning/5">
+                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Em aberto</p>
+                    <p className="text-lg font-bold mt-1 text-warning">{formatCurrency(pendingAmount)}</p>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">
+                      {pendingCount} pendentes{overdueCount > 0 ? ` · ${overdueCount} vencidas` : ""}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Progress bar */}
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-xs text-muted-foreground font-medium">Progresso de pagamento</span>
+                    <span className="text-xs font-semibold">{progress.toFixed(0)}%</span>
+                  </div>
+                  <div className="h-2 rounded-full bg-muted overflow-hidden">
+                    <div className="h-full bg-success transition-all" style={{ width: `${progress}%` }} />
+                  </div>
+                </div>
+
+                {/* Installments table */}
+                <div>
+                  <h4 className="text-xs uppercase tracking-wider text-muted-foreground font-semibold mb-2">Parcelas</h4>
+                  <div className="rounded-xl border border-border/40 overflow-hidden">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="w-12">#</TableHead>
+                          <TableHead>Descrição</TableHead>
+                          <TableHead>Vencimento</TableHead>
+                          <TableHead>Valor</TableHead>
+                          <TableHead>Pagamento</TableHead>
+                          <TableHead>Status</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {children.map((c) => {
+                          const cfg = statusConfig[c.status] || statusConfig.pending;
+                          const Icon = cfg.icon;
+                          return (
+                            <TableRow key={c.id}>
+                              <TableCell className="text-xs text-muted-foreground font-mono">
+                                {c.installment_number || "—"}/{c.installment_total || children.length}
+                              </TableCell>
+                              <TableCell className="text-sm truncate max-w-[200px]">{c.description}</TableCell>
+                              <TableCell className="text-sm">{format(new Date(c.due_date), "dd/MM/yyyy")}</TableCell>
+                              <TableCell className="text-sm font-medium">{formatCurrency(c.amount)}</TableCell>
+                              <TableCell className="text-sm text-muted-foreground">
+                                {c.payment_date ? format(new Date(c.payment_date), "dd/MM/yyyy") : "—"}
+                              </TableCell>
+                              <TableCell>
+                                <Badge variant="outline" className={`${cfg.color} gap-1 text-[10px]`}>
+                                  <Icon className="w-3 h-3" />
+                                  {cfg.label}
+                                </Badge>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
+          <div className="flex justify-end pt-3 border-t border-border/30">
+            <Button variant="outline" onClick={() => setSummaryGroupId(null)} className="rounded-lg">Fechar</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+
       <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
