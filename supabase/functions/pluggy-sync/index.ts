@@ -131,9 +131,11 @@ Deno.serve(async (req) => {
     if (investmentsRes.ok) {
       const investmentsData = await investmentsRes.json()
       investmentsList = investmentsData.results || []
+      // Use 'amount' (gross value, matching what the bank app displays) instead of 'balance' (net value after taxes)
+      // This aligns our totals with what the user sees in the bank's mobile app
       totalInvestments = investmentsList
-        .filter((inv: any) => (inv.balance ?? 0) > 0 || (inv.value ?? 0) > 0)
-        .reduce((sum: number, inv: any) => sum + (inv.balance ?? inv.value ?? 0), 0)
+        .filter((inv: any) => (inv.amount ?? inv.balance ?? 0) > 0)
+        .reduce((sum: number, inv: any) => sum + (inv.amount ?? inv.balance ?? inv.value ?? 0), 0)
       totalInvestments = Math.round(totalInvestments * 100) / 100
       console.log(`Total investments for item ${itemId}: R$ ${totalInvestments} from ${investmentsList.length} investments`)
     }
