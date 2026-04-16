@@ -273,7 +273,10 @@ export default function ExtratoBancario() {
     enabled: !!user && !!targetUserId,
   });
 
+  const [syncing, setSyncing] = useState<string | null>(null);
+
   const handleSync = async (itemId: string) => {
+    setSyncing(itemId);
     try {
       const session = await supabase.auth.getSession();
       const token = session.data.session?.access_token;
@@ -292,6 +295,8 @@ export default function ExtratoBancario() {
       window.location.reload();
     } catch (err) {
       console.error("Sync error:", err);
+    } finally {
+      setSyncing(null);
     }
   };
 
@@ -526,8 +531,9 @@ export default function ExtratoBancario() {
                     size="icon"
                     className="h-7 w-7"
                     onClick={() => handleSync(card.pluggy_item_id)}
+                    disabled={syncing === card.pluggy_item_id}
                   >
-                    <RefreshCw className="h-3.5 w-3.5" />
+                    <RefreshCw className={cn("h-3.5 w-3.5", syncing === card.pluggy_item_id && "animate-spin")} />
                   </Button>
                 </div>
 
