@@ -83,7 +83,36 @@ Deno.serve(async (req) => {
     const apiKey = await getPluggyApiKey()
     const headers = { 'X-API-KEY': apiKey, 'Content-Type': 'application/json' }
 
-    // Fetch item details, accounts, and investments from Pluggy
+    // Step 1: Trigger item update at Pluggy to fetch fresh data from the bank
+    const triggerUpdate = url.searchParams.get('skipUpdate') !== 'true'
+    if (triggerUpdate) {
+      console.log(`Triggering item update for ${itemId}...`)
+      const updateRes = await fetch(`https://api.pluggy.ai/items/${itemId}`, {
+        method: 'PATCH',
+        headers,
+        body: JSON.stringify({}),
+      })
+      if (updateRes.ok) {
+        // Poll until item finishes updating (max ~60s)
+        const maxWait = 60_000
+        const pollInterval = 3_000
+        const start = Date.now()
+        while (Date.now() - start < maxWait) {
+          await new Promise((r) => setTimeout(r, pollInterval))
+          const checkRes = await fetch(`https://api.pluggy.ai/items/${itemId}`, { headers })
+          if (!checkRes.ok) break
+          const checkItem = await checkRes.json()
+          console.log(`Item ${itemId} status: ${checkItem.status}`)
+          if (checkItem.status === 'UPDATED' || checkItem.status === 'LOGIN_ERROR' || checkItem.status === 'OUTDATED') {
+            break
+          }
+        }
+      } else {
+        console.warn(`Item update trigger failed (${updateRes.status}), proceeding with cached data`)
+      }
+    }
+
+    // Step 2: Fetch item details, accounts, and investments from Pluggy
     const [itemRes, accountsRes, investmentsRes] = await Promise.all([
       fetch(`https://api.pluggy.ai/items/${itemId}`, { headers }),
       fetch(`https://api.pluggy.ai/accounts?itemId=${itemId}`, { headers }),
