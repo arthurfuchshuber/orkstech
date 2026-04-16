@@ -1623,53 +1623,137 @@ export default function ContasAPagar() {
             addLabel="Nova forma de pagamento"
           />
 
-          {/* Parcelamento */}
+          {/* Modo de Pagamento */}
           {!editingId && (
             <>
               <div className="flex items-center gap-3 pt-1">
                 <div className="h-px flex-1 bg-border/30" />
-                <span className="text-[11px] uppercase tracking-widest text-muted-foreground/60 font-medium">Parcelamento</span>
+                <span className="text-[11px] uppercase tracking-widest text-muted-foreground/60 font-medium">Modo de Pagamento</span>
                 <div className="h-px flex-1 bg-border/30" />
               </div>
 
-              <div className="space-y-1.5">
-                <label className="text-sm font-medium text-foreground">Número de parcelas</label>
-                <Input
-                  type="number"
-                  min={1}
-                  max={120}
-                  value={form.installments}
-                  onChange={(e) => updateField("installments", parseInt(e.target.value) || 1)}
-                />
-                {form.installments > 1 && form.amount > 0 && (
-                  <p className="text-xs text-muted-foreground">
-                    {form.installments}x de {formatCurrency((form.amount / 100) / form.installments)}
-                  </p>
-                )}
-                {errors.installments && <p className="text-xs text-destructive">{errors.installments}</p>}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                {([
+                  { value: "avista", label: "À Vista" },
+                  { value: "parcelado", label: "Parcelamento" },
+                  { value: "recorrente", label: "Recorrente" },
+                  { value: "sazonal", label: "Sazonal" },
+                ] as { value: PaymentMode; label: string }[]).map((opt) => {
+                  const active = form.payment_mode === opt.value;
+                  return (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onClick={() => updateField("payment_mode", opt.value)}
+                      className={`h-10 rounded-lg border text-sm font-medium transition-all ${
+                        active
+                          ? "border-primary bg-primary/10 text-primary shadow-sm"
+                          : "border-input bg-background text-muted-foreground hover:border-muted-foreground/40 hover:text-foreground"
+                      }`}
+                    >
+                      {opt.label}
+                    </button>
+                  );
+                })}
               </div>
 
-              <label className="flex items-center gap-2.5 cursor-pointer py-1">
-                <input
-                  type="checkbox"
-                  checked={form.is_recurring}
-                  onChange={(e) => updateField("is_recurring", e.target.checked)}
-                  className="rounded border-input"
-                />
-                <span className="text-sm font-medium text-foreground">Conta recorrente</span>
-              </label>
-              {form.is_recurring && (
-                <ManagedSelectInput
-                  label="Intervalo de recorrência"
-                  value={form.recurrence_interval}
-                  onValueChange={(v) => updateField("recurrence_interval", v)}
-                  options={[
-                    { value: "weekly", label: "Semanal" },
-                    { value: "monthly", label: "Mensal" },
-                    { value: "yearly", label: "Anual" },
-                  ]}
-                  placeholder="Selecione..."
-                />
+              {form.payment_mode === "parcelado" && (
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium text-foreground">Número de parcelas</label>
+                  <Input
+                    type="number"
+                    min={1}
+                    max={120}
+                    value={form.installments}
+                    onChange={(e) => updateField("installments", parseInt(e.target.value) || 1)}
+                  />
+                  {form.installments > 1 && form.amount > 0 && (
+                    <p className="text-xs text-muted-foreground">
+                      {form.installments}x de {formatCurrency((form.amount / 100) / form.installments)} (mensal, a partir do vencimento)
+                    </p>
+                  )}
+                  {errors.installments && <p className="text-xs text-destructive">{errors.installments}</p>}
+                </div>
+              )}
+
+              {form.payment_mode === "recorrente" && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <ManagedSelectInput
+                    label="Intervalo"
+                    value={form.recurrence_interval}
+                    onValueChange={(v) => updateField("recurrence_interval", v)}
+                    options={[
+                      { value: "weekly", label: "Semanal" },
+                      { value: "monthly", label: "Mensal" },
+                      { value: "yearly", label: "Anual" },
+                    ]}
+                    placeholder="Selecione..."
+                  />
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium text-foreground">Quantidade de ocorrências</label>
+                    <Input
+                      type="number"
+                      min={1}
+                      max={120}
+                      value={form.recurrence_count}
+                      onChange={(e) => updateField("recurrence_count", parseInt(e.target.value) || 1)}
+                    />
+                    {form.amount > 0 && form.recurrence_count > 0 && (
+                      <p className="text-xs text-muted-foreground">
+                        {form.recurrence_count}x de {formatCurrency(form.amount / 100)}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {form.payment_mode === "sazonal" && (
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-foreground">Datas dos lançamentos</label>
+                  <p className="text-xs text-muted-foreground">
+                    Cada data gera um lançamento de {form.amount > 0 ? formatCurrency(form.amount / 100) : "R$ 0,00"}.
+                  </p>
+                  <div className="space-y-2">
+                    {form.sazonal_dates.map((d, idx) => (
+                      <div key={idx} className="flex items-center gap-2">
+                        <div className="flex-1">
+                          <DateInput
+                            value={d}
+                            onChange={(date) => {
+                              const next = [...form.sazonal_dates];
+                              next[idx] = date;
+                              updateField("sazonal_dates", next);
+                            }}
+                            placeholder={`Data ${idx + 1}`}
+                          />
+                        </div>
+                        {form.sazonal_dates.length > 1 && (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => {
+                              const next = form.sazonal_dates.filter((_, i) => i !== idx);
+                              updateField("sazonal_dates", next);
+                            }}
+                            className="h-9 w-9 text-muted-foreground hover:text-destructive"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => updateField("sazonal_dates", [...form.sazonal_dates, undefined])}
+                    className="rounded-lg gap-2"
+                  >
+                    <Plus className="h-4 w-4" /> Adicionar data
+                  </Button>
+                </div>
               )}
             </>
           )}
