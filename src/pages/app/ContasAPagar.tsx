@@ -1158,244 +1158,321 @@ export default function ContasAPagar() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filtered.map((item: any) => {
-                const dueDate = new Date(item.due_date);
-                const isNearDue = item.status === "pending" && isBefore(dueDate, addDays(new Date(), 7)) && !isPast(dueDate);
-                const catFin = categoriasFinanceiras.find((c: any) => c.id === item.categoria_financeira_id);
-                // Derive tipo: from inline override, or from existing catFin, or empty
-                const rowTipo = inlineTipoMap[item.id] || catFin?.tipo || "";
-                const tipoFinLabel = rowTipo ? tiposFinanceiros.find(t => t.value === rowTipo)?.label : null;
-                const formaPgto = paymentMethods.find((m: any) => m.id === item.payment_method_id);
-                const contaBanc = bankAccounts.find((b: any) => b.id === item.bank_account_id);
-                // Subcategoria options: only leaf nodes of the selected tipo
-                const subcatOptions = rowTipo
-                  ? categoriasFinanceiras
-                      .filter((c: any) => c.tipo === rowTipo)
-                      .filter((c: any) => !allCategoriasFin.some((child: any) => child.categoria_pai_id === c.id))
-                  : [];
-                return (
-                  <TableRow key={item.id} className={isNearDue ? "bg-amber-500/5" : ""}>
-                    <TableCell>
-                      <Checkbox
-                        checked={selectedIds.has(item.id)}
-                        onCheckedChange={() => toggleSelectItem(item.id)}
-                      />
-                    </TableCell>
-                    <TableCell className="font-medium truncate text-sm">{item.supplier_name || "—"}</TableCell>
-                    <TableCell className="truncate">
-                      <div>
-                        <span className="text-sm">{item.description}</span>
-                        {item.installment_total > 1 && (
-                          <span className="text-xs text-muted-foreground ml-1">
-                            ({item.installment_number}/{item.installment_total})
-                          </span>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell className="font-medium text-sm">{formatCurrency(item.amount)}</TableCell>
-                    <TableCell>
-                      <span className={`text-sm ${isNearDue ? "text-amber-600 font-medium" : ""}`}>
-                        {format(dueDate, "dd/MM/yyyy")}
-                      </span>
-                    </TableCell>
-                    {/* Tipo Financeiro dropdown */}
-                    <TableCell>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <button className="flex items-center gap-1 text-sm cursor-pointer hover:text-foreground transition-colors group w-full">
-                            <span className="truncate">{tipoFinLabel || <span className="text-muted-foreground/50">Selecionar</span>}</span>
-                            <ChevronDown className="w-3 h-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
-                          </button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="start" className="max-h-[260px] overflow-y-auto custom-scrollbar">
-                          {tiposFinanceiros.map((t) => (
-                            <DropdownMenuItem
-                              key={t.value}
-                              title={t.tooltip}
-                              onClick={() => {
-                                // Set inline tipo and clear subcategoria if tipo changed
-                                setInlineTipoMap(prev => ({ ...prev, [item.id]: t.value }));
-                                if (catFin?.tipo !== t.value) {
-                                  updateMutation.mutate({ id: item.id, data: { categoria_financeira_id: null } });
-                                }
-                              }}
-                            >
-                              {t.label}
-                            </DropdownMenuItem>
-                          ))}
-                          {rowTipo && (
-                            <DropdownMenuItem onClick={() => {
-                              setInlineTipoMap(prev => { const n = { ...prev }; delete n[item.id]; return n; });
-                              updateMutation.mutate({ id: item.id, data: { categoria_financeira_id: null } });
-                            }} className="text-muted-foreground">
-                              Limpar
-                            </DropdownMenuItem>
+              {(() => {
+                const renderItemRow = (item: any, opts: { isChild?: boolean } = {}) => {
+                  const dueDate = new Date(item.due_date);
+                  const isNearDue = item.status === "pending" && isBefore(dueDate, addDays(new Date(), 7)) && !isPast(dueDate);
+                  const catFin = categoriasFinanceiras.find((c: any) => c.id === item.categoria_financeira_id);
+                  const rowTipo = inlineTipoMap[item.id] || catFin?.tipo || "";
+                  const tipoFinLabel = rowTipo ? tiposFinanceiros.find(t => t.value === rowTipo)?.label : null;
+                  const formaPgto = paymentMethods.find((m: any) => m.id === item.payment_method_id);
+                  const contaBanc = bankAccounts.find((b: any) => b.id === item.bank_account_id);
+                  const subcatOptions = rowTipo
+                    ? categoriasFinanceiras
+                        .filter((c: any) => c.tipo === rowTipo)
+                        .filter((c: any) => !allCategoriasFin.some((child: any) => child.categoria_pai_id === c.id))
+                    : [];
+                  return (
+                    <TableRow key={item.id} className={`${isNearDue ? "bg-amber-500/5" : ""} ${opts.isChild ? "bg-muted/20" : ""}`}>
+                      <TableCell>
+                        <Checkbox
+                          checked={selectedIds.has(item.id)}
+                          onCheckedChange={() => toggleSelectItem(item.id)}
+                        />
+                      </TableCell>
+                      <TableCell className="font-medium truncate text-sm">
+                        {opts.isChild ? <span className="text-muted-foreground/60 ml-6">↳</span> : (item.supplier_name || "—")}
+                      </TableCell>
+                      <TableCell className="truncate">
+                        <div className={opts.isChild ? "pl-4" : ""}>
+                          <span className="text-sm">{item.description}</span>
+                          {item.installment_total > 1 && (
+                            <span className="text-xs text-muted-foreground ml-1">
+                              ({item.installment_number}/{item.installment_total})
+                            </span>
                           )}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                    {/* Subcategoria dropdown - locked until tipo selected, shows only leaf nodes */}
-                    <TableCell>
-                      {!rowTipo ? (
-                        <span className="text-sm text-muted-foreground/30">Selecione o tipo...</span>
-                      ) : (
+                        </div>
+                      </TableCell>
+                      <TableCell className="font-medium text-sm">{formatCurrency(item.amount)}</TableCell>
+                      <TableCell>
+                        <span className={`text-sm ${isNearDue ? "text-amber-600 font-medium" : ""}`}>
+                          {format(dueDate, "dd/MM/yyyy")}
+                        </span>
+                      </TableCell>
+                      <TableCell>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
                             <button className="flex items-center gap-1 text-sm cursor-pointer hover:text-foreground transition-colors group w-full">
-                              <span className="truncate">{catFin?.nome || <span className="text-muted-foreground/50">Selecionar</span>}</span>
+                              <span className="truncate">{tipoFinLabel || <span className="text-muted-foreground/50">Selecionar</span>}</span>
                               <ChevronDown className="w-3 h-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
                             </button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="start" className="max-h-[260px] overflow-y-auto custom-scrollbar">
-                            {subcatOptions.map((c: any) => (
+                            {tiposFinanceiros.map((t) => (
                               <DropdownMenuItem
-                                key={c.id}
+                                key={t.value}
+                                title={t.tooltip}
                                 onClick={() => {
-                                  updateMutation.mutate({ id: item.id, data: { categoria_financeira_id: c.id } });
-                                  setInlineTipoMap(prev => { const n = { ...prev }; delete n[item.id]; return n; });
+                                  setInlineTipoMap(prev => ({ ...prev, [item.id]: t.value }));
+                                  if (catFin?.tipo !== t.value) {
+                                    updateMutation.mutate({ id: item.id, data: { categoria_financeira_id: null } });
+                                  }
                                 }}
                               >
-                                {c.nome}
+                                {t.label}
                               </DropdownMenuItem>
                             ))}
-                            {subcatOptions.length === 0 && (
-                              <DropdownMenuItem disabled className="text-muted-foreground text-xs">
-                                Nenhuma subcategoria cadastrada
+                            {rowTipo && (
+                              <DropdownMenuItem onClick={() => {
+                                setInlineTipoMap(prev => { const n = { ...prev }; delete n[item.id]; return n; });
+                                updateMutation.mutate({ id: item.id, data: { categoria_financeira_id: null } });
+                              }} className="text-muted-foreground">
+                                Limpar
                               </DropdownMenuItem>
                             )}
-                            {catFin && (
-                              <DropdownMenuItem onClick={() => updateMutation.mutate({ id: item.id, data: { categoria_financeira_id: null } })} className="text-muted-foreground">
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                      <TableCell>
+                        {!rowTipo ? (
+                          <span className="text-sm text-muted-foreground/30">Selecione o tipo...</span>
+                        ) : (
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <button className="flex items-center gap-1 text-sm cursor-pointer hover:text-foreground transition-colors group w-full">
+                                <span className="truncate">{catFin?.nome || <span className="text-muted-foreground/50">Selecionar</span>}</span>
+                                <ChevronDown className="w-3 h-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
+                              </button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="start" className="max-h-[260px] overflow-y-auto custom-scrollbar">
+                              {subcatOptions.map((c: any) => (
+                                <DropdownMenuItem
+                                  key={c.id}
+                                  onClick={() => {
+                                    updateMutation.mutate({ id: item.id, data: { categoria_financeira_id: c.id } });
+                                    setInlineTipoMap(prev => { const n = { ...prev }; delete n[item.id]; return n; });
+                                  }}
+                                >
+                                  {c.nome}
+                                </DropdownMenuItem>
+                              ))}
+                              {subcatOptions.length === 0 && (
+                                <DropdownMenuItem disabled className="text-muted-foreground text-xs">
+                                  Nenhuma subcategoria cadastrada
+                                </DropdownMenuItem>
+                              )}
+                              {catFin && (
+                                <DropdownMenuItem onClick={() => updateMutation.mutate({ id: item.id, data: { categoria_financeira_id: null } })} className="text-muted-foreground">
+                                  Limpar
+                                </DropdownMenuItem>
+                              )}
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem onClick={() => { setCfEditingId(null); setCfModalOpen(true); }} className="text-primary">
+                                <Plus className="w-3.5 h-3.5 mr-1.5" /> Nova subcategoria
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <button className="flex items-center gap-1 text-sm cursor-pointer hover:text-foreground transition-colors group w-full">
+                              <span className="truncate">{formaPgto?.nome || <span className="text-muted-foreground/50">Selecionar</span>}</span>
+                              <ChevronDown className="w-3 h-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
+                            </button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="start" className="max-h-[260px] overflow-y-auto custom-scrollbar">
+                            {paymentMethods.map((m: any) => (
+                              <DropdownMenuItem
+                                key={m.id}
+                                onClick={() => updateMutation.mutate({ id: item.id, data: { payment_method_id: m.id } })}
+                              >
+                                {m.nome}
+                              </DropdownMenuItem>
+                            ))}
+                            {formaPgto && (
+                              <DropdownMenuItem onClick={() => updateMutation.mutate({ id: item.id, data: { payment_method_id: null } })} className="text-muted-foreground">
                                 Limpar
                               </DropdownMenuItem>
                             )}
                             <DropdownMenuSeparator />
-                            <DropdownMenuItem onClick={() => { setCfEditingId(null); setCfModalOpen(true); }} className="text-primary">
-                              <Plus className="w-3.5 h-3.5 mr-1.5" /> Nova subcategoria
+                            <DropdownMenuItem onClick={() => { setFpEditingId(null); setFpModalOpen(true); }} className="text-primary">
+                              <Plus className="w-3.5 h-3.5 mr-1.5" /> Nova forma de pagamento
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
-                      )}
-                    </TableCell>
-                    {/* Forma Pagamento dropdown */}
-                    <TableCell>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <button className="flex items-center gap-1 text-sm cursor-pointer hover:text-foreground transition-colors group w-full">
-                            <span className="truncate">{formaPgto?.nome || <span className="text-muted-foreground/50">Selecionar</span>}</span>
-                            <ChevronDown className="w-3 h-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
-                          </button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="start" className="max-h-[260px] overflow-y-auto custom-scrollbar">
-                          {paymentMethods.map((m: any) => (
-                            <DropdownMenuItem
-                              key={m.id}
-                              onClick={() => updateMutation.mutate({ id: item.id, data: { payment_method_id: m.id } })}
-                            >
-                              {m.nome}
-                            </DropdownMenuItem>
-                          ))}
-                          {formaPgto && (
-                            <DropdownMenuItem onClick={() => updateMutation.mutate({ id: item.id, data: { payment_method_id: null } })} className="text-muted-foreground">
-                              Limpar
-                            </DropdownMenuItem>
-                          )}
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem onClick={() => { setFpEditingId(null); setFpModalOpen(true); }} className="text-primary">
-                            <Plus className="w-3.5 h-3.5 mr-1.5" /> Nova forma de pagamento
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                    {/* Conta Bancária dropdown */}
-                    <TableCell>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <button className="flex items-center gap-1 text-sm cursor-pointer hover:text-foreground transition-colors group w-full">
-                            <span className="truncate">{contaBanc?.nome || <span className="text-muted-foreground/50">Selecionar</span>}</span>
-                            <ChevronDown className="w-3 h-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
-                          </button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="start" className="max-h-[260px] overflow-y-auto custom-scrollbar">
-                          {bankAccounts.map((b: any) => (
-                            <DropdownMenuItem
-                              key={b.id}
-                              onClick={() => updateMutation.mutate({ id: item.id, data: { bank_account_id: b.id } })}
-                            >
-                              {b.nome}
-                            </DropdownMenuItem>
-                          ))}
-                          {contaBanc && (
-                            <DropdownMenuItem onClick={() => updateMutation.mutate({ id: item.id, data: { bank_account_id: null } })} className="text-muted-foreground">
-                              Limpar
-                            </DropdownMenuItem>
-                          )}
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem onClick={() => { setCbEditingId(null); setCbModalOpen(true); }} className="text-primary">
-                            <Plus className="w-3.5 h-3.5 mr-1.5" /> Nova conta bancária
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                    <TableCell>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <button className="cursor-pointer">
-                            {(() => {
-                              const cfg = statusConfig[item.status] || statusConfig.pending;
-                              const Icon = cfg.icon;
-                              return (
-                                <Badge variant="outline" className={`${cfg.color} gap-1 font-medium cursor-pointer hover:opacity-80 transition-opacity`}>
-                                  <Icon className="w-3 h-3" />
-                                  {cfg.label}
-                                  <ChevronDown className="w-3 h-3 ml-0.5 opacity-50" />
-                                </Badge>
-                              );
-                            })()}
-                          </button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="start">
-                          {Object.entries(statusConfig).filter(([key]) => key !== "cancelled").map(([key, cfg]) => {
-                            if (key === item.status) return null;
-                            return (
-                              <DropdownMenuItem key={key} onClick={() => handleChangeStatus(item.id, key)}>
-                                <cfg.icon className="w-4 h-4 mr-2" />
-                                {cfg.label}
+                      </TableCell>
+                      <TableCell>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <button className="flex items-center gap-1 text-sm cursor-pointer hover:text-foreground transition-colors group w-full">
+                              <span className="truncate">{contaBanc?.nome || <span className="text-muted-foreground/50">Selecionar</span>}</span>
+                              <ChevronDown className="w-3 h-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
+                            </button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="start" className="max-h-[260px] overflow-y-auto custom-scrollbar">
+                            {bankAccounts.map((b: any) => (
+                              <DropdownMenuItem
+                                key={b.id}
+                                onClick={() => updateMutation.mutate({ id: item.id, data: { bank_account_id: b.id } })}
+                              >
+                                {b.nome}
                               </DropdownMenuItem>
-                            );
-                          })}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="sm" className="rounded-lg">
-                            <MoreHorizontal className="w-4 h-4" />
+                            ))}
+                            {contaBanc && (
+                              <DropdownMenuItem onClick={() => updateMutation.mutate({ id: item.id, data: { bank_account_id: null } })} className="text-muted-foreground">
+                                Limpar
+                              </DropdownMenuItem>
+                            )}
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem onClick={() => { setCbEditingId(null); setCbModalOpen(true); }} className="text-primary">
+                              <Plus className="w-3.5 h-3.5 mr-1.5" /> Nova conta bancária
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                      <TableCell>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <button className="cursor-pointer">
+                              {(() => {
+                                const cfg = statusConfig[item.status] || statusConfig.pending;
+                                const Icon = cfg.icon;
+                                return (
+                                  <Badge variant="outline" className={`${cfg.color} gap-1 font-medium cursor-pointer hover:opacity-80 transition-opacity`}>
+                                    <Icon className="w-3 h-3" />
+                                    {cfg.label}
+                                    <ChevronDown className="w-3 h-3 ml-0.5 opacity-50" />
+                                  </Badge>
+                                );
+                              })()}
+                            </button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="start">
+                            {Object.entries(statusConfig).filter(([key]) => key !== "cancelled").map(([key, cfg]) => {
+                              if (key === item.status) return null;
+                              return (
+                                <DropdownMenuItem key={key} onClick={() => handleChangeStatus(item.id, key)}>
+                                  <cfg.icon className="w-4 h-4 mr-2" />
+                                  {cfg.label}
+                                </DropdownMenuItem>
+                              );
+                            })}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="sm" className="rounded-lg">
+                              <MoreHorizontal className="w-4 h-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            {item.status === "pending" && (
+                              <DropdownMenuItem onClick={() => openPaymentDialog(item.id)}>
+                                <Banknote className="w-4 h-4 mr-2" /> Registrar Pagamento
+                              </DropdownMenuItem>
+                            )}
+                            {(item.status === "pending" || item.status === "overdue") && (
+                              <DropdownMenuItem onClick={() => handleEdit(item)}>
+                                <Pencil className="w-4 h-4 mr-2" /> Editar
+                              </DropdownMenuItem>
+                            )}
+                            <DropdownMenuItem onClick={() => handleDuplicate(item)}>
+                              <Copy className="w-4 h-4 mr-2" /> Duplicar
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => setDeleteId(item.id)} className="text-destructive">
+                              <Trash2 className="w-4 h-4 mr-2" /> Excluir
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  );
+                };
+
+                const renderGroupParent = (groupId: string, parent: any, children: any[]) => {
+                  const totalAmount = children.reduce((s, c) => s + Number(c.amount || 0), 0);
+                  const paidCount = children.filter(c => c.status === "paid").length;
+                  const overdueCount = children.filter(c => c.status === "overdue").length;
+                  const pendingCount = children.filter(c => c.status === "pending").length;
+                  const earliest = children.reduce((min, c) => c.due_date < min ? c.due_date : min, children[0].due_date);
+                  const latest = children.reduce((max, c) => c.due_date > max ? c.due_date : max, children[0].due_date);
+                  const groupKind = parent.is_recurring ? "Recorrente" : "Parcelado/Sazonal";
+                  const isExpanded = expandedGroups.has(groupId);
+
+                  // Aggregated status badge: prioridade overdue > pending > paid
+                  const aggStatus = overdueCount > 0 ? "overdue" : pendingCount > 0 ? "pending" : "paid";
+                  const cfg = statusConfig[aggStatus] || statusConfig.pending;
+                  const StatusIcon = cfg.icon;
+
+                  return (
+                    <>
+                      <TableRow key={`grp-${groupId}`} className="bg-primary/[0.04] hover:bg-primary/[0.08] border-l-2 border-l-primary/40 cursor-pointer" onClick={() => toggleGroup(groupId)}>
+                        <TableCell>
+                          <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); toggleGroup(groupId); }}
+                            className="rounded p-0.5 hover:bg-muted/40"
+                            aria-label={isExpanded ? "Recolher" : "Expandir"}
+                          >
+                            <ChevronRight className={`w-4 h-4 transition-transform ${isExpanded ? "rotate-90" : ""}`} />
+                          </button>
+                        </TableCell>
+                        <TableCell className="font-medium truncate text-sm">{parent.supplier_name || "—"}</TableCell>
+                        <TableCell className="truncate">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-semibold">{parent.description.replace(/\s*\(\d+\/\d+\)\s*$/, "")}</span>
+                            <Badge variant="outline" className="text-[10px] uppercase font-semibold bg-primary/10 text-primary border-primary/20">
+                              <Layers className="w-3 h-3 mr-1" />
+                              {children.length}x
+                            </Badge>
+                            <span className="text-xs text-muted-foreground">{groupKind}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="font-semibold text-sm">{formatCurrency(totalAmount)}</TableCell>
+                        <TableCell>
+                          <span className="text-sm text-muted-foreground">
+                            {format(new Date(earliest), "dd/MM/yy")} → {format(new Date(latest), "dd/MM/yy")}
+                          </span>
+                        </TableCell>
+                        <TableCell colSpan={4}>
+                          <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                            {paidCount > 0 && <span><Check className="w-3 h-3 inline text-success" /> {paidCount} pagas</span>}
+                            {pendingCount > 0 && <span><Clock className="w-3 h-3 inline text-warning" /> {pendingCount} pendentes</span>}
+                            {overdueCount > 0 && <span><AlertTriangle className="w-3 h-3 inline text-destructive" /> {overdueCount} vencidas</span>}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className={`${cfg.color} gap-1 font-medium`}>
+                            <StatusIcon className="w-3 h-3" />
+                            {cfg.label}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="rounded-lg gap-1.5"
+                            onClick={(e) => { e.stopPropagation(); setSummaryGroupId(groupId); }}
+                          >
+                            <Eye className="w-4 h-4" />
+                            <span className="text-xs">Resumo</span>
                           </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          {item.status === "pending" && (
-                            <DropdownMenuItem onClick={() => openPaymentDialog(item.id)}>
-                              <Banknote className="w-4 h-4 mr-2" /> Registrar Pagamento
-                            </DropdownMenuItem>
-                          )}
-                          {(item.status === "pending" || item.status === "overdue") && (
-                            <DropdownMenuItem onClick={() => handleEdit(item)}>
-                              <Pencil className="w-4 h-4 mr-2" /> Editar
-                            </DropdownMenuItem>
-                          )}
-                          <DropdownMenuItem onClick={() => handleDuplicate(item)}>
-                            <Copy className="w-4 h-4 mr-2" /> Duplicar
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => setDeleteId(item.id)} className="text-destructive">
-                            <Trash2 className="w-4 h-4 mr-2" /> Excluir
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
+                        </TableCell>
+                      </TableRow>
+                      {isExpanded && children.map((c) => renderItemRow(c, { isChild: true }))}
+                    </>
+                  );
+                };
+
+                return groupedRows.map((row) => {
+                  if (row.type === "single") return renderItemRow(row.item);
+                  return renderGroupParent(row.groupId, row.parent, row.children);
+                });
+              })()}
             </TableBody>
           </Table>
         )}
