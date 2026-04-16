@@ -1,1 +1,7 @@
 project_id = "uadwnxqcpfcrpuyetpaw"
+
+[functions.pluggy-auto-sync]
+verify_jwt = false
+
+[functions.pluggy-webhook]
+verify_jwt = false
