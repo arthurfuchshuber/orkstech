@@ -46,6 +46,8 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
+type PaymentMode = "avista" | "parcelado" | "recorrente" | "sazonal";
+
 interface PayableForm {
   description: string;
   supplier_id: string;
@@ -59,9 +61,12 @@ interface PayableForm {
   cost_center_id: string;
   bank_account_id: string;
   payment_method_id: string;
+  payment_mode: PaymentMode;
   installments: number;
   is_recurring: boolean;
   recurrence_interval: string;
+  recurrence_count: number;
+  sazonal_dates: (Date | undefined)[];
   notes: string;
   pessoa_tipo: "pj" | "pf";
   attachment_url: string | null;
@@ -80,9 +85,12 @@ const initialForm: PayableForm = {
   cost_center_id: "",
   bank_account_id: "",
   payment_method_id: "",
+  payment_mode: "avista",
   installments: 1,
   is_recurring: false,
-  recurrence_interval: "",
+  recurrence_interval: "monthly",
+  recurrence_count: 12,
+  sazonal_dates: [undefined],
   notes: "",
   pessoa_tipo: "pj",
   attachment_url: null,
@@ -447,36 +455,81 @@ export default function ContasAPagar() {
       return;
     }
 
-    // Create with installments
+    // Create records based on payment_mode
     const totalAmount = form.amount / 100;
-    const installmentAmount = Math.round((totalAmount / form.installments) * 100) / 100;
     const records: AccountPayableInsert[] = [];
 
-    for (let i = 0; i < form.installments; i++) {
-      const dueDate = new Date(form.due_date!);
-      dueDate.setMonth(dueDate.getMonth() + i);
+    const baseRecord = (overrides: Partial<AccountPayableInsert>): AccountPayableInsert => ({
+      user_id: user!.id,
+      empresa_id: empresaId || undefined,
+      description: form.description,
+      supplier_id: form.supplier_id || null,
+      supplier_name: form.supplier_name || null,
+      document_number: form.document_number || null,
+      amount: totalAmount,
+      due_date: form.due_date!.toISOString().split("T")[0],
+      category_id: form.category_id || null,
+      categoria_financeira_id: form.categoria_financeira_id || null,
+      cost_center_id: form.cost_center_id || null,
+      bank_account_id: form.bank_account_id || null,
+      payment_method_id: form.payment_method_id || null,
+      installment_number: 1,
+      installment_total: 1,
+      is_recurring: false,
+      recurrence_interval: null,
+      notes: form.notes || null,
+      pessoa_tipo: form.pessoa_tipo,
+      attachment_url: form.attachment_url,
+      ...overrides,
+    });
 
-      records.push({
-        user_id: user!.id,
-        empresa_id: empresaId || undefined,
-        description: form.installments > 1 ? `${form.description} (${i + 1}/${form.installments})` : form.description,
-        supplier_id: form.supplier_id || null,
-        supplier_name: form.supplier_name || null,
-        document_number: form.document_number || null,
-        amount: i === form.installments - 1 ? totalAmount - installmentAmount * (form.installments - 1) : installmentAmount,
-        due_date: dueDate.toISOString().split("T")[0],
-        category_id: form.category_id || null,
-        categoria_financeira_id: form.categoria_financeira_id || null,
-        cost_center_id: form.cost_center_id || null,
-        bank_account_id: form.bank_account_id || null,
-        payment_method_id: form.payment_method_id || null,
-        installment_number: i + 1,
-        installment_total: form.installments,
-        is_recurring: form.is_recurring,
-        recurrence_interval: form.is_recurring && form.recurrence_interval ? form.recurrence_interval as any : null,
-        notes: form.notes || null,
-        pessoa_tipo: form.pessoa_tipo,
-        attachment_url: form.attachment_url,
+    if (form.payment_mode === "avista") {
+      records.push(baseRecord({}));
+    } else if (form.payment_mode === "parcelado") {
+      const n = Math.max(1, form.installments);
+      const installmentAmount = Math.round((totalAmount / n) * 100) / 100;
+      for (let i = 0; i < n; i++) {
+        const dueDate = new Date(form.due_date!);
+        dueDate.setMonth(dueDate.getMonth() + i);
+        records.push(baseRecord({
+          description: `${form.description} (${i + 1}/${n})`,
+          amount: i === n - 1 ? totalAmount - installmentAmount * (n - 1) : installmentAmount,
+          due_date: dueDate.toISOString().split("T")[0],
+          installment_number: i + 1,
+          installment_total: n,
+        }));
+      }
+    } else if (form.payment_mode === "recorrente") {
+      const n = Math.max(1, form.recurrence_count);
+      const interval = form.recurrence_interval || "monthly";
+      for (let i = 0; i < n; i++) {
+        const dueDate = new Date(form.due_date!);
+        if (interval === "weekly") dueDate.setDate(dueDate.getDate() + 7 * i);
+        else if (interval === "yearly") dueDate.setFullYear(dueDate.getFullYear() + i);
+        else dueDate.setMonth(dueDate.getMonth() + i);
+        records.push(baseRecord({
+          description: `${form.description} (${i + 1}/${n})`,
+          due_date: dueDate.toISOString().split("T")[0],
+          installment_number: i + 1,
+          installment_total: n,
+          is_recurring: true,
+          recurrence_interval: interval as any,
+        }));
+      }
+    } else if (form.payment_mode === "sazonal") {
+      const validDates = form.sazonal_dates.filter((d): d is Date => !!d);
+      if (validDates.length === 0) {
+        toast.error("Adicione ao menos uma data sazonal");
+        return;
+      }
+      const n = validDates.length;
+      validDates.forEach((d, i) => {
+        records.push(baseRecord({
+          description: n > 1 ? `${form.description} (${i + 1}/${n})` : form.description,
+          due_date: d.toISOString().split("T")[0],
+          installment_number: i + 1,
+          installment_total: n,
+        }));
       });
     }
 
@@ -499,9 +552,16 @@ export default function ContasAPagar() {
       cost_center_id: item.cost_center_id || "",
       bank_account_id: item.bank_account_id || "",
       payment_method_id: item.payment_method_id || "",
+      payment_mode: item.is_recurring
+        ? "recorrente"
+        : (item.installment_total || 1) > 1
+        ? "parcelado"
+        : "avista",
       installments: item.installment_total || 1,
       is_recurring: item.is_recurring,
-      recurrence_interval: item.recurrence_interval || "",
+      recurrence_interval: item.recurrence_interval || "monthly",
+      recurrence_count: 12,
+      sazonal_dates: [undefined],
       notes: item.notes || "",
       pessoa_tipo: item.pessoa_tipo || "pj",
       attachment_url: item.attachment_url || null,
@@ -617,9 +677,12 @@ export default function ContasAPagar() {
       cost_center_id: item.cost_center_id || "",
       bank_account_id: item.bank_account_id || "",
       payment_method_id: item.payment_method_id || "",
+      payment_mode: "avista",
       installments: 1,
-      is_recurring: item.is_recurring,
-      recurrence_interval: item.recurrence_interval || "",
+      is_recurring: false,
+      recurrence_interval: "monthly",
+      recurrence_count: 12,
+      sazonal_dates: [undefined],
       notes: item.notes || "",
       pessoa_tipo: item.pessoa_tipo || "pj",
       attachment_url: null,
@@ -1560,53 +1623,138 @@ export default function ContasAPagar() {
             addLabel="Nova forma de pagamento"
           />
 
-          {/* Parcelamento */}
+          {/* Modo de Pagamento */}
           {!editingId && (
             <>
               <div className="flex items-center gap-3 pt-1">
                 <div className="h-px flex-1 bg-border/30" />
-                <span className="text-[11px] uppercase tracking-widest text-muted-foreground/60 font-medium">Parcelamento</span>
+                <span className="text-[11px] uppercase tracking-widest text-muted-foreground/60 font-medium">Modo de Pagamento</span>
                 <div className="h-px flex-1 bg-border/30" />
               </div>
 
-              <div className="space-y-1.5">
-                <label className="text-sm font-medium text-foreground">Número de parcelas</label>
-                <Input
-                  type="number"
-                  min={1}
-                  max={120}
-                  value={form.installments}
-                  onChange={(e) => updateField("installments", parseInt(e.target.value) || 1)}
-                />
-                {form.installments > 1 && form.amount > 0 && (
-                  <p className="text-xs text-muted-foreground">
-                    {form.installments}x de {formatCurrency((form.amount / 100) / form.installments)}
-                  </p>
-                )}
-                {errors.installments && <p className="text-xs text-destructive">{errors.installments}</p>}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                {([
+                  { value: "avista", label: "À Vista" },
+                  { value: "parcelado", label: "Parcelamento" },
+                  { value: "recorrente", label: "Recorrente" },
+                  { value: "sazonal", label: "Sazonal" },
+                ] as { value: PaymentMode; label: string }[]).map((opt) => {
+                  const active = form.payment_mode === opt.value;
+                  return (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onClick={() => updateField("payment_mode", opt.value)}
+                      className={`h-10 rounded-lg border text-sm font-medium transition-all ${
+                        active
+                          ? "border-primary bg-primary/10 text-primary shadow-sm"
+                          : "border-input bg-background text-muted-foreground hover:border-muted-foreground/40 hover:text-foreground"
+                      }`}
+                    >
+                      {opt.label}
+                    </button>
+                  );
+                })}
               </div>
 
-              <label className="flex items-center gap-2.5 cursor-pointer py-1">
-                <input
-                  type="checkbox"
-                  checked={form.is_recurring}
-                  onChange={(e) => updateField("is_recurring", e.target.checked)}
-                  className="rounded border-input"
-                />
-                <span className="text-sm font-medium text-foreground">Conta recorrente</span>
-              </label>
-              {form.is_recurring && (
-                <ManagedSelectInput
-                  label="Intervalo de recorrência"
-                  value={form.recurrence_interval}
-                  onValueChange={(v) => updateField("recurrence_interval", v)}
-                  options={[
-                    { value: "weekly", label: "Semanal" },
-                    { value: "monthly", label: "Mensal" },
-                    { value: "yearly", label: "Anual" },
-                  ]}
-                  placeholder="Selecione..."
-                />
+              {form.payment_mode === "parcelado" && (
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium text-foreground">Número de parcelas</label>
+                  <Input
+                    type="number"
+                    min={1}
+                    max={120}
+                    value={form.installments}
+                    onChange={(e) => updateField("installments", parseInt(e.target.value) || 1)}
+                  />
+                  {form.installments > 1 && form.amount > 0 && (
+                    <p className="text-xs text-muted-foreground">
+                      {form.installments}x de {formatCurrency((form.amount / 100) / form.installments)} (mensal, a partir do vencimento)
+                    </p>
+                  )}
+                  {errors.installments && <p className="text-xs text-destructive">{errors.installments}</p>}
+                </div>
+              )}
+
+              {form.payment_mode === "recorrente" && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <ManagedSelectInput
+                    label="Intervalo"
+                    value={form.recurrence_interval}
+                    onValueChange={(v) => updateField("recurrence_interval", v)}
+                    options={[
+                      { value: "weekly", label: "Semanal" },
+                      { value: "monthly", label: "Mensal" },
+                      { value: "yearly", label: "Anual" },
+                    ]}
+                    placeholder="Selecione..."
+                  />
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium text-foreground">Quantidade de ocorrências</label>
+                    <Input
+                      type="number"
+                      min={1}
+                      max={120}
+                      value={form.recurrence_count}
+                      onChange={(e) => updateField("recurrence_count", parseInt(e.target.value) || 1)}
+                    />
+                    {form.amount > 0 && form.recurrence_count > 0 && (
+                      <p className="text-xs text-muted-foreground">
+                        {form.recurrence_count}x de {formatCurrency(form.amount / 100)}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {form.payment_mode === "sazonal" && (
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-foreground">Datas dos lançamentos</label>
+                  <p className="text-xs text-muted-foreground">
+                    Cada data gera um lançamento de {form.amount > 0 ? formatCurrency(form.amount / 100) : "R$ 0,00"}.
+                  </p>
+                  <div className="space-y-2">
+                    {form.sazonal_dates.map((d, idx) => (
+                      <div key={idx} className="flex items-center gap-2">
+                        <div className="flex-1">
+                          <DateInput
+                            label=""
+                            value={d}
+                            onValueChange={(date) => {
+                              const next = [...form.sazonal_dates];
+                              next[idx] = date;
+                              updateField("sazonal_dates", next);
+                            }}
+                            placeholder={`Data ${idx + 1}`}
+                          />
+                        </div>
+                        {form.sazonal_dates.length > 1 && (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => {
+                              const next = form.sazonal_dates.filter((_, i) => i !== idx);
+                              updateField("sazonal_dates", next);
+                            }}
+                            className="h-9 w-9 text-muted-foreground hover:text-destructive"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => updateField("sazonal_dates", [...form.sazonal_dates, undefined])}
+                    className="rounded-lg gap-2"
+                  >
+                    <Plus className="h-4 w-4" /> Adicionar data
+                  </Button>
+                </div>
               )}
             </>
           )}
