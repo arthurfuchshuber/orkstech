@@ -455,36 +455,81 @@ export default function ContasAPagar() {
       return;
     }
 
-    // Create with installments
+    // Create records based on payment_mode
     const totalAmount = form.amount / 100;
-    const installmentAmount = Math.round((totalAmount / form.installments) * 100) / 100;
     const records: AccountPayableInsert[] = [];
 
-    for (let i = 0; i < form.installments; i++) {
-      const dueDate = new Date(form.due_date!);
-      dueDate.setMonth(dueDate.getMonth() + i);
+    const baseRecord = (overrides: Partial<AccountPayableInsert>): AccountPayableInsert => ({
+      user_id: user!.id,
+      empresa_id: empresaId || undefined,
+      description: form.description,
+      supplier_id: form.supplier_id || null,
+      supplier_name: form.supplier_name || null,
+      document_number: form.document_number || null,
+      amount: totalAmount,
+      due_date: form.due_date!.toISOString().split("T")[0],
+      category_id: form.category_id || null,
+      categoria_financeira_id: form.categoria_financeira_id || null,
+      cost_center_id: form.cost_center_id || null,
+      bank_account_id: form.bank_account_id || null,
+      payment_method_id: form.payment_method_id || null,
+      installment_number: 1,
+      installment_total: 1,
+      is_recurring: false,
+      recurrence_interval: null,
+      notes: form.notes || null,
+      pessoa_tipo: form.pessoa_tipo,
+      attachment_url: form.attachment_url,
+      ...overrides,
+    });
 
-      records.push({
-        user_id: user!.id,
-        empresa_id: empresaId || undefined,
-        description: form.installments > 1 ? `${form.description} (${i + 1}/${form.installments})` : form.description,
-        supplier_id: form.supplier_id || null,
-        supplier_name: form.supplier_name || null,
-        document_number: form.document_number || null,
-        amount: i === form.installments - 1 ? totalAmount - installmentAmount * (form.installments - 1) : installmentAmount,
-        due_date: dueDate.toISOString().split("T")[0],
-        category_id: form.category_id || null,
-        categoria_financeira_id: form.categoria_financeira_id || null,
-        cost_center_id: form.cost_center_id || null,
-        bank_account_id: form.bank_account_id || null,
-        payment_method_id: form.payment_method_id || null,
-        installment_number: i + 1,
-        installment_total: form.installments,
-        is_recurring: form.is_recurring,
-        recurrence_interval: form.is_recurring && form.recurrence_interval ? form.recurrence_interval as any : null,
-        notes: form.notes || null,
-        pessoa_tipo: form.pessoa_tipo,
-        attachment_url: form.attachment_url,
+    if (form.payment_mode === "avista") {
+      records.push(baseRecord({}));
+    } else if (form.payment_mode === "parcelado") {
+      const n = Math.max(1, form.installments);
+      const installmentAmount = Math.round((totalAmount / n) * 100) / 100;
+      for (let i = 0; i < n; i++) {
+        const dueDate = new Date(form.due_date!);
+        dueDate.setMonth(dueDate.getMonth() + i);
+        records.push(baseRecord({
+          description: `${form.description} (${i + 1}/${n})`,
+          amount: i === n - 1 ? totalAmount - installmentAmount * (n - 1) : installmentAmount,
+          due_date: dueDate.toISOString().split("T")[0],
+          installment_number: i + 1,
+          installment_total: n,
+        }));
+      }
+    } else if (form.payment_mode === "recorrente") {
+      const n = Math.max(1, form.recurrence_count);
+      const interval = form.recurrence_interval || "monthly";
+      for (let i = 0; i < n; i++) {
+        const dueDate = new Date(form.due_date!);
+        if (interval === "weekly") dueDate.setDate(dueDate.getDate() + 7 * i);
+        else if (interval === "yearly") dueDate.setFullYear(dueDate.getFullYear() + i);
+        else dueDate.setMonth(dueDate.getMonth() + i);
+        records.push(baseRecord({
+          description: `${form.description} (${i + 1}/${n})`,
+          due_date: dueDate.toISOString().split("T")[0],
+          installment_number: i + 1,
+          installment_total: n,
+          is_recurring: true,
+          recurrence_interval: interval as any,
+        }));
+      }
+    } else if (form.payment_mode === "sazonal") {
+      const validDates = form.sazonal_dates.filter((d): d is Date => !!d);
+      if (validDates.length === 0) {
+        toast.error("Adicione ao menos uma data sazonal");
+        return;
+      }
+      const n = validDates.length;
+      validDates.forEach((d, i) => {
+        records.push(baseRecord({
+          description: n > 1 ? `${form.description} (${i + 1}/${n})` : form.description,
+          due_date: d.toISOString().split("T")[0],
+          installment_number: i + 1,
+          installment_total: n,
+        }));
       });
     }
 
