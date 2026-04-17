@@ -6,7 +6,7 @@ interface AuthContextType {
   user: User | null;
   session: Session | null;
   loading: boolean;
-  signUp: (email: string, password: string, name: string) => Promise<{ error: string | null }>;
+  signUp: (email: string, password: string, name: string) => Promise<{ error: string | null; needsEmailConfirmation?: boolean }>;
   signIn: (email: string, password: string) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<{ error: string | null }>;
@@ -36,18 +36,56 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => subscription.unsubscribe();
   }, []);
 
+  const getAuthErrorMessage = (payload: unknown) => {
+    if (payload && typeof payload === "object") {
+      const message = "msg" in payload ? payload.msg : "error" in payload ? payload.error : null;
+      return typeof message === "string" ? message : "Falha na autenticação";
+    }
+    return "Falha na autenticação";
+  };
+
   const signUp = async (email: string, password: string, name: string) => {
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: { data: { full_name: name } },
-    });
-    return { error: error?.message ?? null };
+    try {
+      const { data, error } = await supabase.functions.invoke("auth-proxy", {
+        body: { action: "signUp", email, password, name },
+      });
+
+      if (error) return { error: error.message ?? "Falha na autenticação" };
+      if (data?.error || data?.msg) return { error: getAuthErrorMessage(data) };
+
+      if (data?.access_token && data?.refresh_token) {
+        const { error: sessionError } = await supabase.auth.setSession({
+          access_token: data.access_token,
+          refresh_token: data.refresh_token,
+        });
+        return { error: sessionError?.message ?? null };
+      }
+
+      return { error: null, needsEmailConfirmation: true };
+    } catch (error) {
+      return { error: error instanceof Error ? error.message : "Falha na autenticação" };
+    }
   };
 
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    return { error: error?.message ?? null };
+    try {
+      const { data, error } = await supabase.functions.invoke("auth-proxy", {
+        body: { action: "signIn", email, password },
+      });
+
+      if (error) return { error: error.message ?? "Falha na autenticação" };
+      if (data?.error || data?.msg) return { error: getAuthErrorMessage(data) };
+      if (!data?.access_token || !data?.refresh_token) return { error: "Sessão não retornada pelo servidor" };
+
+      const { error: sessionError } = await supabase.auth.setSession({
+        access_token: data.access_token,
+        refresh_token: data.refresh_token,
+      });
+
+      return { error: sessionError?.message ?? null };
+    } catch (error) {
+      return { error: error instanceof Error ? error.message : "Falha na autenticação" };
+    }
   };
 
   const signOut = async () => {
