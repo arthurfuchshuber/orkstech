@@ -25,13 +25,13 @@ export default function Register() {
       return;
     }
     setLoading(true);
-    const { error, needsEmailConfirmation } = await signUp(email, password, name);
+    const { error } = await signUp(email, password, name);
     setLoading(false);
     if (error) {
       toast.error(error);
     } else {
-       toast.success(needsEmailConfirmation ? "Conta criada! Verifique seu email para continuar." : "Conta criada com sucesso!");
-       navigate(needsEmailConfirmation ? "/login" : "/app");
+      toast.success("Conta criada com sucesso!");
+      navigate("/app");
     }
   };
 

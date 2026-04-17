@@ -11,6 +11,3 @@ verify_jwt = false
 
 [functions.clicksign-webhook]
 verify_jwt = false
-
-[functions.auth-proxy]
-verify_jwt = false
