@@ -160,6 +160,9 @@ export default function ContasAReceber() {
   const [asaasBillingType, setAsaasBillingType] = useState<"BOLETO" | "CREDIT_CARD">("BOLETO");
   const [asaasPromptIds, setAsaasPromptIds] = useState<string[] | null>(null);
   const [asaasGenerating, setAsaasGenerating] = useState(false);
+  // Scope dialog for installment editing
+  const [scopeDialogItem, setScopeDialogItem] = useState<any | null>(null);
+  const [editScope, setEditScope] = useState<"single" | "group">("single");
 
   const { data: receivables = [], isLoading } = useQuery({
     queryKey: ["accounts-receivable", empresaId],
