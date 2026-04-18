@@ -171,7 +171,6 @@ export default function FinanceiroDashboard() {
   const totalBankBalance = bankAccounts.reduce((sum, a) => sum + a.balance, 0);
   const totalInvestments = bankAccounts.reduce((sum, a) => sum + getStoredBalance(a), 0);
   const totalCreditAvailable = creditCards.reduce((sum, a) => sum + (a.credit_available ?? 0), 0);
-  const totalCreditLimit = creditCards.reduce((sum, a) => sum + (a.credit_limit ?? 0), 0);
 
   const getConnectorName = (account: BankAccount) => {
     const conn = connections.find((c) => c.pluggy_item_id === account.pluggy_item_id);
@@ -206,20 +205,34 @@ export default function FinanceiroDashboard() {
     return owner ? `${connName} (${owner})` : connName;
   };
 
+  // Limite total: usa credit_limit; se nulo, deriva de balance(consumo) + credit_available
+  const getCreditLimit = (account: BankAccount) => {
+    if (account.credit_limit && account.credit_limit > 0) return account.credit_limit;
+    const used = Math.abs(account.balance ?? 0);
+    const avail = account.credit_available ?? 0;
+    if (used > 0 || avail > 0) return used + avail;
+    return 0;
+  };
+
+  // Fatura/consumo atual: prioriza dados oficiais, depois deriva do balance (consumo do cartão)
   const getCreditBillAmount = (account: BankAccount) => {
     const bill = account.bank_data?.openBillAmount;
     if (bill != null && bill > 0) return bill;
     const totalDebt = account.bank_data?.totalDebt;
     if (totalDebt != null && totalDebt > 0) return totalDebt;
     if (account.credit_bill_amount != null && account.credit_bill_amount > 0) return account.credit_bill_amount;
+    // Fallback: para cartão, balance representa o consumo atual (valor utilizado)
+    const used = Math.abs(account.balance ?? 0);
+    if (used > 0) return used;
     if (account.credit_limit && account.credit_available != null) {
-      const used = account.credit_limit - account.credit_available;
-      return used > 0 ? used : 0;
+      const diff = account.credit_limit - account.credit_available;
+      return diff > 0 ? diff : 0;
     }
     return 0;
   };
 
   const totalCreditBills = creditCards.reduce((sum, c) => sum + getCreditBillAmount(c), 0);
+  const totalCreditLimit = creditCards.reduce((sum, c) => sum + getCreditLimit(c), 0);
 
   // Helper: identifica transação de investimento (movimentação interna conta↔aplicação)
   const isInvestmentTx = (t: any) => {
@@ -268,8 +281,11 @@ export default function FinanceiroDashboard() {
     if (evolutionData.length < 2) return null;
     const first = evolutionData[0].saldo;
     const last = evolutionData[evolutionData.length - 1].saldo;
-    if (Math.abs(first) < 0.01) return null;
-    return ((last - first) / Math.abs(first)) * 100;
+    // Evita exibir % enganosa quando o saldo atual é zero/desprezível
+    // ou quando o saldo inicial é zero/negativo (base inválida para %)
+    if (Math.abs(last) < 1) return null;
+    if (first <= 0) return null;
+    return ((last - first) / first) * 100;
   }, [evolutionData]);
 
   const distributionData = useMemo(() => {
