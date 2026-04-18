@@ -279,7 +279,7 @@ export default function DREPage() {
                                 : isSummary && line.amount < 0 ? `(${fmt(Math.abs(line.amount))})` : fmt(Math.abs(line.amount))}
                             </TableCell>
                             <TableCell className="text-right text-xs py-1.5 text-muted-foreground">
-                              {line.isPercentual ? "—" : fmtPct(line.percentage)}
+                              {line.isPercentual ? "" : fmtPct(line.percentage)}
                             </TableCell>
                           </TableRow>
                         );
