@@ -620,19 +620,25 @@ export function ClienteVisaoGeralTab({ cliente, onEdit: _onEdit }: Props) {
       </Card>
 
       {/* Macro overview */}
-      {macroLines.length > 0 && (
+      {macroLinesClickable.length > 0 && (
         <Card className="p-5 border-border/50 shadow-sm">
           <div className="flex items-center gap-2 mb-3">
             <TrendingUp className="w-4 h-4 text-muted-foreground" />
             <p className="text-sm font-semibold text-foreground">Visão Macro do Cliente</p>
           </div>
           <ul className="space-y-2">
-            {macroLines.map((line, i) => {
+            {macroLinesClickable.map((line, i) => {
               const Icon = line.icon;
+              const Wrapper: any = line.onClick ? "button" : "div";
               return (
-                <li key={i} className="flex items-start gap-2.5 text-sm text-foreground/90">
-                  <Icon className={`w-3.5 h-3.5 mt-0.5 flex-shrink-0 ${line.tone}`} />
-                  <span>{line.text}</span>
+                <li key={i}>
+                  <Wrapper
+                    {...(line.onClick ? { onClick: line.onClick } : {})}
+                    className={`flex items-start gap-2.5 text-sm text-foreground/90 w-full text-left ${line.onClick ? "hover:bg-muted/40 -mx-2 px-2 py-1 rounded transition-colors cursor-pointer" : ""}`}
+                  >
+                    <Icon className={`w-3.5 h-3.5 mt-0.5 flex-shrink-0 ${line.tone}`} />
+                    <span className={line.onClick ? "hover:underline underline-offset-2" : ""}>{line.text}</span>
+                  </Wrapper>
                 </li>
               );
             })}
