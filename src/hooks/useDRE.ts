@@ -143,16 +143,19 @@ export function useDRE(filters: DREFilters) {
     },
   });
 
+  const empresaId = empresa?.id;
+
   const { data: transactions = [], isLoading: loadingTx } = useQuery({
-    queryKey: ["dre-transactions", targetUserId, startStr, endStr, filters.bankAccountId, filters.costCenterId],
+    queryKey: ["dre-transactions", targetUserId, empresaId, startStr, endStr, filters.bankAccountId, filters.costCenterId],
     enabled: !!user && !!targetUserId,
     queryFn: async () => {
       let q = supabase
         .from("cash_transactions")
         .select("*")
-        .eq("user_id", targetUserId!)
         .gte("transaction_date", startStr)
         .lte("transaction_date", endStr);
+      if (empresaId) q = q.eq("empresa_id", empresaId);
+      else q = q.eq("user_id", targetUserId!);
       if (filters.bankAccountId) q = q.eq("bank_account_id", filters.bankAccountId);
       const { data, error } = await q;
       if (error) throw error;
@@ -161,15 +164,16 @@ export function useDRE(filters: DREFilters) {
   });
 
   const { data: prevTransactions = [] } = useQuery({
-    queryKey: ["dre-prev-transactions", targetUserId, prevStartStr, prevEndStr, filters.bankAccountId, filters.costCenterId],
+    queryKey: ["dre-prev-transactions", targetUserId, empresaId, prevStartStr, prevEndStr, filters.bankAccountId, filters.costCenterId],
     enabled: !!user && !!targetUserId,
     queryFn: async () => {
       let q = supabase
         .from("cash_transactions")
         .select("*")
-        .eq("user_id", targetUserId!)
         .gte("transaction_date", prevStartStr)
         .lte("transaction_date", prevEndStr);
+      if (empresaId) q = q.eq("empresa_id", empresaId);
+      else q = q.eq("user_id", targetUserId!);
       if (filters.bankAccountId) q = q.eq("bank_account_id", filters.bankAccountId);
       const { data, error } = await q;
       if (error) throw error;
