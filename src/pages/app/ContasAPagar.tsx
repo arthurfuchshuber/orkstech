@@ -451,6 +451,7 @@ export default function ContasAPagar() {
     if (editingId) {
       updateMutation.mutate({
         id: editingId,
+        scope: editScope,
         data: {
           description: form.description,
           supplier_id: form.supplier_id || null,
