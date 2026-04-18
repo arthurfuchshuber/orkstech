@@ -7,7 +7,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const logStep = (step: string, details?: any) => {
+const log = (step: string, details?: any) => {
   const d = details ? ` - ${JSON.stringify(details)}` : "";
   console.log(`[CHECK-SUBSCRIPTION] ${step}${d}`);
 };
@@ -17,15 +17,13 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  const supabaseClient = createClient(
+  const supabaseAdmin = createClient(
     Deno.env.get("SUPABASE_URL") ?? "",
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
     { auth: { persistSession: false } }
   );
 
   try {
-    logStep("Function started");
-
     const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
     if (!stripeKey) throw new Error("STRIPE_SECRET_KEY is not set");
 
@@ -33,88 +31,164 @@ serve(async (req) => {
     if (!authHeader) throw new Error("No authorization header provided");
 
     const token = authHeader.replace("Bearer ", "");
-    const { data: userData, error: userError } = await supabaseClient.auth.getUser(token);
+    const { data: userData, error: userError } = await supabaseAdmin.auth.getUser(token);
     if (userError) throw new Error(`Authentication error: ${userError.message}`);
     const user = userData.user;
     if (!user?.email) throw new Error("User not authenticated or email not available");
-    logStep("User authenticated", { userId: user.id, email: user.email });
+    log("User authenticated", { userId: user.id });
 
+    // Force refresh: consulta direta ao Stripe e atualiza cache
+    const force = new URL(req.url).searchParams.get("force") === "true";
+
+    // 1) Tenta cache primeiro (rápido, sempre disponível)
+    const { data: cached } = await supabaseAdmin
+      .from("subscribers")
+      .select("*")
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    // Cache válido se foi sincronizado nos últimos 5 min E não é force
+    const cacheValid =
+      cached &&
+      !force &&
+      new Date(cached.last_synced_at).getTime() > Date.now() - 5 * 60 * 1000;
+
+    if (cacheValid) {
+      log("Returning cached data");
+      return new Response(
+        JSON.stringify({
+          subscribed: ["active", "trialing"].includes(cached.status ?? ""),
+          status: cached.status,
+          product_id: cached.product_id,
+          price_id: cached.price_id,
+          subscription_end: cached.current_period_end,
+          trial_end: cached.trial_end,
+          cancel_at_period_end: cached.cancel_at_period_end,
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
+      );
+    }
+
+    // 2) Sincroniza com Stripe
     const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
     const customers = await stripe.customers.list({ email: user.email, limit: 1 });
 
     if (customers.data.length === 0) {
-      logStep("No Stripe customer found");
-      return new Response(JSON.stringify({
-        subscribed: false,
-        status: null,
-        trial_end: null,
-      }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 200,
-      });
+      log("No Stripe customer");
+      await supabaseAdmin.from("subscribers").upsert(
+        {
+          user_id: user.id,
+          email: user.email,
+          status: null,
+          stripe_customer_id: null,
+          stripe_subscription_id: null,
+          product_id: null,
+          price_id: null,
+          current_period_end: null,
+          trial_end: null,
+          cancel_at_period_end: false,
+          last_synced_at: new Date().toISOString(),
+        },
+        { onConflict: "user_id" }
+      );
+      return new Response(
+        JSON.stringify({
+          subscribed: false,
+          status: null,
+          product_id: null,
+          price_id: null,
+          subscription_end: null,
+          trial_end: null,
+          cancel_at_period_end: false,
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
+      );
     }
 
     const customerId = customers.data[0].id;
-    logStep("Found customer", { customerId });
-
-    // Check active AND trialing subscriptions
     const subscriptions = await stripe.subscriptions.list({
       customer: customerId,
-      limit: 1,
+      status: "all",
+      limit: 5,
     });
 
-    // Find active or trialing sub
-    const activeSub = subscriptions.data.find(
-      (s) => s.status === "active" || s.status === "trialing"
-    );
+    // Prioriza ativa/trial; fallback para mais recente
+    const sub =
+      subscriptions.data.find((s) => ["active", "trialing"].includes(s.status)) ??
+      subscriptions.data.find((s) => ["past_due", "unpaid"].includes(s.status)) ??
+      subscriptions.data[0];
 
-    if (!activeSub) {
-      logStep("No active/trialing subscription");
-      return new Response(JSON.stringify({
-        subscribed: false,
-        status: null,
-        product_id: null,
-        price_id: null,
-        subscription_end: null,
-        trial_end: null,
-        cancel_at_period_end: false,
-      }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 200,
-      });
+    if (!sub) {
+      await supabaseAdmin.from("subscribers").upsert(
+        {
+          user_id: user.id,
+          email: user.email,
+          stripe_customer_id: customerId,
+          stripe_subscription_id: null,
+          status: null,
+          product_id: null,
+          price_id: null,
+          current_period_end: null,
+          trial_end: null,
+          cancel_at_period_end: false,
+          last_synced_at: new Date().toISOString(),
+        },
+        { onConflict: "user_id" }
+      );
+      return new Response(
+        JSON.stringify({
+          subscribed: false,
+          status: null,
+          product_id: null,
+          price_id: null,
+          subscription_end: null,
+          trial_end: null,
+          cancel_at_period_end: false,
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
+      );
     }
 
-    const subscriptionEnd = new Date(activeSub.current_period_end * 1000).toISOString();
-    const priceId = activeSub.items.data[0].price.id;
-    const productId = activeSub.items.data[0].price.product;
-    const trialEnd = activeSub.trial_end
-      ? new Date(activeSub.trial_end * 1000).toISOString()
-      : null;
+    const item = sub.items.data[0];
+    const productId =
+      typeof item.price.product === "string" ? item.price.product : item.price.product.id;
+    const subEnd = new Date(sub.current_period_end * 1000).toISOString();
+    const trialEnd = sub.trial_end ? new Date(sub.trial_end * 1000).toISOString() : null;
 
-    logStep("Subscription found", {
-      subscriptionId: activeSub.id,
-      status: activeSub.status,
-      productId,
-      priceId,
-      trialEnd,
-      cancelAtPeriodEnd: activeSub.cancel_at_period_end,
-    });
+    await supabaseAdmin.from("subscribers").upsert(
+      {
+        user_id: user.id,
+        email: user.email,
+        stripe_customer_id: customerId,
+        stripe_subscription_id: sub.id,
+        status: sub.status,
+        product_id: productId,
+        price_id: item.price.id,
+        current_period_end: subEnd,
+        trial_end: trialEnd,
+        cancel_at_period_end: sub.cancel_at_period_end,
+        last_synced_at: new Date().toISOString(),
+      },
+      { onConflict: "user_id" }
+    );
+
+    log("Synced from Stripe", { status: sub.status, subId: sub.id });
 
     return new Response(
       JSON.stringify({
-        subscribed: true,
-        status: activeSub.status, // "active" | "trialing"
+        subscribed: ["active", "trialing"].includes(sub.status),
+        status: sub.status,
         product_id: productId,
-        price_id: priceId,
-        subscription_end: subscriptionEnd,
+        price_id: item.price.id,
+        subscription_end: subEnd,
         trial_end: trialEnd,
-        cancel_at_period_end: activeSub.cancel_at_period_end,
+        cancel_at_period_end: sub.cancel_at_period_end,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
     );
   } catch (error) {
     const msg = error instanceof Error ? error.message : String(error);
-    logStep("ERROR", { message: msg });
+    log("ERROR", { message: msg });
     return new Response(JSON.stringify({ error: msg }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 500,

@@ -4,6 +4,7 @@ import { Outlet, useNavigate } from "react-router-dom";
 import { Search, User, LogOut } from "lucide-react";
 import { NotificationDropdown } from "@/components/NotificationDropdown";
 import { EmpresaCnpjGuard } from "@/components/EmpresaCnpjGuard";
+import { SubscriptionGuard } from "@/components/SubscriptionGuard";
 import { useAuth } from "@/hooks/useAuth";
 import { useBankNotifications } from "@/hooks/useBankNotifications";
 import { toast } from "sonner";
@@ -51,6 +52,7 @@ export default function AppLayout() {
           </main>
         </div>
         <EmpresaCnpjGuard>{null}</EmpresaCnpjGuard>
+        <SubscriptionGuard>{null}</SubscriptionGuard>
       </div>
     </SidebarProvider>
   );

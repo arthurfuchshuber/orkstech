@@ -45,9 +45,20 @@ export function getPlanByProductId(productId: string): PlanKey | null {
   return null;
 }
 
+export type SubscriptionStatus =
+  | "active"
+  | "trialing"
+  | "past_due"
+  | "canceled"
+  | "unpaid"
+  | "incomplete"
+  | "incomplete_expired"
+  | "paused"
+  | null;
+
 interface SubscriptionData {
   subscribed: boolean;
-  status: "active" | "trialing" | null;
+  status: SubscriptionStatus;
   product_id: string | null;
   price_id: string | null;
   subscription_end: string | null;
@@ -70,11 +81,28 @@ export function useSubscription() {
   });
 
   const currentPlan = data?.product_id ? getPlanByProductId(data.product_id) : null;
+  const status = data?.status ?? null;
+  const hasAccess = status === "active" || status === "trialing";
+
+  const blockReason: "no_subscription" | "past_due" | "canceled" | "trial_expired" | "incomplete" | null =
+    hasAccess
+      ? null
+      : status === "past_due" || status === "unpaid"
+      ? "past_due"
+      : status === "canceled"
+      ? "canceled"
+      : status === "incomplete" || status === "incomplete_expired"
+      ? "incomplete"
+      : !status
+      ? "no_subscription"
+      : "trial_expired";
 
   return {
     subscribed: data?.subscribed ?? false,
-    status: data?.status ?? null,
-    isTrialing: data?.status === "trialing",
+    status,
+    isTrialing: status === "trialing",
+    hasAccess,
+    blockReason,
     currentPlan,
     productId: data?.product_id ?? null,
     priceId: data?.price_id ?? null,
