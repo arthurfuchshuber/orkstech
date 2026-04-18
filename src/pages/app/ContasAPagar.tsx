@@ -2364,11 +2364,19 @@ export default function ContasAPagar() {
         open={quickListMode !== null}
         onOpenChange={(o) => { if (!o) setQuickListMode(null); }}
         mode="payable"
-        title={quickListMode === "overdue" ? "Contas Vencidas" : "Vencimento nos próximos 7 dias"}
-        description={quickListMode === "overdue"
-          ? "Edite valor, vencimento ou altere o status diretamente."
-          : "Acompanhe e ajuste contas que vencem em breve."}
-        items={quickListMode === "overdue" ? overdueItems : nearDueItems}
+        title={
+          quickListMode === "overdue" ? "Contas Vencidas"
+          : quickListMode === "nearDue" ? "A Vencer nos próximos 7 dias"
+          : quickListMode === "thisMonth" ? "A Vencer neste mês"
+          : "A Vencer no mês seguinte"
+        }
+        description="Edite valor, vencimento ou altere o status diretamente."
+        items={
+          quickListMode === "overdue" ? overdueItems
+          : quickListMode === "nearDue" ? nearDueItems
+          : quickListMode === "thisMonth" ? thisMonthItems
+          : nextMonthItems
+        }
       />
     </div>
   );
