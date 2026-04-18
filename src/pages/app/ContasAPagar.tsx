@@ -1007,7 +1007,7 @@ export default function ContasAPagar() {
             >
               <AlertTriangle className="w-4 h-4 text-red-600 shrink-0" />
               <span className="text-sm text-red-700 font-medium flex-1">
-                {overdueCount} conta(s) vencida(s) — clique para gerenciar
+                {overdueCount} conta(s) vencida(s)
               </span>
             </button>
           )}
@@ -1019,7 +1019,7 @@ export default function ContasAPagar() {
             >
               <Clock className="w-4 h-4 text-amber-600 shrink-0" />
               <span className="text-sm text-amber-700 font-medium flex-1">
-                {nearDue} conta(s) com vencimento nos próximos 7 dias — clique para gerenciar
+                {nearDue} conta(s) com vencimento nos próximos 7 dias
               </span>
             </button>
           )}
