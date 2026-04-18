@@ -406,19 +406,9 @@ export function ClienteVisaoGeralTab({ cliente, onEdit: _onEdit }: Props) {
     return out;
   }, [macro, interacoes]);
 
-  const getInsight = (item: any) => {
-    const desc = (item.descricao || "").toLowerCase();
-    if (desc.includes("insatisfa")) return "Cliente expressou insatisfação com o produto adquirido.";
-    if (desc.includes("contrato") || item.tipo === "Contrato") return "Novo contrato de parceria estabelecido.";
-    if (desc.includes("pagamento") || item.tipo === "Financeiro") return "Evento financeiro registrado no histórico.";
-    if (desc.includes("documento") || item.tipo === "Documento") return "Documento vinculado ao perfil do cliente.";
-    if (desc.includes("atualiza") || item.tipo === "Atualização") return "Dados cadastrais foram atualizados.";
-    return null;
-  };
-
   return (
     <div className="space-y-6">
-      {/* AI Summary - Customer Success */}
+      {/* AI Summary - Customer Success (strategic, non-redundant with macro card) */}
       <Card className="p-5 border-primary/20 bg-gradient-to-br from-primary/[0.04] to-primary/[0.01] shadow-sm">
         <div className="flex items-start gap-3">
           <div className="w-9 h-9 rounded-lg bg-primary/15 flex items-center justify-center flex-shrink-0">
@@ -429,14 +419,41 @@ export function ClienteVisaoGeralTab({ cliente, onEdit: _onEdit }: Props) {
               <p className="text-sm font-semibold text-primary">Resumo IA — Customer Success</p>
               <span className="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-primary/10 text-primary/70 font-medium">Live</span>
             </div>
-            <ul className="space-y-1.5">
-              {aiInsights.map((ins, i) => (
-                <li key={i} className="flex items-start gap-2 text-sm">
-                  <span className={`w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0 ${toneDot[ins.tone]}`} />
-                  <span className={toneStyles[ins.tone]}>{ins.text}</span>
-                </li>
-              ))}
-            </ul>
+
+            {aiLoading && (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                Analisando dados do cliente…
+              </div>
+            )}
+
+            {aiError && !aiLoading && (
+              <p className="text-sm text-muted-foreground">
+                Não foi possível gerar a análise estratégica neste momento. Tente novamente em instantes.
+              </p>
+            )}
+
+            {aiData && !aiLoading && (
+              <>
+                <ul className="space-y-1.5">
+                  {aiData.insights.map((ins, i) => (
+                    <li key={i} className="flex items-start gap-2 text-sm">
+                      <span className={`w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0 ${toneDot[ins.tone]}`} />
+                      <span className={toneStyles[ins.tone]}>{ins.text}</span>
+                    </li>
+                  ))}
+                </ul>
+                {aiData.recommendation && (
+                  <div className="mt-3 pt-3 border-t border-primary/10 flex items-start gap-2">
+                    <Sparkles className="w-3.5 h-3.5 text-primary mt-0.5 flex-shrink-0" />
+                    <p className="text-sm text-foreground/90">
+                      <span className="font-semibold text-primary">Recomendação: </span>
+                      {aiData.recommendation}
+                    </p>
+                  </div>
+                )}
+              </>
+            )}
           </div>
         </div>
       </Card>
