@@ -120,11 +120,12 @@ export default function FinanceiroDashboard() {
   });
 
   // ── Manual cash transactions for movement totals (per-account) ──
+  // Janela ampla (180 dias) para cobrir o gráfico de fluxo mensal (6 meses)
   const { data: manualTx = [] } = useQuery({
     queryKey: ["dashboard-manual-tx", targetUserId, empresaId],
     enabled: !!targetUserId,
     queryFn: async () => {
-      const fromDate = format(subDays(new Date(), 90), "yyyy-MM-dd");
+      const fromDate = format(startOfMonth(subMonths(new Date(), 5)), "yyyy-MM-dd");
       let q = supabase
         .from("cash_transactions")
         .select("id, amount, type, transaction_date, bank_account_id")
