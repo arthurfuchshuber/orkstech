@@ -312,6 +312,7 @@ export default function ExtratoBancario() {
     },
   });
 
+  const [syncing, setSyncing] = useState<string | null>(null);
 
   const handleSync = async (itemId: string) => {
     setSyncing(itemId);
