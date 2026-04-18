@@ -29,6 +29,7 @@ export function CaixaKpis({
     {
       icon: Landmark,
       label: "Saldo em Contas",
+      flag: "Contas Correntes",
       value: fmt(totalBalance),
       sub: balanceDeltaPct != null ? `${balanceDeltaPct >= 0 ? "+" : ""}${balanceDeltaPct.toFixed(1)}% vs mês anterior` : undefined,
       subColor: balanceDeltaPct == null ? undefined : balanceDeltaPct >= 0 ? "text-success" : "text-destructive",
@@ -38,6 +39,7 @@ export function CaixaKpis({
     {
       icon: PiggyBank,
       label: "Investimentos",
+      flag: "Aplicações",
       value: fmt(totalInvestments),
       sub: `Liquidez total: ${fmt(liquidez)}`,
       tone: "emerald" as const,
@@ -45,6 +47,7 @@ export function CaixaKpis({
     {
       icon: CreditCard,
       label: "Limite Disponível",
+      flag: "Cartões de Crédito",
       value: fmt(totalCreditAvailable),
       sub: totalCreditLimit > 0 ? `${utilizacao.toFixed(0)}% utilizado de ${fmt(totalCreditLimit)}` : "Nenhum cartão",
       tone: "blue" as const,
@@ -52,6 +55,7 @@ export function CaixaKpis({
     {
       icon: Receipt,
       label: "Faturas em Aberto",
+      flag: "Cartões de Crédito",
       value: fmt(totalCreditBills),
       sub: totalCreditBills > 0 ? "Próximas faturas a pagar" : "Sem faturas em aberto",
       tone: "amber" as const,
