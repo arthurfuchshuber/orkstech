@@ -29,6 +29,7 @@ export function CaixaKpis({
     {
       icon: Landmark,
       label: "Saldo em Contas",
+      flag: "Contas Correntes",
       value: fmt(totalBalance),
       sub: balanceDeltaPct != null ? `${balanceDeltaPct >= 0 ? "+" : ""}${balanceDeltaPct.toFixed(1)}% vs mês anterior` : undefined,
       subColor: balanceDeltaPct == null ? undefined : balanceDeltaPct >= 0 ? "text-success" : "text-destructive",
@@ -38,6 +39,7 @@ export function CaixaKpis({
     {
       icon: PiggyBank,
       label: "Investimentos",
+      flag: "Aplicações",
       value: fmt(totalInvestments),
       sub: `Liquidez total: ${fmt(liquidez)}`,
       tone: "emerald" as const,
@@ -45,6 +47,7 @@ export function CaixaKpis({
     {
       icon: CreditCard,
       label: "Limite Disponível",
+      flag: "Cartões de Crédito",
       value: fmt(totalCreditAvailable),
       sub: totalCreditLimit > 0 ? `${utilizacao.toFixed(0)}% utilizado de ${fmt(totalCreditLimit)}` : "Nenhum cartão",
       tone: "blue" as const,
@@ -52,6 +55,7 @@ export function CaixaKpis({
     {
       icon: Receipt,
       label: "Faturas em Aberto",
+      flag: "Cartões de Crédito",
       value: fmt(totalCreditBills),
       sub: totalCreditBills > 0 ? "Próximas faturas a pagar" : "Sem faturas em aberto",
       tone: "amber" as const,
@@ -76,11 +80,20 @@ export function CaixaKpis({
                 <div className={cn("w-9 h-9 rounded-lg flex items-center justify-center", toneStyles[c.tone])}>
                   <Icon className="w-4 h-4" />
                 </div>
-                {c.trend && (
-                  c.trend === "up"
-                    ? <TrendingUp className="w-3.5 h-3.5 text-success" />
-                    : <TrendingDown className="w-3.5 h-3.5 text-destructive" />
-                )}
+                <div className="flex items-center gap-1.5">
+                  {c.flag && (
+                    <span className={cn(
+                      "text-[9px] uppercase tracking-wider font-medium px-1.5 py-0.5 rounded border border-border/60 bg-muted/30 text-muted-foreground",
+                    )}>
+                      {c.flag}
+                    </span>
+                  )}
+                  {c.trend && (
+                    c.trend === "up"
+                      ? <TrendingUp className="w-3.5 h-3.5 text-success" />
+                      : <TrendingDown className="w-3.5 h-3.5 text-destructive" />
+                  )}
+                </div>
               </div>
               <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium">{c.label}</p>
               <p className="text-2xl font-bold text-foreground mt-1 tabular-nums">{c.value}</p>
