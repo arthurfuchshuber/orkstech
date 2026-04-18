@@ -268,12 +268,8 @@ export default function DREPage() {
         </TabsContent>
 
         <TabsContent value="personalizar" className="mt-4 space-y-4">
-          <div className="max-w-3xl">
-            <PlanoDeContasSection />
-          </div>
-          <div className="max-w-3xl">
-            <DRERegrasSection />
-          </div>
+          <PlanoDeContasSection />
+          <DRERegrasSection />
         </TabsContent>
       </Tabs>
 
