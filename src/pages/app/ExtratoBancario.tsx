@@ -811,9 +811,9 @@ export default function ExtratoBancario() {
           </div>
         ) : (
           <>
-            <div className="grid grid-cols-[minmax(0,1.6fr)_120px_220px_140px] gap-4 border-b border-border/50 bg-card px-4 py-3 text-sm text-muted-foreground">
-              <div>Descrição</div>
+            <div className="grid grid-cols-[120px_minmax(0,1.6fr)_220px_140px] gap-4 border-b border-border/50 bg-card px-4 py-3 text-sm text-muted-foreground">
               <div>Data</div>
+              <div>Descrição</div>
               <div>Subcategoria</div>
               <div className="text-right">Valor</div>
             </div>
@@ -832,14 +832,20 @@ export default function ExtratoBancario() {
                   .filter((c: any) => allowedTipos.includes(c.tipo))
                   .filter((c: any) => !categoriasFinanceiras.some((child: any) => child.categoria_pai_id === c.id));
 
+                const enhancedDesc = enhanceDescription(tx);
+
                 return (
                   <div
                     key={tx.id}
                     className={cn(
-                      "grid grid-cols-[minmax(0,1.6fr)_120px_220px_140px] items-center gap-4 px-4 py-3 transition-colors hover:bg-muted/30",
+                      "grid grid-cols-[120px_minmax(0,1.6fr)_220px_140px] items-center gap-4 px-4 py-3 transition-colors hover:bg-muted/30",
                       isInternal && "opacity-60"
                     )}
                   >
+                    <div className="text-sm text-muted-foreground">
+                      {formatDate(tx.date)}
+                    </div>
+
                     <div className="min-w-0 flex items-center gap-3">
                       <div
                         className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg ${
@@ -855,8 +861,8 @@ export default function ExtratoBancario() {
 
                       <div className="min-w-0">
                         <div className="flex items-center gap-2">
-                          <p className="truncate text-sm font-medium text-foreground">
-                            {tx.description || "Sem descrição"}
+                          <p className="truncate text-sm font-medium text-foreground" title={enhancedDesc}>
+                            {enhancedDesc}
                           </p>
                           {isInternal && (
                             <Badge variant="outline" className="gap-1 text-[10px] border-muted-foreground/30">
@@ -871,10 +877,6 @@ export default function ExtratoBancario() {
                           )}
                         </div>
                       </div>
-                    </div>
-
-                    <div className="text-sm text-muted-foreground">
-                      {formatDate(tx.date)}
                     </div>
 
                     <div className="min-w-0">
