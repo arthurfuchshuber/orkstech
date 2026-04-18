@@ -277,12 +277,68 @@ export default function ContasAReceber() {
     },
   });
 
+  const { data: asaasCred } = useQuery({
+    queryKey: ["asaas-cred-receber", empresaId],
+    queryFn: async () => {
+      if (!empresaId) return null;
+      const { data } = await supabase
+        .from("integracoes_credenciais")
+        .select("id, ativo")
+        .eq("empresa_id", empresaId)
+        .eq("provider", "asaas")
+        .eq("ativo", true)
+        .maybeSingle();
+      return data;
+    },
+    enabled: !!empresaId,
+  });
+  const asaasEnabled = !!asaasCred;
+
+  const triggerAsaasForRecords = async (recordIds: string[], billingType: "BOLETO" | "CREDIT_CARD") => {
+    if (recordIds.length === 0) return;
+    setAsaasGenerating(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("asaas-api", {
+        body: { action: "create_payments_bulk", receivable_ids: recordIds, billing_type: billingType, empresa_id: empresaId },
+      });
+      if (error || (data as any)?.error) throw new Error((data as any)?.error || error?.message);
+      const ok = (data as any)?.ok ?? 0;
+      const total = (data as any)?.total ?? recordIds.length;
+      const failed = (data as any)?.results?.filter((r: any) => !r.success) ?? [];
+      if (failed.length > 0) {
+        toast.warning(`${ok}/${total} cobranças geradas no Asaas. Erros: ${failed.map((f: any) => f.error).join("; ").slice(0, 200)}`);
+      } else {
+        toast.success(`${ok} cobrança(s) gerada(s) no Asaas`);
+      }
+      await refreshQueries(queryClient, [["accounts-receivable", empresaId]]);
+      // Open dialog for first one to show details
+      if (recordIds[0]) setAsaasReceivableId(recordIds[0]);
+    } catch (e) {
+      toast.error(`Falha ao gerar no Asaas: ${(e as Error).message}`);
+    } finally {
+      setAsaasGenerating(false);
+    }
+  };
+
   const createMutation = useMutation({
     mutationFn: createAccountReceivable,
-    onSuccess: async () => {
+    onSuccess: async (created) => {
       await refreshQueries(queryClient, [["accounts-receivable"], ["accounts-receivable-counts"]]);
       toast.success(editingId ? "Conta atualizada!" : "Conta(s) criada(s) com sucesso!");
+      const newIds = (created ?? []).map((r: any) => r.id).filter(Boolean);
+      const wasGenerating = generateAsaas;
+      const billingChosen = asaasBillingType;
       resetForm();
+      // Post-save Asaas flow
+      if (newIds.length > 0 && asaasEnabled) {
+        if (wasGenerating) {
+          // toggle was on → generate immediately
+          triggerAsaasForRecords(newIds, billingChosen);
+        } else {
+          // toggle was off → ask user
+          setAsaasPromptIds(newIds);
+        }
+      }
     },
     onError: () => toast.error("Erro ao salvar conta"),
   });
