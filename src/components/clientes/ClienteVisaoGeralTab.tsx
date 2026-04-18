@@ -432,16 +432,16 @@ export function ClienteVisaoGeralTab({ cliente, onEdit: _onEdit }: Props) {
 
   return (
     <div className="space-y-6">
-      {/* AI Summary - Customer Success (strategic, non-redundant with macro card) */}
-      <Card className="p-5 border-primary/20 bg-gradient-to-br from-primary/[0.04] to-primary/[0.01] shadow-sm">
+      {/* AI Summary (strategic, non-redundant with macro card) */}
+      <Card className="p-5 border-border/50 shadow-sm">
         <div className="flex items-start gap-3">
-          <div className="w-9 h-9 rounded-lg bg-primary/15 flex items-center justify-center flex-shrink-0">
-            <Sparkles className="w-4 h-4 text-primary" />
+          <div className="w-9 h-9 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
+            <Sparkles className="w-4 h-4 text-muted-foreground" />
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-2">
-              <p className="text-sm font-semibold text-primary">Resumo IA — Customer Success</p>
-              <span className="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-primary/10 text-primary/70 font-medium">Live</span>
+              <p className="text-sm font-semibold text-foreground">Resumo IA</p>
+              <span className="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-muted text-muted-foreground font-medium">Live</span>
             </div>
 
             {aiLoading && (
@@ -468,10 +468,10 @@ export function ClienteVisaoGeralTab({ cliente, onEdit: _onEdit }: Props) {
                   ))}
                 </ul>
                 {aiData.recommendation && (
-                  <div className="mt-3 pt-3 border-t border-primary/10 flex items-start gap-2">
-                    <Sparkles className="w-3.5 h-3.5 text-primary mt-0.5 flex-shrink-0" />
+                  <div className="mt-3 pt-3 border-t border-border/60 flex items-start gap-2">
+                    <Sparkles className="w-3.5 h-3.5 text-muted-foreground mt-0.5 flex-shrink-0" />
                     <p className="text-sm text-foreground/90">
-                      <span className="font-semibold text-primary">Recomendação: </span>
+                      <span className="font-semibold text-foreground">Recomendação: </span>
                       {aiData.recommendation}
                     </p>
                   </div>
