@@ -585,12 +585,24 @@ export function ClienteVisaoGeralTab({ cliente, onEdit: _onEdit }: Props) {
             {aiData && !aiLoading && (
               <>
                 <ul className="space-y-1.5">
-                  {aiData.insights.map((ins, i) => (
-                    <li key={i} className="flex items-start gap-2 text-sm">
-                      <span className={`w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0 ${toneDot[ins.tone]}`} />
-                      <span className={toneStyles[ins.tone]}>{ins.text}</span>
-                    </li>
-                  ))}
+                  {aiData.insights.map((ins, i) => {
+                    const onClick = resolveInsightClick(ins.text);
+                    return (
+                      <li key={i} className="flex items-start gap-2 text-sm">
+                        <span className={`w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0 ${toneDot[ins.tone]}`} />
+                        {onClick ? (
+                          <button
+                            onClick={onClick}
+                            className={`${toneStyles[ins.tone]} text-left hover:underline underline-offset-2 cursor-pointer`}
+                          >
+                            {ins.text}
+                          </button>
+                        ) : (
+                          <span className={toneStyles[ins.tone]}>{ins.text}</span>
+                        )}
+                      </li>
+                    );
+                  })}
                 </ul>
                 {aiData.recommendation && (
                   <div className="mt-3 pt-3 border-t border-border/60 flex items-start gap-2">
