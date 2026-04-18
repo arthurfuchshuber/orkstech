@@ -128,6 +128,21 @@ export function useDRE(filters: DREFilters) {
     },
   });
 
+  const { data: regrasVis = [] } = useQuery({
+    queryKey: ["dre-regras-vis", targetUserId],
+    enabled: !!user && !!targetUserId,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("dre_regras" as any)
+        .select("*")
+        .eq("user_id", targetUserId!)
+        .eq("ativo", true)
+        .eq("escopo", "visualizacao")
+        .order("ordem");
+      return (data ?? []) as any[];
+    },
+  });
+
   const { data: transactions = [], isLoading: loadingTx } = useQuery({
     queryKey: ["dre-transactions", targetUserId, startStr, endStr, filters.bankAccountId, filters.costCenterId],
     enabled: !!user && !!targetUserId,
