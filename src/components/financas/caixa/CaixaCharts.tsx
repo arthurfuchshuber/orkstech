@@ -39,7 +39,7 @@ export function CaixaCharts({ evolution, distribution, flow }: ChartsProps) {
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-medium flex items-center gap-2">
             <TrendingUp className="w-4 h-4 text-primary" />
-            Evolução do Saldo (90 dias)
+            Evolução do Patrimônio (90 dias)
           </CardTitle>
         </CardHeader>
         <CardContent className="pt-2">
