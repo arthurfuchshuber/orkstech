@@ -283,7 +283,35 @@ export default function ExtratoBancario() {
     enabled: !!user && !!targetUserId,
   });
 
-  const [syncing, setSyncing] = useState<string | null>(null);
+  // Categorias financeiras (hierárquicas) — só folhas (subcategorias) podem ser selecionadas
+  const { data: categoriasFinanceiras = [] } = useQuery({
+    queryKey: ["dre-categorias-financeiras", targetUserId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("categorias_financeiras")
+        .select("id, nome, tipo, categoria_pai_id, ordem, ativo")
+        .eq("user_id", targetUserId!)
+        .eq("ativo", true)
+        .order("ordem");
+      if (error) throw error;
+      return data ?? [];
+    },
+    enabled: !!user && !!targetUserId,
+  });
+
+  const updateCategoriaMutation = useMutation({
+    mutationFn: async ({ id, categoria_financeira_id }: { id: string; categoria_financeira_id: string | null }) => {
+      const { error } = await supabase
+        .from("pluggy_transactions" as any)
+        .update({ categoria_financeira_id })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["pluggy_transactions"] });
+    },
+  });
+
 
   const handleSync = async (itemId: string) => {
     setSyncing(itemId);
