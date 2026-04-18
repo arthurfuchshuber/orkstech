@@ -431,6 +431,130 @@ export function ClienteVisaoGeralTab({ cliente, onEdit: _onEdit }: Props) {
     return out;
   }, [macro, interacoes]);
 
+  // ---------- QuickList modal state & filter resolvers ----------
+  const [quickList, setQuickList] = useState<{
+    open: boolean;
+    mode: "receivable" | "payable";
+    title: string;
+    description?: string;
+    items: any[];
+  }>({ open: false, mode: "receivable", title: "", items: [] });
+
+  const today = useMemo(() => { const d = new Date(); d.setHours(0, 0, 0, 0); return d; }, []);
+  const in7 = useMemo(() => { const d = new Date(today); d.setDate(d.getDate() + 7); return d; }, [today]);
+
+  const filterRecords = (
+    kind: "receber" | "pagar",
+    bucket: "overdue" | "dueSoon" | "open" | "paid" | "all"
+  ) => {
+    const rows = kind === "receber" ? (finData?.receber || []) : (finData?.pagar || []);
+    return rows.filter((r: any) => {
+      if (bucket === "all") return true;
+      if (bucket === "paid") return r.status === "paid";
+      if (r.status === "paid" || r.status === "cancelled") return false;
+      const due = new Date(r.due_date + "T00:00:00");
+      if (bucket === "overdue") return due < today;
+      if (bucket === "dueSoon") return due >= today && due <= in7;
+      return true;
+    });
+  };
+
+  const openList = (
+    kind: "receber" | "pagar",
+    bucket: "overdue" | "dueSoon" | "open" | "paid" | "all",
+    title: string,
+    description?: string
+  ) => {
+    const items = filterRecords(kind, bucket);
+    if (items.length === 0) return;
+    setQuickList({
+      open: true,
+      mode: kind === "receber" ? "receivable" : "payable",
+      title,
+      description,
+      items,
+    });
+  };
+
+  // Build clickable macro lines with intent attached
+  const macroLinesClickable = useMemo(() => {
+    return macroLines.map((line) => {
+      const text = line.text.toLowerCase();
+      let onClick: (() => void) | null = null;
+      const isReceivable = text.includes("receber") || text.includes("recebimento");
+      const kind: "receber" | "pagar" = isReceivable ? "receber" : "pagar";
+      if (text.includes("venceu") || text.includes("venceram")) {
+        onClick = () => openList(kind, "overdue", isReceivable ? "Contas a Receber Vencidas" : "Contas a Pagar Vencidas");
+      } else if (text.includes("ainda há")) {
+        onClick = () => {
+          const items = filterRecords(kind, "open").filter((r: any) => {
+            const due = new Date(r.due_date + "T00:00:00");
+            return due >= today;
+          });
+          if (items.length === 0) return;
+          setQuickList({ open: true, mode: kind === "receber" ? "receivable" : "payable", title: isReceivable ? "Outras Contas a Receber" : "Outras Contas a Pagar", description: "Pendentes ainda dentro do prazo", items });
+        };
+      } else if (text.includes("confirmado") || text.includes("confirmados")) {
+        onClick = () => openList(kind, "paid", "Recebimentos Confirmados");
+      }
+      return { ...line, onClick };
+    });
+  }, [macroLines, finData, today]);
+
+  // Resolve a timeline interaction click → which list to open (or null)
+  const resolveTimelineEvent = (item: any): null | (() => void) => {
+    if (item.tipo !== "Financeiro") return null;
+    const desc = (item.descricao || "").toLowerCase();
+    const isReceivable = desc.includes("receber");
+    const kind: "receber" | "pagar" = isReceivable ? "receber" : "pagar";
+
+    if (desc.includes("criada") || desc.includes("criado") || desc.includes("lançamento") || desc.includes("lancamento")) {
+      const eventTime = new Date(item.created_at).getTime();
+      const rows = kind === "receber" ? (finData?.receber || []) : (finData?.pagar || []);
+      const items = rows.filter((r: any) => {
+        const created = new Date(r.created_at).getTime();
+        return Math.abs(created - eventTime) <= 90 * 1000;
+      });
+      if (items.length === 0) return null;
+      return () => setQuickList({
+        open: true,
+        mode: isReceivable ? "receivable" : "payable",
+        title: isReceivable ? "Contas a Receber Criadas" : "Contas a Pagar Criadas",
+        description: format(new Date(item.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR }),
+        items,
+      });
+    }
+    if (desc.includes("pago") || desc.includes("recebido")) {
+      return () => openList(kind, "paid", isReceivable ? "Recebimentos" : "Pagamentos Realizados");
+    }
+    if (desc.includes("vencid") || desc.includes("venceu") || desc.includes("atras")) {
+      return () => openList(kind, "overdue", isReceivable ? "Contas a Receber Vencidas" : "Contas a Pagar Vencidas");
+    }
+    return null;
+  };
+
+  // AI insight click resolver — best-effort by keyword
+  const resolveInsightClick = (text: string): null | (() => void) => {
+    const t = text.toLowerCase();
+    const isReceivable = t.includes("receber") || t.includes("recebimento") || t.includes("inadimpl");
+    const isPayable = t.includes("a pagar") || t.includes("despesa") || t.includes("fornecedor");
+    if (!isReceivable && !isPayable) return null;
+    const kind: "receber" | "pagar" = isReceivable ? "receber" : "pagar";
+    if (t.includes("vencid") || t.includes("atras") || t.includes("inadimpl") || t.includes("churn")) {
+      const items = filterRecords(kind, "overdue");
+      if (items.length === 0) return null;
+      return () => setQuickList({ open: true, mode: kind === "receber" ? "receivable" : "payable", title: kind === "receber" ? "Contas a Receber Vencidas" : "Contas a Pagar Vencidas", items });
+    }
+    if (t.includes("vencer") || t.includes("próxim") || t.includes("proxim")) {
+      const items = filterRecords(kind, "dueSoon");
+      if (items.length === 0) return null;
+      return () => setQuickList({ open: true, mode: kind === "receber" ? "receivable" : "payable", title: kind === "receber" ? "A Receber nos próximos 7 dias" : "A Pagar nos próximos 7 dias", items });
+    }
+    const items = filterRecords(kind, "open");
+    if (items.length === 0) return null;
+    return () => setQuickList({ open: true, mode: kind === "receber" ? "receivable" : "payable", title: kind === "receber" ? "Contas a Receber em Aberto" : "Contas a Pagar em Aberto", items });
+  };
+
   return (
     <div className="space-y-6">
       {/* AI Summary (strategic, non-redundant with macro card) */}
