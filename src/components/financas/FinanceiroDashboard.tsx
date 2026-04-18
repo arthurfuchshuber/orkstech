@@ -219,6 +219,79 @@ export default function FinanceiroDashboard() {
     return 0;
   };
 
+  const totalCreditBills = creditCards.reduce((sum, c) => sum + getCreditBillAmount(c), 0);
+
+  // ── Chart datasets ──
+  const evolutionData = useMemo(() => {
+    if (txHistory.length === 0) return [];
+    // Build daily aggregated net change, then build cumulative working backwards from today balance
+    const byDay = new Map<string, number>();
+    txHistory.forEach((t: any) => {
+      const day = t.date;
+      const signed = t.type === "CREDIT" ? Math.abs(Number(t.amount)) : -Math.abs(Number(t.amount));
+      byDay.set(day, (byDay.get(day) || 0) + signed);
+    });
+    // Generate last 90 days
+    const days: { date: string; saldo: number }[] = [];
+    const today = new Date();
+    let runningFromToday = totalBankBalance;
+    const dailyChanges: { dateKey: string; label: string; change: number }[] = [];
+    for (let i = 89; i >= 0; i--) {
+      const d = subDays(today, i);
+      const dateKey = format(d, "yyyy-MM-dd");
+      dailyChanges.push({ dateKey, label: format(d, "dd/MM"), change: byDay.get(dateKey) || 0 });
+    }
+    // Compute cumulative: today = totalBankBalance; previous days subtract the change of the next day
+    const balances: number[] = new Array(dailyChanges.length).fill(0);
+    balances[balances.length - 1] = runningFromToday;
+    for (let i = balances.length - 2; i >= 0; i--) {
+      balances[i] = balances[i + 1] - dailyChanges[i + 1].change;
+    }
+    for (let i = 0; i < dailyChanges.length; i++) {
+      days.push({ date: dailyChanges[i].label, saldo: Math.round(balances[i]) });
+    }
+    // Reduce to one point per ~3 days for cleaner visual
+    return days.filter((_, idx) => idx % 3 === 0 || idx === days.length - 1);
+  }, [txHistory, totalBankBalance]);
+
+  const balanceDeltaPct = useMemo(() => {
+    if (evolutionData.length < 2) return null;
+    const first = evolutionData[0].saldo;
+    const last = evolutionData[evolutionData.length - 1].saldo;
+    if (Math.abs(first) < 0.01) return null;
+    return ((last - first) / Math.abs(first)) * 100;
+  }, [evolutionData]);
+
+  const distributionData = useMemo(() => {
+    return bankAccounts
+      .map((a) => ({ name: getConnectorName(a), value: Math.max(0, a.balance + getStoredBalance(a)) }))
+      .filter((d) => d.value > 0);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bankAccounts, connections]);
+
+  const flowData = useMemo(() => {
+    if (txHistory.length === 0) return [];
+    const months = new Map<string, { entradas: number; saidas: number }>();
+    const today = new Date();
+    for (let i = 5; i >= 0; i--) {
+      const d = subMonths(today, i);
+      months.set(format(d, "yyyy-MM"), { entradas: 0, saidas: 0 });
+    }
+    txHistory.forEach((t: any) => {
+      const key = t.date.slice(0, 7);
+      if (!months.has(key)) return;
+      const v = Math.abs(Number(t.amount));
+      const m = months.get(key)!;
+      if (t.type === "CREDIT") m.entradas += v;
+      else m.saidas += v;
+    });
+    return Array.from(months.entries()).map(([key, v]) => ({
+      month: format(new Date(key + "-01T12:00:00"), "MMM/yy", { locale: ptBR }),
+      entradas: Math.round(v.entradas),
+      saidas: Math.round(v.saidas),
+    }));
+  }, [txHistory]);
+
   const pendentes = contasPagar?.filter((c) => c.status === "pending") ?? [];
   const vencidas = contasPagar?.filter((c) => c.status === "overdue") ?? [];
   const totalPendente = pendentes.reduce((s, c) => s + Number(c.amount), 0);
