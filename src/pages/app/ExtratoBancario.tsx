@@ -92,7 +92,75 @@ interface Transaction {
   reconciled: boolean;
   pluggy_account_id: string;
   categoria_financeira_id: string | null;
+  payment_data?: {
+    payer?: { name?: string | null; documentNumber?: { value?: string | null } | null } | null;
+    receiver?: { name?: string | null; documentNumber?: { value?: string | null } | null } | null;
+    paymentMethod?: string | null;
+  } | null;
 }
+
+/**
+ * Improves a Pluggy transaction description by:
+ *  - Removing redundant verbs ("Recebida"/"Enviada") from the type prefix.
+ *  - Normalizing the "|" separator with surrounding whitespace.
+ *  - Replacing generic counterparty names (banks themselves like "BANCO INTER SA")
+ *    with the actual payer/receiver name extracted from payment_data when available.
+ */
+const GENERIC_COUNTERPARTY_REGEX =
+  /^(banco\s|caixa\s|nubank\s|itau\s|itaú\s|bradesco\s|santander\s|inter\s|c6\s|sicoob\s|sicredi\s|bb\s|brasil\s)|s\.?a\.?$|sa$|ltda$/i;
+
+const isGenericCounterparty = (name: string) => {
+  const trimmed = name.trim();
+  if (!trimmed) return true;
+  // Names that are essentially the bank's own legal name (e.g., "BANCO INTER SA")
+  return /banco\s|^caixa$|s\.?a\.?$|^sa$/i.test(trimmed) && trimmed.split(/\s+/).length <= 5;
+};
+
+const toTitleCaseName = (str: string) =>
+  str
+    .toLowerCase()
+    .replace(/\b\w/g, (c) => c.toUpperCase())
+    .replace(/\bDe\b|\bDa\b|\bDo\b|\bDos\b|\bDas\b|\bE\b/g, (m) => m.toLowerCase());
+
+const enhanceDescription = (tx: Transaction): string => {
+  const raw = (tx.description || "").trim();
+  if (!raw) return "Sem descrição";
+
+  const isCredit = tx.type === "CREDIT" || tx.amount > 0;
+
+  // Split by "|" — Pluggy uses this as the separator between type and counterparty
+  const parts = raw.split("|").map((p) => p.trim());
+  let typeLabel = parts[0] || "";
+  let counterparty = parts.slice(1).join(" | ").trim();
+
+  // Strip "Recebida/Enviada" verbs
+  typeLabel = typeLabel
+    .replace(/\b(Recebida|Recebido|Enviada|Enviado)\b/gi, "")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+
+  // If counterparty looks generic (just a bank name), try to enrich from payment_data
+  const pd = tx.payment_data;
+  if (counterparty && isGenericCounterparty(counterparty) && pd) {
+    const realName = isCredit ? pd.payer?.name : pd.receiver?.name;
+    if (realName && !isGenericCounterparty(realName)) {
+      counterparty = toTitleCaseName(realName);
+    } else {
+      // Fall back to showing document number for traceability
+      const doc = isCredit
+        ? pd.payer?.documentNumber?.value
+        : pd.receiver?.documentNumber?.value;
+      if (doc) counterparty = `${counterparty} · ${doc}`;
+    }
+  } else if (counterparty) {
+    // Normalize casing for ALL CAPS names
+    if (counterparty === counterparty.toUpperCase()) {
+      counterparty = toTitleCaseName(counterparty);
+    }
+  }
+
+  return counterparty ? `${typeLabel} | ${counterparty}` : typeLabel || raw;
+};
 
 export default function ExtratoBancario() {
   const { user } = useAuth();
