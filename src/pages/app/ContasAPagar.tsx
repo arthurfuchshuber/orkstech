@@ -668,6 +668,25 @@ export default function ContasAPagar() {
     });
   };
 
+  const requestEditAccount = (item: any) => {
+    const isParcelado = (item.installment_total || 1) > 1 && !!item.grupo_id;
+    if (isParcelado) { setScopeDialogItem(item); return; }
+    setEditScope("single");
+    handleEdit(item);
+  };
+  const confirmScopeAndEdit = (scope: "single" | "group") => {
+    setEditScope(scope);
+    if (scopeDialogItem) {
+      const item = scopeDialogItem;
+      setScopeDialogItem(null);
+      handleEdit(item);
+    }
+  };
+  const handleEditEntityFromRow = (item: any) => {
+    if (item.cliente_id) { setCliEditingId(item.cliente_id); setCliModalOpen(true); }
+    else if (item.supplier_id) { setFornEditingId(item.supplier_id); setFornPrefill(null); setFornModalOpen(true); }
+  };
+
   const handleDuplicate = (item: any) => {
     setEditingId(null);
     const catFin2 = categoriasFinanceiras.find((c: any) => c.id === item.categoria_financeira_id);
@@ -1179,17 +1198,25 @@ export default function ContasAPagar() {
                         />
                       </TableCell>
                       <TableCell className="font-medium truncate text-sm">
-                        {opts.isChild ? <span className="text-muted-foreground/60 ml-6">↳</span> : (item.supplier_name || "—")}
+                        {opts.isChild ? (
+                          <span className="text-muted-foreground/60 ml-6">↳</span>
+                        ) : (item.cliente_id || item.supplier_id) ? (
+                          <button type="button" onClick={() => handleEditEntityFromRow(item)} className="text-left hover:text-primary hover:underline transition-colors truncate max-w-full" title="Editar cadastro">
+                            {item.supplier_name || "—"}
+                          </button>
+                        ) : (item.supplier_name || "—")}
                       </TableCell>
                       <TableCell className="truncate">
-                        <div className={opts.isChild ? "pl-4" : ""}>
-                          <span className="text-sm">{item.description}</span>
-                          {item.installment_total > 1 && (
-                            <span className="text-xs text-muted-foreground ml-1">
-                              ({item.installment_number}/{item.installment_total})
-                            </span>
-                          )}
-                        </div>
+                        <button type="button" onClick={() => requestEditAccount(item)} className="text-left w-full hover:text-primary transition-colors group/edit" title="Editar conta">
+                          <div className={opts.isChild ? "pl-4" : ""}>
+                            <span className="text-sm group-hover/edit:underline">{item.description}</span>
+                            {item.installment_total > 1 && (
+                              <span className="text-xs text-muted-foreground ml-1">
+                                ({item.installment_number}/{item.installment_total})
+                              </span>
+                            )}
+                          </div>
+                        </button>
                       </TableCell>
                       <TableCell className="font-medium text-sm">{formatCurrency(item.amount)}</TableCell>
                       <TableCell>
