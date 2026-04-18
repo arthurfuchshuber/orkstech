@@ -2242,6 +2242,87 @@ export type Database = {
           },
         ]
       }
+      stripe_webhooks_log: {
+        Row: {
+          created_at: string
+          error_message: string | null
+          event_type: string
+          id: string
+          payload: Json
+          processed: boolean
+          stripe_event_id: string
+        }
+        Insert: {
+          created_at?: string
+          error_message?: string | null
+          event_type: string
+          id?: string
+          payload?: Json
+          processed?: boolean
+          stripe_event_id: string
+        }
+        Update: {
+          created_at?: string
+          error_message?: string | null
+          event_type?: string
+          id?: string
+          payload?: Json
+          processed?: boolean
+          stripe_event_id?: string
+        }
+        Relationships: []
+      }
+      subscribers: {
+        Row: {
+          cancel_at_period_end: boolean
+          created_at: string
+          current_period_end: string | null
+          email: string
+          id: string
+          last_synced_at: string
+          price_id: string | null
+          product_id: string | null
+          status: string | null
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
+          trial_end: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          cancel_at_period_end?: boolean
+          created_at?: string
+          current_period_end?: string | null
+          email: string
+          id?: string
+          last_synced_at?: string
+          price_id?: string | null
+          product_id?: string | null
+          status?: string | null
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          trial_end?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          cancel_at_period_end?: boolean
+          created_at?: string
+          current_period_end?: string | null
+          email?: string
+          id?: string
+          last_synced_at?: string
+          price_id?: string | null
+          product_id?: string | null
+          status?: string | null
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          trial_end?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       tipos_forma_pagamento: {
         Row: {
           ativo: boolean
@@ -2303,6 +2384,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      has_active_subscription: { Args: { p_user_id: string }; Returns: boolean }
       is_super_admin: { Args: never; Returns: boolean }
       processar_automacoes: {
         Args: {
