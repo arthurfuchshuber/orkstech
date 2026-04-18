@@ -187,7 +187,8 @@ export default function FinanceiroDashboard() {
     queryKey: ["dashboard-tx-history", targetUserId, bankAccountIds.join(",")],
     enabled: !!targetUserId && bankAccountIds.length > 0,
     queryFn: async () => {
-      const fromDate = format(subDays(new Date(), 90), "yyyy-MM-dd");
+      // Janela ampla (6 meses) para cobrir o gráfico de fluxo mensal
+      const fromDate = format(startOfMonth(subMonths(new Date(), 5)), "yyyy-MM-dd");
       const all: any[] = [];
       const PAGE = 1000;
       let offset = 0;
