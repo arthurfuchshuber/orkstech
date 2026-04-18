@@ -124,7 +124,7 @@ export default function ContasAReceber() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [searchTerm, setSearchTerm] = useState("");
-  const [filterStatus, setFilterStatus] = useState<string>("all");
+  const [filterStatus, setFilterStatus] = useState<string>("open");
   const [showReceiptDialog, setShowReceiptDialog] = useState(false);
   const [receivingId, setReceivingId] = useState<string | null>(null);
   const [receiptBankAccount, setReceiptBankAccount] = useState("");
