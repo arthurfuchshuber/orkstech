@@ -638,6 +638,33 @@ export default function ContasAReceber() {
     setShowForm(true);
   };
 
+  // Decide whether to ask scope (parcelado) before opening edit
+  const requestEditAccount = (item: any) => {
+    const isParcelado = (item.installment_total || 1) > 1 && !!item.grupo_id;
+    if (isParcelado) {
+      setScopeDialogItem(item);
+      return;
+    }
+    setEditScope("single");
+    handleEdit(item);
+  };
+
+  const handleEditClienteFromRow = (clienteId: string) => {
+    if (!clienteId) return;
+    setCliEditingId(clienteId);
+    setCliPrefill(null);
+    setCliModalOpen(true);
+  };
+
+  const confirmScopeAndEdit = (scope: "single" | "group") => {
+    setEditScope(scope);
+    if (scopeDialogItem) {
+      const item = scopeDialogItem;
+      setScopeDialogItem(null);
+      handleEdit(item);
+    }
+  };
+
   const handleDuplicate = (item: any) => {
     setEditingId(null);
     const catFin = categoriasFinanceiras.find((c: any) => c.id === item.categoria_financeira_id);
