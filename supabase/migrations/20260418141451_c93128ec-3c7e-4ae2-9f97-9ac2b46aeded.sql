@@ -1,0 +1,1 @@
+UPDATE public.menus SET name='DRE & Analytics', updated_at=now() WHERE route='/app/financas/dre';
