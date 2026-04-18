@@ -19,6 +19,7 @@ import { TextareaInput } from "@/components/inputs/TextareaInput";
 import { DateInput } from "@/components/inputs/DateInput";
 import { validateClientForm, type ClientFormData, type FormErrors } from "@/lib/validators";
 import { refreshQueries } from "@/lib/query-refresh";
+import { logClienteEvent } from "@/lib/cliente-history";
 import { ClienteEditModal } from "@/components/clientes/ClienteEditModal";
 import { useAuth } from "@/hooks/useAuth";
 import { useEmpresa } from "@/hooks/useEmpresa";
@@ -141,8 +142,19 @@ export default function Clientes() {
       if (error) throw error;
       return result;
     },
-    onSuccess: async () => {
+    onSuccess: async (result) => {
       await refreshQueries(queryClient, [["clientes"]]);
+      if (user && result?.id) {
+        logClienteEvent({
+          clienteId: result.id,
+          userId: user.id,
+          empresaId: (result as any).empresa_id,
+          tipo: "Atualização",
+          titulo: "Cliente cadastrado",
+          descricao: "Registro inicial criado no sistema.",
+          usuarioNome: user.email || "Sistema",
+        });
+      }
       toast.success("Cliente cadastrado com sucesso!");
       setForm(initialForm);
       setErrors({});

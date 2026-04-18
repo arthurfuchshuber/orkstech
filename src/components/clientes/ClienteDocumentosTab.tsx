@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { refreshQueries } from "@/lib/query-refresh";
+import { logClienteEvent } from "@/lib/cliente-history";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -78,6 +79,14 @@ export function ClienteDocumentosTab({ clienteId }: Props) {
       if (dbError) throw dbError;
 
       await refreshQueries(queryClient, [["cliente-documentos", clienteId]]);
+      logClienteEvent({
+        clienteId,
+        userId: user.id,
+        tipo: isContract ? "Contrato" : "Documento",
+        titulo: isContract ? "Contrato enviado" : "Documento enviado",
+        descricao: file.name,
+        usuarioNome: user.email || "Sistema",
+      });
       toast.success(isContract ? "Contrato enviado" : "Documento enviado");
     } catch {
       toast.error("Erro ao enviar arquivo");
@@ -90,11 +99,23 @@ export function ClienteDocumentosTab({ clienteId }: Props) {
 
   const deleteMutation = useMutation({
     mutationFn: async (docId: string) => {
+      const target = docs.find((d) => d.id === docId);
       const { error } = await supabase.from("cliente_documentos").delete().eq("id", docId);
       if (error) throw error;
+      return target;
     },
-    onSuccess: async () => {
+    onSuccess: async (target) => {
       await refreshQueries(queryClient, [["cliente-documentos", clienteId]]);
+      if (user && target) {
+        logClienteEvent({
+          clienteId,
+          userId: user.id,
+          tipo: target.tipo === "contract" ? "Contrato" : "Documento",
+          titulo: target.tipo === "contract" ? "Contrato excluído" : "Documento excluído",
+          descricao: target.nome,
+          usuarioNome: user.email || "Sistema",
+        });
+      }
       toast.success("Arquivo excluído");
       setDeleteId(null);
     },
