@@ -889,10 +889,3 @@ export default function ExtratoBancario() {
     </div>
   );
 }
-            </div>
-          </>
-        )}
-      </Card>
-    </div>
-  );
-}
