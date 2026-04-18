@@ -1,7 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
-  Sparkles, Plus, Loader2, Trash2, Paperclip, Pencil
+  Sparkles, Plus, Loader2, Trash2, Paperclip, Pencil,
+  AlertTriangle, TrendingUp, TrendingDown, Calendar, CheckCircle2, FileText,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -254,10 +255,160 @@ export function ClienteVisaoGeralTab({ cliente, onEdit: _onEdit }: Props) {
     updateMutation.mutate({ id: editingId, tipo: editTipoId, descricao: fullDesc, newFiles });
   };
 
-  // Smart summary
-  const summaryText = interacoes.length === 0
-    ? "Nenhum dado suficiente ainda."
-    : `${interacoes.length} interações registradas. Última atividade ${formatDistanceToNow(new Date(interacoes[0].created_at), { locale: ptBR, addSuffix: true })}.`;
+  // ---------- Financial snapshot for AI summary & macro overview ----------
+  const { data: finData } = useQuery({
+    queryKey: ["cliente-fin-snapshot", cliente.id],
+    queryFn: async () => {
+      const [pagar, receber] = await Promise.all([
+        supabase.from("accounts_payable").select("amount,due_date,status,description,payment_date").eq("cliente_id", cliente.id),
+        supabase.from("accounts_receivable").select("amount,due_date,status,description,payment_date").eq("cliente_id", cliente.id),
+      ]);
+      return {
+        pagar: pagar.data || [],
+        receber: receber.data || [],
+      };
+    },
+  });
+
+  const macro = useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const in7 = new Date(today); in7.setDate(in7.getDate() + 7);
+
+    const buckets = (rows: any[]) => {
+      let overdueCount = 0, overdueAmount = 0;
+      let dueSoonCount = 0, dueSoonAmount = 0;
+      let openCount = 0, openAmount = 0;
+      let paidCount = 0, paidAmount = 0;
+      for (const r of rows) {
+        const amt = Number(r.amount || 0);
+        if (r.status === "paid") { paidCount++; paidAmount += amt; continue; }
+        if (r.status === "cancelled") continue;
+        const due = new Date(r.due_date + "T00:00:00");
+        if (due < today) { overdueCount++; overdueAmount += amt; }
+        else if (due <= in7) { dueSoonCount++; dueSoonAmount += amt; }
+        openCount++; openAmount += amt;
+      }
+      return { overdueCount, overdueAmount, dueSoonCount, dueSoonAmount, openCount, openAmount, paidCount, paidAmount };
+    };
+
+    return {
+      pagar: buckets(finData?.pagar || []),
+      receber: buckets(finData?.receber || []),
+    };
+  }, [finData]);
+
+  const fmt = (v: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
+
+  // ---------- Smart AI Summary (Customer Success style) ----------
+  const aiInsights = useMemo(() => {
+    const lines: { tone: "danger" | "warn" | "ok" | "info"; text: string }[] = [];
+
+    if (macro.receber.overdueCount > 0) {
+      lines.push({
+        tone: "danger",
+        text: `${macro.receber.overdueCount} ${macro.receber.overdueCount === 1 ? "cobrança vencida" : "cobranças vencidas"} (${fmt(macro.receber.overdueAmount)}) — risco de churn elevado.`,
+      });
+    }
+    if (macro.receber.dueSoonCount > 0) {
+      lines.push({
+        tone: "warn",
+        text: `${macro.receber.dueSoonCount} ${macro.receber.dueSoonCount === 1 ? "cobrança vence" : "cobranças vencem"} nos próximos 7 dias (${fmt(macro.receber.dueSoonAmount)}).`,
+      });
+    }
+    if (macro.receber.paidCount > 0 && macro.receber.overdueCount === 0) {
+      lines.push({
+        tone: "ok",
+        text: `Cliente em dia. ${fmt(macro.receber.paidAmount)} já recebidos em ${macro.receber.paidCount} ${macro.receber.paidCount === 1 ? "lançamento" : "lançamentos"}.`,
+      });
+    }
+    if (macro.pagar.overdueCount > 0) {
+      lines.push({
+        tone: "warn",
+        text: `${macro.pagar.overdueCount} ${macro.pagar.overdueCount === 1 ? "conta a pagar vencida" : "contas a pagar vencidas"} vinculadas (${fmt(macro.pagar.overdueAmount)}).`,
+      });
+    }
+    if (interacoes.length > 0) {
+      const last = new Date(interacoes[0].created_at);
+      const days = Math.floor((Date.now() - last.getTime()) / 86400000);
+      if (days > 30) {
+        lines.push({ tone: "warn", text: `Sem interação há ${days} dias — recomendar follow-up proativo.` });
+      } else if (days <= 7) {
+        lines.push({ tone: "info", text: `Engajamento recente: última interação há ${days === 0 ? "menos de 1 dia" : `${days} ${days === 1 ? "dia" : "dias"}`}.` });
+      }
+    } else {
+      lines.push({ tone: "info", text: "Nenhuma interação registrada — iniciar relacionamento e mapear necessidades." });
+    }
+    if (!cliente.ativo) {
+      lines.push({ tone: "danger", text: "Cliente marcado como inativo no cadastro." });
+    }
+    if (lines.length === 0) {
+      lines.push({ tone: "info", text: "Sem sinais críticos. Cliente saudável até o momento." });
+    }
+    return lines;
+  }, [macro, interacoes, cliente.ativo]);
+
+  const toneStyles: Record<string, string> = {
+    danger: "text-destructive",
+    warn: "text-amber-400",
+    ok: "text-emerald-400",
+    info: "text-muted-foreground",
+  };
+  const toneDot: Record<string, string> = {
+    danger: "bg-destructive",
+    warn: "bg-amber-400",
+    ok: "bg-emerald-400",
+    info: "bg-muted-foreground/50",
+  };
+
+  // ---------- Macro overview lines (above timeline) ----------
+  const macroLines = useMemo(() => {
+    const out: { icon: typeof AlertTriangle; tone: string; text: string }[] = [];
+
+    if (macro.receber.overdueCount > 0) {
+      const label = macro.receber.overdueCount === 1 ? "Conta a Receber venceu" : "Contas a Receber venceram";
+      out.push({
+        icon: AlertTriangle, tone: "text-destructive",
+        text: `${macro.receber.overdueCount} ${label} no valor de ${fmt(macro.receber.overdueAmount)}.`,
+      });
+    }
+    const recRemaining = macro.receber.openCount - macro.receber.overdueCount;
+    if (recRemaining > 0) {
+      const remAmount = macro.receber.openAmount - macro.receber.overdueAmount;
+      out.push({
+        icon: Calendar, tone: "text-muted-foreground",
+        text: `Ainda há ${recRemaining} ${recRemaining === 1 ? "outra conta a receber" : "outras contas a receber"} no valor de ${fmt(remAmount)}.`,
+      });
+    }
+    if (macro.receber.paidCount > 0) {
+      out.push({
+        icon: CheckCircle2, tone: "text-emerald-400",
+        text: `${macro.receber.paidCount} ${macro.receber.paidCount === 1 ? "recebimento confirmado" : "recebimentos confirmados"} totalizando ${fmt(macro.receber.paidAmount)}.`,
+      });
+    }
+    if (macro.pagar.overdueCount > 0) {
+      const label = macro.pagar.overdueCount === 1 ? "Conta a Pagar venceu" : "Contas a Pagar venceram";
+      out.push({
+        icon: AlertTriangle, tone: "text-amber-400",
+        text: `${macro.pagar.overdueCount} ${label} no valor de ${fmt(macro.pagar.overdueAmount)}.`,
+      });
+    }
+    const payRemaining = macro.pagar.openCount - macro.pagar.overdueCount;
+    if (payRemaining > 0) {
+      const remAmount = macro.pagar.openAmount - macro.pagar.overdueAmount;
+      out.push({
+        icon: TrendingDown, tone: "text-muted-foreground",
+        text: `Ainda há ${payRemaining} ${payRemaining === 1 ? "outra conta a pagar" : "outras contas a pagar"} no valor de ${fmt(remAmount)}.`,
+      });
+    }
+    if (interacoes.length > 0) {
+      out.push({
+        icon: FileText, tone: "text-muted-foreground",
+        text: `${interacoes.length} ${interacoes.length === 1 ? "interação registrada" : "interações registradas"} na linha do tempo.`,
+      });
+    }
+    return out;
+  }, [macro, interacoes]);
 
   const getInsight = (item: any) => {
     const desc = (item.descricao || "").toLowerCase();
@@ -271,16 +422,49 @@ export function ClienteVisaoGeralTab({ cliente, onEdit: _onEdit }: Props) {
 
   return (
     <div className="space-y-6">
-      {/* AI Summary */}
-      <Card className="p-5 border-primary/20 bg-primary/[0.03] shadow-sm">
-        <div className="flex items-center gap-2.5">
-          <Sparkles className="w-5 h-5 text-primary" />
-          <div>
-            <p className="text-sm font-semibold text-primary">Resumo IA</p>
-            <p className="text-sm text-muted-foreground mt-0.5">{summaryText}</p>
+      {/* AI Summary - Customer Success */}
+      <Card className="p-5 border-primary/20 bg-gradient-to-br from-primary/[0.04] to-primary/[0.01] shadow-sm">
+        <div className="flex items-start gap-3">
+          <div className="w-9 h-9 rounded-lg bg-primary/15 flex items-center justify-center flex-shrink-0">
+            <Sparkles className="w-4 h-4 text-primary" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 mb-2">
+              <p className="text-sm font-semibold text-primary">Resumo IA — Customer Success</p>
+              <span className="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-primary/10 text-primary/70 font-medium">Live</span>
+            </div>
+            <ul className="space-y-1.5">
+              {aiInsights.map((ins, i) => (
+                <li key={i} className="flex items-start gap-2 text-sm">
+                  <span className={`w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0 ${toneDot[ins.tone]}`} />
+                  <span className={toneStyles[ins.tone]}>{ins.text}</span>
+                </li>
+              ))}
+            </ul>
           </div>
         </div>
       </Card>
+
+      {/* Macro overview */}
+      {macroLines.length > 0 && (
+        <Card className="p-5 border-border/50 shadow-sm">
+          <div className="flex items-center gap-2 mb-3">
+            <TrendingUp className="w-4 h-4 text-muted-foreground" />
+            <p className="text-sm font-semibold text-foreground">Visão Macro do Cliente</p>
+          </div>
+          <ul className="space-y-2">
+            {macroLines.map((line, i) => {
+              const Icon = line.icon;
+              return (
+                <li key={i} className="flex items-start gap-2.5 text-sm text-foreground/90">
+                  <Icon className={`w-3.5 h-3.5 mt-0.5 flex-shrink-0 ${line.tone}`} />
+                  <span>{line.text}</span>
+                </li>
+              );
+            })}
+          </ul>
+        </Card>
+      )}
 
       {/* Timeline header */}
       <div className="flex items-center justify-between">
