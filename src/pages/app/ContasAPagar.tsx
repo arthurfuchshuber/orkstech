@@ -952,6 +952,28 @@ export default function ContasAPagar() {
       return due >= today && due <= limit;
     });
   }, [payables, today]);
+  const thisMonthItems = useMemo(() => {
+    const y = today.getFullYear(); const m = today.getMonth();
+    return payables.filter((p: any) => {
+      if (p.status !== "pending") return false;
+      const due = new Date(p.due_date + "T00:00:00");
+      return due >= today && due.getFullYear() === y && due.getMonth() === m;
+    });
+  }, [payables, today]);
+  const nextMonthItems = useMemo(() => {
+    const y = today.getFullYear(); const m = today.getMonth();
+    const ny = m === 11 ? y + 1 : y; const nm = (m + 1) % 12;
+    return payables.filter((p: any) => {
+      if (p.status !== "pending") return false;
+      const due = new Date(p.due_date + "T00:00:00");
+      return due.getFullYear() === ny && due.getMonth() === nm;
+    });
+  }, [payables, today]);
+  const sumAmount = (arr: any[]) => arr.reduce((s, i) => s + Number(i.amount || 0), 0);
+  const overdueAmount = sumAmount(overdueItems);
+  const nearDueAmount = sumAmount(nearDueItems);
+  const thisMonthAmount = sumAmount(thisMonthItems);
+  const nextMonthAmount = sumAmount(nextMonthItems);
   const nearDue = nearDueItems.length;
   const overdueCount = overdueItems.length;
 
