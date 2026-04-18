@@ -123,6 +123,30 @@ export function ClienteVisaoGeralTab({ cliente, onEdit: _onEdit }: Props) {
     },
   });
 
+  // Realtime: refresh timeline whenever any module writes to cliente_interacoes / cliente_documentos for this client
+  useEffect(() => {
+    const channel = supabase
+      .channel(`cliente-workspace-${cliente.id}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "cliente_interacoes", filter: `cliente_id=eq.${cliente.id}` },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ["cliente-interacoes", cliente.id] });
+          queryClient.invalidateQueries({ queryKey: ["cliente-fin-snapshot", cliente.id] });
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "cliente_documentos", filter: `cliente_id=eq.${cliente.id}` },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ["cliente-documentos", cliente.id] });
+          queryClient.invalidateQueries({ queryKey: ["cliente-interacao-docs", cliente.id] });
+        }
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [cliente.id, queryClient]);
+
   // Fetch docs linked to interações for display
   const interacaoIds = interacoes.map((i) => i.id);
   const { data: interacaoDocs = [] } = useQuery({
