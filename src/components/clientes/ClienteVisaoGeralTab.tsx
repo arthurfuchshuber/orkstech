@@ -885,6 +885,16 @@ export function ClienteVisaoGeralTab({ cliente, onEdit: _onEdit }: Props) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Quick list modal — opened from timeline / macro / AI insights */}
+      <QuickListModal
+        open={quickList.open}
+        onOpenChange={(open) => setQuickList((q) => ({ ...q, open }))}
+        mode={quickList.mode}
+        title={quickList.title}
+        description={quickList.description}
+        items={quickList.items}
+      />
     </div>
   );
 }
