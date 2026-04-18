@@ -934,13 +934,24 @@ export default function ContasAPagar() {
   }, [filtered]);
 
   // Near due warning (7 days)
-  const nearDue = useMemo(() => {
+  const today = useMemo(() => new Date(new Date().toDateString()), []);
+  const overdueItems = useMemo(() => {
+    return payables.filter((p: any) => {
+      if (p.status === "paid" || p.status === "cancelled") return false;
+      const due = new Date(p.due_date + "T00:00:00");
+      return due < today;
+    });
+  }, [payables, today]);
+  const nearDueItems = useMemo(() => {
+    const limit = addDays(today, 7);
     return payables.filter((p: any) => {
       if (p.status !== "pending") return false;
-      const due = new Date(p.due_date);
-      return isBefore(due, addDays(new Date(), 7)) && !isPast(due);
-    }).length;
-  }, [payables]);
+      const due = new Date(p.due_date + "T00:00:00");
+      return due >= today && due <= limit;
+    });
+  }, [payables, today]);
+  const nearDue = nearDueItems.length;
+  const overdueCount = overdueItems.length;
 
   const formatCurrency = (val: number) =>
     new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(val);
