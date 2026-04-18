@@ -957,7 +957,7 @@ export default function ContasAReceber() {
           amount={thisMonthAmount}
           count={thisMonthItems.length}
           icon={Calendar}
-          tone="blue"
+          tone="neutral"
           onClick={thisMonthItems.length > 0 ? () => setQuickListMode("thisMonth") : undefined}
           disabled={thisMonthItems.length === 0}
         />
