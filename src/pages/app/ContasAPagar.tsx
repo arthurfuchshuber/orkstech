@@ -1229,10 +1229,10 @@ export default function ContasAPagar() {
                     onCheckedChange={toggleSelectAll}
                   />
                 </TableHead>
+                <TableHead style={{ minWidth: 110 }}>Vencimento</TableHead>
                 <TableHead style={{ minWidth: 180 }}>Fornecedor</TableHead>
                 <TableHead style={{ minWidth: 220 }}>Descrição</TableHead>
                 <TableHead style={{ minWidth: 110 }}>Valor</TableHead>
-                <TableHead style={{ minWidth: 110 }}>Vencimento</TableHead>
                 <TableHead style={{ minWidth: 120 }}>Status</TableHead>
                 <TableHead style={{ minWidth: 180 }}>Tipo Financeiro</TableHead>
                 <TableHead style={{ minWidth: 200 }}>Subcategoria</TableHead>
@@ -1274,6 +1274,11 @@ export default function ContasAPagar() {
                           onCheckedChange={() => toggleSelectItem(item.id)}
                         />
                       </TableCell>
+                      <TableCell>
+                        <span className={`text-sm ${dueColor}`}>
+                          {format(dueDate, "dd/MM/yyyy")}
+                        </span>
+                      </TableCell>
                       <TableCell className="font-medium truncate text-sm">
                         {opts.isChild ? (
                           <span className="text-muted-foreground/60 ml-6">↳</span>
@@ -1296,11 +1301,6 @@ export default function ContasAPagar() {
                         </button>
                       </TableCell>
                       <TableCell className="font-medium text-sm">{formatCurrency(item.amount)}</TableCell>
-                      <TableCell>
-                        <span className={`text-sm ${dueColor}`}>
-                          {format(dueDate, "dd/MM/yyyy")}
-                        </span>
-                      </TableCell>
                       <TableCell>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
@@ -1523,6 +1523,11 @@ export default function ContasAPagar() {
                             <ChevronRight className={`w-4 h-4 transition-transform ${isExpanded ? "rotate-90" : ""}`} />
                           </button>
                         </TableCell>
+                        <TableCell>
+                          <span className="text-sm text-muted-foreground">
+                            {format(new Date(earliest), "dd/MM/yy")} → {format(new Date(latest), "dd/MM/yy")}
+                          </span>
+                        </TableCell>
                         <TableCell className="font-medium truncate text-sm">{parent.supplier_name || "—"}</TableCell>
                         <TableCell className="truncate">
                           <div className="flex items-center gap-2">
@@ -1536,9 +1541,10 @@ export default function ContasAPagar() {
                         </TableCell>
                         <TableCell className="font-semibold text-sm">{formatCurrency(totalAmount)}</TableCell>
                         <TableCell>
-                          <span className="text-sm text-muted-foreground">
-                            {format(new Date(earliest), "dd/MM/yy")} → {format(new Date(latest), "dd/MM/yy")}
-                          </span>
+                          <Badge variant="outline" className={`${cfg.color} gap-1 font-medium`}>
+                            <StatusIcon className="w-3 h-3" />
+                            {cfg.label}
+                          </Badge>
                         </TableCell>
                         <TableCell colSpan={4}>
                           <div className="flex items-center gap-3 text-xs text-muted-foreground">
@@ -1546,12 +1552,6 @@ export default function ContasAPagar() {
                             {pendingCount > 0 && <span><Clock className="w-3 h-3 inline text-warning" /> {pendingCount} pendentes</span>}
                             {overdueCount > 0 && <span><AlertTriangle className="w-3 h-3 inline text-destructive" /> {overdueCount} vencidas</span>}
                           </div>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="outline" className={`${cfg.color} gap-1 font-medium`}>
-                            <StatusIcon className="w-3 h-3" />
-                            {cfg.label}
-                          </Badge>
                         </TableCell>
                         <TableCell className="text-right">
                           <Button

@@ -92,7 +92,75 @@ interface Transaction {
   reconciled: boolean;
   pluggy_account_id: string;
   categoria_financeira_id: string | null;
+  payment_data?: {
+    payer?: { name?: string | null; documentNumber?: { value?: string | null } | null } | null;
+    receiver?: { name?: string | null; documentNumber?: { value?: string | null } | null } | null;
+    paymentMethod?: string | null;
+  } | null;
 }
+
+/**
+ * Improves a Pluggy transaction description by:
+ *  - Removing redundant verbs ("Recebida"/"Enviada") from the type prefix.
+ *  - Normalizing the "|" separator with surrounding whitespace.
+ *  - Replacing generic counterparty names (banks themselves like "BANCO INTER SA")
+ *    with the actual payer/receiver name extracted from payment_data when available.
+ */
+const GENERIC_COUNTERPARTY_REGEX =
+  /^(banco\s|caixa\s|nubank\s|itau\s|itaú\s|bradesco\s|santander\s|inter\s|c6\s|sicoob\s|sicredi\s|bb\s|brasil\s)|s\.?a\.?$|sa$|ltda$/i;
+
+const isGenericCounterparty = (name: string) => {
+  const trimmed = name.trim();
+  if (!trimmed) return true;
+  // Names that are essentially the bank's own legal name (e.g., "BANCO INTER SA")
+  return /banco\s|^caixa$|s\.?a\.?$|^sa$/i.test(trimmed) && trimmed.split(/\s+/).length <= 5;
+};
+
+const toTitleCaseName = (str: string) =>
+  str
+    .toLowerCase()
+    .replace(/\b\w/g, (c) => c.toUpperCase())
+    .replace(/\bDe\b|\bDa\b|\bDo\b|\bDos\b|\bDas\b|\bE\b/g, (m) => m.toLowerCase());
+
+const enhanceDescription = (tx: Transaction): string => {
+  const raw = (tx.description || "").trim();
+  if (!raw) return "Sem descrição";
+
+  const isCredit = tx.type === "CREDIT" || tx.amount > 0;
+
+  // Split by "|" — Pluggy uses this as the separator between type and counterparty
+  const parts = raw.split("|").map((p) => p.trim());
+  let typeLabel = parts[0] || "";
+  let counterparty = parts.slice(1).join(" | ").trim();
+
+  // Strip "Recebida/Enviada" verbs
+  typeLabel = typeLabel
+    .replace(/\b(Recebida|Recebido|Enviada|Enviado)\b/gi, "")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+
+  // If counterparty looks generic (just a bank name), try to enrich from payment_data
+  const pd = tx.payment_data;
+  if (counterparty && isGenericCounterparty(counterparty) && pd) {
+    const realName = isCredit ? pd.payer?.name : pd.receiver?.name;
+    if (realName && !isGenericCounterparty(realName)) {
+      counterparty = toTitleCaseName(realName);
+    } else {
+      // Fall back to showing document number for traceability
+      const doc = isCredit
+        ? pd.payer?.documentNumber?.value
+        : pd.receiver?.documentNumber?.value;
+      if (doc) counterparty = `${counterparty} · ${doc}`;
+    }
+  } else if (counterparty) {
+    // Normalize casing for ALL CAPS names
+    if (counterparty === counterparty.toUpperCase()) {
+      counterparty = toTitleCaseName(counterparty);
+    }
+  }
+
+  return counterparty ? `${typeLabel} | ${counterparty}` : typeLabel || raw;
+};
 
 export default function ExtratoBancario() {
   const { user } = useAuth();
@@ -265,7 +333,7 @@ export default function ExtratoBancario() {
     queryFn: async () => {
       let query = supabase
         .from("pluggy_transactions" as any)
-        .select("*")
+        .select("id, description, amount, date, type, category, reconciled, pluggy_account_id, categoria_financeira_id, payment_data")
         .eq("user_id", targetUserId!)
         .gte("date", dateFromStr)
         .lte("date", dateToStr)
@@ -743,9 +811,9 @@ export default function ExtratoBancario() {
           </div>
         ) : (
           <>
-            <div className="grid grid-cols-[minmax(0,1.6fr)_120px_220px_140px] gap-4 border-b border-border/50 bg-card px-4 py-3 text-sm text-muted-foreground">
-              <div>Descrição</div>
+            <div className="grid grid-cols-[120px_minmax(0,1.6fr)_220px_140px] gap-4 border-b border-border/50 bg-card px-4 py-3 text-sm text-muted-foreground">
               <div>Data</div>
+              <div>Descrição</div>
               <div>Subcategoria</div>
               <div className="text-right">Valor</div>
             </div>
@@ -764,14 +832,20 @@ export default function ExtratoBancario() {
                   .filter((c: any) => allowedTipos.includes(c.tipo))
                   .filter((c: any) => !categoriasFinanceiras.some((child: any) => child.categoria_pai_id === c.id));
 
+                const enhancedDesc = enhanceDescription(tx);
+
                 return (
                   <div
                     key={tx.id}
                     className={cn(
-                      "grid grid-cols-[minmax(0,1.6fr)_120px_220px_140px] items-center gap-4 px-4 py-3 transition-colors hover:bg-muted/30",
+                      "grid grid-cols-[120px_minmax(0,1.6fr)_220px_140px] items-center gap-4 px-4 py-3 transition-colors hover:bg-muted/30",
                       isInternal && "opacity-60"
                     )}
                   >
+                    <div className="text-sm text-muted-foreground">
+                      {formatDate(tx.date)}
+                    </div>
+
                     <div className="min-w-0 flex items-center gap-3">
                       <div
                         className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg ${
@@ -787,8 +861,8 @@ export default function ExtratoBancario() {
 
                       <div className="min-w-0">
                         <div className="flex items-center gap-2">
-                          <p className="truncate text-sm font-medium text-foreground">
-                            {tx.description || "Sem descrição"}
+                          <p className="truncate text-sm font-medium text-foreground" title={enhancedDesc}>
+                            {enhancedDesc}
                           </p>
                           {isInternal && (
                             <Badge variant="outline" className="gap-1 text-[10px] border-muted-foreground/30">
@@ -803,10 +877,6 @@ export default function ExtratoBancario() {
                           )}
                         </div>
                       </div>
-                    </div>
-
-                    <div className="text-sm text-muted-foreground">
-                      {formatDate(tx.date)}
                     </div>
 
                     <div className="min-w-0">
