@@ -232,8 +232,7 @@ export default function FinanceiroDashboard() {
   };
 
   const totalCreditBills = creditCards.reduce((sum, c) => sum + getCreditBillAmount(c), 0);
-  // Recalcula totalCreditLimit usando o helper (cobre casos onde credit_limit é null)
-  const totalCreditLimitDerived = creditCards.reduce((sum, c) => sum + getCreditLimit(c), 0);
+  const totalCreditLimit = creditCards.reduce((sum, c) => sum + getCreditLimit(c), 0);
 
   // Helper: identifica transação de investimento (movimentação interna conta↔aplicação)
   const isInvestmentTx = (t: any) => {
