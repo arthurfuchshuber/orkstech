@@ -46,10 +46,13 @@ export function EmpresaCnpjGuard({ children }: { children: ReactNode }) {
 
   // Run validation whenever active empresa changes
   useEffect(() => {
-    if (loading || !empresa?.cnpj || isSuperAdminMode) {
+    if (loading || !empresa?.cnpj) {
       setState({ status: "idle" });
       return;
     }
+
+    setNewCnpj(empresa.cnpj);
+
     const clean = empresa.cnpj.replace(/\D/g, "");
     try {
       if (sessionStorage.getItem(`${VALIDATION_CACHE_KEY}_${clean}`) === "1") {
@@ -57,9 +60,9 @@ export function EmpresaCnpjGuard({ children }: { children: ReactNode }) {
         return;
       }
     } catch {}
+
     void validateCnpj(empresa.cnpj);
-    setNewCnpj(empresa.cnpj);
-  }, [empresa?.id, empresa?.cnpj, loading, isSuperAdminMode, validateCnpj]);
+  }, [empresa?.id, empresa?.cnpj, loading, validateCnpj]);
 
   const handleSave = async () => {
     if (!empresa) return;
