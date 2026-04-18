@@ -1263,7 +1263,7 @@ export default function ContasAPagar() {
                       </TableCell>
                       <TableCell className="font-medium text-sm">{formatCurrency(item.amount)}</TableCell>
                       <TableCell>
-                        <span className={`text-sm ${isNearDue ? "text-amber-600 font-medium" : ""}`}>
+                        <span className={`text-sm ${dueColor}`}>
                           {format(dueDate, "dd/MM/yyyy")}
                         </span>
                       </TableCell>
