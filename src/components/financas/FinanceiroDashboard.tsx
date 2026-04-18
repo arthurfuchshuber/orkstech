@@ -171,7 +171,6 @@ export default function FinanceiroDashboard() {
   const totalBankBalance = bankAccounts.reduce((sum, a) => sum + a.balance, 0);
   const totalInvestments = bankAccounts.reduce((sum, a) => sum + getStoredBalance(a), 0);
   const totalCreditAvailable = creditCards.reduce((sum, a) => sum + (a.credit_available ?? 0), 0);
-  const totalCreditLimit = creditCards.reduce((sum, a) => sum + (a.credit_limit ?? 0), 0);
 
   const getConnectorName = (account: BankAccount) => {
     const conn = connections.find((c) => c.pluggy_item_id === account.pluggy_item_id);
