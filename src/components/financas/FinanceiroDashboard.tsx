@@ -363,99 +363,54 @@ export default function FinanceiroDashboard() {
       </TabsList>
 
       {/* ═══════════ ABA: Caixa da Empresa ═══════════ */}
-      <TabsContent value="caixa" className="space-y-6">
-        {/* KPIs */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <Card className="border-border/50">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center">
-                  <Landmark className="w-4 h-4 text-primary" />
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">Saldo em Contas</p>
-                  <p className="text-xl font-bold text-foreground">{fmt(totalBankBalance)}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+      <TabsContent value="caixa" className="space-y-5">
+        {/* KPIs aprimorados */}
+        <CaixaKpis
+          totalBalance={totalBankBalance}
+          totalInvestments={totalInvestments}
+          totalCreditAvailable={totalCreditAvailable}
+          totalCreditBills={totalCreditBills}
+          totalCreditLimit={totalCreditLimit}
+          balanceDeltaPct={balanceDeltaPct}
+        />
 
-          <Card className="border-border/50">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center">
-                  <CreditCard className="w-4 h-4 text-primary" />
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">Limite Disponível</p>
-                  <p className="text-xl font-bold text-foreground">{fmt(totalCreditAvailable)}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+        {/* Visualizações */}
+        <CaixaCharts
+          evolution={evolutionData}
+          distribution={distributionData}
+          flow={flowData}
+        />
 
-          <Card className="border-border/50">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-lg bg-success/10 flex items-center justify-center">
-                  <ArrowDownRight className="w-4 h-4 text-success" />
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">Cartões conectados</p>
-                  <p className="text-xl font-bold text-foreground">{creditCards.length}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="border-border/50">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center">
-                  <Wallet className="w-4 h-4 text-primary" />
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">Contas bancárias</p>
-                  <p className="text-xl font-bold text-foreground">{bankAccounts.length}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Contas Bancárias + Cartões */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* Contas Bancárias + Cartões + Investimentos */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          {/* Contas bancárias */}
           <Card className="border-border/50">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium flex items-center gap-2">
                 <Landmark className="w-4 h-4 text-primary" />
                 Contas Bancárias
+                <Badge variant="outline" className="ml-auto text-[10px] font-normal">{bankAccounts.length}</Badge>
               </CardTitle>
             </CardHeader>
             <CardContent>
               {bankAccounts.length === 0 ? (
-                <p className="text-xs text-muted-foreground py-4 text-center">
+                <p className="text-xs text-muted-foreground py-6 text-center">
                   {hasPluggyData ? "Nenhuma conta corrente encontrada" : "Nenhuma conexão bancária ativa"}
                 </p>
               ) : (
-                <div className="space-y-2">
+                <div className="space-y-1">
                   {bankAccounts.map((account) => (
                     <div key={account.id} className="flex items-center justify-between py-2 border-b border-border/30 last:border-0">
-                      <div className="flex items-center gap-2.5">
-                        <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
                           <Wallet className="w-3.5 h-3.5 text-primary" />
                         </div>
-                        <div>
-                          <p className="text-sm font-medium text-foreground">{getBankDisplayName(account)}</p>
-                          {getStoredBalance(account) > 0 && (
-                            <p className="text-[10px] text-muted-foreground flex items-center gap-1">
-                              <PiggyBank className="w-2.5 h-2.5" />
-                              Guardado: {fmt(getStoredBalance(account))}
-                            </p>
-                          )}
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium text-foreground truncate">{getBankDisplayName(account)}</p>
+                          <p className="text-[10px] text-muted-foreground capitalize">{account.type === "BANK" ? "Conta corrente" : account.type.toLowerCase()}</p>
                         </div>
                       </div>
-                      <span className="text-sm font-semibold text-foreground">{fmt(account.balance + getStoredBalance(account))}</span>
+                      <span className="text-sm font-semibold text-foreground tabular-nums">{fmt(account.balance)}</span>
                     </div>
                   ))}
                 </div>
@@ -463,40 +418,44 @@ export default function FinanceiroDashboard() {
             </CardContent>
           </Card>
 
+          {/* Cartões */}
           <Card className="border-border/50">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium flex items-center gap-2">
                 <CreditCard className="w-4 h-4 text-primary" />
                 Cartões de Crédito
+                <Badge variant="outline" className="ml-auto text-[10px] font-normal">{creditCards.length}</Badge>
               </CardTitle>
             </CardHeader>
             <CardContent>
               {creditCards.length === 0 ? (
-                <p className="text-xs text-muted-foreground py-4 text-center">
+                <p className="text-xs text-muted-foreground py-6 text-center">
                   Nenhum cartão de crédito conectado
                 </p>
               ) : (
-                <div className="space-y-2">
+                <div className="space-y-1">
                   {creditCards.map((card) => {
                     const billAmount = getCreditBillAmount(card);
+                    const limit = card.credit_limit ?? 0;
+                    const used = limit - (card.credit_available ?? 0);
+                    const usedPct = limit > 0 ? Math.min(100, Math.max(0, (used / limit) * 100)) : 0;
                     return (
-                      <div key={card.id} className="flex items-center justify-between py-2 border-b border-border/30 last:border-0">
-                        <div className="flex items-center gap-2.5">
-                          <div className="w-7 h-7 rounded-lg bg-accent/50 flex items-center justify-center">
-                            <CreditCard className="w-3.5 h-3.5 text-primary" />
+                      <div key={card.id} className="py-2 border-b border-border/30 last:border-0">
+                        <div className="flex items-center justify-between mb-1.5">
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <div className="w-7 h-7 rounded-lg bg-accent/50 flex items-center justify-center flex-shrink-0">
+                              <CreditCard className="w-3.5 h-3.5 text-primary" />
+                            </div>
+                            <p className="text-sm font-medium text-foreground truncate">{getCreditCardLabel(card)}</p>
                           </div>
-                          <div>
-                            <p className="text-sm font-medium text-foreground">{getCreditCardLabel(card)}</p>
-                            <p className="text-[10px] text-muted-foreground">
-                              Limite: {fmt(card.credit_limit ?? 0)} · Disponível: {fmt(card.credit_available ?? 0)}
-                            </p>
-                          </div>
+                          <span className="text-sm font-semibold text-foreground tabular-nums">{fmt(billAmount)}</span>
                         </div>
-                        <div className="text-right">
-                          <span className="text-sm font-semibold text-foreground">{fmt(billAmount)}</span>
-                          <p className="text-[10px] text-muted-foreground">
-                            {card.credit_bill_due_date ? `Venc. ${format(new Date(card.credit_bill_due_date + "T12:00:00"), "dd/MM")}` : "Fatura"}
-                          </p>
+                        <div className="h-1 bg-muted/40 rounded-full overflow-hidden ml-9">
+                          <div className="h-full bg-primary rounded-full transition-all" style={{ width: `${usedPct}%` }} />
+                        </div>
+                        <div className="flex justify-between mt-1 ml-9 text-[10px] text-muted-foreground">
+                          <span>Disp. {fmt(card.credit_available ?? 0)}</span>
+                          <span>{card.credit_bill_due_date ? `Venc. ${format(new Date(card.credit_bill_due_date + "T12:00:00"), "dd/MM")}` : "—"}</span>
                         </div>
                       </div>
                     );
@@ -505,8 +464,47 @@ export default function FinanceiroDashboard() {
               )}
             </CardContent>
           </Card>
+
+          {/* Investimentos */}
+          <Card className="border-border/50">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium flex items-center gap-2">
+                <PiggyBank className="w-4 h-4 text-emerald-400" />
+                Investimentos & Reservas
+                <Badge variant="outline" className="ml-auto text-[10px] font-normal">{fmt(totalInvestments)}</Badge>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {totalInvestments <= 0 ? (
+                <div className="py-6 text-center">
+                  <Sparkles className="w-6 h-6 text-muted-foreground/40 mx-auto mb-2" />
+                  <p className="text-xs text-muted-foreground">Nenhuma reserva ou investimento sincronizado</p>
+                </div>
+              ) : (
+                <div className="space-y-1">
+                  {bankAccounts
+                    .filter((a) => getStoredBalance(a) > 0)
+                    .map((account) => (
+                      <div key={account.id} className="flex items-center justify-between py-2 border-b border-border/30 last:border-0">
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <div className="w-7 h-7 rounded-lg bg-emerald-500/10 flex items-center justify-center flex-shrink-0">
+                            <PiggyBank className="w-3.5 h-3.5 text-emerald-400" />
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium text-foreground truncate">{getConnectorName(account)}</p>
+                            <p className="text-[10px] text-muted-foreground">Reserva automática</p>
+                          </div>
+                        </div>
+                        <span className="text-sm font-semibold text-emerald-400 tabular-nums">{fmt(getStoredBalance(account))}</span>
+                      </div>
+                    ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </div>
       </TabsContent>
+
 
       {/* ═══════════ ABA: Contas a Pagar ═══════════ */}
       <TabsContent value="contas-pagar" className="space-y-6">
