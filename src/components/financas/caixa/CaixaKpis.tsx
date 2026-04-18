@@ -80,11 +80,20 @@ export function CaixaKpis({
                 <div className={cn("w-9 h-9 rounded-lg flex items-center justify-center", toneStyles[c.tone])}>
                   <Icon className="w-4 h-4" />
                 </div>
-                {c.trend && (
-                  c.trend === "up"
-                    ? <TrendingUp className="w-3.5 h-3.5 text-success" />
-                    : <TrendingDown className="w-3.5 h-3.5 text-destructive" />
-                )}
+                <div className="flex items-center gap-1.5">
+                  {c.flag && (
+                    <span className={cn(
+                      "text-[9px] uppercase tracking-wider font-medium px-1.5 py-0.5 rounded border border-border/60 bg-muted/30 text-muted-foreground",
+                    )}>
+                      {c.flag}
+                    </span>
+                  )}
+                  {c.trend && (
+                    c.trend === "up"
+                      ? <TrendingUp className="w-3.5 h-3.5 text-success" />
+                      : <TrendingDown className="w-3.5 h-3.5 text-destructive" />
+                  )}
+                </div>
               </div>
               <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium">{c.label}</p>
               <p className="text-2xl font-bold text-foreground mt-1 tabular-nums">{c.value}</p>
