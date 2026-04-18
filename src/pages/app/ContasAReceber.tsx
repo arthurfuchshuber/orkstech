@@ -42,6 +42,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { format, isPast, addDays, isBefore } from "date-fns";
+import { QuickListModal } from "@/components/financas/QuickListModal";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -134,6 +135,7 @@ export default function ContasAReceber() {
   const [duplicateMatches, setDuplicateMatches] = useState<any[]>([]);
   const [dupDetailItem, setDupDetailItem] = useState<any | null>(null);
   const [inlineTipoMap, setInlineTipoMap] = useState<Record<string, string>>({});
+  const [quickListMode, setQuickListMode] = useState<"overdue" | "nearDue" | null>(null);
 
   const centrosCrud = useManagedSelect("centros_custo");
   const contasCrud = useManagedSelect("contas_bancarias");
@@ -841,13 +843,24 @@ export default function ContasAReceber() {
     return rows;
   }, [filtered]);
 
-  const nearDue = useMemo(() => {
+  const today = useMemo(() => new Date(new Date().toDateString()), []);
+  const overdueItems = useMemo(() => {
+    return receivables.filter((p: any) => {
+      if (p.status === "paid" || p.status === "cancelled") return false;
+      const due = new Date(p.due_date + "T00:00:00");
+      return due < today;
+    });
+  }, [receivables, today]);
+  const nearDueItems = useMemo(() => {
+    const limit = addDays(today, 7);
     return receivables.filter((p: any) => {
       if (p.status !== "pending") return false;
-      const due = new Date(p.due_date);
-      return isBefore(due, addDays(new Date(), 7)) && !isPast(due);
-    }).length;
-  }, [receivables]);
+      const due = new Date(p.due_date + "T00:00:00");
+      return due >= today && due <= limit;
+    });
+  }, [receivables, today]);
+  const nearDue = nearDueItems.length;
+  const overdueCount = overdueItems.length;
 
   const formatCurrency = (val: number) =>
     new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(val);
@@ -897,12 +910,32 @@ export default function ContasAReceber() {
         </Button>
       </div>
 
-      {nearDue > 0 && (
-        <div className="flex items-center gap-2 px-4 py-3 rounded-lg bg-amber-500/10 border border-amber-200">
-          <AlertTriangle className="w-4 h-4 text-amber-600" />
-          <span className="text-sm text-amber-700 font-medium">
-            {nearDue} conta(s) com vencimento nos próximos 7 dias
-          </span>
+      {(overdueCount > 0 || nearDue > 0) && (
+        <div className="grid gap-2 sm:grid-cols-2">
+          {overdueCount > 0 && (
+            <button
+              type="button"
+              onClick={() => setQuickListMode("overdue")}
+              className="flex items-center gap-2 px-4 py-3 rounded-lg bg-red-500/10 border border-red-200 hover:bg-red-500/15 transition-colors text-left"
+            >
+              <AlertTriangle className="w-4 h-4 text-red-600 shrink-0" />
+              <span className="text-sm text-red-700 font-medium flex-1">
+                {overdueCount} conta(s) vencida(s) — clique para gerenciar
+              </span>
+            </button>
+          )}
+          {nearDue > 0 && (
+            <button
+              type="button"
+              onClick={() => setQuickListMode("nearDue")}
+              className="flex items-center gap-2 px-4 py-3 rounded-lg bg-amber-500/10 border border-amber-200 hover:bg-amber-500/15 transition-colors text-left"
+            >
+              <Clock className="w-4 h-4 text-amber-600 shrink-0" />
+              <span className="text-sm text-amber-700 font-medium flex-1">
+                {nearDue} conta(s) com vencimento nos próximos 7 dias — clique para gerenciar
+              </span>
+            </button>
+          )}
         </div>
       )}
 
@@ -1058,7 +1091,17 @@ export default function ContasAReceber() {
               {(() => {
                 const renderItemRow = (item: any, opts: { isChild?: boolean } = {}) => {
                   const dueDate = new Date(item.due_date);
-                  const isNearDue = item.status === "pending" && isBefore(dueDate, addDays(new Date(), 7)) && !isPast(dueDate);
+                  const isOverdue = (item.status === "pending" || item.status === "overdue") && isPast(dueDate) && format(dueDate, "yyyy-MM-dd") !== format(new Date(), "yyyy-MM-dd");
+                  const isNearDue = item.status === "pending" && !isOverdue && isBefore(dueDate, addDays(new Date(), 7));
+                  const isPaid = item.status === "paid";
+                  const dueColor = isOverdue
+                    ? "text-red-600 font-medium"
+                    : isNearDue
+                      ? "text-amber-600 font-medium"
+                      : isPaid
+                        ? "text-emerald-600"
+                        : "";
+                  const rowBg = isOverdue ? "bg-red-500/5" : isNearDue ? "bg-amber-500/5" : "";
                   const catFin = categoriasFinanceiras.find((c: any) => c.id === item.categoria_financeira_id);
                   const rowTipo = inlineTipoMap[item.id] || catFin?.tipo || "";
                   const formaPgto = paymentMethods.find((m: any) => m.id === item.payment_method_id);
@@ -1070,7 +1113,7 @@ export default function ContasAReceber() {
                     : categoriasFinanceiras
                         .filter((c: any) => !allCategoriasFin.some((child: any) => child.categoria_pai_id === c.id));
                   return (
-                    <TableRow key={item.id} className={`${isNearDue ? "bg-amber-500/5" : ""} ${opts.isChild ? "bg-muted/20" : ""}`}>
+                    <TableRow key={item.id} className={`${rowBg} ${opts.isChild ? "bg-muted/20" : ""}`}>
                       <TableCell>
                         <Checkbox checked={selectedIds.has(item.id)} onCheckedChange={() => toggleSelectItem(item.id)} />
                       </TableCell>
@@ -1109,7 +1152,7 @@ export default function ContasAReceber() {
                       </TableCell>
                       <TableCell className="font-medium text-sm">{formatCurrency(item.amount)}</TableCell>
                       <TableCell>
-                        <span className={`text-sm ${isNearDue ? "text-amber-600 font-medium" : ""}`}>
+                        <span className={`text-sm ${dueColor}`}>
                           {format(dueDate, "dd/MM/yyyy")}
                         </span>
                       </TableCell>
@@ -2128,6 +2171,17 @@ export default function ContasAReceber() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <QuickListModal
+        open={quickListMode !== null}
+        onOpenChange={(o) => { if (!o) setQuickListMode(null); }}
+        mode="receivable"
+        title={quickListMode === "overdue" ? "Contas Vencidas" : "Vencimento nos próximos 7 dias"}
+        description={quickListMode === "overdue"
+          ? "Edite valor, vencimento ou altere o status diretamente."
+          : "Acompanhe e ajuste contas que vencem em breve."}
+        items={quickListMode === "overdue" ? overdueItems : nearDueItems}
+      />
     </div>
   );
 }
