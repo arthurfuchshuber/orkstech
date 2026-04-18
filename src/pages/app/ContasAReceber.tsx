@@ -6,7 +6,7 @@ import {
   FileText, Search, CreditCard,
   Building2, Target, Landmark, FolderTree, Copy, Pencil, Trash2,
   Banknote, ChevronDown, ChevronRight, MoreHorizontal, BarChart3, Layers, Eye,
-  Users, UserRound,
+  Users, UserRound, Zap,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -29,6 +29,7 @@ import { FornecedorModal, type FornecedorPrefill } from "@/components/modals/For
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -155,6 +156,10 @@ export default function ContasAReceber() {
   const [fornPrefill, setFornPrefill] = useState<FornecedorPrefill | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [asaasReceivableId, setAsaasReceivableId] = useState<string | null>(null);
+  const [generateAsaas, setGenerateAsaas] = useState(false);
+  const [asaasBillingType, setAsaasBillingType] = useState<"BOLETO" | "CREDIT_CARD">("BOLETO");
+  const [asaasPromptIds, setAsaasPromptIds] = useState<string[] | null>(null);
+  const [asaasGenerating, setAsaasGenerating] = useState(false);
 
   const { data: receivables = [], isLoading } = useQuery({
     queryKey: ["accounts-receivable", empresaId],
@@ -272,12 +277,68 @@ export default function ContasAReceber() {
     },
   });
 
+  const { data: asaasCred } = useQuery({
+    queryKey: ["asaas-cred-receber", empresaId],
+    queryFn: async () => {
+      if (!empresaId) return null;
+      const { data } = await supabase
+        .from("integracoes_credenciais")
+        .select("id, ativo")
+        .eq("empresa_id", empresaId)
+        .eq("provider", "asaas")
+        .eq("ativo", true)
+        .maybeSingle();
+      return data;
+    },
+    enabled: !!empresaId,
+  });
+  const asaasEnabled = !!asaasCred;
+
+  const triggerAsaasForRecords = async (recordIds: string[], billingType: "BOLETO" | "CREDIT_CARD") => {
+    if (recordIds.length === 0) return;
+    setAsaasGenerating(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("asaas-api", {
+        body: { action: "create_payments_bulk", receivable_ids: recordIds, billing_type: billingType, empresa_id: empresaId },
+      });
+      if (error || (data as any)?.error) throw new Error((data as any)?.error || error?.message);
+      const ok = (data as any)?.ok ?? 0;
+      const total = (data as any)?.total ?? recordIds.length;
+      const failed = (data as any)?.results?.filter((r: any) => !r.success) ?? [];
+      if (failed.length > 0) {
+        toast.warning(`${ok}/${total} cobranças geradas no Asaas. Erros: ${failed.map((f: any) => f.error).join("; ").slice(0, 200)}`);
+      } else {
+        toast.success(`${ok} cobrança(s) gerada(s) no Asaas`);
+      }
+      await refreshQueries(queryClient, [["accounts-receivable", empresaId]]);
+      // Open dialog for first one to show details
+      if (recordIds[0]) setAsaasReceivableId(recordIds[0]);
+    } catch (e) {
+      toast.error(`Falha ao gerar no Asaas: ${(e as Error).message}`);
+    } finally {
+      setAsaasGenerating(false);
+    }
+  };
+
   const createMutation = useMutation({
     mutationFn: createAccountReceivable,
-    onSuccess: async () => {
+    onSuccess: async (created) => {
       await refreshQueries(queryClient, [["accounts-receivable"], ["accounts-receivable-counts"]]);
       toast.success(editingId ? "Conta atualizada!" : "Conta(s) criada(s) com sucesso!");
+      const newIds = (created ?? []).map((r: any) => r.id).filter(Boolean);
+      const wasGenerating = generateAsaas;
+      const billingChosen = asaasBillingType;
       resetForm();
+      // Post-save Asaas flow
+      if (newIds.length > 0 && asaasEnabled) {
+        if (wasGenerating) {
+          // toggle was on → generate immediately
+          triggerAsaasForRecords(newIds, billingChosen);
+        } else {
+          // toggle was off → ask user
+          setAsaasPromptIds(newIds);
+        }
+      }
     },
     onError: () => toast.error("Erro ao salvar conta"),
   });
@@ -312,6 +373,8 @@ export default function ContasAReceber() {
     setEditingId(null);
     setForm(initialForm);
     setErrors({});
+    setGenerateAsaas(false);
+    setAsaasBillingType("BOLETO");
   };
 
   const updateField = <K extends keyof ReceivableForm>(key: K, value: ReceivableForm[K]) => {
@@ -1581,6 +1644,51 @@ export default function ContasAReceber() {
 
           <FileAttachment value={form.attachment_url} onValueChange={(url) => updateField("attachment_url", url)} folder="contas-receber" />
 
+          {/* Asaas Integration Block - only when integration is active */}
+          {asaasEnabled && !editingId && form.payer_kind === "cliente" && (
+            <div className="rounded-lg border border-primary/20 bg-primary/5 p-4 space-y-3">
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex items-start gap-3">
+                  <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                    <Zap className="w-4.5 h-4.5 text-primary" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-foreground">Gerar cobrança no Asaas</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      O cliente será criado/atualizado automaticamente e a cobrança enviada.
+                    </p>
+                  </div>
+                </div>
+                <Switch checked={generateAsaas} onCheckedChange={setGenerateAsaas} />
+              </div>
+              {generateAsaas && (
+                <div className="pt-1">
+                  <p className="text-[11px] uppercase tracking-wider text-muted-foreground/70 font-medium mb-2">Forma de cobrança</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    {[
+                      { v: "BOLETO" as const, l: "Boleto + PIX" },
+                      { v: "CREDIT_CARD" as const, l: "Cartão de Crédito" },
+                    ].map((opt) => (
+                      <button
+                        key={opt.v}
+                        type="button"
+                        onClick={() => setAsaasBillingType(opt.v)}
+                        className={`px-3 py-2 rounded-md text-sm font-medium border transition-colors ${
+                          asaasBillingType === opt.v
+                            ? "bg-primary text-primary-foreground border-primary"
+                            : "bg-background border-input hover:bg-accent text-foreground"
+                        }`}
+                      >
+                        {opt.l}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+
           <div className="flex justify-end gap-3 pt-3 border-t border-border/20">
             <Button variant="outline" onClick={resetForm} className="rounded-lg">Cancelar</Button>
             <Button onClick={handleSubmit} disabled={isPending} className="rounded-lg gap-2 shadow-sm">
@@ -1837,6 +1945,57 @@ export default function ContasAReceber() {
         onOpenChange={(open) => { if (!open) setAsaasReceivableId(null); }}
         onChanged={() => refreshQueries(queryClient, [["accounts-receivable", empresaId]])}
       />
+
+      {/* Prompt: ask user if they want to push the just-created receivables to Asaas */}
+      <AlertDialog open={!!asaasPromptIds} onOpenChange={(open) => { if (!open) setAsaasPromptIds(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <Zap className="w-5 h-5 text-primary" />
+              Gerar cobrança no Asaas?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Você criou {asaasPromptIds?.length === 1 ? "1 lançamento" : `${asaasPromptIds?.length} lançamentos`}.
+              Deseja gerar {asaasPromptIds && asaasPromptIds.length > 1 ? "as cobranças correspondentes" : "a cobrança"} no Asaas agora?
+              O cliente será criado/atualizado automaticamente.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="grid grid-cols-2 gap-2 py-2">
+            {[
+              { v: "BOLETO" as const, l: "Boleto + PIX" },
+              { v: "CREDIT_CARD" as const, l: "Cartão de Crédito" },
+            ].map((opt) => (
+              <button
+                key={opt.v}
+                type="button"
+                onClick={() => setAsaasBillingType(opt.v)}
+                className={`px-3 py-2 rounded-md text-sm font-medium border transition-colors ${
+                  asaasBillingType === opt.v
+                    ? "bg-primary text-primary-foreground border-primary"
+                    : "bg-background border-input hover:bg-accent text-foreground"
+                }`}
+              >
+                {opt.l}
+              </button>
+            ))}
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={asaasGenerating}>Agora não</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={asaasGenerating}
+              onClick={async (e) => {
+                e.preventDefault();
+                const ids = asaasPromptIds || [];
+                setAsaasPromptIds(null);
+                await triggerAsaasForRecords(ids, asaasBillingType);
+              }}
+            >
+              {asaasGenerating ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Zap className="w-4 h-4 mr-2" />}
+              Gerar no Asaas
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

@@ -94,22 +94,72 @@ Deno.serve(async (req) => {
     if (!creds) throw new Error("Asaas não configurado para esta empresa");
     const cred = creds as CredRow;
 
-    // ============ CREATE PAYMENT ============
-    if (action === "create_payment") {
-      const { receivable_id } = body;
-      if (!receivable_id) throw new Error("receivable_id obrigatório");
+    // ============ HELPER: ensure customer exists & is up-to-date ============
+    async function ensureAsaasCustomer(cliente: any): Promise<string> {
+      const cpfCnpj = onlyDigits(cliente.tipo === "pf" ? cliente.cpf : cliente.cnpj);
+      if (!cpfCnpj) throw new Error("Cliente sem CPF/CNPJ cadastrado");
 
-      // Load receivable
+      const nome = cliente.tipo === "pf"
+        ? cliente.nome_completo
+        : (cliente.nome_fantasia || cliente.razao_social);
+      if (!nome) throw new Error("Cliente sem nome cadastrado");
+
+      const payload: Record<string, unknown> = {
+        name: nome,
+        cpfCnpj,
+        email: cliente.email || undefined,
+        mobilePhone: onlyDigits(cliente.whatsapp || cliente.telefone) || undefined,
+        postalCode: onlyDigits(cliente.cep) || undefined,
+        address: cliente.logradouro || undefined,
+        addressNumber: cliente.numero || undefined,
+        complement: cliente.complemento || undefined,
+        province: cliente.bairro || undefined,
+      };
+
+      const search = await asaasFetch(cred, `/customers?cpfCnpj=${cpfCnpj}`);
+      if (search?.data?.length > 0) {
+        const existingId = search.data[0].id;
+        // Update with latest local data
+        try {
+          await asaasFetch(cred, `/customers/${existingId}`, {
+            method: "POST",
+            body: JSON.stringify(payload),
+          });
+        } catch (e) {
+          console.warn("[asaas-api] customer update failed, continuing:", e);
+        }
+        return existingId;
+      }
+
+      const created = await asaasFetch(cred, "/customers", {
+        method: "POST",
+        body: JSON.stringify(payload),
+      });
+      return created.id;
+    }
+
+    // ============ HELPER: create one payment for a receivable id ============
+    async function createPaymentForReceivable(receivableId: string, billingType: string) {
       const { data: rec, error: recErr } = await serviceClient
         .from("accounts_receivable")
         .select("*")
-        .eq("id", receivable_id)
+        .eq("id", receivableId)
         .eq("user_id", userId)
         .single();
-      if (recErr || !rec) throw new Error("Lançamento não encontrado");
+      if (recErr || !rec) throw new Error(`Lançamento ${receivableId} não encontrado`);
       if (!rec.cliente_id) throw new Error("Lançamento precisa estar vinculado a um cliente");
 
-      // Load cliente
+      // Skip if already has an active charge
+      const { data: existingCob } = await serviceClient
+        .from("asaas_cobrancas")
+        .select("id, status")
+        .eq("account_receivable_id", rec.id)
+        .not("status", "in", "(CANCELED,REFUNDED)")
+        .maybeSingle();
+      if (existingCob) {
+        return { skipped: true, reason: "Já existe cobrança ativa", cobranca_id: existingCob.id };
+      }
+
       const { data: cliente, error: cliErr } = await serviceClient
         .from("clientes")
         .select("*")
@@ -118,41 +168,8 @@ Deno.serve(async (req) => {
         .single();
       if (cliErr || !cliente) throw new Error("Cliente não encontrado");
 
-      // Find or create Asaas customer
-      const cpfCnpj = onlyDigits(cliente.tipo === "pf" ? cliente.cpf : cliente.cnpj);
-      if (!cpfCnpj) throw new Error("Cliente sem CPF/CNPJ cadastrado");
+      const asaasCustomerId = await ensureAsaasCustomer(cliente);
 
-      let asaasCustomerId: string | null = null;
-      const search = await asaasFetch(cred, `/customers?cpfCnpj=${cpfCnpj}`);
-      if (search?.data?.length > 0) {
-        asaasCustomerId = search.data[0].id;
-      } else {
-        // Create customer using local data
-        const nome = cliente.tipo === "pf"
-          ? cliente.nome_completo
-          : (cliente.nome_fantasia || cliente.razao_social);
-        if (!nome) throw new Error("Cliente sem nome cadastrado");
-
-        const customerPayload: Record<string, unknown> = {
-          name: nome,
-          cpfCnpj,
-          email: cliente.email || undefined,
-          mobilePhone: onlyDigits(cliente.whatsapp || cliente.telefone) || undefined,
-          postalCode: onlyDigits(cliente.cep) || undefined,
-          address: cliente.logradouro || undefined,
-          addressNumber: cliente.numero || undefined,
-          complement: cliente.complemento || undefined,
-          province: cliente.bairro || undefined,
-        };
-        const created = await asaasFetch(cred, "/customers", {
-          method: "POST",
-          body: JSON.stringify(customerPayload),
-        });
-        asaasCustomerId = created.id;
-      }
-
-      // Create payment
-      const billingType = (body.billing_type || "BOLETO").toUpperCase(); // BOLETO | PIX | CREDIT_CARD | UNDEFINED
       const paymentPayload = {
         customer: asaasCustomerId,
         billingType,
@@ -166,13 +183,11 @@ Deno.serve(async (req) => {
         body: JSON.stringify(paymentPayload),
       });
 
-      // Get PIX QR if billing is PIX
       let pixQr: any = null;
       if (billingType === "PIX") {
         try { pixQr = await asaasFetch(cred, `/payments/${payment.id}/pixQrCode`); } catch { /* ignore */ }
       }
 
-      // Save mapping
       const { data: cobranca, error: cobErr } = await serviceClient
         .from("asaas_cobrancas")
         .insert({
@@ -197,7 +212,6 @@ Deno.serve(async (req) => {
         .single();
       if (cobErr) throw cobErr;
 
-      // Log on cliente history
       await serviceClient.from("cliente_interacoes").insert({
         user_id: userId,
         cliente_id: rec.cliente_id,
@@ -207,7 +221,45 @@ Deno.serve(async (req) => {
         usuario_nome: "Sistema",
       });
 
-      return new Response(JSON.stringify({ success: true, cobranca, payment }), {
+      return { cobranca, payment };
+    }
+
+    // ============ CREATE PAYMENT (single) ============
+    if (action === "create_payment") {
+      const { receivable_id } = body;
+      if (!receivable_id) throw new Error("receivable_id obrigatório");
+      const billingType = (body.billing_type || "BOLETO").toUpperCase();
+      if (!["BOLETO", "PIX", "CREDIT_CARD"].includes(billingType)) {
+        throw new Error("billing_type inválido");
+      }
+      const result = await createPaymentForReceivable(receivable_id, billingType);
+      return new Response(JSON.stringify({ success: true, ...result }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // ============ CREATE PAYMENTS BULK (uma por parcela) ============
+    if (action === "create_payments_bulk") {
+      const { receivable_ids, billing_type } = body;
+      if (!Array.isArray(receivable_ids) || receivable_ids.length === 0) {
+        throw new Error("receivable_ids deve ser um array não vazio");
+      }
+      const billingType = (billing_type || "BOLETO").toUpperCase();
+      if (!["BOLETO", "PIX", "CREDIT_CARD"].includes(billingType)) {
+        throw new Error("billing_type inválido");
+      }
+
+      const results: Array<{ receivable_id: string; success: boolean; error?: string; cobranca_id?: string }> = [];
+      for (const rid of receivable_ids) {
+        try {
+          const r = await createPaymentForReceivable(rid, billingType);
+          results.push({ receivable_id: rid, success: true, cobranca_id: (r as any).cobranca?.id || (r as any).cobranca_id });
+        } catch (e) {
+          results.push({ receivable_id: rid, success: false, error: e instanceof Error ? e.message : String(e) });
+        }
+      }
+      const okCount = results.filter(r => r.success).length;
+      return new Response(JSON.stringify({ success: true, total: results.length, ok: okCount, results }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
