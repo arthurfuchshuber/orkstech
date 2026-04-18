@@ -99,6 +99,7 @@ export function ContaBancariaModal({ open, onOpenChange, editingId, onSaved }: C
         banco_id: form.banco_id || null,
         tipo: form.tipo,
         saldo_inicial: parseFloat(form.saldo_inicial) || 0,
+        saldo_investimento: parseFloat(form.saldo_investimento) || 0,
         pessoa_tipo: form.pessoa_tipo,
       };
       if (editingId) {
