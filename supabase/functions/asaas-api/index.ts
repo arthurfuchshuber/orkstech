@@ -68,7 +68,7 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
 
-    // ============ TEST CONNECTION ============
+    // ============ TEST CONNECTION (no creds required) ============
     if (action === "test") {
       const { api_key, ambiente } = body;
       if (!api_key) throw new Error("api_key obrigatória");
