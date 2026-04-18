@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useEmpresa } from "@/hooks/useEmpresa";
@@ -21,6 +21,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
   ArrowDownLeft,
   ArrowUpRight,
   CreditCard,
@@ -33,6 +39,8 @@ import {
   TrendingDown,
   CalendarIcon,
   PiggyBank,
+  ChevronDown,
+  Tag,
 } from "lucide-react";
 import { format, startOfMonth, endOfMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -80,11 +88,13 @@ interface Transaction {
   category: string | null;
   reconciled: boolean;
   pluggy_account_id: string;
+  categoria_financeira_id: string | null;
 }
 
 export default function ExtratoBancario() {
   const { user } = useAuth();
   const { empresa } = useEmpresa();
+  const queryClient = useQueryClient();
   const [selectedAccount, setSelectedAccount] = useState<string>("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [typeFilter, setTypeFilter] = useState<string>("all");
@@ -271,6 +281,35 @@ export default function ExtratoBancario() {
       return data as unknown as Transaction[];
     },
     enabled: !!user && !!targetUserId,
+  });
+
+  // Categorias financeiras (hierárquicas) — só folhas (subcategorias) podem ser selecionadas
+  const { data: categoriasFinanceiras = [] } = useQuery({
+    queryKey: ["dre-categorias-financeiras", targetUserId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("categorias_financeiras")
+        .select("id, nome, tipo, categoria_pai_id, ordem, ativo")
+        .eq("user_id", targetUserId!)
+        .eq("ativo", true)
+        .order("ordem");
+      if (error) throw error;
+      return data ?? [];
+    },
+    enabled: !!user && !!targetUserId,
+  });
+
+  const updateCategoriaMutation = useMutation({
+    mutationFn: async ({ id, categoria_financeira_id }: { id: string; categoria_financeira_id: string | null }) => {
+      const { error } = await supabase
+        .from("pluggy_transactions" as any)
+        .update({ categoria_financeira_id })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["pluggy_transactions"] });
+    },
   });
 
   const [syncing, setSyncing] = useState<string | null>(null);
@@ -736,11 +775,46 @@ export default function ExtratoBancario() {
                     <span className="text-[11px] text-muted-foreground">
                       {formatDate(tx.date)}
                     </span>
-                    {tx.category && (
-                      <Badge variant="secondary" className="text-[10px]">
-                        {tx.category}
-                      </Badge>
-                    )}
+                    {(() => {
+                      const catFin = categoriasFinanceiras.find((c: any) => c.id === tx.categoria_financeira_id);
+                      const subcatOptions = categoriasFinanceiras.filter(
+                        (c: any) => !categoriasFinanceiras.some((child: any) => child.categoria_pai_id === c.id)
+                      );
+                      return (
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <button
+                              className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded border border-border/40 hover:bg-muted/40 transition-colors group/cat"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <Tag className="h-2.5 w-2.5 text-muted-foreground" />
+                              <span className={catFin ? "text-foreground" : "text-muted-foreground/70"}>
+                                {catFin?.nome || tx.category || "Categorizar"}
+                              </span>
+                              <ChevronDown className="h-2.5 w-2.5 text-muted-foreground opacity-0 group-hover/cat:opacity-100 transition-opacity" />
+                            </button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="start" className="max-h-[300px] overflow-y-auto custom-scrollbar">
+                            {subcatOptions.map((c: any) => (
+                              <DropdownMenuItem
+                                key={c.id}
+                                onClick={() => updateCategoriaMutation.mutate({ id: tx.id, categoria_financeira_id: c.id })}
+                              >
+                                {c.nome}
+                              </DropdownMenuItem>
+                            ))}
+                            {tx.categoria_financeira_id && (
+                              <DropdownMenuItem
+                                onClick={() => updateCategoriaMutation.mutate({ id: tx.id, categoria_financeira_id: null })}
+                                className="text-muted-foreground"
+                              >
+                                Limpar categoria
+                              </DropdownMenuItem>
+                            )}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      );
+                    })()}
                   </div>
                 </div>
 
