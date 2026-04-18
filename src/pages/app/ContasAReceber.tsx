@@ -508,6 +508,7 @@ export default function ContasAReceber() {
     if (editingId) {
       updateMutation.mutate({
         id: editingId,
+        scope: editScope,
         data: {
           description: form.description,
           cliente_id: isCliente ? form.cliente_id || null : null,
