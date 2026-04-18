@@ -1018,6 +1018,36 @@ export default function ContasAReceber() {
                       <TableCell>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
+                            <button className="cursor-pointer">
+                              {(() => {
+                                const cfg = statusConfig[item.status] || statusConfig.pending;
+                                const Icon = cfg.icon;
+                                return (
+                                  <Badge variant="outline" className={`${cfg.color} gap-1 font-medium cursor-pointer hover:opacity-80 transition-opacity`}>
+                                    <Icon className="w-3 h-3" />
+                                    {cfg.label}
+                                    <ChevronDown className="w-3 h-3 ml-0.5 opacity-50" />
+                                  </Badge>
+                                );
+                              })()}
+                            </button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="start">
+                            {Object.entries(statusConfig).filter(([key]) => key !== "cancelled").map(([key, cfg]) => {
+                              if (key === item.status) return null;
+                              return (
+                                <DropdownMenuItem key={key} onClick={() => handleChangeStatus(item.id, key)}>
+                                  <cfg.icon className="w-4 h-4 mr-2" />
+                                  {cfg.label}
+                                </DropdownMenuItem>
+                              );
+                            })}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                      <TableCell>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
                             <button className="flex items-center gap-1 text-sm cursor-pointer hover:text-foreground transition-colors group w-full">
                               <span className="truncate">{catFin?.nome || <span className="text-muted-foreground/50">Selecionar</span>}</span>
                               <ChevronDown className="w-3 h-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
@@ -1087,36 +1117,6 @@ export default function ContasAReceber() {
                                 Limpar
                               </DropdownMenuItem>
                             )}
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
-                      <TableCell>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <button className="cursor-pointer">
-                              {(() => {
-                                const cfg = statusConfig[item.status] || statusConfig.pending;
-                                const Icon = cfg.icon;
-                                return (
-                                  <Badge variant="outline" className={`${cfg.color} gap-1 font-medium cursor-pointer hover:opacity-80 transition-opacity`}>
-                                    <Icon className="w-3 h-3" />
-                                    {cfg.label}
-                                    <ChevronDown className="w-3 h-3 ml-0.5 opacity-50" />
-                                  </Badge>
-                                );
-                              })()}
-                            </button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="start">
-                            {Object.entries(statusConfig).filter(([key]) => key !== "cancelled").map(([key, cfg]) => {
-                              if (key === item.status) return null;
-                              return (
-                                <DropdownMenuItem key={key} onClick={() => handleChangeStatus(item.id, key)}>
-                                  <cfg.icon className="w-4 h-4 mr-2" />
-                                  {cfg.label}
-                                </DropdownMenuItem>
-                              );
-                            })}
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </TableCell>
