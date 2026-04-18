@@ -221,38 +221,48 @@ export default function FinanceiroDashboard() {
 
   const totalCreditBills = creditCards.reduce((sum, c) => sum + getCreditBillAmount(c), 0);
 
+  // Helper: identifica transação de investimento (movimentação interna conta↔aplicação)
+  const isInvestmentTx = (t: any) => {
+    const cat = (t.category || "").toLowerCase();
+    if (cat.includes("invest") || cat.includes("mutual fund")) return true;
+    const desc = (t.description || "").toLowerCase();
+    return /\b(aplica[cç][aã]o|resgate|cdb|lci|lca|tesouro|fundo|poupan[cç]a)\b/.test(desc);
+  };
+
   // ── Chart datasets ──
+  // Patrimônio total (saldo + investimentos) — investimentos não somem do total quando o dinheiro é aplicado
+  const totalNetWorth = totalBankBalance + totalInvestments;
+
   const evolutionData = useMemo(() => {
     if (txHistory.length === 0) return [];
-    // Build daily aggregated net change, then build cumulative working backwards from today balance
+    // Para evolução do patrimônio: ignoramos movimentações entre conta e investimento
+    // (não alteram o patrimônio total, só transferem entre "bolsos")
     const byDay = new Map<string, number>();
     txHistory.forEach((t: any) => {
+      if (isInvestmentTx(t)) return; // pular aplicações/resgates
       const day = t.date;
       const signed = t.type === "CREDIT" ? Math.abs(Number(t.amount)) : -Math.abs(Number(t.amount));
       byDay.set(day, (byDay.get(day) || 0) + signed);
     });
-    // Generate last 90 days
     const days: { date: string; saldo: number }[] = [];
     const today = new Date();
-    let runningFromToday = totalBankBalance;
     const dailyChanges: { dateKey: string; label: string; change: number }[] = [];
     for (let i = 89; i >= 0; i--) {
       const d = subDays(today, i);
       const dateKey = format(d, "yyyy-MM-dd");
       dailyChanges.push({ dateKey, label: format(d, "dd/MM"), change: byDay.get(dateKey) || 0 });
     }
-    // Compute cumulative: today = totalBankBalance; previous days subtract the change of the next day
+    // Saldo de hoje = patrimônio total (saldo em conta + investimentos)
     const balances: number[] = Array.from({ length: dailyChanges.length }, () => 0);
-    balances[balances.length - 1] = runningFromToday;
+    balances[balances.length - 1] = totalNetWorth;
     for (let i = balances.length - 2; i >= 0; i--) {
       balances[i] = balances[i + 1] - dailyChanges[i + 1].change;
     }
     for (let i = 0; i < dailyChanges.length; i++) {
       days.push({ date: dailyChanges[i].label, saldo: Math.round(balances[i]) });
     }
-    // Reduce to one point per ~3 days for cleaner visual
     return days.filter((_, idx) => idx % 3 === 0 || idx === days.length - 1);
-  }, [txHistory, totalBankBalance]);
+  }, [txHistory, totalNetWorth]);
 
   const balanceDeltaPct = useMemo(() => {
     if (evolutionData.length < 2) return null;
@@ -278,6 +288,7 @@ export default function FinanceiroDashboard() {
       months.set(format(d, "yyyy-MM"), { entradas: 0, saidas: 0 });
     }
     txHistory.forEach((t: any) => {
+      if (isInvestmentTx(t)) return; // aplicações/resgates não são entrada nem saída
       const key = t.date.slice(0, 7);
       if (!months.has(key)) return;
       const v = Math.abs(Number(t.amount));
