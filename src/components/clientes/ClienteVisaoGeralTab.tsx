@@ -732,18 +732,22 @@ export function ClienteVisaoGeralTab({ cliente, onEdit: _onEdit }: Props) {
             const { title, body } = parseInteracao(item.descricao);
             const colorClass = tipoColors[item.tipo] || "text-muted-foreground";
             const linkedDocs = getDocsForInteracao(item.id);
+            const onTimelineClick = resolveTimelineEvent(item);
 
             return (
               <div key={item.id} className="relative pb-6 last:pb-0 group">
                 <div className="absolute -left-[13px] top-3 w-3 h-3 rounded-full border-2 border-border bg-card" />
 
-                <Card className="ml-4 p-5 border-border/40 shadow-sm hover:border-border/60 transition-colors">
+                <Card
+                  className={`ml-4 p-5 border-border/40 shadow-sm hover:border-border/60 transition-colors ${onTimelineClick ? "cursor-pointer hover:bg-muted/20" : ""}`}
+                  onClick={onTimelineClick ? () => onTimelineClick() : undefined}
+                >
                   <div className="flex items-start justify-between">
                     <div className="flex items-center gap-2">
                       <span className={`text-base ${colorClass}`}>📌</span>
                       <div>
                         <div className="flex items-center gap-2">
-                          <span className="text-sm font-semibold text-foreground">{title}</span>
+                          <span className={`text-sm font-semibold text-foreground ${onTimelineClick ? "hover:underline underline-offset-2" : ""}`}>{title}</span>
                           {linkedDocs.length > 0 && (
                             <span className="flex items-center gap-1 text-xs text-muted-foreground">
                               <Paperclip className="w-3 h-3" /> {linkedDocs.length}
@@ -758,7 +762,7 @@ export function ClienteVisaoGeralTab({ cliente, onEdit: _onEdit }: Props) {
                         variant="ghost"
                         size="icon"
                         className="h-7 w-7 text-muted-foreground hover:text-foreground"
-                        onClick={() => startEdit(item)}
+                        onClick={(e) => { e.stopPropagation(); startEdit(item); }}
                       >
                         <Pencil className="w-3.5 h-3.5" />
                       </Button>
@@ -766,7 +770,7 @@ export function ClienteVisaoGeralTab({ cliente, onEdit: _onEdit }: Props) {
                         variant="ghost"
                         size="icon"
                         className="h-7 w-7 text-destructive hover:text-destructive"
-                        onClick={() => setDeleteId(item.id)}
+                        onClick={(e) => { e.stopPropagation(); setDeleteId(item.id); }}
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </Button>
