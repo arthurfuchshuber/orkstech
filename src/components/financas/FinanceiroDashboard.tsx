@@ -281,8 +281,11 @@ export default function FinanceiroDashboard() {
     if (evolutionData.length < 2) return null;
     const first = evolutionData[0].saldo;
     const last = evolutionData[evolutionData.length - 1].saldo;
-    if (Math.abs(first) < 0.01) return null;
-    return ((last - first) / Math.abs(first)) * 100;
+    // Evita exibir % enganosa quando o saldo atual é zero/desprezível
+    // ou quando o saldo inicial é zero/negativo (base inválida para %)
+    if (Math.abs(last) < 1) return null;
+    if (first <= 0) return null;
+    return ((last - first) / first) * 100;
   }, [evolutionData]);
 
   const distributionData = useMemo(() => {
