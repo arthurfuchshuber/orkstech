@@ -134,6 +134,7 @@ export default function ContasAReceber() {
   const [duplicateMatches, setDuplicateMatches] = useState<any[]>([]);
   const [dupDetailItem, setDupDetailItem] = useState<any | null>(null);
   const [inlineTipoMap, setInlineTipoMap] = useState<Record<string, string>>({});
+  const [quickListMode, setQuickListMode] = useState<"overdue" | "nearDue" | null>(null);
 
   const centrosCrud = useManagedSelect("centros_custo");
   const contasCrud = useManagedSelect("contas_bancarias");
