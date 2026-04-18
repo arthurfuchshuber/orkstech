@@ -1274,6 +1274,11 @@ export default function ContasAPagar() {
                           onCheckedChange={() => toggleSelectItem(item.id)}
                         />
                       </TableCell>
+                      <TableCell>
+                        <span className={`text-sm ${dueColor}`}>
+                          {format(dueDate, "dd/MM/yyyy")}
+                        </span>
+                      </TableCell>
                       <TableCell className="font-medium truncate text-sm">
                         {opts.isChild ? (
                           <span className="text-muted-foreground/60 ml-6">↳</span>
@@ -1296,11 +1301,6 @@ export default function ContasAPagar() {
                         </button>
                       </TableCell>
                       <TableCell className="font-medium text-sm">{formatCurrency(item.amount)}</TableCell>
-                      <TableCell>
-                        <span className={`text-sm ${dueColor}`}>
-                          {format(dueDate, "dd/MM/yyyy")}
-                        </span>
-                      </TableCell>
                       <TableCell>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
