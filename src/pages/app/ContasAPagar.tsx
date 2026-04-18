@@ -2325,6 +2325,17 @@ export default function ContasAPagar() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <QuickListModal
+        open={quickListMode !== null}
+        onOpenChange={(o) => { if (!o) setQuickListMode(null); }}
+        mode="payable"
+        title={quickListMode === "overdue" ? "Contas Vencidas" : "Vencimento nos próximos 7 dias"}
+        description={quickListMode === "overdue"
+          ? "Edite valor, vencimento ou altere o status diretamente."
+          : "Acompanhe e ajuste contas que vencem em breve."}
+        items={quickListMode === "overdue" ? overdueItems : nearDueItems}
+      />
     </div>
   );
 }
