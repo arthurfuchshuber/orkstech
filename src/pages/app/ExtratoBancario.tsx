@@ -779,23 +779,18 @@ export default function ExtratoBancario() {
                     </span>
                     {(() => {
                       const catFin = categoriasFinanceiras.find((c: any) => c.id === tx.categoria_financeira_id);
-                      // Agrupa por categoria-pai: { pai: [filhos] }. Se não houver pais, mostra todas como flat.
                       const parents = categoriasFinanceiras.filter((c: any) => !c.categoria_pai_id);
-                      const orphanLeaves = categoriasFinanceiras.filter(
-                        (c: any) => !c.categoria_pai_id && !categoriasFinanceiras.some((ch: any) => ch.categoria_pai_id === c.id)
-                      );
                       return (
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
                             <button
-                              className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded border border-border/40 hover:bg-muted/40 transition-colors group/cat"
+                              className="flex items-center gap-1 text-[11px] cursor-pointer text-muted-foreground hover:text-foreground transition-colors group/cat"
                               onClick={(e) => e.stopPropagation()}
                             >
-                              <Tag className="h-2.5 w-2.5 text-muted-foreground" />
-                              <span className={catFin ? "text-foreground" : "text-muted-foreground/70"}>
-                                {catFin?.nome || tx.category || "Categorizar"}
+                              <span className="truncate">
+                                {catFin?.nome || <span className="text-muted-foreground/50">Selecionar</span>}
                               </span>
-                              <ChevronDown className="h-2.5 w-2.5 text-muted-foreground opacity-0 group-hover/cat:opacity-100 transition-opacity" />
+                              <ChevronDown className="w-3 h-3 text-muted-foreground opacity-0 group-hover/cat:opacity-100 transition-opacity flex-shrink-0" />
                             </button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="start" className="max-h-[360px] w-64 overflow-y-auto custom-scrollbar">
@@ -807,12 +802,10 @@ export default function ExtratoBancario() {
                             {parents.map((parent: any) => {
                               const children = categoriasFinanceiras.filter((c: any) => c.categoria_pai_id === parent.id);
                               if (children.length === 0) {
-                                // Categoria raiz que é folha (sem subcategorias) — clicável
                                 return (
                                   <DropdownMenuItem
                                     key={parent.id}
                                     onClick={() => updateCategoriaMutation.mutate({ id: tx.id, categoria_financeira_id: parent.id })}
-                                    className="text-xs"
                                   >
                                     {parent.nome}
                                   </DropdownMenuItem>
@@ -827,7 +820,7 @@ export default function ExtratoBancario() {
                                     <DropdownMenuItem
                                       key={c.id}
                                       onClick={() => updateCategoriaMutation.mutate({ id: tx.id, categoria_financeira_id: c.id })}
-                                      className="text-xs pl-4"
+                                      className="pl-4"
                                     >
                                       {c.nome}
                                     </DropdownMenuItem>
@@ -840,9 +833,9 @@ export default function ExtratoBancario() {
                                 <DropdownMenuSeparator />
                                 <DropdownMenuItem
                                   onClick={() => updateCategoriaMutation.mutate({ id: tx.id, categoria_financeira_id: null })}
-                                  className="text-xs text-muted-foreground"
+                                  className="text-muted-foreground"
                                 >
-                                  Limpar categoria
+                                  Limpar
                                 </DropdownMenuItem>
                               </>
                             )}
