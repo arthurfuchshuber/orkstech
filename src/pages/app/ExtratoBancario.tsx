@@ -42,7 +42,6 @@ import {
   CalendarIcon,
   PiggyBank,
   ChevronDown,
-  Tag,
 } from "lucide-react";
 import { format, startOfMonth, endOfMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
