@@ -48,6 +48,9 @@ export default function DREPage() {
   const [filters, setFilters] = useState<DREFilters>({ period: "this_month", tipo: "all" });
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
   const [drillDownCategory, setDrillDownCategory] = useState<{ id: string; label: string } | null>(null);
+  const [customDialogOpen, setCustomDialogOpen] = useState(false);
+  const [tempStart, setTempStart] = useState<Date | undefined>(filters.customStart);
+  const [tempEnd, setTempEnd] = useState<Date | undefined>(filters.customEnd);
 
   const { lines, totalRevenue, grossMargin, ebitda, netIncome, transactions, isLoading, dateRange } = useDRE(filters);
 
