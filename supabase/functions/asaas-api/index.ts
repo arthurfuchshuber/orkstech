@@ -82,12 +82,15 @@ Deno.serve(async (req) => {
     }
 
     // For other actions, require credentials saved
+    // NOTE: lifecycle actions (sync_history, purge_history) must work even if `ativo=false`,
+    // because they are triggered immediately after toggling the integration off/on.
+    const lifecycleAction = action === "sync_history" || action === "purge_history";
     let credQuery = serviceClient
       .from("integracoes_credenciais")
       .select("id, api_key, ambiente, empresa_id")
       .eq("user_id", userId)
-      .eq("provider", "asaas")
-      .eq("ativo", true);
+      .eq("provider", "asaas");
+    if (!lifecycleAction) credQuery = credQuery.eq("ativo", true);
     if (empresa_id) credQuery = credQuery.eq("empresa_id", empresa_id);
     const { data: creds, error: credErr } = await credQuery.limit(1).maybeSingle();
     if (credErr) throw credErr;
