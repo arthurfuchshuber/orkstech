@@ -21,6 +21,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
   ArrowDownLeft,
   ArrowUpRight,
   CreditCard,
@@ -33,6 +39,8 @@ import {
   TrendingDown,
   CalendarIcon,
   PiggyBank,
+  ChevronDown,
+  Tag,
 } from "lucide-react";
 import { format, startOfMonth, endOfMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
