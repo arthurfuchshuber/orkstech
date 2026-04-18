@@ -339,7 +339,7 @@ export function useDRE(filters: DREFilters) {
       netIncome: lucroLiquido,
       profitMargin: totalReceitaAmount > 0 ? (lucroLiquido / totalReceitaAmount) * 100 : 0,
     };
-  }, [transactions, prevTransactions, categorias]);
+  }, [transactions, prevTransactions, categorias, regrasVis]);
 
   return {
     ...dreData,
