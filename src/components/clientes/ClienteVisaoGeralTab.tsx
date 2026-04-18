@@ -4,6 +4,7 @@ import {
   Sparkles, Plus, Loader2, Trash2, Paperclip, Pencil,
   AlertTriangle, TrendingUp, TrendingDown, Calendar, CheckCircle2, FileText,
 } from "lucide-react";
+import { QuickListModal } from "@/components/financas/QuickListModal";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
