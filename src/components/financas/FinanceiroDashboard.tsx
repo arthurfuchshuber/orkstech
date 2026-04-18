@@ -15,10 +15,13 @@ import {
   Wallet,
   ArrowDownRight,
   PiggyBank,
+  Sparkles,
 } from "lucide-react";
-import { format, differenceInDays, startOfMonth, endOfMonth, subMonths, addMonths, isBefore } from "date-fns";
+import { format, differenceInDays, startOfMonth, endOfMonth, subMonths, addMonths, isBefore, subDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useMemo } from "react";
+import { CaixaKpis } from "./caixa/CaixaKpis";
+import { CaixaCharts } from "./caixa/CaixaCharts";
 
 interface BankAccount {
   id: string;
