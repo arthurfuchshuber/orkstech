@@ -13,7 +13,7 @@ import {
   Clock,
   CreditCard,
   Wallet,
-  ArrowDownRight,
+  
   PiggyBank,
   Sparkles,
 } from "lucide-react";
@@ -242,7 +242,7 @@ export default function FinanceiroDashboard() {
       dailyChanges.push({ dateKey, label: format(d, "dd/MM"), change: byDay.get(dateKey) || 0 });
     }
     // Compute cumulative: today = totalBankBalance; previous days subtract the change of the next day
-    const balances: number[] = new Array(dailyChanges.length).fill(0);
+    const balances: number[] = Array.from({ length: dailyChanges.length }, () => 0);
     balances[balances.length - 1] = runningFromToday;
     for (let i = balances.length - 2; i >= 0; i--) {
       balances[i] = balances[i + 1] - dailyChanges[i + 1].change;
