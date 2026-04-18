@@ -144,12 +144,30 @@ export default function DREPage() {
         <TabsContent value="dre" className="mt-4 space-y-4">
           {/* Filters */}
           <div className="flex flex-wrap gap-3">
-            <Select value={filters.period} onValueChange={(v) => setFilters((f) => ({ ...f, period: v as PeriodPreset }))}>
+            <Select
+              value={filters.period}
+              onValueChange={(v) => {
+                const period = v as PeriodPreset;
+                if (period === "custom") {
+                  setTempStart(filters.customStart);
+                  setTempEnd(filters.customEnd);
+                  setCustomDialogOpen(true);
+                } else {
+                  setFilters((f) => ({ ...f, period, customStart: undefined, customEnd: undefined }));
+                }
+              }}
+            >
               <SelectTrigger className="w-[170px] h-9 text-sm"><SelectValue placeholder="Período" /></SelectTrigger>
               <SelectContent>
                 {Object.entries(periodLabels).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
               </SelectContent>
             </Select>
+            {filters.period === "custom" && filters.customStart && filters.customEnd && (
+              <Button variant="outline" size="sm" className="h-9 gap-2" onClick={() => setCustomDialogOpen(true)}>
+                <CalendarIcon className="w-3.5 h-3.5" />
+                {format(filters.customStart, "dd/MM/yyyy")} — {format(filters.customEnd, "dd/MM/yyyy")}
+              </Button>
+            )}
             <Select value={filters.bankAccountId || "all"} onValueChange={(v) => setFilters((f) => ({ ...f, bankAccountId: v === "all" ? undefined : v }))}>
               <SelectTrigger className="w-[170px] h-9 text-sm"><SelectValue placeholder="Conta bancária" /></SelectTrigger>
               <SelectContent>
