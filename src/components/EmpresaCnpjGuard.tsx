@@ -71,20 +71,35 @@ export function EmpresaCnpjGuard({ children }: { children: ReactNode }) {
       toast.error("Informe um CNPJ válido (14 dígitos).");
       return;
     }
+
     setSaving(true);
     const ok = await validateCnpj(clean);
     if (!ok) {
       setSaving(false);
       return;
     }
-    const { error } = await supabase.from("empresas").update({ cnpj: clean }).eq("id", empresa.id);
+
+    const result = isSuperAdminMode
+      ? await supabase.functions.invoke("admin-dashboard", {
+          body: { action: "update_company", empresa_id: empresa.id, cnpj: clean },
+        })
+      : await supabase.from("empresas").update({ cnpj: clean }).eq("id", empresa.id);
+
     setSaving(false);
-    if (error) {
-      toast.error(`Erro ao salvar: ${error.message}`);
+
+    const updateError = "error" in result ? result.error : null;
+    const updateData = "data" in result ? result.data : null;
+
+    if (updateError || (updateData as any)?.error) {
+      toast.error(`Erro ao salvar: ${(updateData as any)?.error || updateError?.message || "Falha ao atualizar empresa."}`);
+      setState({ status: "invalid", message: (updateData as any)?.error || updateError?.message || "Falha ao atualizar empresa." });
       return;
     }
+
+    try { sessionStorage.setItem(`${VALIDATION_CACHE_KEY}_${clean}`, "1"); } catch {}
     toast.success("CNPJ atualizado e validado com sucesso!");
     await refetch();
+    setState({ status: "valid" });
   };
 
   const isBlocking = state.status === "invalid" || state.status === "checking";
