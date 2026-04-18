@@ -128,6 +128,21 @@ export function useDRE(filters: DREFilters) {
     },
   });
 
+  const { data: regrasVis = [] } = useQuery({
+    queryKey: ["dre-regras-vis", targetUserId],
+    enabled: !!user && !!targetUserId,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("dre_regras" as any)
+        .select("*")
+        .eq("user_id", targetUserId!)
+        .eq("ativo", true)
+        .eq("escopo", "visualizacao")
+        .order("ordem");
+      return (data ?? []) as any[];
+    },
+  });
+
   const { data: transactions = [], isLoading: loadingTx } = useQuery({
     queryKey: ["dre-transactions", targetUserId, startStr, endStr, filters.bankAccountId, filters.costCenterId],
     enabled: !!user && !!targetUserId,
@@ -165,15 +180,53 @@ export function useDRE(filters: DREFilters) {
   const dreData = useMemo(() => {
     const tree = buildCatTree(categorias);
 
-    // Index transactions by categoria_financeira_id
+    // Helper: avalia se uma transação casa com uma regra de visualização
+    const evalRegra = (regra: any, t: any): boolean => {
+      const conds = regra.condicoes ?? [];
+      if (!conds.length) return false;
+      const results = conds.map((c: any) => {
+        const desc = String(t.description ?? "").toLowerCase();
+        const val = String(c.valor ?? "").toLowerCase();
+        const amt = Number(t.amount ?? 0);
+        switch (c.campo) {
+          case "description":
+            if (c.operador === "contains") return desc.includes(val);
+            if (c.operador === "equals") return desc === val;
+            if (c.operador === "starts_with") return desc.startsWith(val);
+            return false;
+          case "amount":
+            if (c.operador === "equals") return amt === Number(c.valor);
+            if (c.operador === "gte") return amt >= Number(c.valor);
+            if (c.operador === "lte") return amt <= Number(c.valor);
+            if (c.operador === "between") return amt >= Number(c.valor) && amt <= Number(c.valor2);
+            return false;
+          default:
+            return false;
+        }
+      });
+      return regra.condicao_logica === "OR" ? results.some(Boolean) : results.every(Boolean);
+    };
+
+    // Reclassifica transações em memória conforme regras de visualização (ordem de prioridade)
+    const reclassify = (t: any): string | null => {
+      const orig = t.categoria_financeira_id;
+      for (const regra of regrasVis) {
+        const tipoTx = t.type === "income" ? "receber" : "pagar";
+        if (regra.aplicar_em !== "ambos" && regra.aplicar_em !== tipoTx) continue;
+        if (evalRegra(regra, t)) return regra.categoria_destino_id;
+      }
+      return orig;
+    };
+
+    // Index transactions by categoria_financeira_id (com regras aplicadas)
     const txByCat = new Map<string, number>();
     const prevTxByCat = new Map<string, number>();
     for (const t of transactions) {
-      const catId = (t as any).categoria_financeira_id;
+      const catId = reclassify(t);
       if (catId) txByCat.set(catId, (txByCat.get(catId) || 0) + Math.abs(Number(t.amount)));
     }
     for (const t of prevTransactions) {
-      const catId = (t as any).categoria_financeira_id;
+      const catId = reclassify(t);
       if (catId) prevTxByCat.set(catId, (prevTxByCat.get(catId) || 0) + Math.abs(Number(t.amount)));
     }
 
@@ -286,7 +339,7 @@ export function useDRE(filters: DREFilters) {
       netIncome: lucroLiquido,
       profitMargin: totalReceitaAmount > 0 ? (lucroLiquido / totalReceitaAmount) * 100 : 0,
     };
-  }, [transactions, prevTransactions, categorias]);
+  }, [transactions, prevTransactions, categorias, regrasVis]);
 
   return {
     ...dreData,

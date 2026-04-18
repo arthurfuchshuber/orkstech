@@ -20,6 +20,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { FileText, ChevronRight, ChevronDown, Download, Settings2 } from "lucide-react";
 import { format } from "date-fns";
 import { PlanoDeContasSection } from "@/components/financas/PlanoDeContasSection";
+import { DRERegrasSection } from "@/components/financas/DRERegrasSection";
 
 const fmt = (v: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
@@ -266,9 +267,12 @@ export default function DREPage() {
           </div>
         </TabsContent>
 
-        <TabsContent value="personalizar" className="mt-4">
-          <div className="max-w-2xl">
+        <TabsContent value="personalizar" className="mt-4 space-y-4">
+          <div className="max-w-3xl">
             <PlanoDeContasSection />
+          </div>
+          <div className="max-w-3xl">
+            <DRERegrasSection />
           </div>
         </TabsContent>
       </Tabs>
