@@ -91,11 +91,10 @@ export function EmpresaCnpjGuard({ children }: { children: ReactNode }) {
       {children}
       <Dialog open={isBlocking} onOpenChange={() => { /* non-dismissible */ }}>
         <DialogContent
-          className="max-w-md border-destructive/40"
+          className="max-w-md border-destructive/40 [&>button.absolute]:hidden"
           onPointerDownOutside={(e) => e.preventDefault()}
           onEscapeKeyDown={(e) => e.preventDefault()}
           onInteractOutside={(e) => e.preventDefault()}
-          hideClose
         >
           <DialogHeader>
             <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-full bg-destructive/10 ring-1 ring-destructive/30">

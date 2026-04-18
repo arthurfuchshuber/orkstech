@@ -3,6 +3,7 @@ import { AppSidebar } from "@/components/AppSidebar";
 import { Outlet, useNavigate } from "react-router-dom";
 import { Search, User, LogOut } from "lucide-react";
 import { NotificationDropdown } from "@/components/NotificationDropdown";
+import { EmpresaCnpjGuard } from "@/components/EmpresaCnpjGuard";
 import { useAuth } from "@/hooks/useAuth";
 import { useBankNotifications } from "@/hooks/useBankNotifications";
 import { toast } from "sonner";
@@ -49,6 +50,7 @@ export default function AppLayout() {
             <Outlet />
           </main>
         </div>
+        <EmpresaCnpjGuard>{null}</EmpresaCnpjGuard>
       </div>
     </SidebarProvider>
   );
