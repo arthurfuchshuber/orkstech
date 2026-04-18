@@ -1355,6 +1355,11 @@ export default function ContasAReceber() {
                             <ChevronRight className={`w-4 h-4 transition-transform ${isExpanded ? "rotate-90" : ""}`} />
                           </button>
                         </TableCell>
+                        <TableCell>
+                          <span className="text-sm text-muted-foreground">
+                            {format(new Date(earliest), "dd/MM/yy")} → {format(new Date(latest), "dd/MM/yy")}
+                          </span>
+                        </TableCell>
                         <TableCell className="font-medium truncate text-sm">{parent.supplier_name || "—"}</TableCell>
                         <TableCell className="truncate">
                           <div className="flex items-center gap-2">
@@ -1368,9 +1373,10 @@ export default function ContasAReceber() {
                         </TableCell>
                         <TableCell className="font-semibold text-sm">{formatCurrency(totalAmount)}</TableCell>
                         <TableCell>
-                          <span className="text-sm text-muted-foreground">
-                            {format(new Date(earliest), "dd/MM/yy")} → {format(new Date(latest), "dd/MM/yy")}
-                          </span>
+                          <Badge variant="outline" className={`${cfg.color} gap-1 font-medium`}>
+                            <StatusIcon className="w-3 h-3" />
+                            {cfg.label}
+                          </Badge>
                         </TableCell>
                         <TableCell colSpan={3}>
                           <div className="flex items-center gap-3 text-xs text-muted-foreground">
@@ -1378,12 +1384,6 @@ export default function ContasAReceber() {
                             {pendingCount > 0 && <span><Clock className="w-3 h-3 inline text-warning" /> {pendingCount} pendentes</span>}
                             {overdueCount > 0 && <span><AlertTriangle className="w-3 h-3 inline text-destructive" /> {overdueCount} vencidas</span>}
                           </div>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="outline" className={`${cfg.color} gap-1 font-medium`}>
-                            <StatusIcon className="w-3 h-3" />
-                            {cfg.label}
-                          </Badge>
                         </TableCell>
                         <TableCell className="text-right">
                           <Button
