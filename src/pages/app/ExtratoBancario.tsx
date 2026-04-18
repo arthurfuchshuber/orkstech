@@ -102,6 +102,7 @@ export default function ExtratoBancario() {
   const [searchTerm, setSearchTerm] = useState("");
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [allPeriod, setAllPeriod] = useState(false);
+  const [cfModalOpen, setCfModalOpen] = useState(false);
 
   // Date range filter — default to current month
   const now = new Date();
@@ -756,24 +757,9 @@ export default function ExtratoBancario() {
                 const catFin = categoriasFinanceiras.find((c: any) => c.id === tx.categoria_financeira_id);
 
                 // Apenas folhas finais (categorias que NÃO possuem filhas)
-                const leafCategorias = categoriasFinanceiras.filter(
+                const subcatOptions = categoriasFinanceiras.filter(
                   (c: any) => !categoriasFinanceiras.some((child: any) => child.categoria_pai_id === c.id)
                 );
-                // Agrupa as folhas pelo pai (para exibição hierárquica visual)
-                const groupsMap = new Map<string | null, any[]>();
-                leafCategorias.forEach((leaf: any) => {
-                  const key = leaf.categoria_pai_id ?? null;
-                  if (!groupsMap.has(key)) groupsMap.set(key, []);
-                  groupsMap.get(key)!.push(leaf);
-                });
-                const parentsWithLeaves = Array.from(groupsMap.entries())
-                  .filter(([pid]) => pid !== null)
-                  .map(([pid, leaves]) => ({
-                    parent: categoriasFinanceiras.find((c: any) => c.id === pid),
-                    leaves,
-                  }))
-                  .filter((g) => g.parent);
-                const rootLeaves = groupsMap.get(null) ?? [];
 
                 return (
                   <div
@@ -833,55 +819,57 @@ export default function ExtratoBancario() {
                             <ChevronDown className="w-3 h-3 text-muted-foreground opacity-0 group-hover/cat:opacity-100 transition-opacity flex-shrink-0" />
                           </button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="start" className="max-h-[360px] w-64 overflow-y-auto custom-scrollbar">
-                          {leafCategorias.length === 0 && (
-                            <div className="px-2 py-3 text-xs text-muted-foreground">
-                              Nenhuma subcategoria cadastrada. Crie em Configurações → Plano de Contas.
-                            </div>
-                          )}
-                          {parentsWithLeaves.map(({ parent, leaves }) => (
-                            <div key={parent.id}>
-                              <DropdownMenuLabel className="text-[10px] uppercase tracking-wide text-muted-foreground/80 font-semibold pt-2">
-                                {parent.nome}
-                              </DropdownMenuLabel>
-                              {leaves.map((c: any) => (
-                                <DropdownMenuItem
-                                  key={c.id}
-                                  onClick={() => updateCategoriaMutation.mutate({ id: tx.id, categoria_financeira_id: c.id })}
-                                  className="pl-4"
-                                >
-                                  {c.nome}
-                                </DropdownMenuItem>
-                              ))}
-                            </div>
+                        <DropdownMenuContent align="start" className="max-h-[260px] overflow-y-auto custom-scrollbar">
+                          {subcatOptions.map((c: any) => (
+                            <DropdownMenuItem
+                              key={c.id}
+                              onClick={() => updateCategoriaMutation.mutate({ id: tx.id, categoria_financeira_id: c.id })}
+                            >
+                              {c.nome}
+                            </DropdownMenuItem>
                           ))}
-                          {rootLeaves.length > 0 && (
-                            <div>
-                              {parentsWithLeaves.length > 0 && <DropdownMenuSeparator />}
-                              {rootLeaves.map((c: any) => (
-                                <DropdownMenuItem
-                                  key={c.id}
-                                  onClick={() => updateCategoriaMutation.mutate({ id: tx.id, categoria_financeira_id: c.id })}
-                                >
-                                  {c.nome}
-                                </DropdownMenuItem>
-                              ))}
-                            </div>
+                          {catFin && (
+                            <DropdownMenuItem
+                              onClick={() => updateCategoriaMutation.mutate({ id: tx.id, categoria_financeira_id: null })}
+                              className="text-muted-foreground"
+                            >
+                              Limpar
+                            </DropdownMenuItem>
                           )}
-                          {tx.categoria_financeira_id && (
-                            <>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem
-                                onClick={() => updateCategoriaMutation.mutate({ id: tx.id, categoria_financeira_id: null })}
-                                className="text-muted-foreground"
-                              >
-                                Limpar
-                              </DropdownMenuItem>
-                            </>
-                          )}
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem onClick={() => setCfModalOpen(true)} className="text-primary">
+                            <Plus className="w-3.5 h-3.5 mr-1.5" /> Nova subcategoria
+                          </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </div>
+
+                    <p
+                      className={`whitespace-nowrap text-right text-sm font-semibold ${
+                        isCredit ? "text-primary" : "text-destructive"
+                      }`}
+                    >
+                      {isCredit ? "+" : "-"} {formatCurrency(Math.abs(tx.amount))}
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
+          </>
+        )}
+      </Card>
+
+      <CategoriaFinanceiraModal
+        open={cfModalOpen}
+        onOpenChange={setCfModalOpen}
+        editingId={null}
+        onSaved={() => {
+          queryClient.invalidateQueries({ queryKey: ["dre-categorias-financeiras"] });
+        }}
+      />
+    </div>
+  );
+}
 
                     <p
                       className={`whitespace-nowrap text-right text-sm font-semibold ${
