@@ -373,6 +373,8 @@ export default function ContasAReceber() {
     setEditingId(null);
     setForm(initialForm);
     setErrors({});
+    setGenerateAsaas(false);
+    setAsaasBillingType("BOLETO");
   };
 
   const updateField = <K extends keyof ReceivableForm>(key: K, value: ReceivableForm[K]) => {
