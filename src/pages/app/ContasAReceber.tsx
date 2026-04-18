@@ -156,6 +156,10 @@ export default function ContasAReceber() {
   const [fornPrefill, setFornPrefill] = useState<FornecedorPrefill | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [asaasReceivableId, setAsaasReceivableId] = useState<string | null>(null);
+  const [generateAsaas, setGenerateAsaas] = useState(false);
+  const [asaasBillingType, setAsaasBillingType] = useState<"BOLETO" | "CREDIT_CARD">("BOLETO");
+  const [asaasPromptIds, setAsaasPromptIds] = useState<string[] | null>(null);
+  const [asaasGenerating, setAsaasGenerating] = useState(false);
 
   const { data: receivables = [], isLoading } = useQuery({
     queryKey: ["accounts-receivable", empresaId],
