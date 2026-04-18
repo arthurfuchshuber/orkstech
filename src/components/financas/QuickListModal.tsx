@@ -173,8 +173,8 @@ export function QuickListModal({ open, onOpenChange, mode, title, description, i
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead style={{ minWidth: 200 }}>Descrição</TableHead>
                 <TableHead style={{ minWidth: 160 }}>{mode === "receivable" ? "Pagador" : "Fornecedor"}</TableHead>
+                <TableHead style={{ minWidth: 200 }}>Descrição</TableHead>
                 <TableHead style={{ minWidth: 130 }}>Valor</TableHead>
                 <TableHead style={{ minWidth: 130 }}>Vencimento</TableHead>
                 <TableHead style={{ minWidth: 140 }}>Status</TableHead>
@@ -193,6 +193,9 @@ export function QuickListModal({ open, onOpenChange, mode, title, description, i
                   const isEditing = editingId === item.id;
                   return (
                     <TableRow key={item.id}>
+                      <TableCell className="text-sm truncate max-w-[160px]">
+                        {item.supplier_name || "—"}
+                      </TableCell>
                       <TableCell className="text-sm font-medium truncate max-w-[200px]">
                         {item.description}
                         {item.installment_total > 1 && (
@@ -200,9 +203,6 @@ export function QuickListModal({ open, onOpenChange, mode, title, description, i
                             ({item.installment_number}/{item.installment_total})
                           </span>
                         )}
-                      </TableCell>
-                      <TableCell className="text-sm truncate max-w-[160px]">
-                        {item.supplier_name || "—"}
                       </TableCell>
                       <TableCell>
                         {isEditing ? (
