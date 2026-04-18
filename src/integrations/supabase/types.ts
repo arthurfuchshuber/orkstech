@@ -1190,6 +1190,7 @@ export type Database = {
           nome: string
           pessoa_tipo: Database["public"]["Enums"]["pessoa_tipo"]
           saldo_inicial: number
+          saldo_investimento: number
           tipo: Database["public"]["Enums"]["tipo_conta_bancaria"]
           updated_at: string
           user_id: string
@@ -1204,6 +1205,7 @@ export type Database = {
           nome: string
           pessoa_tipo?: Database["public"]["Enums"]["pessoa_tipo"]
           saldo_inicial?: number
+          saldo_investimento?: number
           tipo?: Database["public"]["Enums"]["tipo_conta_bancaria"]
           updated_at?: string
           user_id: string
@@ -1218,6 +1220,7 @@ export type Database = {
           nome?: string
           pessoa_tipo?: Database["public"]["Enums"]["pessoa_tipo"]
           saldo_inicial?: number
+          saldo_investimento?: number
           tipo?: Database["public"]["Enums"]["tipo_conta_bancaria"]
           updated_at?: string
           user_id?: string
