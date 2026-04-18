@@ -334,6 +334,82 @@ export default function DREPage() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Custom Period Dialog */}
+      <Dialog open={customDialogOpen} onOpenChange={setCustomDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Selecione o período</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-xs">Data inicial</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn("w-full justify-start text-left font-normal h-9 text-sm", !tempStart && "text-muted-foreground")}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {tempStart ? format(tempStart, "dd/MM/yyyy") : <span>Escolher</span>}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={tempStart}
+                      onSelect={setTempStart}
+                      disabled={(d) => (tempEnd ? d > tempEnd : false)}
+                      initialFocus
+                      className={cn("p-3 pointer-events-auto")}
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Data final</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn("w-full justify-start text-left font-normal h-9 text-sm", !tempEnd && "text-muted-foreground")}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {tempEnd ? format(tempEnd, "dd/MM/yyyy") : <span>Escolher</span>}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={tempEnd}
+                      onSelect={setTempEnd}
+                      disabled={(d) => (tempStart ? d < tempStart : false)}
+                      initialFocus
+                      className={cn("p-3 pointer-events-auto")}
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button variant="outline" size="sm" onClick={() => setCustomDialogOpen(false)}>
+                Cancelar
+              </Button>
+              <Button
+                size="sm"
+                disabled={!tempStart || !tempEnd}
+                onClick={() => {
+                  setFilters((f) => ({ ...f, period: "custom", customStart: tempStart, customEnd: tempEnd }));
+                  setCustomDialogOpen(false);
+                }}
+              >
+                Aplicar
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
