@@ -160,6 +160,9 @@ export default function ContasAReceber() {
   const [asaasBillingType, setAsaasBillingType] = useState<"BOLETO" | "CREDIT_CARD">("BOLETO");
   const [asaasPromptIds, setAsaasPromptIds] = useState<string[] | null>(null);
   const [asaasGenerating, setAsaasGenerating] = useState(false);
+  // Scope dialog for installment editing
+  const [scopeDialogItem, setScopeDialogItem] = useState<any | null>(null);
+  const [editScope, setEditScope] = useState<"single" | "group">("single");
 
   const { data: receivables = [], isLoading } = useQuery({
     queryKey: ["accounts-receivable", empresaId],
@@ -343,12 +346,59 @@ export default function ContasAReceber() {
     onError: () => toast.error("Erro ao salvar conta"),
   });
 
+  const pushReceivableToAsaas = async (receivableId: string, scope: "single" | "group" = "single") => {
+    if (!asaasEnabled) return;
+    try {
+      const { data: linked } = await supabase
+        .from("asaas_cobrancas")
+        .select("id")
+        .eq("account_receivable_id", receivableId)
+        .limit(1)
+        .maybeSingle();
+      if (!linked) return;
+      const { data, error } = await supabase.functions.invoke("asaas-api", {
+        body: { action: "update_payment", receivable_id: receivableId, scope, empresa_id: empresaId },
+      });
+      if (error || (data as any)?.error) {
+        toast.warning(`Conta salva, mas falha ao sincronizar com Asaas: ${(data as any)?.error || error?.message}`);
+      } else {
+        const ok = (data as any)?.ok ?? 0;
+        if (ok > 0) toast.success(`${ok} cobrança(s) sincronizada(s) com Asaas`);
+      }
+    } catch (e) {
+      console.warn("[asaas push receivable]", e);
+    }
+  };
+
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: any }) => updateAccountReceivable(id, data),
-    onSuccess: async () => {
+    mutationFn: async ({ id, data, scope }: { id: string; data: any; scope?: "single" | "group" }) => {
+      if (scope === "group") {
+        // Apply only mass-editable fields to all siblings sharing grupo_id
+        const { data: rec } = await supabase.from("accounts_receivable").select("grupo_id").eq("id", id).maybeSingle();
+        if (rec?.grupo_id) {
+          // Strip per-installment fields from group update
+          const { due_date, installment_number, installment_total, ...groupSafe } = data;
+          const { data: siblings } = await supabase
+            .from("accounts_receivable")
+            .select("id")
+            .eq("grupo_id", rec.grupo_id);
+          const ids = (siblings ?? []).map((s: any) => s.id);
+          for (const sid of ids) {
+            await updateAccountReceivable(sid, sid === id ? data : groupSafe);
+          }
+          return { ids };
+        }
+      }
+      await updateAccountReceivable(id, data);
+      return { ids: [id] };
+    },
+    onSuccess: async (res, vars) => {
       await refreshQueries(queryClient, [["accounts-receivable"], ["accounts-receivable-counts"]]);
       toast.success("Conta atualizada!");
       resetForm();
+      // Push to Asaas in background
+      const scope = vars.scope || "single";
+      void pushReceivableToAsaas(vars.id, scope);
     },
     onError: () => toast.error("Erro ao atualizar conta"),
   });
@@ -458,6 +508,7 @@ export default function ContasAReceber() {
     if (editingId) {
       updateMutation.mutate({
         id: editingId,
+        scope: editScope,
         data: {
           description: form.description,
           cliente_id: isCliente ? form.cliente_id || null : null,
@@ -585,6 +636,33 @@ export default function ContasAReceber() {
       attachment_url: item.attachment_url || null,
     });
     setShowForm(true);
+  };
+
+  // Decide whether to ask scope (parcelado) before opening edit
+  const requestEditAccount = (item: any) => {
+    const isParcelado = (item.installment_total || 1) > 1 && !!item.grupo_id;
+    if (isParcelado) {
+      setScopeDialogItem(item);
+      return;
+    }
+    setEditScope("single");
+    handleEdit(item);
+  };
+
+  const handleEditClienteFromRow = (clienteId: string) => {
+    if (!clienteId) return;
+    setCliEditingId(clienteId);
+    setCliPrefill(null);
+    setCliModalOpen(true);
+  };
+
+  const confirmScopeAndEdit = (scope: "single" | "group") => {
+    setEditScope(scope);
+    if (scopeDialogItem) {
+      const item = scopeDialogItem;
+      setScopeDialogItem(null);
+      handleEdit(item);
+    }
   };
 
   const handleDuplicate = (item: any) => {
@@ -997,17 +1075,37 @@ export default function ContasAReceber() {
                         <Checkbox checked={selectedIds.has(item.id)} onCheckedChange={() => toggleSelectItem(item.id)} />
                       </TableCell>
                       <TableCell className="font-medium truncate text-sm">
-                        {opts.isChild ? <span className="text-muted-foreground/60 ml-6">↳</span> : (item.supplier_name || "—")}
+                        {opts.isChild ? (
+                          <span className="text-muted-foreground/60 ml-6">↳</span>
+                        ) : item.cliente_id ? (
+                          <button
+                            type="button"
+                            onClick={() => handleEditClienteFromRow(item.cliente_id)}
+                            className="text-left hover:text-primary hover:underline transition-colors truncate max-w-full"
+                            title="Editar cliente"
+                          >
+                            {item.supplier_name || "—"}
+                          </button>
+                        ) : (
+                          item.supplier_name || "—"
+                        )}
                       </TableCell>
                       <TableCell className="truncate">
-                        <div className={opts.isChild ? "pl-4" : ""}>
-                          <span className="text-sm">{item.description}</span>
-                          {item.installment_total > 1 && (
-                            <span className="text-xs text-muted-foreground ml-1">
-                              ({item.installment_number}/{item.installment_total})
-                            </span>
-                          )}
-                        </div>
+                        <button
+                          type="button"
+                          onClick={() => requestEditAccount(item)}
+                          className="text-left w-full hover:text-primary transition-colors group/edit"
+                          title="Editar conta"
+                        >
+                          <div className={opts.isChild ? "pl-4" : ""}>
+                            <span className="text-sm group-hover/edit:underline">{item.description}</span>
+                            {item.installment_total > 1 && (
+                              <span className="text-xs text-muted-foreground ml-1">
+                                ({item.installment_number}/{item.installment_total})
+                              </span>
+                            )}
+                          </div>
+                        </button>
                       </TableCell>
                       <TableCell className="font-medium text-sm">{formatCurrency(item.amount)}</TableCell>
                       <TableCell>
@@ -1237,6 +1335,40 @@ export default function ContasAReceber() {
           </Table>
         )}
       </Card>
+
+      {/* Scope Dialog (parcelamento) */}
+      <Dialog open={!!scopeDialogItem} onOpenChange={(open) => !open && setScopeDialogItem(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Editar parcelamento</DialogTitle>
+            <DialogDescription>
+              Esta conta faz parte de um parcelamento de {scopeDialogItem?.installment_total || 0} parcelas. O que deseja editar?
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2 pt-2">
+            <button
+              type="button"
+              onClick={() => confirmScopeAndEdit("single")}
+              className="w-full text-left p-4 rounded-lg border border-border hover:border-primary hover:bg-primary/5 transition-all"
+            >
+              <div className="font-medium text-sm text-foreground">Apenas esta parcela</div>
+              <div className="text-xs text-muted-foreground mt-1">
+                Modificar somente a parcela {scopeDialogItem?.installment_number}/{scopeDialogItem?.installment_total}
+              </div>
+            </button>
+            <button
+              type="button"
+              onClick={() => confirmScopeAndEdit("group")}
+              className="w-full text-left p-4 rounded-lg border border-border hover:border-primary hover:bg-primary/5 transition-all"
+            >
+              <div className="font-medium text-sm text-foreground">Todas as parcelas do grupo</div>
+              <div className="text-xs text-muted-foreground mt-1">
+                Aplicar mudanças (descrição, valor, categoria, etc.) em todas. Vencimentos individuais permanecem.
+              </div>
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Receipt Dialog */}
       <Dialog open={showReceiptDialog} onOpenChange={setShowReceiptDialog}>

@@ -190,9 +190,43 @@ export function ClienteModal({ open, onOpenChange, editingId, onSaved, prefill }
         return data.id;
       }
     },
-    onSuccess: (id) => {
+    onSuccess: async (id) => {
       qc.invalidateQueries({ queryKey: ["clientes"] });
       toast.success(editingId ? "Cliente atualizado" : "Cliente cadastrado");
+
+      // Push to Asaas if integration is active and cliente has a charge linked there
+      if (editingId && empresa?.id) {
+        try {
+          const { data: cred } = await supabase
+            .from("integracoes_credenciais")
+            .select("id")
+            .eq("empresa_id", empresa.id)
+            .eq("provider", "asaas")
+            .eq("ativo", true)
+            .maybeSingle();
+          if (cred) {
+            const { data: linked } = await supabase
+              .from("asaas_cobrancas")
+              .select("id")
+              .eq("cliente_id", editingId)
+              .limit(1)
+              .maybeSingle();
+            if (linked) {
+              const { data: res, error: fnErr } = await supabase.functions.invoke("asaas-api", {
+                body: { action: "update_customer", cliente_id: editingId, empresa_id: empresa.id },
+              });
+              if (fnErr || (res as any)?.error) {
+                toast.warning(`Cliente salvo, mas falhou ao sincronizar com Asaas: ${(res as any)?.error || fnErr?.message}`);
+              } else if (!(res as any)?.skipped) {
+                toast.success("Cliente sincronizado com Asaas");
+              }
+            }
+          }
+        } catch (e) {
+          console.warn("[ClienteModal] asaas sync failed:", e);
+        }
+      }
+
       onSaved?.(id);
       onOpenChange(false);
     },

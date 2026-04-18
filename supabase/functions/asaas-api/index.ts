@@ -543,6 +543,144 @@ Deno.serve(async (req) => {
       });
     }
 
+    // ============ UPDATE CUSTOMER (push local cliente changes to Asaas) ============
+    if (action === "update_customer") {
+      const { cliente_id } = body;
+      if (!cliente_id) throw new Error("cliente_id obrigatório");
+
+      const { data: cliente, error: cliErr } = await serviceClient
+        .from("clientes")
+        .select("*")
+        .eq("id", cliente_id)
+        .eq("user_id", userId)
+        .single();
+      if (cliErr || !cliente) throw new Error("Cliente não encontrado");
+
+      const cpfCnpj = onlyDigits(cliente.tipo === "pf" ? cliente.cpf : cliente.cnpj);
+      if (!cpfCnpj) {
+        return new Response(JSON.stringify({ success: true, skipped: true, reason: "Cliente sem CPF/CNPJ" }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Find existing customer in Asaas by cpfCnpj
+      const search = await asaasFetch(cred, `/customers?cpfCnpj=${cpfCnpj}`);
+      if (!search?.data?.length) {
+        return new Response(JSON.stringify({ success: true, skipped: true, reason: "Cliente não existe no Asaas" }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const asaasCustomerId = search.data[0].id;
+
+      const nome = cliente.tipo === "pf"
+        ? cliente.nome_completo
+        : (cliente.nome_fantasia || cliente.razao_social);
+
+      const payload: Record<string, unknown> = {
+        name: nome || undefined,
+        cpfCnpj,
+        email: cliente.email || undefined,
+        phone: onlyDigits(cliente.telefone) || undefined,
+        mobilePhone: onlyDigits(cliente.whatsapp || cliente.telefone) || undefined,
+        postalCode: onlyDigits(cliente.cep) || undefined,
+        address: cliente.logradouro || undefined,
+        addressNumber: cliente.numero || undefined,
+        complement: cliente.complemento || undefined,
+        province: cliente.bairro || undefined,
+      };
+
+      const updated = await asaasFetch(cred, `/customers/${asaasCustomerId}`, {
+        method: "POST",
+        body: JSON.stringify(payload),
+      });
+
+      // Update asaas_cobrancas with latest customer id reference (for safety)
+      await serviceClient.from("asaas_cobrancas")
+        .update({ asaas_customer_id: asaasCustomerId })
+        .eq("user_id", userId)
+        .eq("cliente_id", cliente_id);
+
+      return new Response(JSON.stringify({ success: true, asaas_customer_id: asaasCustomerId, customer: updated }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // ============ UPDATE PAYMENT (push local receivable changes to Asaas) ============
+    if (action === "update_payment") {
+      const { receivable_id, scope } = body;
+      if (!receivable_id) throw new Error("receivable_id obrigatório");
+      const editScope = scope === "group" ? "group" : "single";
+
+      // Resolve target receivable IDs
+      let targetIds: string[] = [receivable_id];
+      if (editScope === "group") {
+        const { data: rec } = await serviceClient
+          .from("accounts_receivable")
+          .select("grupo_id")
+          .eq("id", receivable_id)
+          .eq("user_id", userId)
+          .maybeSingle();
+        if (rec?.grupo_id) {
+          const { data: siblings } = await serviceClient
+            .from("accounts_receivable")
+            .select("id")
+            .eq("user_id", userId)
+            .eq("grupo_id", rec.grupo_id);
+          targetIds = (siblings ?? []).map((s: any) => s.id);
+        }
+      }
+
+      const results: Array<{ id: string; success: boolean; skipped?: boolean; reason?: string; error?: string }> = [];
+      for (const rid of targetIds) {
+        try {
+          const { data: rec } = await serviceClient
+            .from("accounts_receivable")
+            .select("id, amount, due_date, description")
+            .eq("id", rid)
+            .eq("user_id", userId)
+            .maybeSingle();
+          if (!rec) { results.push({ id: rid, success: false, error: "não encontrada" }); continue; }
+
+          const { data: cob } = await serviceClient
+            .from("asaas_cobrancas")
+            .select("id, asaas_payment_id, status")
+            .eq("account_receivable_id", rid)
+            .eq("user_id", userId)
+            .maybeSingle();
+          if (!cob) { results.push({ id: rid, success: true, skipped: true, reason: "sem cobrança Asaas" }); continue; }
+          if (["RECEIVED", "CONFIRMED", "RECEIVED_IN_CASH", "REFUNDED"].includes(cob.status)) {
+            results.push({ id: rid, success: true, skipped: true, reason: `status ${cob.status} não editável` });
+            continue;
+          }
+
+          const payload = {
+            value: Number(rec.amount),
+            dueDate: rec.due_date,
+            description: rec.description?.slice(0, 500) || undefined,
+          };
+          const updated = await asaasFetch(cred, `/payments/${cob.asaas_payment_id}`, {
+            method: "POST",
+            body: JSON.stringify(payload),
+          });
+          await serviceClient.from("asaas_cobrancas")
+            .update({
+              value: updated.value,
+              due_date: updated.dueDate,
+              status: updated.status || cob.status,
+              raw_data: updated,
+            })
+            .eq("id", cob.id);
+          results.push({ id: rid, success: true });
+        } catch (e) {
+          results.push({ id: rid, success: false, error: e instanceof Error ? e.message : String(e) });
+        }
+      }
+      const ok = results.filter(r => r.success && !r.skipped).length;
+      return new Response(JSON.stringify({ success: true, total: results.length, ok, results }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     throw new Error(`Ação não suportada: ${action}`);
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);

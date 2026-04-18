@@ -25,6 +25,7 @@ import { CentroCustoModal } from "@/components/modals/CentroCustoModal";
 import { ContaBancariaModal } from "@/components/modals/ContaBancariaModal";
 import { FormaPagamentoModal } from "@/components/modals/FormaPagamentoModal";
 import { FornecedorModal, type FornecedorPrefill } from "@/components/modals/FornecedorModal";
+import { ClienteModal } from "@/components/modals/ClienteModal";
 import { BulkBoletoScanner } from "@/components/BulkBoletoScanner";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -164,6 +165,10 @@ export default function ContasAPagar() {
   const [isPickingScanFile, setIsPickingScanFile] = useState(false);
   const [bulkScanOpen, setBulkScanOpen] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [cliEditingId, setCliEditingId] = useState<string | null>(null);
+  const [cliModalOpen, setCliModalOpen] = useState(false);
+  const [scopeDialogItem, setScopeDialogItem] = useState<any | null>(null);
+  const [editScope, setEditScope] = useState<"single" | "group">("single");
   const scanInputRef = useRef<HTMLInputElement>(null);
 
   // Fetch data
@@ -309,7 +314,20 @@ export default function ContasAPagar() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: any }) => updateAccountPayable(id, data),
+    mutationFn: async ({ id, data, scope }: { id: string; data: any; scope?: "single" | "group" }) => {
+      if (scope === "group") {
+        const { data: rec } = await supabase.from("accounts_payable").select("grupo_id").eq("id", id).maybeSingle();
+        if (rec?.grupo_id) {
+          const { due_date, installment_number, installment_total, ...groupSafe } = data;
+          const { data: siblings } = await supabase.from("accounts_payable").select("id").eq("grupo_id", rec.grupo_id);
+          for (const s of (siblings ?? [])) {
+            await updateAccountPayable(s.id, s.id === id ? data : groupSafe);
+          }
+          return;
+        }
+      }
+      await updateAccountPayable(id, data);
+    },
     onSuccess: async () => {
       await refreshQueries(queryClient, [["accounts-payable"], ["accounts-payable-counts"]]);
       toast.success("Conta atualizada!");
@@ -433,6 +451,7 @@ export default function ContasAPagar() {
     if (editingId) {
       updateMutation.mutate({
         id: editingId,
+        scope: editScope,
         data: {
           description: form.description,
           supplier_id: form.supplier_id || null,
@@ -647,6 +666,25 @@ export default function ContasAPagar() {
       else next.add(id);
       return next;
     });
+  };
+
+  const requestEditAccount = (item: any) => {
+    const isParcelado = (item.installment_total || 1) > 1 && !!item.grupo_id;
+    if (isParcelado) { setScopeDialogItem(item); return; }
+    setEditScope("single");
+    handleEdit(item);
+  };
+  const confirmScopeAndEdit = (scope: "single" | "group") => {
+    setEditScope(scope);
+    if (scopeDialogItem) {
+      const item = scopeDialogItem;
+      setScopeDialogItem(null);
+      handleEdit(item);
+    }
+  };
+  const handleEditEntityFromRow = (item: any) => {
+    if (item.cliente_id) { setCliEditingId(item.cliente_id); setCliModalOpen(true); }
+    else if (item.supplier_id) { setFornEditingId(item.supplier_id); setFornPrefill(null); setFornModalOpen(true); }
   };
 
   const handleDuplicate = (item: any) => {
@@ -1160,17 +1198,25 @@ export default function ContasAPagar() {
                         />
                       </TableCell>
                       <TableCell className="font-medium truncate text-sm">
-                        {opts.isChild ? <span className="text-muted-foreground/60 ml-6">↳</span> : (item.supplier_name || "—")}
+                        {opts.isChild ? (
+                          <span className="text-muted-foreground/60 ml-6">↳</span>
+                        ) : (item.cliente_id || item.supplier_id) ? (
+                          <button type="button" onClick={() => handleEditEntityFromRow(item)} className="text-left hover:text-primary hover:underline transition-colors truncate max-w-full" title="Editar cadastro">
+                            {item.supplier_name || "—"}
+                          </button>
+                        ) : (item.supplier_name || "—")}
                       </TableCell>
                       <TableCell className="truncate">
-                        <div className={opts.isChild ? "pl-4" : ""}>
-                          <span className="text-sm">{item.description}</span>
-                          {item.installment_total > 1 && (
-                            <span className="text-xs text-muted-foreground ml-1">
-                              ({item.installment_number}/{item.installment_total})
-                            </span>
-                          )}
-                        </div>
+                        <button type="button" onClick={() => requestEditAccount(item)} className="text-left w-full hover:text-primary transition-colors group/edit" title="Editar conta">
+                          <div className={opts.isChild ? "pl-4" : ""}>
+                            <span className="text-sm group-hover/edit:underline">{item.description}</span>
+                            {item.installment_total > 1 && (
+                              <span className="text-xs text-muted-foreground ml-1">
+                                ({item.installment_number}/{item.installment_total})
+                              </span>
+                            )}
+                          </div>
+                        </button>
                       </TableCell>
                       <TableCell className="font-medium text-sm">{formatCurrency(item.amount)}</TableCell>
                       <TableCell>
