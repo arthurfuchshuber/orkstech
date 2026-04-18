@@ -81,10 +81,10 @@ export function CaixaKpis({
       {cards.map((c) => {
         const Icon = c.icon;
         return (
-          <Card key={c.label} className="border-border/50 hover:border-border transition-colors relative">
+          <Card key={c.label} className="border-border/50 hover:border-border transition-colors relative overflow-visible">
             {c.flag && (
               <span className={cn(
-                "absolute top-2 right-2 text-[9px] uppercase tracking-wider font-medium px-1.5 py-0.5 rounded border",
+                "absolute -top-2 left-1/2 -translate-x-1/2 text-[9px] uppercase tracking-wider font-medium px-2 py-0.5 rounded border whitespace-nowrap",
                 flagStyles[c.tone]
               )}>
                 {c.flag}
