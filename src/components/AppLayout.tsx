@@ -5,6 +5,7 @@ import { Search, User, LogOut } from "lucide-react";
 import { NotificationDropdown } from "@/components/NotificationDropdown";
 import { EmpresaCnpjGuard } from "@/components/EmpresaCnpjGuard";
 import { SubscriptionGuard } from "@/components/SubscriptionGuard";
+import { SubscriptionStatusBanner } from "@/components/SubscriptionStatusBanner";
 import { useAuth } from "@/hooks/useAuth";
 import { useBankNotifications } from "@/hooks/useBankNotifications";
 import { toast } from "sonner";
@@ -26,6 +27,7 @@ export default function AppLayout() {
       <div className="min-h-screen flex w-full bg-background">
         <AppSidebar />
         <div className="flex-1 flex flex-col min-w-0">
+          <SubscriptionStatusBanner />
           <header className="h-14 flex items-center justify-between border-b border-border/30 px-5 bg-background/80 backdrop-blur-lg sticky top-0 z-40">
             <div className="flex items-center gap-3">
               <SidebarTrigger className="text-muted-foreground hover:text-foreground transition-colors" />
