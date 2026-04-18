@@ -756,10 +756,13 @@ export default function ExtratoBancario() {
                 const isInternal = isInternalTransaction(tx);
                 const catFin = categoriasFinanceiras.find((c: any) => c.id === tx.categoria_financeira_id);
 
-                // Apenas folhas finais (categorias que NÃO possuem filhas)
-                const subcatOptions = categoriasFinanceiras.filter(
-                  (c: any) => !categoriasFinanceiras.some((child: any) => child.categoria_pai_id === c.id)
-                );
+                // Filtra por tipo financeiro pertinente ao fluxo (entrada x saída) e mostra apenas folhas finais
+                const allowedTipos = isCredit
+                  ? ["receita", "receita_financeira", "ajuste"]
+                  : ["despesa", "custo", "deducao", "imposto", "despesa_financeira", "ajuste"];
+                const subcatOptions = categoriasFinanceiras
+                  .filter((c: any) => allowedTipos.includes(c.tipo))
+                  .filter((c: any) => !categoriasFinanceiras.some((child: any) => child.categoria_pai_id === c.id));
 
                 return (
                   <div
