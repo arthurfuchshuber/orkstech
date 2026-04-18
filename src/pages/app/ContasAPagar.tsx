@@ -1054,7 +1054,7 @@ export default function ContasAPagar() {
           amount={nextMonthAmount}
           count={nextMonthItems.length}
           icon={CalendarDays}
-          tone="violet"
+          tone="neutral"
           onClick={nextMonthItems.length > 0 ? () => setQuickListMode("nextMonth") : undefined}
           disabled={nextMonthItems.length === 0}
         />
