@@ -285,8 +285,8 @@ export function ClienteVisaoGeralTab({ cliente, onEdit: _onEdit }: Props) {
     queryKey: ["cliente-fin-snapshot", cliente.id],
     queryFn: async () => {
       const [pagar, receber] = await Promise.all([
-        supabase.from("accounts_payable").select("amount,due_date,status,description,payment_date").eq("cliente_id", cliente.id),
-        supabase.from("accounts_receivable").select("amount,due_date,status,description,payment_date").eq("cliente_id", cliente.id),
+        supabase.from("accounts_payable").select("*").eq("cliente_id", cliente.id),
+        supabase.from("accounts_receivable").select("*").eq("cliente_id", cliente.id),
       ]);
       return {
         pagar: pagar.data || [],
