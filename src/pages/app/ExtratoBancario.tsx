@@ -42,7 +42,6 @@ import {
   CalendarIcon,
   PiggyBank,
   ChevronDown,
-  Tag,
 } from "lucide-react";
 import { format, startOfMonth, endOfMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -719,7 +718,7 @@ export default function ExtratoBancario() {
         </div>
       </Card>
 
-      <Card className="divide-y divide-border/30">
+      <Card className="overflow-hidden">
         {loadingAccounts || loadingTx ? (
           <div className="py-12 text-center text-sm text-muted-foreground">
             Carregando transações...
@@ -731,131 +730,141 @@ export default function ExtratoBancario() {
               : "Nenhuma transação encontrada."}
           </div>
         ) : (
-          filteredTx.map((tx) => {
-            const isCredit = tx.type === "CREDIT" || tx.amount > 0;
-            const isInternal = isInternalTransaction(tx);
+          <>
+            <div className="grid grid-cols-[minmax(0,1.6fr)_120px_220px_140px] gap-4 border-b border-border/50 bg-card px-4 py-3 text-sm text-muted-foreground">
+              <div>Descrição</div>
+              <div>Data</div>
+              <div>Subcategoria</div>
+              <div className="text-right">Valor</div>
+            </div>
 
-            return (
-              <div
-                key={tx.id}
-                className={cn(
-                  "flex items-center gap-3 px-4 py-3 transition-colors hover:bg-muted/30",
-                  isInternal && "opacity-60"
-                )}
-              >
-                <div
-                  className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg ${
-                    isCredit ? "bg-primary/10" : "bg-destructive/10"
-                  }`}
-                >
-                  {isCredit ? (
-                    <ArrowDownLeft className="h-4 w-4 text-primary" />
-                  ) : (
-                    <ArrowUpRight className="h-4 w-4 text-destructive" />
-                  )}
-                </div>
+            <div className="divide-y divide-border/30">
+              {filteredTx.map((tx) => {
+                const isCredit = tx.type === "CREDIT" || tx.amount > 0;
+                const isInternal = isInternalTransaction(tx);
+                const catFin = categoriasFinanceiras.find((c: any) => c.id === tx.categoria_financeira_id);
+                const parents = categoriasFinanceiras.filter((c: any) => !c.categoria_pai_id);
 
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2">
-                    <p className="truncate text-sm font-medium text-foreground">
-                      {tx.description || "Sem descrição"}
-                    </p>
-                    {isInternal && (
-                      <Badge variant="outline" className="gap-1 text-[10px] border-muted-foreground/30">
-                        Interno
-                      </Badge>
+                return (
+                  <div
+                    key={tx.id}
+                    className={cn(
+                      "grid grid-cols-[minmax(0,1.6fr)_120px_220px_140px] items-center gap-4 px-4 py-3 transition-colors hover:bg-muted/30",
+                      isInternal && "opacity-60"
                     )}
-                    {tx.reconciled && (
-                      <Badge variant="outline" className="gap-1 text-[10px]">
-                        <CheckCircle2 className="h-3 w-3" />
-                        Conciliado
-                      </Badge>
-                    )}
-                  </div>
+                  >
+                    <div className="min-w-0 flex items-center gap-3">
+                      <div
+                        className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg ${
+                          isCredit ? "bg-primary/10" : "bg-destructive/10"
+                        }`}
+                      >
+                        {isCredit ? (
+                          <ArrowDownLeft className="h-4 w-4 text-primary" />
+                        ) : (
+                          <ArrowUpRight className="h-4 w-4 text-destructive" />
+                        )}
+                      </div>
 
-                  <div className="mt-0.5 flex items-center gap-2">
-                    <span className="text-[11px] text-muted-foreground">
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <p className="truncate text-sm font-medium text-foreground">
+                            {tx.description || "Sem descrição"}
+                          </p>
+                          {isInternal && (
+                            <Badge variant="outline" className="gap-1 text-[10px] border-muted-foreground/30">
+                              Interno
+                            </Badge>
+                          )}
+                          {tx.reconciled && (
+                            <Badge variant="outline" className="gap-1 text-[10px]">
+                              <CheckCircle2 className="h-3 w-3" />
+                              Conciliado
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="text-sm text-muted-foreground">
                       {formatDate(tx.date)}
-                    </span>
-                    {(() => {
-                      const catFin = categoriasFinanceiras.find((c: any) => c.id === tx.categoria_financeira_id);
-                      const parents = categoriasFinanceiras.filter((c: any) => !c.categoria_pai_id);
-                      return (
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <button
-                              className="flex items-center gap-1 text-[11px] cursor-pointer text-muted-foreground hover:text-foreground transition-colors group/cat"
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              <span className="truncate">
-                                {catFin?.nome || <span className="text-muted-foreground/50">Selecionar</span>}
-                              </span>
-                              <ChevronDown className="w-3 h-3 text-muted-foreground opacity-0 group-hover/cat:opacity-100 transition-opacity flex-shrink-0" />
-                            </button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="start" className="max-h-[360px] w-64 overflow-y-auto custom-scrollbar">
-                            {categoriasFinanceiras.length === 0 && (
-                              <div className="px-2 py-3 text-xs text-muted-foreground">
-                                Nenhuma categoria cadastrada. Crie em Configurações → Plano de Contas.
-                              </div>
-                            )}
-                            {parents.map((parent: any) => {
-                              const children = categoriasFinanceiras.filter((c: any) => c.categoria_pai_id === parent.id);
-                              if (children.length === 0) {
-                                return (
-                                  <DropdownMenuItem
-                                    key={parent.id}
-                                    onClick={() => updateCategoriaMutation.mutate({ id: tx.id, categoria_financeira_id: parent.id })}
-                                  >
-                                    {parent.nome}
-                                  </DropdownMenuItem>
-                                );
-                              }
-                              return (
-                                <div key={parent.id}>
-                                  <DropdownMenuLabel className="text-[10px] uppercase tracking-wide text-muted-foreground/80 font-semibold pt-2">
-                                    {parent.nome}
-                                  </DropdownMenuLabel>
-                                  {children.map((c: any) => (
-                                    <DropdownMenuItem
-                                      key={c.id}
-                                      onClick={() => updateCategoriaMutation.mutate({ id: tx.id, categoria_financeira_id: c.id })}
-                                      className="pl-4"
-                                    >
-                                      {c.nome}
-                                    </DropdownMenuItem>
-                                  ))}
-                                </div>
-                              );
-                            })}
-                            {tx.categoria_financeira_id && (
-                              <>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem
-                                  onClick={() => updateCategoriaMutation.mutate({ id: tx.id, categoria_financeira_id: null })}
-                                  className="text-muted-foreground"
-                                >
-                                  Limpar
-                                </DropdownMenuItem>
-                              </>
-                            )}
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      );
-                    })()}
-                  </div>
-                </div>
+                    </div>
 
-                <p
-                  className={`whitespace-nowrap text-sm font-semibold ${
-                    isCredit ? "text-primary" : "text-destructive"
-                  }`}
-                >
-                  {isCredit ? "+" : "-"} {formatCurrency(Math.abs(tx.amount))}
-                </p>
-              </div>
-            );
-          })
+                    <div className="min-w-0">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <button
+                            className="flex items-center gap-1 text-sm cursor-pointer hover:text-foreground transition-colors group/cat w-full text-left"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <span className="truncate">
+                              {catFin?.nome || <span className="text-muted-foreground/50">Selecionar</span>}
+                            </span>
+                            <ChevronDown className="w-3 h-3 text-muted-foreground opacity-0 group-hover/cat:opacity-100 transition-opacity flex-shrink-0" />
+                          </button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="start" className="max-h-[360px] w-64 overflow-y-auto custom-scrollbar">
+                          {categoriasFinanceiras.length === 0 && (
+                            <div className="px-2 py-3 text-xs text-muted-foreground">
+                              Nenhuma categoria cadastrada. Crie em Configurações → Plano de Contas.
+                            </div>
+                          )}
+                          {parents.map((parent: any) => {
+                            const children = categoriasFinanceiras.filter((c: any) => c.categoria_pai_id === parent.id);
+                            if (children.length === 0) {
+                              return (
+                                <DropdownMenuItem
+                                  key={parent.id}
+                                  onClick={() => updateCategoriaMutation.mutate({ id: tx.id, categoria_financeira_id: parent.id })}
+                                >
+                                  {parent.nome}
+                                </DropdownMenuItem>
+                              );
+                            }
+                            return (
+                              <div key={parent.id}>
+                                <DropdownMenuLabel className="text-[10px] uppercase tracking-wide text-muted-foreground/80 font-semibold pt-2">
+                                  {parent.nome}
+                                </DropdownMenuLabel>
+                                {children.map((c: any) => (
+                                  <DropdownMenuItem
+                                    key={c.id}
+                                    onClick={() => updateCategoriaMutation.mutate({ id: tx.id, categoria_financeira_id: c.id })}
+                                    className="pl-4"
+                                  >
+                                    {c.nome}
+                                  </DropdownMenuItem>
+                                ))}
+                              </div>
+                            );
+                          })}
+                          {tx.categoria_financeira_id && (
+                            <>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem
+                                onClick={() => updateCategoriaMutation.mutate({ id: tx.id, categoria_financeira_id: null })}
+                                className="text-muted-foreground"
+                              >
+                                Limpar
+                              </DropdownMenuItem>
+                            </>
+                          )}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+
+                    <p
+                      className={`whitespace-nowrap text-right text-sm font-semibold ${
+                        isCredit ? "text-primary" : "text-destructive"
+                      }`}
+                    >
+                      {isCredit ? "+" : "-"} {formatCurrency(Math.abs(tx.amount))}
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
+          </>
         )}
       </Card>
     </div>
