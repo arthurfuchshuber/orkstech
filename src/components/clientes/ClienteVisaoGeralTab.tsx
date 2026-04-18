@@ -300,53 +300,49 @@ export function ClienteVisaoGeralTab({ cliente, onEdit: _onEdit }: Props) {
 
   const fmt = (v: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
 
-  // ---------- Smart AI Summary (Customer Success style) ----------
-  const aiInsights = useMemo(() => {
-    const lines: { tone: "danger" | "warn" | "ok" | "info"; text: string }[] = [];
+  // ---------- Strategic AI Summary via Lovable AI ----------
+  // Build a debounced fingerprint to avoid excessive calls
+  const aiPayload = useMemo(() => ({
+    cliente: {
+      nome: cliente.tipo === "pf" ? cliente.nome_completo : (cliente.nome_fantasia || cliente.razao_social),
+      tipo: cliente.tipo,
+      ativo: cliente.ativo,
+      cidade: cliente.cidade,
+      estado: cliente.estado,
+      tags: (cliente as any).tags || [],
+      criado_em: cliente.created_at,
+    },
+    receber: macro.receber,
+    pagar: macro.pagar,
+    interacoes_total: interacoes.length,
+    ultima_interacao: interacoes[0]?.created_at || null,
+    ultimos_tipos: interacoes.slice(0, 5).map((i) => i.tipo),
+  }), [cliente, macro, interacoes]);
 
-    if (macro.receber.overdueCount > 0) {
-      lines.push({
-        tone: "danger",
-        text: `${macro.receber.overdueCount} ${macro.receber.overdueCount === 1 ? "cobrança vencida" : "cobranças vencidas"} (${fmt(macro.receber.overdueAmount)}) — risco de churn elevado.`,
+  const fingerprint = useMemo(() => JSON.stringify({
+    id: cliente.id,
+    a: cliente.ativo,
+    rO: macro.receber.overdueCount,
+    rD: macro.receber.dueSoonCount,
+    rP: macro.receber.paidCount,
+    pO: macro.pagar.overdueCount,
+    pD: macro.pagar.dueSoonCount,
+    iT: interacoes.length,
+    iL: interacoes[0]?.created_at || "",
+  }), [cliente.id, cliente.ativo, macro, interacoes]);
+
+  const { data: aiData, isLoading: aiLoading, isError: aiError } = useQuery({
+    queryKey: ["cliente-ai-summary", fingerprint],
+    queryFn: async () => {
+      const { data, error } = await supabase.functions.invoke("cliente-ai-summary", {
+        body: aiPayload,
       });
-    }
-    if (macro.receber.dueSoonCount > 0) {
-      lines.push({
-        tone: "warn",
-        text: `${macro.receber.dueSoonCount} ${macro.receber.dueSoonCount === 1 ? "cobrança vence" : "cobranças vencem"} nos próximos 7 dias (${fmt(macro.receber.dueSoonAmount)}).`,
-      });
-    }
-    if (macro.receber.paidCount > 0 && macro.receber.overdueCount === 0) {
-      lines.push({
-        tone: "ok",
-        text: `Cliente em dia. ${fmt(macro.receber.paidAmount)} já recebidos em ${macro.receber.paidCount} ${macro.receber.paidCount === 1 ? "lançamento" : "lançamentos"}.`,
-      });
-    }
-    if (macro.pagar.overdueCount > 0) {
-      lines.push({
-        tone: "warn",
-        text: `${macro.pagar.overdueCount} ${macro.pagar.overdueCount === 1 ? "conta a pagar vencida" : "contas a pagar vencidas"} vinculadas (${fmt(macro.pagar.overdueAmount)}).`,
-      });
-    }
-    if (interacoes.length > 0) {
-      const last = new Date(interacoes[0].created_at);
-      const days = Math.floor((Date.now() - last.getTime()) / 86400000);
-      if (days > 30) {
-        lines.push({ tone: "warn", text: `Sem interação há ${days} dias — recomendar follow-up proativo.` });
-      } else if (days <= 7) {
-        lines.push({ tone: "info", text: `Engajamento recente: última interação há ${days === 0 ? "menos de 1 dia" : `${days} ${days === 1 ? "dia" : "dias"}`}.` });
-      }
-    } else {
-      lines.push({ tone: "info", text: "Nenhuma interação registrada — iniciar relacionamento e mapear necessidades." });
-    }
-    if (!cliente.ativo) {
-      lines.push({ tone: "danger", text: "Cliente marcado como inativo no cadastro." });
-    }
-    if (lines.length === 0) {
-      lines.push({ tone: "info", text: "Sem sinais críticos. Cliente saudável até o momento." });
-    }
-    return lines;
-  }, [macro, interacoes, cliente.ativo]);
+      if (error) throw error;
+      return data as { insights: { tone: "danger" | "warn" | "ok" | "info"; text: string }[]; recommendation: string };
+    },
+    staleTime: 5 * 60 * 1000,
+    retry: 1,
+  });
 
   const toneStyles: Record<string, string> = {
     danger: "text-destructive",
