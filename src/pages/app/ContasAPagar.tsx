@@ -170,6 +170,7 @@ export default function ContasAPagar() {
   const [cliModalOpen, setCliModalOpen] = useState(false);
   const [scopeDialogItem, setScopeDialogItem] = useState<any | null>(null);
   const [editScope, setEditScope] = useState<"single" | "group">("single");
+  const [quickListMode, setQuickListMode] = useState<"overdue" | "nearDue" | null>(null);
   const scanInputRef = useRef<HTMLInputElement>(null);
 
   // Fetch data
