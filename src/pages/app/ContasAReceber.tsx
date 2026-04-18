@@ -908,12 +908,32 @@ export default function ContasAReceber() {
         </Button>
       </div>
 
-      {nearDue > 0 && (
-        <div className="flex items-center gap-2 px-4 py-3 rounded-lg bg-amber-500/10 border border-amber-200">
-          <AlertTriangle className="w-4 h-4 text-amber-600" />
-          <span className="text-sm text-amber-700 font-medium">
-            {nearDue} conta(s) com vencimento nos próximos 7 dias
-          </span>
+      {(overdueCount > 0 || nearDue > 0) && (
+        <div className="grid gap-2 sm:grid-cols-2">
+          {overdueCount > 0 && (
+            <button
+              type="button"
+              onClick={() => setQuickListMode("overdue")}
+              className="flex items-center gap-2 px-4 py-3 rounded-lg bg-red-500/10 border border-red-200 hover:bg-red-500/15 transition-colors text-left"
+            >
+              <AlertTriangle className="w-4 h-4 text-red-600 shrink-0" />
+              <span className="text-sm text-red-700 font-medium flex-1">
+                {overdueCount} conta(s) vencida(s) — clique para gerenciar
+              </span>
+            </button>
+          )}
+          {nearDue > 0 && (
+            <button
+              type="button"
+              onClick={() => setQuickListMode("nearDue")}
+              className="flex items-center gap-2 px-4 py-3 rounded-lg bg-amber-500/10 border border-amber-200 hover:bg-amber-500/15 transition-colors text-left"
+            >
+              <Clock className="w-4 h-4 text-amber-600 shrink-0" />
+              <span className="text-sm text-amber-700 font-medium flex-1">
+                {nearDue} conta(s) com vencimento nos próximos 7 dias — clique para gerenciar
+              </span>
+            </button>
+          )}
         </div>
       )}
 
