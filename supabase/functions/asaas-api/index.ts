@@ -354,24 +354,64 @@ Deno.serve(async (req) => {
             }
           }
 
-          // Try linking client by Asaas customer -> CPF/CNPJ -> local cliente
+          // Link/Create local cliente from Asaas customer (CPF=PF / CNPJ=PJ)
           if (!clienteIdLocal && payment.customer) {
             try {
               const cust = await asaasFetch(cred, `/customers/${payment.customer}`);
               const doc = onlyDigits(cust?.cpfCnpj);
               if (doc) {
+                const isPF = doc.length === 11;
+                const tipo = isPF ? "pf" : "pj";
+
+                // Try to find existing cliente by document
                 const { data: cli } = await serviceClient
                   .from("clientes")
                   .select("id, empresa_id")
                   .eq("user_id", userId)
                   .or(`cpf.eq.${doc},cnpj.eq.${doc}`)
                   .maybeSingle();
+
                 if (cli) {
                   clienteIdLocal = cli.id;
                   empresaIdLocal = cli.empresa_id || empresaIdLocal;
+                } else {
+                  // Auto-create cliente from Asaas data
+                  const nome = (cust?.name || "Cliente Asaas").toString().trim().slice(0, 120);
+                  const insertCliente: Record<string, unknown> = {
+                    user_id: userId,
+                    empresa_id: empresaIdLocal,
+                    tipo,
+                    email: cust?.email || null,
+                    telefone: cust?.phone || null,
+                    whatsapp: cust?.mobilePhone || null,
+                    cep: onlyDigits(cust?.postalCode) || null,
+                    logradouro: cust?.address || null,
+                    numero: cust?.addressNumber || null,
+                    complemento: cust?.complement || null,
+                    bairro: cust?.province || null,
+                    cidade: cust?.city || null,
+                    estado: cust?.state || null,
+                    observacoes: "Importado automaticamente do Asaas",
+                  };
+                  if (isPF) {
+                    insertCliente.cpf = doc;
+                    insertCliente.nome_completo = nome.toUpperCase();
+                  } else {
+                    insertCliente.cnpj = doc;
+                    insertCliente.razao_social = nome.toUpperCase();
+                    insertCliente.nome_fantasia = nome.toUpperCase();
+                  }
+                  const { data: newCli, error: cliErr } = await serviceClient
+                    .from("clientes")
+                    .insert(insertCliente)
+                    .select("id")
+                    .single();
+                  if (!cliErr && newCli) clienteIdLocal = newCli.id;
                 }
               }
-            } catch { /* ignore lookup errors */ }
+            } catch (e) {
+              console.warn("[asaas-api] customer lookup/create failed:", (e as Error).message);
+            }
           }
 
           // ===== Auto-create local accounts_receivable so charges show in Contas a Receber / Dashboard =====
