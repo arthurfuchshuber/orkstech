@@ -68,7 +68,7 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
 
-    // ============ TEST CONNECTION ============
+    // ============ TEST CONNECTION (no creds required) ============
     if (action === "test") {
       const { api_key, ambiente } = body;
       if (!api_key) throw new Error("api_key obrigatória");
@@ -305,6 +305,116 @@ Deno.serve(async (req) => {
         .update({ status: payment.status, payment_date: payment.paymentDate || null, raw_data: payment })
         .eq("id", cobranca_id);
       return new Response(JSON.stringify({ success: true, payment }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // ============ SYNC HISTORY (full backfill of all charges) ============
+    if (action === "sync_history") {
+      let offset = 0;
+      const limit = 100;
+      let totalFetched = 0;
+      let inserted = 0;
+      let updated = 0;
+
+      while (true) {
+        const page = await asaasFetch(cred, `/payments?limit=${limit}&offset=${offset}`);
+        const list: any[] = page?.data || [];
+        if (list.length === 0) break;
+        totalFetched += list.length;
+
+        for (const payment of list) {
+          // Check if already exists locally
+          const { data: existing } = await serviceClient
+            .from("asaas_cobrancas")
+            .select("id")
+            .eq("user_id", userId)
+            .eq("asaas_payment_id", payment.id)
+            .maybeSingle();
+
+          // Try linking to a local receivable via externalReference
+          let accountReceivableId: string | null = null;
+          let clienteIdLocal: string | null = null;
+          let empresaIdLocal: string | null = cred.empresa_id;
+
+          if (payment.externalReference) {
+            const { data: rec } = await serviceClient
+              .from("accounts_receivable")
+              .select("id, cliente_id, empresa_id")
+              .eq("id", payment.externalReference)
+              .eq("user_id", userId)
+              .maybeSingle();
+            if (rec) {
+              accountReceivableId = rec.id;
+              clienteIdLocal = rec.cliente_id;
+              empresaIdLocal = rec.empresa_id || empresaIdLocal;
+            }
+          }
+
+          // Try linking client by Asaas customer -> CPF/CNPJ -> local cliente
+          if (!clienteIdLocal && payment.customer) {
+            try {
+              const cust = await asaasFetch(cred, `/customers/${payment.customer}`);
+              const doc = onlyDigits(cust?.cpfCnpj);
+              if (doc) {
+                const { data: cli } = await serviceClient
+                  .from("clientes")
+                  .select("id, empresa_id")
+                  .eq("user_id", userId)
+                  .or(`cpf.eq.${doc},cnpj.eq.${doc}`)
+                  .maybeSingle();
+                if (cli) {
+                  clienteIdLocal = cli.id;
+                  empresaIdLocal = cli.empresa_id || empresaIdLocal;
+                }
+              }
+            } catch { /* ignore lookup errors */ }
+          }
+
+          const row = {
+            user_id: userId,
+            empresa_id: empresaIdLocal,
+            account_receivable_id: accountReceivableId,
+            cliente_id: clienteIdLocal,
+            asaas_customer_id: payment.customer || null,
+            asaas_payment_id: payment.id,
+            billing_type: payment.billingType || "UNDEFINED",
+            status: payment.status || "PENDING",
+            value: Number(payment.value) || 0,
+            due_date: payment.dueDate,
+            payment_date: payment.paymentDate || payment.confirmedDate || null,
+            invoice_url: payment.invoiceUrl || null,
+            bank_slip_url: payment.bankSlipUrl || null,
+            identification_field: payment.identificationField || null,
+            raw_data: payment,
+          };
+
+          if (existing) {
+            await serviceClient.from("asaas_cobrancas").update(row).eq("id", existing.id);
+            updated++;
+          } else {
+            await serviceClient.from("asaas_cobrancas").insert(row);
+            inserted++;
+          }
+        }
+
+        if (list.length < limit) break;
+        offset += limit;
+        if (offset > 5000) break; // safety guard
+      }
+
+      return new Response(JSON.stringify({ success: true, totalFetched, inserted, updated }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // ============ PURGE HISTORY (delete all local charges for this user/empresa) ============
+    if (action === "purge_history") {
+      let q = serviceClient.from("asaas_cobrancas").delete().eq("user_id", userId);
+      if (cred.empresa_id) q = q.eq("empresa_id", cred.empresa_id);
+      const { error: delErr, count } = await q;
+      if (delErr) throw delErr;
+      return new Response(JSON.stringify({ success: true, deleted: count ?? null }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
