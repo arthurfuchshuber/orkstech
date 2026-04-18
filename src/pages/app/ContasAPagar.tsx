@@ -5,8 +5,10 @@ import {
   Receipt, Plus, Check, Loader2, AlertTriangle, Clock, Ban,
   FileText, Search, CreditCard,
   Building2, Target, Landmark, FolderTree, Copy, Pencil, Trash2,
-  Banknote, ChevronDown, ChevronRight, ScanLine, MoreHorizontal, BarChart3, Layers, Eye
+  Banknote, ChevronDown, ChevronRight, ScanLine, MoreHorizontal, BarChart3, Layers, Eye,
+  Calendar, CalendarDays,
 } from "lucide-react";
+import { DueStatCard } from "@/components/financas/DueStatCard";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { FormModal } from "@/components/FormModal";
@@ -170,7 +172,7 @@ export default function ContasAPagar() {
   const [cliModalOpen, setCliModalOpen] = useState(false);
   const [scopeDialogItem, setScopeDialogItem] = useState<any | null>(null);
   const [editScope, setEditScope] = useState<"single" | "group">("single");
-  const [quickListMode, setQuickListMode] = useState<"overdue" | "nearDue" | null>(null);
+  const [quickListMode, setQuickListMode] = useState<"overdue" | "nearDue" | "thisMonth" | "nextMonth" | null>(null);
   const scanInputRef = useRef<HTMLInputElement>(null);
 
   // Fetch data
@@ -952,6 +954,28 @@ export default function ContasAPagar() {
       return due >= today && due <= limit;
     });
   }, [payables, today]);
+  const thisMonthItems = useMemo(() => {
+    const y = today.getFullYear(); const m = today.getMonth();
+    return payables.filter((p: any) => {
+      if (p.status !== "pending") return false;
+      const due = new Date(p.due_date + "T00:00:00");
+      return due >= today && due.getFullYear() === y && due.getMonth() === m;
+    });
+  }, [payables, today]);
+  const nextMonthItems = useMemo(() => {
+    const y = today.getFullYear(); const m = today.getMonth();
+    const ny = m === 11 ? y + 1 : y; const nm = (m + 1) % 12;
+    return payables.filter((p: any) => {
+      if (p.status !== "pending") return false;
+      const due = new Date(p.due_date + "T00:00:00");
+      return due.getFullYear() === ny && due.getMonth() === nm;
+    });
+  }, [payables, today]);
+  const sumAmount = (arr: any[]) => arr.reduce((s, i) => s + Number(i.amount || 0), 0);
+  const overdueAmount = sumAmount(overdueItems);
+  const nearDueAmount = sumAmount(nearDueItems);
+  const thisMonthAmount = sumAmount(thisMonthItems);
+  const nextMonthAmount = sumAmount(nextMonthItems);
   const nearDue = nearDueItems.length;
   const overdueCount = overdueItems.length;
 
@@ -997,34 +1021,44 @@ export default function ContasAPagar() {
       </div>
 
 
-      {(overdueCount > 0 || nearDue > 0) && (
-        <div className="flex flex-col gap-2">
-          {overdueCount > 0 && (
-            <button
-              type="button"
-              onClick={() => setQuickListMode("overdue")}
-              className="flex items-center gap-2 px-4 py-3 rounded-lg bg-red-500/10 border border-red-200 hover:bg-red-500/15 transition-colors text-left"
-            >
-              <AlertTriangle className="w-4 h-4 text-red-600 shrink-0" />
-              <span className="text-sm text-red-700 font-medium flex-1">
-                {overdueCount} {overdueCount === 1 ? "conta vencida" : "contas vencidas"}
-              </span>
-            </button>
-          )}
-          {nearDue > 0 && (
-            <button
-              type="button"
-              onClick={() => setQuickListMode("nearDue")}
-              className="flex items-center gap-2 px-4 py-3 rounded-lg bg-amber-500/10 border border-amber-200 hover:bg-amber-500/15 transition-colors text-left"
-            >
-              <Clock className="w-4 h-4 text-amber-600 shrink-0" />
-              <span className="text-sm text-amber-700 font-medium flex-1">
-                {nearDue} {nearDue === 1 ? "conta com vencimento" : "contas com vencimento"} nos próximos 7 dias
-              </span>
-            </button>
-          )}
-        </div>
-      )}
+      <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+        <DueStatCard
+          title="Contas Vencidas"
+          amount={overdueAmount}
+          count={overdueCount}
+          icon={AlertTriangle}
+          tone="red"
+          onClick={overdueCount > 0 ? () => setQuickListMode("overdue") : undefined}
+          disabled={overdueCount === 0}
+        />
+        <DueStatCard
+          title="A Vencer ~ 7 dias"
+          amount={nearDueAmount}
+          count={nearDue}
+          icon={Clock}
+          tone="amber"
+          onClick={nearDue > 0 ? () => setQuickListMode("nearDue") : undefined}
+          disabled={nearDue === 0}
+        />
+        <DueStatCard
+          title="A Vencer ~ Este Mês"
+          amount={thisMonthAmount}
+          count={thisMonthItems.length}
+          icon={Calendar}
+          tone="blue"
+          onClick={thisMonthItems.length > 0 ? () => setQuickListMode("thisMonth") : undefined}
+          disabled={thisMonthItems.length === 0}
+        />
+        <DueStatCard
+          title="A Vencer ~ Mês Seguinte"
+          amount={nextMonthAmount}
+          count={nextMonthItems.length}
+          icon={CalendarDays}
+          tone="violet"
+          onClick={nextMonthItems.length > 0 ? () => setQuickListMode("nextMonth") : undefined}
+          disabled={nextMonthItems.length === 0}
+        />
+      </div>
 
       {/* Filters */}
       <Card className="border-border/50 shadow-sm p-4">
@@ -2330,11 +2364,19 @@ export default function ContasAPagar() {
         open={quickListMode !== null}
         onOpenChange={(o) => { if (!o) setQuickListMode(null); }}
         mode="payable"
-        title={quickListMode === "overdue" ? "Contas Vencidas" : "Vencimento nos próximos 7 dias"}
-        description={quickListMode === "overdue"
-          ? "Edite valor, vencimento ou altere o status diretamente."
-          : "Acompanhe e ajuste contas que vencem em breve."}
-        items={quickListMode === "overdue" ? overdueItems : nearDueItems}
+        title={
+          quickListMode === "overdue" ? "Contas Vencidas"
+          : quickListMode === "nearDue" ? "A Vencer nos próximos 7 dias"
+          : quickListMode === "thisMonth" ? "A Vencer neste mês"
+          : "A Vencer no mês seguinte"
+        }
+        description="Edite valor, vencimento ou altere o status diretamente."
+        items={
+          quickListMode === "overdue" ? overdueItems
+          : quickListMode === "nearDue" ? nearDueItems
+          : quickListMode === "thisMonth" ? thisMonthItems
+          : nextMonthItems
+        }
       />
     </div>
   );
