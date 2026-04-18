@@ -145,40 +145,85 @@ export function useDRE(filters: DREFilters) {
 
   const empresaId = empresa?.id;
 
+  // Fetch unified transactions: AP paid + AR paid + Pluggy (não reconciliado, com categoria)
+  const fetchUnified = async (s: string, e: string) => {
+    // 1) Contas a Pagar — pagas no período
+    let qPay = supabase
+      .from("accounts_payable")
+      .select("id, amount, payment_date, categoria_financeira_id, description, bank_account_id, cost_center_id, empresa_id, user_id")
+      .eq("status", "paid")
+      .gte("payment_date", s)
+      .lte("payment_date", e);
+    if (empresaId) qPay = qPay.eq("empresa_id", empresaId);
+    else qPay = qPay.eq("user_id", targetUserId!);
+    if (filters.bankAccountId) qPay = qPay.eq("bank_account_id", filters.bankAccountId);
+    if (filters.costCenterId) qPay = qPay.eq("cost_center_id", filters.costCenterId);
+
+    // 2) Contas a Receber — recebidas no período
+    let qRec = supabase
+      .from("accounts_receivable")
+      .select("id, amount, payment_date, categoria_financeira_id, description, bank_account_id, cost_center_id, empresa_id, user_id")
+      .eq("status", "paid")
+      .gte("payment_date", s)
+      .lte("payment_date", e);
+    if (empresaId) qRec = qRec.eq("empresa_id", empresaId);
+    else qRec = qRec.eq("user_id", targetUserId!);
+    if (filters.bankAccountId) qRec = qRec.eq("bank_account_id", filters.bankAccountId);
+    if (filters.costCenterId) qRec = qRec.eq("cost_center_id", filters.costCenterId);
+
+    // 3) Pluggy — não reconciliadas (para evitar duplicidade com AP/AR), com categoria definida
+    let qPlu = supabase
+      .from("pluggy_transactions")
+      .select("id, amount, date, categoria_financeira_id, description, type, reconciled, user_id")
+      .eq("user_id", targetUserId!)
+      .eq("reconciled", false)
+      .not("categoria_financeira_id", "is", null)
+      .gte("date", s)
+      .lte("date", e);
+
+    const [payRes, recRes, pluRes] = await Promise.all([qPay, qRec, qPlu]);
+    if (payRes.error) throw payRes.error;
+    if (recRes.error) throw recRes.error;
+    if (pluRes.error) throw pluRes.error;
+
+    const unified: any[] = [];
+    (payRes.data ?? []).forEach((r: any) => unified.push({
+      id: r.id, source: "ap",
+      transaction_date: r.payment_date,
+      amount: r.amount,
+      categoria_financeira_id: r.categoria_financeira_id,
+      description: r.description,
+      type: "expense",
+    }));
+    (recRes.data ?? []).forEach((r: any) => unified.push({
+      id: r.id, source: "ar",
+      transaction_date: r.payment_date,
+      amount: r.amount,
+      categoria_financeira_id: r.categoria_financeira_id,
+      description: r.description,
+      type: "income",
+    }));
+    (pluRes.data ?? []).forEach((r: any) => unified.push({
+      id: r.id, source: "pluggy",
+      transaction_date: r.date,
+      amount: r.amount,
+      categoria_financeira_id: r.categoria_financeira_id,
+      description: r.description,
+      type: Number(r.amount) >= 0 ? "income" : "expense",
+    }));
+    return unified;
+  };
+
   const { data: transactions = [], isLoading: loadingTx } = useQuery({
-    queryKey: ["dre-transactions", targetUserId, empresaId, startStr, endStr, filters.bankAccountId, filters.costCenterId],
+    queryKey: ["dre-unified-tx", targetUserId, empresaId, startStr, endStr, filters.bankAccountId, filters.costCenterId],
     enabled: !!user && !!targetUserId,
-    queryFn: async () => {
-      let q = supabase
-        .from("cash_transactions")
-        .select("*")
-        .gte("transaction_date", startStr)
-        .lte("transaction_date", endStr);
-      if (empresaId) q = q.eq("empresa_id", empresaId);
-      else q = q.eq("user_id", targetUserId!);
-      if (filters.bankAccountId) q = q.eq("bank_account_id", filters.bankAccountId);
-      const { data, error } = await q;
-      if (error) throw error;
-      return data ?? [];
-    },
+    queryFn: () => fetchUnified(startStr, endStr),
   });
 
   const { data: prevTransactions = [] } = useQuery({
-    queryKey: ["dre-prev-transactions", targetUserId, empresaId, prevStartStr, prevEndStr, filters.bankAccountId, filters.costCenterId],
+    queryKey: ["dre-unified-prev-tx", targetUserId, empresaId, prevStartStr, prevEndStr, filters.bankAccountId, filters.costCenterId],
     enabled: !!user && !!targetUserId,
-    queryFn: async () => {
-      let q = supabase
-        .from("cash_transactions")
-        .select("*")
-        .gte("transaction_date", prevStartStr)
-        .lte("transaction_date", prevEndStr);
-      if (empresaId) q = q.eq("empresa_id", empresaId);
-      else q = q.eq("user_id", targetUserId!);
-      if (filters.bankAccountId) q = q.eq("bank_account_id", filters.bankAccountId);
-      const { data, error } = await q;
-      if (error) throw error;
-      return data ?? [];
-    },
+    queryFn: () => fetchUnified(prevStartStr, prevEndStr),
   });
 
   const dreData = useMemo(() => {
