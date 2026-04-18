@@ -1644,6 +1644,51 @@ export default function ContasAReceber() {
 
           <FileAttachment value={form.attachment_url} onValueChange={(url) => updateField("attachment_url", url)} folder="contas-receber" />
 
+          {/* Asaas Integration Block - only when integration is active */}
+          {asaasEnabled && !editingId && form.payer_kind === "cliente" && (
+            <div className="rounded-lg border border-primary/20 bg-primary/5 p-4 space-y-3">
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex items-start gap-3">
+                  <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                    <Zap className="w-4.5 h-4.5 text-primary" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-foreground">Gerar cobrança no Asaas</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      O cliente será criado/atualizado automaticamente e a cobrança enviada.
+                    </p>
+                  </div>
+                </div>
+                <Switch checked={generateAsaas} onCheckedChange={setGenerateAsaas} />
+              </div>
+              {generateAsaas && (
+                <div className="pt-1">
+                  <p className="text-[11px] uppercase tracking-wider text-muted-foreground/70 font-medium mb-2">Forma de cobrança</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    {[
+                      { v: "BOLETO" as const, l: "Boleto + PIX" },
+                      { v: "CREDIT_CARD" as const, l: "Cartão de Crédito" },
+                    ].map((opt) => (
+                      <button
+                        key={opt.v}
+                        type="button"
+                        onClick={() => setAsaasBillingType(opt.v)}
+                        className={`px-3 py-2 rounded-md text-sm font-medium border transition-colors ${
+                          asaasBillingType === opt.v
+                            ? "bg-primary text-primary-foreground border-primary"
+                            : "bg-background border-input hover:bg-accent text-foreground"
+                        }`}
+                      >
+                        {opt.l}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+
           <div className="flex justify-end gap-3 pt-3 border-t border-border/20">
             <Button variant="outline" onClick={resetForm} className="rounded-lg">Cancelar</Button>
             <Button onClick={handleSubmit} disabled={isPending} className="rounded-lg gap-2 shadow-sm">
@@ -1900,6 +1945,57 @@ export default function ContasAReceber() {
         onOpenChange={(open) => { if (!open) setAsaasReceivableId(null); }}
         onChanged={() => refreshQueries(queryClient, [["accounts-receivable", empresaId]])}
       />
+
+      {/* Prompt: ask user if they want to push the just-created receivables to Asaas */}
+      <AlertDialog open={!!asaasPromptIds} onOpenChange={(open) => { if (!open) setAsaasPromptIds(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <Zap className="w-5 h-5 text-primary" />
+              Gerar cobrança no Asaas?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Você criou {asaasPromptIds?.length === 1 ? "1 lançamento" : `${asaasPromptIds?.length} lançamentos`}.
+              Deseja gerar {asaasPromptIds && asaasPromptIds.length > 1 ? "as cobranças correspondentes" : "a cobrança"} no Asaas agora?
+              O cliente será criado/atualizado automaticamente.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="grid grid-cols-2 gap-2 py-2">
+            {[
+              { v: "BOLETO" as const, l: "Boleto + PIX" },
+              { v: "CREDIT_CARD" as const, l: "Cartão de Crédito" },
+            ].map((opt) => (
+              <button
+                key={opt.v}
+                type="button"
+                onClick={() => setAsaasBillingType(opt.v)}
+                className={`px-3 py-2 rounded-md text-sm font-medium border transition-colors ${
+                  asaasBillingType === opt.v
+                    ? "bg-primary text-primary-foreground border-primary"
+                    : "bg-background border-input hover:bg-accent text-foreground"
+                }`}
+              >
+                {opt.l}
+              </button>
+            ))}
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={asaasGenerating}>Agora não</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={asaasGenerating}
+              onClick={async (e) => {
+                e.preventDefault();
+                const ids = asaasPromptIds || [];
+                setAsaasPromptIds(null);
+                await triggerAsaasForRecords(ids, asaasBillingType);
+              }}
+            >
+              {asaasGenerating ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Zap className="w-4 h-4 mr-2" />}
+              Gerar no Asaas
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
