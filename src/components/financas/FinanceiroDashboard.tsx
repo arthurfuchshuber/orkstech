@@ -125,6 +125,39 @@ export default function FinanceiroDashboard() {
     },
   });
 
+  // ── Bank transactions (last 90 days) for evolution & flow charts ──
+  const bankAccountIds = useMemo(
+    () => accounts.filter((a) => a.type !== "CREDIT").map((a) => a.pluggy_account_id),
+    [accounts]
+  );
+
+  const { data: txHistory = [] } = useQuery({
+    queryKey: ["dashboard-tx-history", targetUserId, bankAccountIds.join(",")],
+    enabled: !!targetUserId && bankAccountIds.length > 0,
+    queryFn: async () => {
+      const fromDate = format(subDays(new Date(), 90), "yyyy-MM-dd");
+      const all: any[] = [];
+      const PAGE = 1000;
+      let offset = 0;
+      while (true) {
+        const { data, error } = await supabase
+          .from("pluggy_transactions" as any)
+          .select("id, amount, date, type, pluggy_account_id")
+          .eq("user_id", targetUserId!)
+          .in("pluggy_account_id", bankAccountIds)
+          .gte("date", fromDate)
+          .order("date", { ascending: true })
+          .range(offset, offset + PAGE - 1);
+        if (error) throw error;
+        const rows = (data ?? []) as any[];
+        all.push(...rows);
+        if (rows.length < PAGE) break;
+        offset += PAGE;
+      }
+      return all;
+    },
+  });
+
   // ── Derived data ──
   const bankAccounts = accounts.filter((a) => a.type !== "CREDIT");
   const creditCards = accounts.filter((a) => a.type === "CREDIT");
@@ -135,12 +168,10 @@ export default function FinanceiroDashboard() {
     return inv > 0 ? inv : autoInv;
   };
 
-  const totalBankBalance = bankAccounts.reduce(
-    (sum, a) => sum + a.balance + getStoredBalance(a),
-    0
-  );
-
+  const totalBankBalance = bankAccounts.reduce((sum, a) => sum + a.balance, 0);
+  const totalInvestments = bankAccounts.reduce((sum, a) => sum + getStoredBalance(a), 0);
   const totalCreditAvailable = creditCards.reduce((sum, a) => sum + (a.credit_available ?? 0), 0);
+  const totalCreditLimit = creditCards.reduce((sum, a) => sum + (a.credit_limit ?? 0), 0);
 
   const getConnectorName = (account: BankAccount) => {
     const conn = connections.find((c) => c.pluggy_item_id === account.pluggy_item_id);
