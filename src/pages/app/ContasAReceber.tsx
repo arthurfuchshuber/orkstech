@@ -1336,6 +1336,40 @@ export default function ContasAReceber() {
         )}
       </Card>
 
+      {/* Scope Dialog (parcelamento) */}
+      <Dialog open={!!scopeDialogItem} onOpenChange={(open) => !open && setScopeDialogItem(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Editar parcelamento</DialogTitle>
+            <DialogDescription>
+              Esta conta faz parte de um parcelamento de {scopeDialogItem?.installment_total || 0} parcelas. O que deseja editar?
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2 pt-2">
+            <button
+              type="button"
+              onClick={() => confirmScopeAndEdit("single")}
+              className="w-full text-left p-4 rounded-lg border border-border hover:border-primary hover:bg-primary/5 transition-all"
+            >
+              <div className="font-medium text-sm text-foreground">Apenas esta parcela</div>
+              <div className="text-xs text-muted-foreground mt-1">
+                Modificar somente a parcela {scopeDialogItem?.installment_number}/{scopeDialogItem?.installment_total}
+              </div>
+            </button>
+            <button
+              type="button"
+              onClick={() => confirmScopeAndEdit("group")}
+              className="w-full text-left p-4 rounded-lg border border-border hover:border-primary hover:bg-primary/5 transition-all"
+            >
+              <div className="font-medium text-sm text-foreground">Todas as parcelas do grupo</div>
+              <div className="text-xs text-muted-foreground mt-1">
+                Aplicar mudanças (descrição, valor, categoria, etc.) em todas. Vencimentos individuais permanecem.
+              </div>
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* Receipt Dialog */}
       <Dialog open={showReceiptDialog} onOpenChange={setShowReceiptDialog}>
         <DialogContent className="max-w-md">
