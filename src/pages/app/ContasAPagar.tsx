@@ -314,7 +314,20 @@ export default function ContasAPagar() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: any }) => updateAccountPayable(id, data),
+    mutationFn: async ({ id, data, scope }: { id: string; data: any; scope?: "single" | "group" }) => {
+      if (scope === "group") {
+        const { data: rec } = await supabase.from("accounts_payable").select("grupo_id").eq("id", id).maybeSingle();
+        if (rec?.grupo_id) {
+          const { due_date, installment_number, installment_total, ...groupSafe } = data;
+          const { data: siblings } = await supabase.from("accounts_payable").select("id").eq("grupo_id", rec.grupo_id);
+          for (const s of (siblings ?? [])) {
+            await updateAccountPayable(s.id, s.id === id ? data : groupSafe);
+          }
+          return;
+        }
+      }
+      await updateAccountPayable(id, data);
+    },
     onSuccess: async () => {
       await refreshQueries(queryClient, [["accounts-payable"], ["accounts-payable-counts"]]);
       toast.success("Conta atualizada!");
