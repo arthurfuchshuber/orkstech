@@ -6,8 +6,9 @@ import {
   FileText, Search, CreditCard,
   Building2, Target, Landmark, FolderTree, Copy, Pencil, Trash2,
   Banknote, ChevronDown, ChevronRight, MoreHorizontal, BarChart3, Layers, Eye,
-  Users, UserRound, Zap,
+  Users, UserRound, Zap, Calendar, CalendarDays,
 } from "lucide-react";
+import { DueStatCard } from "@/components/financas/DueStatCard";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { FormModal } from "@/components/FormModal";

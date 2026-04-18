@@ -5,8 +5,10 @@ import {
   Receipt, Plus, Check, Loader2, AlertTriangle, Clock, Ban,
   FileText, Search, CreditCard,
   Building2, Target, Landmark, FolderTree, Copy, Pencil, Trash2,
-  Banknote, ChevronDown, ChevronRight, ScanLine, MoreHorizontal, BarChart3, Layers, Eye
+  Banknote, ChevronDown, ChevronRight, ScanLine, MoreHorizontal, BarChart3, Layers, Eye,
+  Calendar, CalendarDays,
 } from "lucide-react";
+import { DueStatCard } from "@/components/financas/DueStatCard";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { FormModal } from "@/components/FormModal";
