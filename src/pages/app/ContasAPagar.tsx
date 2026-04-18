@@ -1229,10 +1229,10 @@ export default function ContasAPagar() {
                     onCheckedChange={toggleSelectAll}
                   />
                 </TableHead>
+                <TableHead style={{ minWidth: 110 }}>Vencimento</TableHead>
                 <TableHead style={{ minWidth: 180 }}>Fornecedor</TableHead>
                 <TableHead style={{ minWidth: 220 }}>Descrição</TableHead>
                 <TableHead style={{ minWidth: 110 }}>Valor</TableHead>
-                <TableHead style={{ minWidth: 110 }}>Vencimento</TableHead>
                 <TableHead style={{ minWidth: 120 }}>Status</TableHead>
                 <TableHead style={{ minWidth: 180 }}>Tipo Financeiro</TableHead>
                 <TableHead style={{ minWidth: 200 }}>Subcategoria</TableHead>
