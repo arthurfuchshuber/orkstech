@@ -882,31 +882,13 @@ export default function ExtratoBancario() {
                   </div>
                 );
               })}
-                          {tx.categoria_financeira_id && (
-                            <>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem
-                                onClick={() => updateCategoriaMutation.mutate({ id: tx.id, categoria_financeira_id: null })}
-                                className="text-muted-foreground"
-                              >
-                                Limpar
-                              </DropdownMenuItem>
-                            </>
-                          )}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </div>
-
-                    <p
-                      className={`whitespace-nowrap text-right text-sm font-semibold ${
-                        isCredit ? "text-primary" : "text-destructive"
-                      }`}
-                    >
-                      {isCredit ? "+" : "-"} {formatCurrency(Math.abs(tx.amount))}
-                    </p>
-                  </div>
-                );
-              })}
+            </div>
+          </>
+        )}
+      </Card>
+    </div>
+  );
+}
             </div>
           </>
         )}
