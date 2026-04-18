@@ -1239,6 +1239,75 @@ export type Database = {
           },
         ]
       }
+      dre_regras: {
+        Row: {
+          aplicar_em: string
+          ativo: boolean
+          categoria_destino_id: string
+          condicao_logica: string
+          condicoes: Json
+          created_at: string
+          empresa_id: string | null
+          escopo: string
+          executado_count: number
+          id: string
+          nome: string
+          ordem: number
+          ultima_execucao: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          aplicar_em?: string
+          ativo?: boolean
+          categoria_destino_id: string
+          condicao_logica?: string
+          condicoes?: Json
+          created_at?: string
+          empresa_id?: string | null
+          escopo?: string
+          executado_count?: number
+          id?: string
+          nome: string
+          ordem?: number
+          ultima_execucao?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          aplicar_em?: string
+          ativo?: boolean
+          categoria_destino_id?: string
+          condicao_logica?: string
+          condicoes?: Json
+          created_at?: string
+          empresa_id?: string | null
+          escopo?: string
+          executado_count?: number
+          id?: string
+          nome?: string
+          ordem?: number
+          ultima_execucao?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dre_regras_categoria_destino_id_fkey"
+            columns: ["categoria_destino_id"]
+            isOneToOne: false
+            referencedRelation: "categorias_financeiras"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dre_regras_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       empresas: {
         Row: {
           bairro: string | null
@@ -2217,6 +2286,20 @@ export type Database = {
     }
     Functions: {
       _fmt_brl: { Args: { v: number }; Returns: string }
+      aplicar_regras_retroativo: { Args: { p_user_id: string }; Returns: Json }
+      avaliar_regra_dre: {
+        Args: {
+          p_amount: number
+          p_cliente_id: string
+          p_condicoes: Json
+          p_description: string
+          p_logica: string
+          p_payment_method_id: string
+          p_supplier_id: string
+          p_supplier_name: string
+        }
+        Returns: boolean
+      }
       is_super_admin: { Args: never; Returns: boolean }
       processar_automacoes: {
         Args: {
