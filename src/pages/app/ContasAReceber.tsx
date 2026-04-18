@@ -911,7 +911,7 @@ export default function ContasAReceber() {
       </div>
 
       {(overdueCount > 0 || nearDue > 0) && (
-        <div className="grid gap-2 sm:grid-cols-2">
+        <div className="flex flex-col gap-2">
           {overdueCount > 0 && (
             <button
               type="button"
