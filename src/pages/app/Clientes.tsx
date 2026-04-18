@@ -481,7 +481,9 @@ export default function Clientes() {
                     </DropdownMenu>
                   </TableCell>
                   <TableCell className="text-muted-foreground text-sm text-right whitespace-nowrap">
-                    {format(new Date(c.created_at), "dd/MM/yyyy", { locale: ptBR })}
+                    {c.created_at && !isNaN(new Date(c.created_at).getTime())
+                      ? format(new Date(c.created_at), "dd/MM/yyyy", { locale: ptBR })
+                      : "—"}
                   </TableCell>
                   <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                     <DropdownMenu>
