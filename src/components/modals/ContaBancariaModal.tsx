@@ -31,6 +31,7 @@ export function ContaBancariaModal({ open, onOpenChange, editingId, onSaved }: C
     banco_id: "",
     tipo: "corrente" as TipoConta,
     saldo_inicial: "0",
+    saldo_investimento: "0",
     pessoa_tipo: "pj" as "pj" | "pf",
   });
   const [bancoModalOpen, setBancoModalOpen] = useState(false);
