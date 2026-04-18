@@ -165,6 +165,10 @@ export default function ContasAPagar() {
   const [isPickingScanFile, setIsPickingScanFile] = useState(false);
   const [bulkScanOpen, setBulkScanOpen] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [cliEditingId, setCliEditingId] = useState<string | null>(null);
+  const [cliModalOpen, setCliModalOpen] = useState(false);
+  const [scopeDialogItem, setScopeDialogItem] = useState<any | null>(null);
+  const [editScope, setEditScope] = useState<"single" | "group">("single");
   const scanInputRef = useRef<HTMLInputElement>(null);
 
   // Fetch data
