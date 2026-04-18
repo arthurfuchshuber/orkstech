@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Sparkles, Plus, Loader2, Trash2, Paperclip, Pencil,
-  AlertTriangle, TrendingUp, TrendingDown, Calendar, CheckCircle2, FileText, Lightbulb,
+  AlertTriangle, TrendingUp, TrendingDown, Calendar, CheckCircle2, FileText,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -15,7 +15,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useManagedSelect } from "@/hooks/useManagedSelect";
 import { refreshQueries } from "@/lib/query-refresh";
 import { toast } from "sonner";
-import { format, formatDistanceToNow } from "date-fns";
+import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -563,7 +563,6 @@ export function ClienteVisaoGeralTab({ cliente, onEdit: _onEdit }: Props) {
 
           {interacoes.map((item) => {
             const { title, body } = parseInteracao(item.descricao);
-            const insight = getInsight(item);
             const colorClass = tipoColors[item.tipo] || "text-muted-foreground";
             const linkedDocs = getDocsForInteracao(item.id);
 
@@ -627,14 +626,7 @@ export function ClienteVisaoGeralTab({ cliente, onEdit: _onEdit }: Props) {
                     </div>
                   )}
 
-                  {insight && (
-                    <div className="mt-3 px-3 py-2 rounded-lg bg-primary/[0.06] border border-primary/10">
-                      <p className="text-xs text-primary flex items-center gap-1.5">
-                        <Sparkles className="w-3 h-3" />
-                        {insight}
-                      </p>
-                    </div>
-                  )}
+
 
                   <p className="text-xs text-muted-foreground/60 mt-3">
                     {format(new Date(item.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
