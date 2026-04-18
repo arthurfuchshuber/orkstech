@@ -871,20 +871,3 @@ export default function ExtratoBancario() {
   );
 }
 
-                    <p
-                      className={`whitespace-nowrap text-right text-sm font-semibold ${
-                        isCredit ? "text-primary" : "text-destructive"
-                      }`}
-                    >
-                      {isCredit ? "+" : "-"} {formatCurrency(Math.abs(tx.amount))}
-                    </p>
-                  </div>
-                );
-              })}
-            </div>
-          </>
-        )}
-      </Card>
-    </div>
-  );
-}
