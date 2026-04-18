@@ -1,7 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
-  Sparkles, Plus, Loader2, Trash2, Paperclip, Pencil
+  Sparkles, Plus, Loader2, Trash2, Paperclip, Pencil,
+  AlertTriangle, TrendingUp, TrendingDown, Calendar, CheckCircle2, FileText,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
