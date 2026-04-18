@@ -1,7 +1,7 @@
 import { LucideIcon } from "lucide-react";
 import { Card } from "@/components/ui/card";
 
-type Tone = "red" | "amber" | "blue" | "violet";
+type Tone = "red" | "amber" | "blue" | "violet" | "neutral";
 
 const toneStyles: Record<Tone, { bg: string; border: string; icon: string; text: string; ring: string }> = {
   red: {
@@ -31,6 +31,13 @@ const toneStyles: Record<Tone, { bg: string; border: string; icon: string; text:
     icon: "text-violet-600 bg-violet-500/15",
     text: "text-violet-700",
     ring: "hover:ring-violet-300",
+  },
+  neutral: {
+    bg: "bg-muted/40",
+    border: "border-border/60",
+    icon: "text-muted-foreground bg-muted",
+    text: "text-muted-foreground",
+    ring: "hover:ring-border",
   },
 };
 

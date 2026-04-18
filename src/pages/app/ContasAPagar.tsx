@@ -1045,7 +1045,7 @@ export default function ContasAPagar() {
           amount={thisMonthAmount}
           count={thisMonthItems.length}
           icon={Calendar}
-          tone="blue"
+          tone="neutral"
           onClick={thisMonthItems.length > 0 ? () => setQuickListMode("thisMonth") : undefined}
           disabled={thisMonthItems.length === 0}
         />
@@ -1054,7 +1054,7 @@ export default function ContasAPagar() {
           amount={nextMonthAmount}
           count={nextMonthItems.length}
           icon={CalendarDays}
-          tone="violet"
+          tone="neutral"
           onClick={nextMonthItems.length > 0 ? () => setQuickListMode("nextMonth") : undefined}
           disabled={nextMonthItems.length === 0}
         />
