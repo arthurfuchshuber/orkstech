@@ -17,8 +17,12 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { FileText, ChevronRight, ChevronDown, Download, Settings2 } from "lucide-react";
+import { FileText, ChevronRight, ChevronDown, Download, Settings2, CalendarIcon } from "lucide-react";
 import { format } from "date-fns";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Label } from "@/components/ui/label";
+import { cn } from "@/lib/utils";
 import { PlanoDeContasSection } from "@/components/financas/PlanoDeContasSection";
 import { DRERegrasSection } from "@/components/financas/DRERegrasSection";
 
@@ -44,6 +48,9 @@ export default function DREPage() {
   const [filters, setFilters] = useState<DREFilters>({ period: "this_month", tipo: "all" });
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
   const [drillDownCategory, setDrillDownCategory] = useState<{ id: string; label: string } | null>(null);
+  const [customDialogOpen, setCustomDialogOpen] = useState(false);
+  const [tempStart, setTempStart] = useState<Date | undefined>(filters.customStart);
+  const [tempEnd, setTempEnd] = useState<Date | undefined>(filters.customEnd);
 
   const { lines, totalRevenue, grossMargin, ebitda, netIncome, transactions, isLoading, dateRange } = useDRE(filters);
 
@@ -137,12 +144,30 @@ export default function DREPage() {
         <TabsContent value="dre" className="mt-4 space-y-4">
           {/* Filters */}
           <div className="flex flex-wrap gap-3">
-            <Select value={filters.period} onValueChange={(v) => setFilters((f) => ({ ...f, period: v as PeriodPreset }))}>
+            <Select
+              value={filters.period}
+              onValueChange={(v) => {
+                const period = v as PeriodPreset;
+                if (period === "custom") {
+                  setTempStart(filters.customStart);
+                  setTempEnd(filters.customEnd);
+                  setCustomDialogOpen(true);
+                } else {
+                  setFilters((f) => ({ ...f, period, customStart: undefined, customEnd: undefined }));
+                }
+              }}
+            >
               <SelectTrigger className="w-[170px] h-9 text-sm"><SelectValue placeholder="Período" /></SelectTrigger>
               <SelectContent>
                 {Object.entries(periodLabels).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
               </SelectContent>
             </Select>
+            {filters.period === "custom" && filters.customStart && filters.customEnd && (
+              <Button variant="outline" size="sm" className="h-9 gap-2" onClick={() => setCustomDialogOpen(true)}>
+                <CalendarIcon className="w-3.5 h-3.5" />
+                {format(filters.customStart, "dd/MM/yyyy")} — {format(filters.customEnd, "dd/MM/yyyy")}
+              </Button>
+            )}
             <Select value={filters.bankAccountId || "all"} onValueChange={(v) => setFilters((f) => ({ ...f, bankAccountId: v === "all" ? undefined : v }))}>
               <SelectTrigger className="w-[170px] h-9 text-sm"><SelectValue placeholder="Conta bancária" /></SelectTrigger>
               <SelectContent>
@@ -307,6 +332,82 @@ export default function DREPage() {
               </TableBody>
             </Table>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Custom Period Dialog */}
+      <Dialog open={customDialogOpen} onOpenChange={setCustomDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Selecione o período</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-xs">Data inicial</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn("w-full justify-start text-left font-normal h-9 text-sm", !tempStart && "text-muted-foreground")}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {tempStart ? format(tempStart, "dd/MM/yyyy") : <span>Escolher</span>}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={tempStart}
+                      onSelect={setTempStart}
+                      disabled={(d) => (tempEnd ? d > tempEnd : false)}
+                      initialFocus
+                      className={cn("p-3 pointer-events-auto")}
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Data final</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn("w-full justify-start text-left font-normal h-9 text-sm", !tempEnd && "text-muted-foreground")}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {tempEnd ? format(tempEnd, "dd/MM/yyyy") : <span>Escolher</span>}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={tempEnd}
+                      onSelect={setTempEnd}
+                      disabled={(d) => (tempStart ? d < tempStart : false)}
+                      initialFocus
+                      className={cn("p-3 pointer-events-auto")}
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button variant="outline" size="sm" onClick={() => setCustomDialogOpen(false)}>
+                Cancelar
+              </Button>
+              <Button
+                size="sm"
+                disabled={!tempStart || !tempEnd}
+                onClick={() => {
+                  setFilters((f) => ({ ...f, period: "custom", customStart: tempStart, customEnd: tempEnd }));
+                  setCustomDialogOpen(false);
+                }}
+              >
+                Aplicar
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
