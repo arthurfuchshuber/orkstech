@@ -743,7 +743,26 @@ export default function ExtratoBancario() {
                 const isCredit = tx.type === "CREDIT" || tx.amount > 0;
                 const isInternal = isInternalTransaction(tx);
                 const catFin = categoriasFinanceiras.find((c: any) => c.id === tx.categoria_financeira_id);
-                const parents = categoriasFinanceiras.filter((c: any) => !c.categoria_pai_id);
+
+                // Apenas folhas finais (categorias que NÃO possuem filhas)
+                const leafCategorias = categoriasFinanceiras.filter(
+                  (c: any) => !categoriasFinanceiras.some((child: any) => child.categoria_pai_id === c.id)
+                );
+                // Agrupa as folhas pelo pai (para exibição hierárquica visual)
+                const groupsMap = new Map<string | null, any[]>();
+                leafCategorias.forEach((leaf: any) => {
+                  const key = leaf.categoria_pai_id ?? null;
+                  if (!groupsMap.has(key)) groupsMap.set(key, []);
+                  groupsMap.get(key)!.push(leaf);
+                });
+                const parentsWithLeaves = Array.from(groupsMap.entries())
+                  .filter(([pid]) => pid !== null)
+                  .map(([pid, leaves]) => ({
+                    parent: categoriasFinanceiras.find((c: any) => c.id === pid),
+                    leaves,
+                  }))
+                  .filter((g) => g.parent);
+                const rootLeaves = groupsMap.get(null) ?? [];
 
                 return (
                   <div
@@ -804,40 +823,65 @@ export default function ExtratoBancario() {
                           </button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="start" className="max-h-[360px] w-64 overflow-y-auto custom-scrollbar">
-                          {categoriasFinanceiras.length === 0 && (
+                          {leafCategorias.length === 0 && (
                             <div className="px-2 py-3 text-xs text-muted-foreground">
-                              Nenhuma categoria cadastrada. Crie em Configurações → Plano de Contas.
+                              Nenhuma subcategoria cadastrada. Crie em Configurações → Plano de Contas.
                             </div>
                           )}
-                          {parents.map((parent: any) => {
-                            const children = categoriasFinanceiras.filter((c: any) => c.categoria_pai_id === parent.id);
-                            if (children.length === 0) {
-                              return (
+                          {parentsWithLeaves.map(({ parent, leaves }) => (
+                            <div key={parent.id}>
+                              <DropdownMenuLabel className="text-[10px] uppercase tracking-wide text-muted-foreground/80 font-semibold pt-2">
+                                {parent.nome}
+                              </DropdownMenuLabel>
+                              {leaves.map((c: any) => (
                                 <DropdownMenuItem
-                                  key={parent.id}
-                                  onClick={() => updateCategoriaMutation.mutate({ id: tx.id, categoria_financeira_id: parent.id })}
+                                  key={c.id}
+                                  onClick={() => updateCategoriaMutation.mutate({ id: tx.id, categoria_financeira_id: c.id })}
+                                  className="pl-4"
                                 >
-                                  {parent.nome}
+                                  {c.nome}
                                 </DropdownMenuItem>
-                              );
-                            }
-                            return (
-                              <div key={parent.id}>
-                                <DropdownMenuLabel className="text-[10px] uppercase tracking-wide text-muted-foreground/80 font-semibold pt-2">
-                                  {parent.nome}
-                                </DropdownMenuLabel>
-                                {children.map((c: any) => (
-                                  <DropdownMenuItem
-                                    key={c.id}
-                                    onClick={() => updateCategoriaMutation.mutate({ id: tx.id, categoria_financeira_id: c.id })}
-                                    className="pl-4"
-                                  >
-                                    {c.nome}
-                                  </DropdownMenuItem>
-                                ))}
-                              </div>
-                            );
-                          })}
+                              ))}
+                            </div>
+                          ))}
+                          {rootLeaves.length > 0 && (
+                            <div>
+                              {parentsWithLeaves.length > 0 && <DropdownMenuSeparator />}
+                              {rootLeaves.map((c: any) => (
+                                <DropdownMenuItem
+                                  key={c.id}
+                                  onClick={() => updateCategoriaMutation.mutate({ id: tx.id, categoria_financeira_id: c.id })}
+                                >
+                                  {c.nome}
+                                </DropdownMenuItem>
+                              ))}
+                            </div>
+                          )}
+                          {tx.categoria_financeira_id && (
+                            <>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem
+                                onClick={() => updateCategoriaMutation.mutate({ id: tx.id, categoria_financeira_id: null })}
+                                className="text-muted-foreground"
+                              >
+                                Limpar
+                              </DropdownMenuItem>
+                            </>
+                          )}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+
+                    <p
+                      className={`whitespace-nowrap text-right text-sm font-semibold ${
+                        isCredit ? "text-primary" : "text-destructive"
+                      }`}
+                    >
+                      {isCredit ? "+" : "-"} {formatCurrency(Math.abs(tx.amount))}
+                    </p>
+                  </div>
+                );
+              })}
                           {tx.categoria_financeira_id && (
                             <>
                               <DropdownMenuSeparator />
