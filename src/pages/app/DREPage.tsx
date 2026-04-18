@@ -17,8 +17,12 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { FileText, ChevronRight, ChevronDown, Download, Settings2 } from "lucide-react";
+import { FileText, ChevronRight, ChevronDown, Download, Settings2, CalendarIcon } from "lucide-react";
 import { format } from "date-fns";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Label } from "@/components/ui/label";
+import { cn } from "@/lib/utils";
 import { PlanoDeContasSection } from "@/components/financas/PlanoDeContasSection";
 import { DRERegrasSection } from "@/components/financas/DRERegrasSection";
 
