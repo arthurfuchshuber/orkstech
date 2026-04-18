@@ -4,6 +4,7 @@ import {
   Sparkles, Plus, Loader2, Trash2, Paperclip, Pencil,
   AlertTriangle, TrendingUp, TrendingDown, Calendar, CheckCircle2, FileText,
 } from "lucide-react";
+import { QuickListModal } from "@/components/financas/QuickListModal";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
@@ -284,8 +285,8 @@ export function ClienteVisaoGeralTab({ cliente, onEdit: _onEdit }: Props) {
     queryKey: ["cliente-fin-snapshot", cliente.id],
     queryFn: async () => {
       const [pagar, receber] = await Promise.all([
-        supabase.from("accounts_payable").select("amount,due_date,status,description,payment_date").eq("cliente_id", cliente.id),
-        supabase.from("accounts_receivable").select("amount,due_date,status,description,payment_date").eq("cliente_id", cliente.id),
+        supabase.from("accounts_payable").select("*").eq("cliente_id", cliente.id),
+        supabase.from("accounts_receivable").select("*").eq("cliente_id", cliente.id),
       ]);
       return {
         pagar: pagar.data || [],
@@ -430,6 +431,130 @@ export function ClienteVisaoGeralTab({ cliente, onEdit: _onEdit }: Props) {
     return out;
   }, [macro, interacoes]);
 
+  // ---------- QuickList modal state & filter resolvers ----------
+  const [quickList, setQuickList] = useState<{
+    open: boolean;
+    mode: "receivable" | "payable";
+    title: string;
+    description?: string;
+    items: any[];
+  }>({ open: false, mode: "receivable", title: "", items: [] });
+
+  const today = useMemo(() => { const d = new Date(); d.setHours(0, 0, 0, 0); return d; }, []);
+  const in7 = useMemo(() => { const d = new Date(today); d.setDate(d.getDate() + 7); return d; }, [today]);
+
+  const filterRecords = (
+    kind: "receber" | "pagar",
+    bucket: "overdue" | "dueSoon" | "open" | "paid" | "all"
+  ) => {
+    const rows = kind === "receber" ? (finData?.receber || []) : (finData?.pagar || []);
+    return rows.filter((r: any) => {
+      if (bucket === "all") return true;
+      if (bucket === "paid") return r.status === "paid";
+      if (r.status === "paid" || r.status === "cancelled") return false;
+      const due = new Date(r.due_date + "T00:00:00");
+      if (bucket === "overdue") return due < today;
+      if (bucket === "dueSoon") return due >= today && due <= in7;
+      return true;
+    });
+  };
+
+  const openList = (
+    kind: "receber" | "pagar",
+    bucket: "overdue" | "dueSoon" | "open" | "paid" | "all",
+    title: string,
+    description?: string
+  ) => {
+    const items = filterRecords(kind, bucket);
+    if (items.length === 0) return;
+    setQuickList({
+      open: true,
+      mode: kind === "receber" ? "receivable" : "payable",
+      title,
+      description,
+      items,
+    });
+  };
+
+  // Build clickable macro lines with intent attached
+  const macroLinesClickable = useMemo(() => {
+    return macroLines.map((line) => {
+      const text = line.text.toLowerCase();
+      let onClick: (() => void) | null = null;
+      const isReceivable = text.includes("receber") || text.includes("recebimento");
+      const kind: "receber" | "pagar" = isReceivable ? "receber" : "pagar";
+      if (text.includes("venceu") || text.includes("venceram")) {
+        onClick = () => openList(kind, "overdue", isReceivable ? "Contas a Receber Vencidas" : "Contas a Pagar Vencidas");
+      } else if (text.includes("ainda há")) {
+        onClick = () => {
+          const items = filterRecords(kind, "open").filter((r: any) => {
+            const due = new Date(r.due_date + "T00:00:00");
+            return due >= today;
+          });
+          if (items.length === 0) return;
+          setQuickList({ open: true, mode: kind === "receber" ? "receivable" : "payable", title: isReceivable ? "Outras Contas a Receber" : "Outras Contas a Pagar", description: "Pendentes ainda dentro do prazo", items });
+        };
+      } else if (text.includes("confirmado") || text.includes("confirmados")) {
+        onClick = () => openList(kind, "paid", "Recebimentos Confirmados");
+      }
+      return { ...line, onClick };
+    });
+  }, [macroLines, finData, today]);
+
+  // Resolve a timeline interaction click → which list to open (or null)
+  const resolveTimelineEvent = (item: any): null | (() => void) => {
+    if (item.tipo !== "Financeiro") return null;
+    const desc = (item.descricao || "").toLowerCase();
+    const isReceivable = desc.includes("receber");
+    const kind: "receber" | "pagar" = isReceivable ? "receber" : "pagar";
+
+    if (desc.includes("criada") || desc.includes("criado") || desc.includes("lançamento") || desc.includes("lancamento")) {
+      const eventTime = new Date(item.created_at).getTime();
+      const rows = kind === "receber" ? (finData?.receber || []) : (finData?.pagar || []);
+      const items = rows.filter((r: any) => {
+        const created = new Date(r.created_at).getTime();
+        return Math.abs(created - eventTime) <= 90 * 1000;
+      });
+      if (items.length === 0) return null;
+      return () => setQuickList({
+        open: true,
+        mode: isReceivable ? "receivable" : "payable",
+        title: isReceivable ? "Contas a Receber Criadas" : "Contas a Pagar Criadas",
+        description: format(new Date(item.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR }),
+        items,
+      });
+    }
+    if (desc.includes("pago") || desc.includes("recebido")) {
+      return () => openList(kind, "paid", isReceivable ? "Recebimentos" : "Pagamentos Realizados");
+    }
+    if (desc.includes("vencid") || desc.includes("venceu") || desc.includes("atras")) {
+      return () => openList(kind, "overdue", isReceivable ? "Contas a Receber Vencidas" : "Contas a Pagar Vencidas");
+    }
+    return null;
+  };
+
+  // AI insight click resolver — best-effort by keyword
+  const resolveInsightClick = (text: string): null | (() => void) => {
+    const t = text.toLowerCase();
+    const isReceivable = t.includes("receber") || t.includes("recebimento") || t.includes("inadimpl");
+    const isPayable = t.includes("a pagar") || t.includes("despesa") || t.includes("fornecedor");
+    if (!isReceivable && !isPayable) return null;
+    const kind: "receber" | "pagar" = isReceivable ? "receber" : "pagar";
+    if (t.includes("vencid") || t.includes("atras") || t.includes("inadimpl") || t.includes("churn")) {
+      const items = filterRecords(kind, "overdue");
+      if (items.length === 0) return null;
+      return () => setQuickList({ open: true, mode: kind === "receber" ? "receivable" : "payable", title: kind === "receber" ? "Contas a Receber Vencidas" : "Contas a Pagar Vencidas", items });
+    }
+    if (t.includes("vencer") || t.includes("próxim") || t.includes("proxim")) {
+      const items = filterRecords(kind, "dueSoon");
+      if (items.length === 0) return null;
+      return () => setQuickList({ open: true, mode: kind === "receber" ? "receivable" : "payable", title: kind === "receber" ? "A Receber nos próximos 7 dias" : "A Pagar nos próximos 7 dias", items });
+    }
+    const items = filterRecords(kind, "open");
+    if (items.length === 0) return null;
+    return () => setQuickList({ open: true, mode: kind === "receber" ? "receivable" : "payable", title: kind === "receber" ? "Contas a Receber em Aberto" : "Contas a Pagar em Aberto", items });
+  };
+
   return (
     <div className="space-y-6">
       {/* AI Summary (strategic, non-redundant with macro card) */}
@@ -460,12 +585,24 @@ export function ClienteVisaoGeralTab({ cliente, onEdit: _onEdit }: Props) {
             {aiData && !aiLoading && (
               <>
                 <ul className="space-y-1.5">
-                  {aiData.insights.map((ins, i) => (
-                    <li key={i} className="flex items-start gap-2 text-sm">
-                      <span className={`w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0 ${toneDot[ins.tone]}`} />
-                      <span className={toneStyles[ins.tone]}>{ins.text}</span>
-                    </li>
-                  ))}
+                  {aiData.insights.map((ins, i) => {
+                    const onClick = resolveInsightClick(ins.text);
+                    return (
+                      <li key={i} className="flex items-start gap-2 text-sm">
+                        <span className={`w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0 ${toneDot[ins.tone]}`} />
+                        {onClick ? (
+                          <button
+                            onClick={onClick}
+                            className={`${toneStyles[ins.tone]} text-left hover:underline underline-offset-2 cursor-pointer`}
+                          >
+                            {ins.text}
+                          </button>
+                        ) : (
+                          <span className={toneStyles[ins.tone]}>{ins.text}</span>
+                        )}
+                      </li>
+                    );
+                  })}
                 </ul>
                 {aiData.recommendation && (
                   <div className="mt-3 pt-3 border-t border-border/60 flex items-start gap-2">
@@ -483,19 +620,25 @@ export function ClienteVisaoGeralTab({ cliente, onEdit: _onEdit }: Props) {
       </Card>
 
       {/* Macro overview */}
-      {macroLines.length > 0 && (
+      {macroLinesClickable.length > 0 && (
         <Card className="p-5 border-border/50 shadow-sm">
           <div className="flex items-center gap-2 mb-3">
             <TrendingUp className="w-4 h-4 text-muted-foreground" />
             <p className="text-sm font-semibold text-foreground">Visão Macro do Cliente</p>
           </div>
           <ul className="space-y-2">
-            {macroLines.map((line, i) => {
+            {macroLinesClickable.map((line, i) => {
               const Icon = line.icon;
+              const Wrapper: any = line.onClick ? "button" : "div";
               return (
-                <li key={i} className="flex items-start gap-2.5 text-sm text-foreground/90">
-                  <Icon className={`w-3.5 h-3.5 mt-0.5 flex-shrink-0 ${line.tone}`} />
-                  <span>{line.text}</span>
+                <li key={i}>
+                  <Wrapper
+                    {...(line.onClick ? { onClick: line.onClick } : {})}
+                    className={`flex items-start gap-2.5 text-sm text-foreground/90 w-full text-left ${line.onClick ? "hover:bg-muted/40 -mx-2 px-2 py-1 rounded transition-colors cursor-pointer" : ""}`}
+                  >
+                    <Icon className={`w-3.5 h-3.5 mt-0.5 flex-shrink-0 ${line.tone}`} />
+                    <span className={line.onClick ? "hover:underline underline-offset-2" : ""}>{line.text}</span>
+                  </Wrapper>
                 </li>
               );
             })}
@@ -589,18 +732,22 @@ export function ClienteVisaoGeralTab({ cliente, onEdit: _onEdit }: Props) {
             const { title, body } = parseInteracao(item.descricao);
             const colorClass = tipoColors[item.tipo] || "text-muted-foreground";
             const linkedDocs = getDocsForInteracao(item.id);
+            const onTimelineClick = resolveTimelineEvent(item);
 
             return (
               <div key={item.id} className="relative pb-6 last:pb-0 group">
                 <div className="absolute -left-[13px] top-3 w-3 h-3 rounded-full border-2 border-border bg-card" />
 
-                <Card className="ml-4 p-5 border-border/40 shadow-sm hover:border-border/60 transition-colors">
+                <Card
+                  className={`ml-4 p-5 border-border/40 shadow-sm hover:border-border/60 transition-colors ${onTimelineClick ? "cursor-pointer hover:bg-muted/20" : ""}`}
+                  onClick={onTimelineClick ? () => onTimelineClick() : undefined}
+                >
                   <div className="flex items-start justify-between">
                     <div className="flex items-center gap-2">
                       <span className={`text-base ${colorClass}`}>📌</span>
                       <div>
                         <div className="flex items-center gap-2">
-                          <span className="text-sm font-semibold text-foreground">{title}</span>
+                          <span className={`text-sm font-semibold text-foreground ${onTimelineClick ? "hover:underline underline-offset-2" : ""}`}>{title}</span>
                           {linkedDocs.length > 0 && (
                             <span className="flex items-center gap-1 text-xs text-muted-foreground">
                               <Paperclip className="w-3 h-3" /> {linkedDocs.length}
@@ -615,7 +762,7 @@ export function ClienteVisaoGeralTab({ cliente, onEdit: _onEdit }: Props) {
                         variant="ghost"
                         size="icon"
                         className="h-7 w-7 text-muted-foreground hover:text-foreground"
-                        onClick={() => startEdit(item)}
+                        onClick={(e) => { e.stopPropagation(); startEdit(item); }}
                       >
                         <Pencil className="w-3.5 h-3.5" />
                       </Button>
@@ -623,7 +770,7 @@ export function ClienteVisaoGeralTab({ cliente, onEdit: _onEdit }: Props) {
                         variant="ghost"
                         size="icon"
                         className="h-7 w-7 text-destructive hover:text-destructive"
-                        onClick={() => setDeleteId(item.id)}
+                        onClick={(e) => { e.stopPropagation(); setDeleteId(item.id); }}
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </Button>
@@ -738,6 +885,16 @@ export function ClienteVisaoGeralTab({ cliente, onEdit: _onEdit }: Props) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Quick list modal — opened from timeline / macro / AI insights */}
+      <QuickListModal
+        open={quickList.open}
+        onOpenChange={(open) => setQuickList((q) => ({ ...q, open }))}
+        mode={quickList.mode}
+        title={quickList.title}
+        description={quickList.description}
+        items={quickList.items}
+      />
     </div>
   );
 }
