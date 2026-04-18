@@ -775,11 +775,46 @@ export default function ExtratoBancario() {
                     <span className="text-[11px] text-muted-foreground">
                       {formatDate(tx.date)}
                     </span>
-                    {tx.category && (
-                      <Badge variant="secondary" className="text-[10px]">
-                        {tx.category}
-                      </Badge>
-                    )}
+                    {(() => {
+                      const catFin = categoriasFinanceiras.find((c: any) => c.id === tx.categoria_financeira_id);
+                      const subcatOptions = categoriasFinanceiras.filter(
+                        (c: any) => !categoriasFinanceiras.some((child: any) => child.categoria_pai_id === c.id)
+                      );
+                      return (
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <button
+                              className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded border border-border/40 hover:bg-muted/40 transition-colors group/cat"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <Tag className="h-2.5 w-2.5 text-muted-foreground" />
+                              <span className={catFin ? "text-foreground" : "text-muted-foreground/70"}>
+                                {catFin?.nome || tx.category || "Categorizar"}
+                              </span>
+                              <ChevronDown className="h-2.5 w-2.5 text-muted-foreground opacity-0 group-hover/cat:opacity-100 transition-opacity" />
+                            </button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="start" className="max-h-[300px] overflow-y-auto custom-scrollbar">
+                            {subcatOptions.map((c: any) => (
+                              <DropdownMenuItem
+                                key={c.id}
+                                onClick={() => updateCategoriaMutation.mutate({ id: tx.id, categoria_financeira_id: c.id })}
+                              >
+                                {c.nome}
+                              </DropdownMenuItem>
+                            ))}
+                            {tx.categoria_financeira_id && (
+                              <DropdownMenuItem
+                                onClick={() => updateCategoriaMutation.mutate({ id: tx.id, categoria_financeira_id: null })}
+                                className="text-muted-foreground"
+                              >
+                                Limpar categoria
+                              </DropdownMenuItem>
+                            )}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      );
+                    })()}
                   </div>
                 </div>
 
