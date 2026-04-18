@@ -80,10 +80,10 @@ export default function FinanceiroDashboard() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("pluggy_connections" as any)
-        .select("pluggy_item_id, connector_name")
+        .select("pluggy_item_id, connector_name, connector_id")
         .eq("user_id", targetUserId!);
       if (error) throw error;
-      return data as unknown as { pluggy_item_id: string; connector_name: string | null }[];
+      return data as unknown as { pluggy_item_id: string; connector_name: string | null; connector_id: number | null }[];
     },
     enabled: !!user && !!targetUserId,
   });
@@ -100,6 +100,57 @@ export default function FinanceiroDashboard() {
       return data as { nome: string | null; cpf: string | null } | null;
     },
     enabled: !!user && !!targetUserId,
+  });
+
+  // ── Manual bank accounts (contas_bancarias) ──
+  const { data: manualAccounts = [] } = useQuery({
+    queryKey: ["dashboard-manual-accounts", targetUserId, empresaId],
+    enabled: !!targetUserId,
+    queryFn: async () => {
+      let q = supabase
+        .from("contas_bancarias")
+        .select("id, nome, banco, banco_id, tipo, saldo_inicial, saldo_investimento, ativo")
+        .eq("ativo", true);
+      if (empresaId) q = q.eq("empresa_id", empresaId);
+      else q = q.eq("user_id", targetUserId!);
+      const { data, error } = await q;
+      if (error) throw error;
+      return (data ?? []) as any[];
+    },
+  });
+
+  // ── Manual cash transactions for movement totals (per-account) ──
+  const { data: manualTx = [] } = useQuery({
+    queryKey: ["dashboard-manual-tx", targetUserId, empresaId],
+    enabled: !!targetUserId,
+    queryFn: async () => {
+      const fromDate = format(subDays(new Date(), 90), "yyyy-MM-dd");
+      let q = supabase
+        .from("cash_transactions")
+        .select("id, amount, type, transaction_date, bank_account_id")
+        .gte("transaction_date", fromDate);
+      if (empresaId) q = q.eq("empresa_id", empresaId);
+      else q = q.eq("user_id", targetUserId!);
+      const { data, error } = await q;
+      if (error) throw error;
+      return (data ?? []) as any[];
+    },
+  });
+
+  // Saldo atual por conta manual = saldo_inicial + (entradas - saídas) [todas as movimentações]
+  const { data: manualTxAll = [] } = useQuery({
+    queryKey: ["dashboard-manual-tx-all", targetUserId, empresaId],
+    enabled: !!targetUserId,
+    queryFn: async () => {
+      let q = supabase
+        .from("cash_transactions")
+        .select("amount, type, bank_account_id");
+      if (empresaId) q = q.eq("empresa_id", empresaId);
+      else q = q.eq("user_id", targetUserId!);
+      const { data, error } = await q;
+      if (error) throw error;
+      return (data ?? []) as any[];
+    },
   });
 
   // ── KPIs ──
@@ -158,7 +209,7 @@ export default function FinanceiroDashboard() {
     },
   });
 
-  // ── Derived data ──
+  // ── Derived data: Pluggy ──
   const bankAccounts = accounts.filter((a) => a.type !== "CREDIT");
   const creditCards = accounts.filter((a) => a.type === "CREDIT");
 
@@ -168,13 +219,45 @@ export default function FinanceiroDashboard() {
     return inv > 0 ? inv : autoInv;
   };
 
-  const totalBankBalance = bankAccounts.reduce((sum, a) => sum + a.balance, 0);
-  const totalInvestments = bankAccounts.reduce((sum, a) => sum + getStoredBalance(a), 0);
+  const totalPluggyBalance = bankAccounts.reduce((sum, a) => sum + a.balance, 0);
+  const totalPluggyInvestments = bankAccounts.reduce((sum, a) => sum + getStoredBalance(a), 0);
+
+  // ── Derived data: Manual ──
+  // Saldo atual de cada conta manual = saldo_inicial + (entradas - saídas) de TODAS as cash_transactions
+  const manualBalanceByAccount = useMemo(() => {
+    const map = new Map<string, number>();
+    manualAccounts.forEach((a) => map.set(a.id, Number(a.saldo_inicial || 0)));
+    manualTxAll.forEach((t) => {
+      if (!t.bank_account_id) return;
+      const cur = map.get(t.bank_account_id) ?? 0;
+      const v = Number(t.amount || 0);
+      map.set(t.bank_account_id, cur + (t.type === "entrada" ? v : -v));
+    });
+    return map;
+  }, [manualAccounts, manualTxAll]);
+
+  const totalManualBalance = useMemo(
+    () => manualAccounts.reduce((s, a) => s + (manualBalanceByAccount.get(a.id) ?? 0), 0),
+    [manualAccounts, manualBalanceByAccount]
+  );
+  const totalManualInvestments = useMemo(
+    () => manualAccounts.reduce((s, a) => s + Number(a.saldo_investimento || 0), 0),
+    [manualAccounts]
+  );
+
+  // ── Unified totals ──
+  const totalBankBalance = totalPluggyBalance + totalManualBalance;
+  const totalInvestments = totalPluggyInvestments + totalManualInvestments;
   const totalCreditAvailable = creditCards.reduce((sum, a) => sum + (a.credit_available ?? 0), 0);
 
   const getConnectorName = (account: BankAccount) => {
     const conn = connections.find((c) => c.pluggy_item_id === account.pluggy_item_id);
     return conn?.connector_name || "Conta";
+  };
+
+  const getConnectorId = (account: BankAccount) => {
+    const conn = connections.find((c) => c.pluggy_item_id === account.pluggy_item_id);
+    return conn?.connector_id ?? null;
   };
 
   const getAccountOwner = (account: BankAccount) => {
@@ -189,20 +272,6 @@ export default function FinanceiroDashboard() {
     if (accountDoc && profileDoc && accountDoc === profileDoc)
       return toTitleCase(profileData?.nome || "");
     return "";
-  };
-
-  const getCreditCardLabel = (account: BankAccount) => {
-    const connName = getConnectorName(account);
-    const creditData = (account.bank_data as any)?.creditData;
-    const last4 = creditData?.disaggregatedCreditLimits?.[0]?.identificationNumber || "";
-    const suffix = last4 ? ` •••• ${last4}` : "";
-    return `${connName}${suffix}`;
-  };
-
-  const getBankDisplayName = (account: BankAccount) => {
-    const connName = getConnectorName(account);
-    const owner = getAccountOwner(account);
-    return owner ? `${connName} (${owner})` : connName;
   };
 
   // Limite total: usa credit_limit; se nulo, deriva de balance(consumo) + credit_available
@@ -221,7 +290,6 @@ export default function FinanceiroDashboard() {
     const totalDebt = account.bank_data?.totalDebt;
     if (totalDebt != null && totalDebt > 0) return totalDebt;
     if (account.credit_bill_amount != null && account.credit_bill_amount > 0) return account.credit_bill_amount;
-    // Fallback: para cartão, balance representa o consumo atual (valor utilizado)
     const used = Math.abs(account.balance ?? 0);
     if (used > 0) return used;
     if (account.credit_limit && account.credit_available != null) {
@@ -243,20 +311,29 @@ export default function FinanceiroDashboard() {
   };
 
   // ── Chart datasets ──
-  // Patrimônio total (saldo + investimentos) — investimentos não somem do total quando o dinheiro é aplicado
+  // Patrimônio total = saldos liquidos (Pluggy + manual) + investimentos (Pluggy + manual)
   const totalNetWorth = totalBankBalance + totalInvestments;
 
   const evolutionData = useMemo(() => {
-    if (txHistory.length === 0) return [];
-    // Para evolução do patrimônio: ignoramos movimentações entre conta e investimento
-    // (não alteram o patrimônio total, só transferem entre "bolsos")
+    if (txHistory.length === 0 && manualTx.length === 0) return [];
     const byDay = new Map<string, number>();
+
+    // Pluggy (ignora movimentações entre conta e investimento)
     txHistory.forEach((t: any) => {
-      if (isInvestmentTx(t)) return; // pular aplicações/resgates
+      if (isInvestmentTx(t)) return;
       const day = t.date;
       const signed = t.type === "CREDIT" ? Math.abs(Number(t.amount)) : -Math.abs(Number(t.amount));
       byDay.set(day, (byDay.get(day) || 0) + signed);
     });
+
+    // Manual cash_transactions (últimos 90 dias)
+    manualTx.forEach((t: any) => {
+      const day = t.transaction_date;
+      const v = Number(t.amount || 0);
+      const signed = t.type === "entrada" ? v : -v;
+      byDay.set(day, (byDay.get(day) || 0) + signed);
+    });
+
     const days: { date: string; saldo: number }[] = [];
     const today = new Date();
     const dailyChanges: { dateKey: string; label: string; change: number }[] = [];
@@ -265,7 +342,6 @@ export default function FinanceiroDashboard() {
       const dateKey = format(d, "yyyy-MM-dd");
       dailyChanges.push({ dateKey, label: format(d, "dd/MM"), change: byDay.get(dateKey) || 0 });
     }
-    // Saldo de hoje = patrimônio total (saldo em conta + investimentos)
     const balances: number[] = Array.from({ length: dailyChanges.length }, () => 0);
     balances[balances.length - 1] = totalNetWorth;
     for (let i = balances.length - 2; i >= 0; i--) {
@@ -275,36 +351,76 @@ export default function FinanceiroDashboard() {
       days.push({ date: dailyChanges[i].label, saldo: Math.round(balances[i]) });
     }
     return days.filter((_, idx) => idx % 3 === 0 || idx === days.length - 1);
-  }, [txHistory, totalNetWorth]);
+  }, [txHistory, manualTx, totalNetWorth]);
 
   const balanceDeltaPct = useMemo(() => {
     if (evolutionData.length < 2) return null;
     const first = evolutionData[0].saldo;
     const last = evolutionData[evolutionData.length - 1].saldo;
-    // Evita exibir % enganosa quando o saldo atual é zero/desprezível
-    // ou quando o saldo inicial é zero/negativo (base inválida para %)
     if (Math.abs(last) < 1) return null;
     if (first <= 0) return null;
     return ((last - first) / first) * 100;
   }, [evolutionData]);
 
+  // Distribuição por banco — agrupa contas Pluggy + manuais pelo mesmo banco
+  // Pluggy: agrupa por connector_id; Manual: agrupa por banco_id
+  // Quando o usuário cadastra manualmente, o banco_id casa com o do Pluggy via mesmo nome (fallback)
   const distributionData = useMemo(() => {
-    return bankAccounts
-      .map((a) => ({ name: getConnectorName(a), value: Math.max(0, a.balance + getStoredBalance(a)) }))
-      .filter((d) => d.value > 0);
+    const byBank = new Map<string, { name: string; value: number }>();
+
+    // Pluggy: agrupa por connector_name
+    bankAccounts.forEach((a) => {
+      const key = `pluggy:${getConnectorId(a) ?? getConnectorName(a)}`;
+      const value = Math.max(0, a.balance + getStoredBalance(a));
+      if (value <= 0) return;
+      const existing = byBank.get(key);
+      if (existing) {
+        existing.value += value;
+      } else {
+        byBank.set(key, { name: getConnectorName(a), value });
+      }
+    });
+
+    // Manual: agrupa por banco_id (ou nome quando não há banco_id)
+    manualAccounts.forEach((a) => {
+      const balance = manualBalanceByAccount.get(a.id) ?? 0;
+      const inv = Number(a.saldo_investimento || 0);
+      const value = Math.max(0, balance + inv);
+      if (value <= 0) return;
+      const bankName = a.banco || a.nome || "Conta manual";
+      // Tenta consolidar com Pluggy do mesmo banco (compara nome normalizado)
+      const norm = bankName.toLowerCase().replace(/[^a-z0-9]/g, "");
+      let merged = false;
+      byBank.forEach((entry, key) => {
+        if (key.startsWith("pluggy:") && entry.name.toLowerCase().replace(/[^a-z0-9]/g, "").includes(norm.slice(0, 6))) {
+          entry.value += value;
+          merged = true;
+        }
+      });
+      if (!merged) {
+        const key = `manual:${a.banco_id ?? bankName}`;
+        const existing = byBank.get(key);
+        if (existing) existing.value += value;
+        else byBank.set(key, { name: bankName, value });
+      }
+    });
+
+    return Array.from(byBank.values()).filter((d) => d.value > 0);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [bankAccounts, connections]);
+  }, [bankAccounts, manualAccounts, manualBalanceByAccount, connections]);
 
   const flowData = useMemo(() => {
-    if (txHistory.length === 0) return [];
+    if (txHistory.length === 0 && manualTx.length === 0) return [];
     const months = new Map<string, { entradas: number; saidas: number }>();
     const today = new Date();
     for (let i = 5; i >= 0; i--) {
       const d = subMonths(today, i);
       months.set(format(d, "yyyy-MM"), { entradas: 0, saidas: 0 });
     }
+
+    // Pluggy
     txHistory.forEach((t: any) => {
-      if (isInvestmentTx(t)) return; // aplicações/resgates não são entrada nem saída
+      if (isInvestmentTx(t)) return;
       const key = t.date.slice(0, 7);
       if (!months.has(key)) return;
       const v = Math.abs(Number(t.amount));
@@ -312,12 +428,23 @@ export default function FinanceiroDashboard() {
       if (t.type === "CREDIT") m.entradas += v;
       else m.saidas += v;
     });
+
+    // Manual
+    manualTx.forEach((t: any) => {
+      const key = (t.transaction_date || "").slice(0, 7);
+      if (!months.has(key)) return;
+      const v = Math.abs(Number(t.amount || 0));
+      const m = months.get(key)!;
+      if (t.type === "entrada") m.entradas += v;
+      else m.saidas += v;
+    });
+
     return Array.from(months.entries()).map(([key, v]) => ({
       month: format(new Date(key + "-01T12:00:00"), "MMM/yy", { locale: ptBR }),
       entradas: Math.round(v.entradas),
       saidas: Math.round(v.saidas),
     }));
-  }, [txHistory]);
+  }, [txHistory, manualTx]);
 
   const pendentes = contasPagar?.filter((c) => c.status === "pending") ?? [];
   const vencidas = contasPagar?.filter((c) => c.status === "overdue") ?? [];

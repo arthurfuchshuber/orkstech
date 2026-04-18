@@ -31,6 +31,7 @@ export function ContaBancariaModal({ open, onOpenChange, editingId, onSaved }: C
     banco_id: "",
     tipo: "corrente" as TipoConta,
     saldo_inicial: "0",
+    saldo_investimento: "0",
     pessoa_tipo: "pj" as "pj" | "pf",
   });
   const [bancoModalOpen, setBancoModalOpen] = useState(false);
@@ -79,10 +80,11 @@ export function ContaBancariaModal({ open, onOpenChange, editingId, onSaved }: C
         banco_id: existing.banco_id || "",
         tipo: existing.tipo as TipoConta,
         saldo_inicial: String(existing.saldo_inicial),
+        saldo_investimento: String((existing as any).saldo_investimento ?? 0),
         pessoa_tipo: (existing as any).pessoa_tipo || "pj",
       });
     } else if (!editingId && open) {
-      setForm({ nome: "", banco_id: "", tipo: "corrente", saldo_inicial: "0", pessoa_tipo: "pj" });
+      setForm({ nome: "", banco_id: "", tipo: "corrente", saldo_inicial: "0", saldo_investimento: "0", pessoa_tipo: "pj" });
     }
   }, [existing, editingId, open]);
 
@@ -97,6 +99,7 @@ export function ContaBancariaModal({ open, onOpenChange, editingId, onSaved }: C
         banco_id: form.banco_id || null,
         tipo: form.tipo,
         saldo_inicial: parseFloat(form.saldo_inicial) || 0,
+        saldo_investimento: parseFloat(form.saldo_investimento) || 0,
         pessoa_tipo: form.pessoa_tipo,
       };
       if (editingId) {
@@ -165,6 +168,11 @@ export function ContaBancariaModal({ open, onOpenChange, editingId, onSaved }: C
             <div>
               <label className="text-sm font-medium text-foreground mb-1.5 block">Saldo Inicial (R$)</label>
               <Input type="number" step="0.01" value={form.saldo_inicial} onChange={(e) => setForm({ ...form, saldo_inicial: e.target.value })} />
+            </div>
+            <div>
+              <label className="text-sm font-medium text-foreground mb-1.5 block">Saldo de Investimento (R$)</label>
+              <Input type="number" step="0.01" value={form.saldo_investimento} onChange={(e) => setForm({ ...form, saldo_investimento: e.target.value })} placeholder="0,00" />
+              <p className="text-[11px] text-muted-foreground mt-1">Valor aplicado em investimentos vinculado a esta conta (CDB, Tesouro, Poupança, etc.)</p>
             </div>
           </div>
           <DialogFooter>
