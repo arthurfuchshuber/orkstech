@@ -88,11 +88,13 @@ interface Transaction {
   category: string | null;
   reconciled: boolean;
   pluggy_account_id: string;
+  categoria_financeira_id: string | null;
 }
 
 export default function ExtratoBancario() {
   const { user } = useAuth();
   const { empresa } = useEmpresa();
+  const queryClient = useQueryClient();
   const [selectedAccount, setSelectedAccount] = useState<string>("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [typeFilter, setTypeFilter] = useState<string>("all");
