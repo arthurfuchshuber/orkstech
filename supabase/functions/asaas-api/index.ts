@@ -420,6 +420,23 @@ Deno.serve(async (req) => {
           const localStatus = isPaid ? "paid" : isOverdue ? "overdue" : "pending";
           const localPaymentDate = payment.paymentDate || payment.clientPaymentDate || payment.confirmedDate || null;
 
+          // Resolve payer name (supplier_name) from local client when available
+          let payerName: string | null = null;
+          let payerPessoaTipo: "pf" | "pj" = "pj";
+          if (clienteIdLocal) {
+            const { data: cliRow } = await serviceClient
+              .from("clientes")
+              .select("tipo, nome_completo, razao_social, nome_fantasia")
+              .eq("id", clienteIdLocal)
+              .maybeSingle();
+            if (cliRow) {
+              payerPessoaTipo = (cliRow.tipo as "pf" | "pj") || "pj";
+              payerName = cliRow.tipo === "pf"
+                ? (cliRow.nome_completo || null)
+                : (cliRow.nome_fantasia || cliRow.razao_social || null);
+            }
+          }
+
           if (!accountReceivableId) {
             const description = payment.description || `Cobrança Asaas ${payment.id}`;
             const { data: newRec } = await serviceClient
@@ -428,13 +445,14 @@ Deno.serve(async (req) => {
                 user_id: userId,
                 empresa_id: empresaIdLocal,
                 cliente_id: clienteIdLocal,
+                supplier_name: payerName,
                 description,
                 amount: Number(payment.value) || 0,
                 due_date: payment.dueDate,
                 payment_date: localPaymentDate,
                 status: localStatus,
                 document_number: payment.id,
-                pessoa_tipo: "pj",
+                pessoa_tipo: payerPessoaTipo,
                 notes: `Importado do Asaas (${payment.billingType || "UNDEFINED"})`,
               })
               .select("id")
@@ -443,7 +461,13 @@ Deno.serve(async (req) => {
           } else {
             await serviceClient
               .from("accounts_receivable")
-              .update({ status: localStatus, payment_date: localPaymentDate })
+              .update({
+                status: localStatus,
+                payment_date: localPaymentDate,
+                cliente_id: clienteIdLocal,
+                supplier_name: payerName,
+                pessoa_tipo: payerPessoaTipo,
+              })
               .eq("id", accountReceivableId);
           }
 
