@@ -2216,6 +2216,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      _fmt_brl: { Args: { v: number }; Returns: string }
       is_super_admin: { Args: never; Returns: boolean }
       processar_automacoes: {
         Args: {
