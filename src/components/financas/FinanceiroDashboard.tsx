@@ -142,7 +142,7 @@ export default function FinanceiroDashboard() {
       while (true) {
         const { data, error } = await supabase
           .from("pluggy_transactions" as any)
-          .select("id, amount, date, type, pluggy_account_id")
+          .select("id, amount, date, type, category, description, pluggy_account_id")
           .eq("user_id", targetUserId!)
           .in("pluggy_account_id", bankAccountIds)
           .gte("date", fromDate)
