@@ -346,12 +346,59 @@ export default function ContasAReceber() {
     onError: () => toast.error("Erro ao salvar conta"),
   });
 
+  const pushReceivableToAsaas = async (receivableId: string, scope: "single" | "group" = "single") => {
+    if (!asaasEnabled) return;
+    try {
+      const { data: linked } = await supabase
+        .from("asaas_cobrancas")
+        .select("id")
+        .eq("account_receivable_id", receivableId)
+        .limit(1)
+        .maybeSingle();
+      if (!linked) return;
+      const { data, error } = await supabase.functions.invoke("asaas-api", {
+        body: { action: "update_payment", receivable_id: receivableId, scope, empresa_id: empresaId },
+      });
+      if (error || (data as any)?.error) {
+        toast.warning(`Conta salva, mas falha ao sincronizar com Asaas: ${(data as any)?.error || error?.message}`);
+      } else {
+        const ok = (data as any)?.ok ?? 0;
+        if (ok > 0) toast.success(`${ok} cobrança(s) sincronizada(s) com Asaas`);
+      }
+    } catch (e) {
+      console.warn("[asaas push receivable]", e);
+    }
+  };
+
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: any }) => updateAccountReceivable(id, data),
-    onSuccess: async () => {
+    mutationFn: async ({ id, data, scope }: { id: string; data: any; scope?: "single" | "group" }) => {
+      if (scope === "group") {
+        // Apply only mass-editable fields to all siblings sharing grupo_id
+        const { data: rec } = await supabase.from("accounts_receivable").select("grupo_id").eq("id", id).maybeSingle();
+        if (rec?.grupo_id) {
+          // Strip per-installment fields from group update
+          const { due_date, installment_number, installment_total, ...groupSafe } = data;
+          const { data: siblings } = await supabase
+            .from("accounts_receivable")
+            .select("id")
+            .eq("grupo_id", rec.grupo_id);
+          const ids = (siblings ?? []).map((s: any) => s.id);
+          for (const sid of ids) {
+            await updateAccountReceivable(sid, sid === id ? data : groupSafe);
+          }
+          return { ids };
+        }
+      }
+      await updateAccountReceivable(id, data);
+      return { ids: [id] };
+    },
+    onSuccess: async (res, vars) => {
       await refreshQueries(queryClient, [["accounts-receivable"], ["accounts-receivable-counts"]]);
       toast.success("Conta atualizada!");
       resetForm();
+      // Push to Asaas in background
+      const scope = vars.scope || "single";
+      void pushReceivableToAsaas(vars.id, scope);
     },
     onError: () => toast.error("Erro ao atualizar conta"),
   });
