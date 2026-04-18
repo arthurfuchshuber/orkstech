@@ -80,10 +80,11 @@ export function ContaBancariaModal({ open, onOpenChange, editingId, onSaved }: C
         banco_id: existing.banco_id || "",
         tipo: existing.tipo as TipoConta,
         saldo_inicial: String(existing.saldo_inicial),
+        saldo_investimento: String((existing as any).saldo_investimento ?? 0),
         pessoa_tipo: (existing as any).pessoa_tipo || "pj",
       });
     } else if (!editingId && open) {
-      setForm({ nome: "", banco_id: "", tipo: "corrente", saldo_inicial: "0", pessoa_tipo: "pj" });
+      setForm({ nome: "", banco_id: "", tipo: "corrente", saldo_inicial: "0", saldo_investimento: "0", pessoa_tipo: "pj" });
     }
   }, [existing, editingId, open]);
 
