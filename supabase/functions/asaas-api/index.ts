@@ -446,11 +446,35 @@ Deno.serve(async (req) => {
 
     // ============ PURGE HISTORY (delete all local charges for this user/empresa) ============
     if (action === "purge_history") {
-      let q = serviceClient.from("asaas_cobrancas").delete().eq("user_id", userId);
-      if (cred.empresa_id) q = q.eq("empresa_id", cred.empresa_id);
-      const { error: delErr, count } = await q;
+      // 1) Collect linked receivable IDs that came from Asaas import
+      let listQ = serviceClient
+        .from("asaas_cobrancas")
+        .select("id, account_receivable_id")
+        .eq("user_id", userId);
+      if (cred.empresa_id) listQ = listQ.eq("empresa_id", cred.empresa_id);
+      const { data: cobs } = await listQ;
+      const receivableIds = (cobs ?? [])
+        .map((c: any) => c.account_receivable_id)
+        .filter((id: any): id is string => !!id);
+
+      // 2) Delete cobranças first (FK-safe)
+      let delQ = serviceClient.from("asaas_cobrancas").delete().eq("user_id", userId);
+      if (cred.empresa_id) delQ = delQ.eq("empresa_id", cred.empresa_id);
+      const { error: delErr, count } = await delQ;
       if (delErr) throw delErr;
-      return new Response(JSON.stringify({ success: true, deleted: count ?? null }), {
+
+      // 3) Delete the auto-imported receivables (only those flagged "Importado do Asaas")
+      let deletedRecs = 0;
+      if (receivableIds.length > 0) {
+        const { count: rc } = await serviceClient
+          .from("accounts_receivable")
+          .delete({ count: "exact" })
+          .in("id", receivableIds)
+          .like("notes", "Importado do Asaas%");
+        deletedRecs = rc ?? 0;
+      }
+
+      return new Response(JSON.stringify({ success: true, deleted: count ?? null, deletedReceivables: deletedRecs }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
