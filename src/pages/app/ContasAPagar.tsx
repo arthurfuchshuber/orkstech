@@ -129,7 +129,7 @@ export default function ContasAPagar() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [searchTerm, setSearchTerm] = useState("");
-  const [filterStatus, setFilterStatus] = useState<string>("all");
+  const [filterStatus, setFilterStatus] = useState<string>("open");
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
   const [payingId, setPayingId] = useState<string | null>(null);
   const [paymentBankAccount, setPaymentBankAccount] = useState("");
