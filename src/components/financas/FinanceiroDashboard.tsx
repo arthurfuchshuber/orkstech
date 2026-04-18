@@ -13,12 +13,15 @@ import {
   Clock,
   CreditCard,
   Wallet,
-  ArrowDownRight,
+  
   PiggyBank,
+  Sparkles,
 } from "lucide-react";
-import { format, differenceInDays, startOfMonth, endOfMonth, subMonths, addMonths, isBefore } from "date-fns";
+import { format, differenceInDays, startOfMonth, endOfMonth, subMonths, addMonths, isBefore, subDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useMemo } from "react";
+import { CaixaKpis } from "./caixa/CaixaKpis";
+import { CaixaCharts } from "./caixa/CaixaCharts";
 
 interface BankAccount {
   id: string;
@@ -122,6 +125,39 @@ export default function FinanceiroDashboard() {
     },
   });
 
+  // ── Bank transactions (last 90 days) for evolution & flow charts ──
+  const bankAccountIds = useMemo(
+    () => accounts.filter((a) => a.type !== "CREDIT").map((a) => a.pluggy_account_id),
+    [accounts]
+  );
+
+  const { data: txHistory = [] } = useQuery({
+    queryKey: ["dashboard-tx-history", targetUserId, bankAccountIds.join(",")],
+    enabled: !!targetUserId && bankAccountIds.length > 0,
+    queryFn: async () => {
+      const fromDate = format(subDays(new Date(), 90), "yyyy-MM-dd");
+      const all: any[] = [];
+      const PAGE = 1000;
+      let offset = 0;
+      while (true) {
+        const { data, error } = await supabase
+          .from("pluggy_transactions" as any)
+          .select("id, amount, date, type, pluggy_account_id")
+          .eq("user_id", targetUserId!)
+          .in("pluggy_account_id", bankAccountIds)
+          .gte("date", fromDate)
+          .order("date", { ascending: true })
+          .range(offset, offset + PAGE - 1);
+        if (error) throw error;
+        const rows = (data ?? []) as any[];
+        all.push(...rows);
+        if (rows.length < PAGE) break;
+        offset += PAGE;
+      }
+      return all;
+    },
+  });
+
   // ── Derived data ──
   const bankAccounts = accounts.filter((a) => a.type !== "CREDIT");
   const creditCards = accounts.filter((a) => a.type === "CREDIT");
@@ -132,12 +168,10 @@ export default function FinanceiroDashboard() {
     return inv > 0 ? inv : autoInv;
   };
 
-  const totalBankBalance = bankAccounts.reduce(
-    (sum, a) => sum + a.balance + getStoredBalance(a),
-    0
-  );
-
+  const totalBankBalance = bankAccounts.reduce((sum, a) => sum + a.balance, 0);
+  const totalInvestments = bankAccounts.reduce((sum, a) => sum + getStoredBalance(a), 0);
   const totalCreditAvailable = creditCards.reduce((sum, a) => sum + (a.credit_available ?? 0), 0);
+  const totalCreditLimit = creditCards.reduce((sum, a) => sum + (a.credit_limit ?? 0), 0);
 
   const getConnectorName = (account: BankAccount) => {
     const conn = connections.find((c) => c.pluggy_item_id === account.pluggy_item_id);
@@ -184,6 +218,79 @@ export default function FinanceiroDashboard() {
     }
     return 0;
   };
+
+  const totalCreditBills = creditCards.reduce((sum, c) => sum + getCreditBillAmount(c), 0);
+
+  // ── Chart datasets ──
+  const evolutionData = useMemo(() => {
+    if (txHistory.length === 0) return [];
+    // Build daily aggregated net change, then build cumulative working backwards from today balance
+    const byDay = new Map<string, number>();
+    txHistory.forEach((t: any) => {
+      const day = t.date;
+      const signed = t.type === "CREDIT" ? Math.abs(Number(t.amount)) : -Math.abs(Number(t.amount));
+      byDay.set(day, (byDay.get(day) || 0) + signed);
+    });
+    // Generate last 90 days
+    const days: { date: string; saldo: number }[] = [];
+    const today = new Date();
+    let runningFromToday = totalBankBalance;
+    const dailyChanges: { dateKey: string; label: string; change: number }[] = [];
+    for (let i = 89; i >= 0; i--) {
+      const d = subDays(today, i);
+      const dateKey = format(d, "yyyy-MM-dd");
+      dailyChanges.push({ dateKey, label: format(d, "dd/MM"), change: byDay.get(dateKey) || 0 });
+    }
+    // Compute cumulative: today = totalBankBalance; previous days subtract the change of the next day
+    const balances: number[] = Array.from({ length: dailyChanges.length }, () => 0);
+    balances[balances.length - 1] = runningFromToday;
+    for (let i = balances.length - 2; i >= 0; i--) {
+      balances[i] = balances[i + 1] - dailyChanges[i + 1].change;
+    }
+    for (let i = 0; i < dailyChanges.length; i++) {
+      days.push({ date: dailyChanges[i].label, saldo: Math.round(balances[i]) });
+    }
+    // Reduce to one point per ~3 days for cleaner visual
+    return days.filter((_, idx) => idx % 3 === 0 || idx === days.length - 1);
+  }, [txHistory, totalBankBalance]);
+
+  const balanceDeltaPct = useMemo(() => {
+    if (evolutionData.length < 2) return null;
+    const first = evolutionData[0].saldo;
+    const last = evolutionData[evolutionData.length - 1].saldo;
+    if (Math.abs(first) < 0.01) return null;
+    return ((last - first) / Math.abs(first)) * 100;
+  }, [evolutionData]);
+
+  const distributionData = useMemo(() => {
+    return bankAccounts
+      .map((a) => ({ name: getConnectorName(a), value: Math.max(0, a.balance + getStoredBalance(a)) }))
+      .filter((d) => d.value > 0);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bankAccounts, connections]);
+
+  const flowData = useMemo(() => {
+    if (txHistory.length === 0) return [];
+    const months = new Map<string, { entradas: number; saidas: number }>();
+    const today = new Date();
+    for (let i = 5; i >= 0; i--) {
+      const d = subMonths(today, i);
+      months.set(format(d, "yyyy-MM"), { entradas: 0, saidas: 0 });
+    }
+    txHistory.forEach((t: any) => {
+      const key = t.date.slice(0, 7);
+      if (!months.has(key)) return;
+      const v = Math.abs(Number(t.amount));
+      const m = months.get(key)!;
+      if (t.type === "CREDIT") m.entradas += v;
+      else m.saidas += v;
+    });
+    return Array.from(months.entries()).map(([key, v]) => ({
+      month: format(new Date(key + "-01T12:00:00"), "MMM/yy", { locale: ptBR }),
+      entradas: Math.round(v.entradas),
+      saidas: Math.round(v.saidas),
+    }));
+  }, [txHistory]);
 
   const pendentes = contasPagar?.filter((c) => c.status === "pending") ?? [];
   const vencidas = contasPagar?.filter((c) => c.status === "overdue") ?? [];
@@ -256,99 +363,54 @@ export default function FinanceiroDashboard() {
       </TabsList>
 
       {/* ═══════════ ABA: Caixa da Empresa ═══════════ */}
-      <TabsContent value="caixa" className="space-y-6">
-        {/* KPIs */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <Card className="border-border/50">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center">
-                  <Landmark className="w-4 h-4 text-primary" />
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">Saldo em Contas</p>
-                  <p className="text-xl font-bold text-foreground">{fmt(totalBankBalance)}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+      <TabsContent value="caixa" className="space-y-5">
+        {/* KPIs aprimorados */}
+        <CaixaKpis
+          totalBalance={totalBankBalance}
+          totalInvestments={totalInvestments}
+          totalCreditAvailable={totalCreditAvailable}
+          totalCreditBills={totalCreditBills}
+          totalCreditLimit={totalCreditLimit}
+          balanceDeltaPct={balanceDeltaPct}
+        />
 
-          <Card className="border-border/50">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center">
-                  <CreditCard className="w-4 h-4 text-primary" />
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">Limite Disponível</p>
-                  <p className="text-xl font-bold text-foreground">{fmt(totalCreditAvailable)}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+        {/* Visualizações */}
+        <CaixaCharts
+          evolution={evolutionData}
+          distribution={distributionData}
+          flow={flowData}
+        />
 
-          <Card className="border-border/50">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-lg bg-success/10 flex items-center justify-center">
-                  <ArrowDownRight className="w-4 h-4 text-success" />
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">Cartões conectados</p>
-                  <p className="text-xl font-bold text-foreground">{creditCards.length}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="border-border/50">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center">
-                  <Wallet className="w-4 h-4 text-primary" />
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">Contas bancárias</p>
-                  <p className="text-xl font-bold text-foreground">{bankAccounts.length}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Contas Bancárias + Cartões */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* Contas Bancárias + Cartões + Investimentos */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          {/* Contas bancárias */}
           <Card className="border-border/50">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium flex items-center gap-2">
                 <Landmark className="w-4 h-4 text-primary" />
                 Contas Bancárias
+                <Badge variant="outline" className="ml-auto text-[10px] font-normal">{bankAccounts.length}</Badge>
               </CardTitle>
             </CardHeader>
             <CardContent>
               {bankAccounts.length === 0 ? (
-                <p className="text-xs text-muted-foreground py-4 text-center">
+                <p className="text-xs text-muted-foreground py-6 text-center">
                   {hasPluggyData ? "Nenhuma conta corrente encontrada" : "Nenhuma conexão bancária ativa"}
                 </p>
               ) : (
-                <div className="space-y-2">
+                <div className="space-y-1">
                   {bankAccounts.map((account) => (
                     <div key={account.id} className="flex items-center justify-between py-2 border-b border-border/30 last:border-0">
-                      <div className="flex items-center gap-2.5">
-                        <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
                           <Wallet className="w-3.5 h-3.5 text-primary" />
                         </div>
-                        <div>
-                          <p className="text-sm font-medium text-foreground">{getBankDisplayName(account)}</p>
-                          {getStoredBalance(account) > 0 && (
-                            <p className="text-[10px] text-muted-foreground flex items-center gap-1">
-                              <PiggyBank className="w-2.5 h-2.5" />
-                              Guardado: {fmt(getStoredBalance(account))}
-                            </p>
-                          )}
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium text-foreground truncate">{getBankDisplayName(account)}</p>
+                          <p className="text-[10px] text-muted-foreground capitalize">{account.type === "BANK" ? "Conta corrente" : account.type.toLowerCase()}</p>
                         </div>
                       </div>
-                      <span className="text-sm font-semibold text-foreground">{fmt(account.balance + getStoredBalance(account))}</span>
+                      <span className="text-sm font-semibold text-foreground tabular-nums">{fmt(account.balance)}</span>
                     </div>
                   ))}
                 </div>
@@ -356,40 +418,44 @@ export default function FinanceiroDashboard() {
             </CardContent>
           </Card>
 
+          {/* Cartões */}
           <Card className="border-border/50">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium flex items-center gap-2">
                 <CreditCard className="w-4 h-4 text-primary" />
                 Cartões de Crédito
+                <Badge variant="outline" className="ml-auto text-[10px] font-normal">{creditCards.length}</Badge>
               </CardTitle>
             </CardHeader>
             <CardContent>
               {creditCards.length === 0 ? (
-                <p className="text-xs text-muted-foreground py-4 text-center">
+                <p className="text-xs text-muted-foreground py-6 text-center">
                   Nenhum cartão de crédito conectado
                 </p>
               ) : (
-                <div className="space-y-2">
+                <div className="space-y-1">
                   {creditCards.map((card) => {
                     const billAmount = getCreditBillAmount(card);
+                    const limit = card.credit_limit ?? 0;
+                    const used = limit - (card.credit_available ?? 0);
+                    const usedPct = limit > 0 ? Math.min(100, Math.max(0, (used / limit) * 100)) : 0;
                     return (
-                      <div key={card.id} className="flex items-center justify-between py-2 border-b border-border/30 last:border-0">
-                        <div className="flex items-center gap-2.5">
-                          <div className="w-7 h-7 rounded-lg bg-accent/50 flex items-center justify-center">
-                            <CreditCard className="w-3.5 h-3.5 text-primary" />
+                      <div key={card.id} className="py-2 border-b border-border/30 last:border-0">
+                        <div className="flex items-center justify-between mb-1.5">
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <div className="w-7 h-7 rounded-lg bg-accent/50 flex items-center justify-center flex-shrink-0">
+                              <CreditCard className="w-3.5 h-3.5 text-primary" />
+                            </div>
+                            <p className="text-sm font-medium text-foreground truncate">{getCreditCardLabel(card)}</p>
                           </div>
-                          <div>
-                            <p className="text-sm font-medium text-foreground">{getCreditCardLabel(card)}</p>
-                            <p className="text-[10px] text-muted-foreground">
-                              Limite: {fmt(card.credit_limit ?? 0)} · Disponível: {fmt(card.credit_available ?? 0)}
-                            </p>
-                          </div>
+                          <span className="text-sm font-semibold text-foreground tabular-nums">{fmt(billAmount)}</span>
                         </div>
-                        <div className="text-right">
-                          <span className="text-sm font-semibold text-foreground">{fmt(billAmount)}</span>
-                          <p className="text-[10px] text-muted-foreground">
-                            {card.credit_bill_due_date ? `Venc. ${format(new Date(card.credit_bill_due_date + "T12:00:00"), "dd/MM")}` : "Fatura"}
-                          </p>
+                        <div className="h-1 bg-muted/40 rounded-full overflow-hidden ml-9">
+                          <div className="h-full bg-primary rounded-full transition-all" style={{ width: `${usedPct}%` }} />
+                        </div>
+                        <div className="flex justify-between mt-1 ml-9 text-[10px] text-muted-foreground">
+                          <span>Disp. {fmt(card.credit_available ?? 0)}</span>
+                          <span>{card.credit_bill_due_date ? `Venc. ${format(new Date(card.credit_bill_due_date + "T12:00:00"), "dd/MM")}` : "—"}</span>
                         </div>
                       </div>
                     );
@@ -398,8 +464,47 @@ export default function FinanceiroDashboard() {
               )}
             </CardContent>
           </Card>
+
+          {/* Investimentos */}
+          <Card className="border-border/50">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium flex items-center gap-2">
+                <PiggyBank className="w-4 h-4 text-emerald-400" />
+                Investimentos & Reservas
+                <Badge variant="outline" className="ml-auto text-[10px] font-normal">{fmt(totalInvestments)}</Badge>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {totalInvestments <= 0 ? (
+                <div className="py-6 text-center">
+                  <Sparkles className="w-6 h-6 text-muted-foreground/40 mx-auto mb-2" />
+                  <p className="text-xs text-muted-foreground">Nenhuma reserva ou investimento sincronizado</p>
+                </div>
+              ) : (
+                <div className="space-y-1">
+                  {bankAccounts
+                    .filter((a) => getStoredBalance(a) > 0)
+                    .map((account) => (
+                      <div key={account.id} className="flex items-center justify-between py-2 border-b border-border/30 last:border-0">
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <div className="w-7 h-7 rounded-lg bg-emerald-500/10 flex items-center justify-center flex-shrink-0">
+                            <PiggyBank className="w-3.5 h-3.5 text-emerald-400" />
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium text-foreground truncate">{getConnectorName(account)}</p>
+                            <p className="text-[10px] text-muted-foreground">Reserva automática</p>
+                          </div>
+                        </div>
+                        <span className="text-sm font-semibold text-emerald-400 tabular-nums">{fmt(getStoredBalance(account))}</span>
+                      </div>
+                    ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </div>
       </TabsContent>
+
 
       {/* ═══════════ ABA: Contas a Pagar ═══════════ */}
       <TabsContent value="contas-pagar" className="space-y-6">
