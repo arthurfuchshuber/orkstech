@@ -803,12 +803,18 @@ export default function ContasAReceber() {
       list = list.filter((p: any) => p.status === filterStatus);
     }
     if (searchTerm) {
-      const term = searchTerm.toLowerCase();
-      list = list.filter((p: any) =>
-        p.description?.toLowerCase().includes(term) ||
-        p.supplier_name?.toLowerCase().includes(term) ||
-        p.document_number?.toLowerCase().includes(term),
-      );
+      const term = searchTerm.toLowerCase().trim();
+      const termDigits = term.replace(/\D/g, "");
+      list = list.filter((p: any) => {
+        const haystack = [p.description, p.supplier_name, p.document_number, p.notes]
+          .filter(Boolean).join(" ").toLowerCase();
+        if (haystack.includes(term)) return true;
+        if (termDigits.length >= 3) {
+          const haystackDigits = haystack.replace(/\D/g, "");
+          if (haystackDigits.includes(termDigits)) return true;
+        }
+        return false;
+      });
     }
     return list;
   }, [receivables, filterStatus, searchTerm]);
