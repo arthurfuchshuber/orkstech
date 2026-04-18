@@ -24,10 +24,10 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { CategoriaFinanceiraModal } from "@/components/modals/CategoriaFinanceiraModal";
 import {
   ArrowDownLeft,
   ArrowUpRight,
@@ -42,6 +42,7 @@ import {
   CalendarIcon,
   PiggyBank,
   ChevronDown,
+  Plus,
 } from "lucide-react";
 import { format, startOfMonth, endOfMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
