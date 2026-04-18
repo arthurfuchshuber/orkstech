@@ -374,6 +374,39 @@ Deno.serve(async (req) => {
             } catch { /* ignore lookup errors */ }
           }
 
+          // ===== Auto-create local accounts_receivable so charges show in Contas a Receber / Dashboard =====
+          const isPaid = ["RECEIVED", "CONFIRMED", "RECEIVED_IN_CASH"].includes(payment.status);
+          const isOverdue = payment.status === "OVERDUE";
+          const localStatus = isPaid ? "paid" : isOverdue ? "overdue" : "pending";
+          const localPaymentDate = payment.paymentDate || payment.clientPaymentDate || payment.confirmedDate || null;
+
+          if (!accountReceivableId) {
+            const description = payment.description || `Cobrança Asaas ${payment.id}`;
+            const { data: newRec } = await serviceClient
+              .from("accounts_receivable")
+              .insert({
+                user_id: userId,
+                empresa_id: empresaIdLocal,
+                cliente_id: clienteIdLocal,
+                description,
+                amount: Number(payment.value) || 0,
+                due_date: payment.dueDate,
+                payment_date: localPaymentDate,
+                status: localStatus,
+                document_number: payment.id,
+                pessoa_tipo: "pj",
+                notes: `Importado do Asaas (${payment.billingType || "UNDEFINED"})`,
+              })
+              .select("id")
+              .single();
+            if (newRec) accountReceivableId = newRec.id;
+          } else {
+            await serviceClient
+              .from("accounts_receivable")
+              .update({ status: localStatus, payment_date: localPaymentDate })
+              .eq("id", accountReceivableId);
+          }
+
           const row = {
             user_id: userId,
             empresa_id: empresaIdLocal,
@@ -385,7 +418,7 @@ Deno.serve(async (req) => {
             status: payment.status || "PENDING",
             value: Number(payment.value) || 0,
             due_date: payment.dueDate,
-            payment_date: payment.paymentDate || payment.confirmedDate || null,
+            payment_date: localPaymentDate,
             invoice_url: payment.invoiceUrl || null,
             bank_slip_url: payment.bankSlipUrl || null,
             identification_field: payment.identificationField || null,
