@@ -333,7 +333,7 @@ export default function ExtratoBancario() {
     queryFn: async () => {
       let query = supabase
         .from("pluggy_transactions" as any)
-        .select("*")
+        .select("id, description, amount, date, type, category, reconciled, pluggy_account_id, categoria_financeira_id, payment_data")
         .eq("user_id", targetUserId!)
         .gte("date", dateFromStr)
         .lte("date", dateToStr)
