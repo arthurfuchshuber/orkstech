@@ -779,8 +779,10 @@ export default function ExtratoBancario() {
                     </span>
                     {(() => {
                       const catFin = categoriasFinanceiras.find((c: any) => c.id === tx.categoria_financeira_id);
-                      const subcatOptions = categoriasFinanceiras.filter(
-                        (c: any) => !categoriasFinanceiras.some((child: any) => child.categoria_pai_id === c.id)
+                      // Agrupa por categoria-pai: { pai: [filhos] }. Se não houver pais, mostra todas como flat.
+                      const parents = categoriasFinanceiras.filter((c: any) => !c.categoria_pai_id);
+                      const orphanLeaves = categoriasFinanceiras.filter(
+                        (c: any) => !c.categoria_pai_id && !categoriasFinanceiras.some((ch: any) => ch.categoria_pai_id === c.id)
                       );
                       return (
                         <DropdownMenu>
@@ -796,22 +798,53 @@ export default function ExtratoBancario() {
                               <ChevronDown className="h-2.5 w-2.5 text-muted-foreground opacity-0 group-hover/cat:opacity-100 transition-opacity" />
                             </button>
                           </DropdownMenuTrigger>
-                          <DropdownMenuContent align="start" className="max-h-[300px] overflow-y-auto custom-scrollbar">
-                            {subcatOptions.map((c: any) => (
-                              <DropdownMenuItem
-                                key={c.id}
-                                onClick={() => updateCategoriaMutation.mutate({ id: tx.id, categoria_financeira_id: c.id })}
-                              >
-                                {c.nome}
-                              </DropdownMenuItem>
-                            ))}
+                          <DropdownMenuContent align="start" className="max-h-[360px] w-64 overflow-y-auto custom-scrollbar">
+                            {categoriasFinanceiras.length === 0 && (
+                              <div className="px-2 py-3 text-xs text-muted-foreground">
+                                Nenhuma categoria cadastrada. Crie em Configurações → Plano de Contas.
+                              </div>
+                            )}
+                            {parents.map((parent: any) => {
+                              const children = categoriasFinanceiras.filter((c: any) => c.categoria_pai_id === parent.id);
+                              if (children.length === 0) {
+                                // Categoria raiz que é folha (sem subcategorias) — clicável
+                                return (
+                                  <DropdownMenuItem
+                                    key={parent.id}
+                                    onClick={() => updateCategoriaMutation.mutate({ id: tx.id, categoria_financeira_id: parent.id })}
+                                    className="text-xs"
+                                  >
+                                    {parent.nome}
+                                  </DropdownMenuItem>
+                                );
+                              }
+                              return (
+                                <div key={parent.id}>
+                                  <DropdownMenuLabel className="text-[10px] uppercase tracking-wide text-muted-foreground/80 font-semibold pt-2">
+                                    {parent.nome}
+                                  </DropdownMenuLabel>
+                                  {children.map((c: any) => (
+                                    <DropdownMenuItem
+                                      key={c.id}
+                                      onClick={() => updateCategoriaMutation.mutate({ id: tx.id, categoria_financeira_id: c.id })}
+                                      className="text-xs pl-4"
+                                    >
+                                      {c.nome}
+                                    </DropdownMenuItem>
+                                  ))}
+                                </div>
+                              );
+                            })}
                             {tx.categoria_financeira_id && (
-                              <DropdownMenuItem
-                                onClick={() => updateCategoriaMutation.mutate({ id: tx.id, categoria_financeira_id: null })}
-                                className="text-muted-foreground"
-                              >
-                                Limpar categoria
-                              </DropdownMenuItem>
+                              <>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                                  onClick={() => updateCategoriaMutation.mutate({ id: tx.id, categoria_financeira_id: null })}
+                                  className="text-xs text-muted-foreground"
+                                >
+                                  Limpar categoria
+                                </DropdownMenuItem>
+                              </>
                             )}
                           </DropdownMenuContent>
                         </DropdownMenu>
