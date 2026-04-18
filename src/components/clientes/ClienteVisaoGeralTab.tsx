@@ -505,30 +505,77 @@ export function ClienteVisaoGeralTab({ cliente, onEdit: _onEdit }: Props) {
   const resolveTimelineEvent = (item: any): null | (() => void) => {
     if (item.tipo !== "Financeiro") return null;
     const desc = (item.descricao || "").toLowerCase();
-    const isReceivable = desc.includes("receber");
-    const kind: "receber" | "pagar" = isReceivable ? "receber" : "pagar";
 
+    // Determine kind: explicit "receber"/"pagar" mentions, or fallback by event verb
+    // "Recebimento" / "Conta a Receber" → receivable
+    // "Pagamento" / "Conta a Pagar" → payable
+    let kind: "receber" | "pagar" | null = null;
+    if (desc.includes("receber") || desc.includes("recebimento") || desc.includes("recebido")) kind = "receber";
+    else if (desc.includes("a pagar") || desc.includes("pagamento") || desc.includes("pago")) kind = "pagar";
+
+    // Helper: try to locate the exact record by extracting the description fragment
+    // Format observed: "Status atualizado: <X>. <description>. — R$ <value>"
+    const findByDescription = (): { kind: "receber" | "pagar"; rows: any[] } | null => {
+      // Extract the description chunk between the first ". " and " — "
+      const afterColon = item.descricao.split(". ").slice(1).join(". ");
+      const beforeDash = afterColon.split(" — ")[0]?.trim().replace(/\.$/, "");
+      if (!beforeDash || beforeDash.length < 4) return null;
+      const needle = beforeDash.toLowerCase();
+      const rRows = (finData?.receber || []).filter((r: any) =>
+        (r.description || "").toLowerCase().includes(needle)
+      );
+      if (rRows.length > 0) return { kind: "receber", rows: rRows };
+      const pRows = (finData?.pagar || []).filter((r: any) =>
+        (r.description || "").toLowerCase().includes(needle)
+      );
+      if (pRows.length > 0) return { kind: "pagar", rows: pRows };
+      return null;
+    };
+
+    // Batch creation event
     if (desc.includes("criada") || desc.includes("criado") || desc.includes("lançamento") || desc.includes("lancamento")) {
       const eventTime = new Date(item.created_at).getTime();
-      const rows = kind === "receber" ? (finData?.receber || []) : (finData?.pagar || []);
-      const items = rows.filter((r: any) => {
-        const created = new Date(r.created_at).getTime();
-        return Math.abs(created - eventTime) <= 90 * 1000;
-      });
-      if (items.length === 0) return null;
+      const tryKinds: ("receber" | "pagar")[] = kind ? [kind] : ["receber", "pagar"];
+      for (const k of tryKinds) {
+        const rows = k === "receber" ? (finData?.receber || []) : (finData?.pagar || []);
+        const items = rows.filter((r: any) => {
+          const created = new Date(r.created_at).getTime();
+          return Math.abs(created - eventTime) <= 90 * 1000;
+        });
+        if (items.length > 0) {
+          return () => setQuickList({
+            open: true,
+            mode: k === "receber" ? "receivable" : "payable",
+            title: k === "receber" ? "Contas a Receber Criadas" : "Contas a Pagar Criadas",
+            description: format(new Date(item.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR }),
+            items,
+          });
+        }
+      }
+      return null;
+    }
+
+    // Status-specific events (paid, overdue, etc.) — locate by description fragment first
+    const matched = findByDescription();
+    if (matched) {
+      const { kind: mKind, rows } = matched;
       return () => setQuickList({
         open: true,
-        mode: isReceivable ? "receivable" : "payable",
-        title: isReceivable ? "Contas a Receber Criadas" : "Contas a Pagar Criadas",
-        description: format(new Date(item.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR }),
-        items,
+        mode: mKind === "receber" ? "receivable" : "payable",
+        title: rows.length === 1 ? (mKind === "receber" ? "Conta a Receber" : "Conta a Pagar") : (mKind === "receber" ? "Contas a Receber" : "Contas a Pagar"),
+        description: parseInteracao(item.descricao).title,
+        items: rows,
       });
     }
-    if (desc.includes("pago") || desc.includes("recebido")) {
-      return () => openList(kind, "paid", isReceivable ? "Recebimentos" : "Pagamentos Realizados");
+
+    // Fallback: open by status bucket
+    if (desc.includes("pago") || desc.includes("recebido") || desc.includes("recebimento confirmado") || desc.includes("pagamento realizado")) {
+      const k = kind || "receber";
+      return () => openList(k, "paid", k === "receber" ? "Recebimentos" : "Pagamentos Realizados");
     }
     if (desc.includes("vencid") || desc.includes("venceu") || desc.includes("atras")) {
-      return () => openList(kind, "overdue", isReceivable ? "Contas a Receber Vencidas" : "Contas a Pagar Vencidas");
+      const k = kind || "receber";
+      return () => openList(k, "overdue", k === "receber" ? "Contas a Receber Vencidas" : "Contas a Pagar Vencidas");
     }
     return null;
   };
