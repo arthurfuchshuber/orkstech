@@ -443,7 +443,30 @@ export function ClienteVisaoGeralTab({ cliente, onEdit: _onEdit }: Props) {
               <p className="text-sm font-semibold text-foreground">Resumo IA</p>
               <span className="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-muted text-muted-foreground font-medium">Live</span>
             </div>
-...
+
+            {aiLoading && (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                Analisando dados do cliente…
+              </div>
+            )}
+
+            {aiError && !aiLoading && (
+              <p className="text-sm text-muted-foreground">
+                Não foi possível gerar a análise estratégica neste momento. Tente novamente em instantes.
+              </p>
+            )}
+
+            {aiData && !aiLoading && (
+              <>
+                <ul className="space-y-1.5">
+                  {aiData.insights.map((ins, i) => (
+                    <li key={i} className="flex items-start gap-2 text-sm">
+                      <span className={`w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0 ${toneDot[ins.tone]}`} />
+                      <span className={toneStyles[ins.tone]}>{ins.text}</span>
+                    </li>
+                  ))}
+                </ul>
                 {aiData.recommendation && (
                   <div className="mt-3 pt-3 border-t border-border/60 flex items-start gap-2">
                     <Sparkles className="w-3.5 h-3.5 text-muted-foreground mt-0.5 flex-shrink-0" />
