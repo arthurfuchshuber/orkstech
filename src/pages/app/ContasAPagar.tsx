@@ -1211,7 +1211,17 @@ export default function ContasAPagar() {
               {(() => {
                 const renderItemRow = (item: any, opts: { isChild?: boolean } = {}) => {
                   const dueDate = new Date(item.due_date);
-                  const isNearDue = item.status === "pending" && isBefore(dueDate, addDays(new Date(), 7)) && !isPast(dueDate);
+                  const isOverdue = (item.status === "pending" || item.status === "overdue") && isPast(dueDate) && format(dueDate, "yyyy-MM-dd") !== format(new Date(), "yyyy-MM-dd");
+                  const isNearDue = item.status === "pending" && !isOverdue && isBefore(dueDate, addDays(new Date(), 7));
+                  const isPaid = item.status === "paid";
+                  const dueColor = isOverdue
+                    ? "text-red-600 font-medium"
+                    : isNearDue
+                      ? "text-amber-600 font-medium"
+                      : isPaid
+                        ? "text-emerald-600"
+                        : "";
+                  const rowBg = isOverdue ? "bg-red-500/5" : isNearDue ? "bg-amber-500/5" : "";
                   const catFin = categoriasFinanceiras.find((c: any) => c.id === item.categoria_financeira_id);
                   const rowTipo = inlineTipoMap[item.id] || catFin?.tipo || "";
                   const tipoFinLabel = rowTipo ? tiposFinanceiros.find(t => t.value === rowTipo)?.label : null;
@@ -1223,7 +1233,7 @@ export default function ContasAPagar() {
                         .filter((c: any) => !allCategoriasFin.some((child: any) => child.categoria_pai_id === c.id))
                     : [];
                   return (
-                    <TableRow key={item.id} className={`${isNearDue ? "bg-amber-500/5" : ""} ${opts.isChild ? "bg-muted/20" : ""}`}>
+                    <TableRow key={item.id} className={`${rowBg} ${opts.isChild ? "bg-muted/20" : ""}`}>
                       <TableCell>
                         <Checkbox
                           checked={selectedIds.has(item.id)}
