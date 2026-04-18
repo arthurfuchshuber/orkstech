@@ -426,11 +426,33 @@ export default function ExtratoBancario() {
   const formatDate = (date: string) =>
     new Date(date + "T12:00:00").toLocaleDateString("pt-BR");
 
-  const filteredTx = transactions.filter((tx) =>
-    searchTerm === ""
-      ? true
-      : tx.description?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredTx = transactions.filter((tx) => {
+    if (searchTerm === "") return true;
+    const term = searchTerm.toLowerCase().trim();
+    const termDigits = term.replace(/\D/g, "");
+
+    // Build a haystack of all searchable fields
+    const haystackParts: string[] = [
+      tx.description || "",
+      enhanceDescription(tx),
+      tx.category || "",
+      tx.payment_data?.payer?.name || "",
+      tx.payment_data?.receiver?.name || "",
+      tx.payment_data?.payer?.documentNumber?.value || "",
+      tx.payment_data?.receiver?.documentNumber?.value || "",
+    ];
+    const haystack = haystackParts.join(" ").toLowerCase();
+
+    if (haystack.includes(term)) return true;
+
+    // Document-aware match: compare digits-only (handles CPF/CNPJ with or without mask)
+    if (termDigits.length >= 3) {
+      const haystackDigits = haystack.replace(/\D/g, "");
+      if (haystackDigits.includes(termDigits)) return true;
+    }
+
+    return false;
+  });
 
   const getStoredBalance = (account: BankAccount) => {
     const investments = account.bank_data?.totalInvestments ?? 0;
