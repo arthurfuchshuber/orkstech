@@ -350,7 +350,7 @@ export default function FinanceiroDashboard() {
       balances[i] = balances[i + 1] - dailyChanges[i + 1].change;
     }
     for (let i = 0; i < dailyChanges.length; i++) {
-      days.push({ date: dailyChanges[i].label, saldo: Math.round(balances[i]) });
+      days.push({ date: dailyChanges[i].label, saldo: balances[i] });
     }
     return days.filter((_, idx) => idx % 3 === 0 || idx === days.length - 1);
   }, [txHistory, manualTx, totalNetWorth]);
