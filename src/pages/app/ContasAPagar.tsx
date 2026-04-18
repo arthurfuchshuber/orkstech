@@ -1978,15 +1978,52 @@ export default function ContasAPagar() {
         prefill={fornPrefill}
         onSaved={async (id) => {
           await queryClient.invalidateQueries({ queryKey: ["fornecedores"] });
-          // Wait for refetch to complete so the select options include the new supplier
           await queryClient.refetchQueries({ queryKey: ["fornecedores", empresaId] });
           updateField("supplier_id", id);
-          // Also set supplier_name from prefill if available
           if (fornPrefill?.nome) {
             updateField("supplier_name", fornPrefill.nome);
           }
         }}
       />
+
+      <ClienteModal
+        open={cliModalOpen}
+        onOpenChange={(o) => { setCliModalOpen(o); if (!o) setCliEditingId(null); }}
+        editingId={cliEditingId}
+        onSaved={async () => {
+          await queryClient.invalidateQueries({ queryKey: ["clientes"] });
+          await queryClient.invalidateQueries({ queryKey: ["accounts-payable", empresaId] });
+        }}
+      />
+
+      {/* Scope dialog: edit single installment or full group */}
+      <AlertDialog open={!!scopeDialogItem} onOpenChange={(o) => { if (!o) setScopeDialogItem(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <Layers className="w-5 h-5 text-primary" />
+              Editar parcelamento
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta conta faz parte de um parcelamento ({scopeDialogItem?.installment_total} parcelas).
+              Deseja editar apenas esta parcela ou todas as parcelas do grupo?
+              <br />
+              <span className="text-xs text-muted-foreground mt-2 block">
+                Ao editar todas, datas de vencimento e número da parcela permanecem individuais.
+              </span>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="gap-2">
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <Button variant="outline" onClick={() => confirmScopeAndEdit("single")}>
+              Apenas esta parcela
+            </Button>
+            <AlertDialogAction onClick={() => confirmScopeAndEdit("group")}>
+              Todas as parcelas
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <BulkBoletoScanner
         open={bulkScanOpen}
