@@ -114,7 +114,7 @@ export default function DREPage() {
     <div className="space-y-4 animate-fade-in">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold tracking-tight text-foreground">Demonstração de Resultado (DRE)</h1>
+          <h1 className="text-xl font-bold tracking-tight text-foreground">DRE & Analytics</h1>
           <p className="text-sm text-muted-foreground">Relatório baseado no plano de contas</p>
         </div>
         <Button variant="outline" size="sm" className="gap-2" onClick={exportCSV}>
