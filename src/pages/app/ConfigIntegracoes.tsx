@@ -318,6 +318,33 @@ function IntegrationCard({
     } finally { setTesting(false); }
   };
 
+  const syncAsaasHistory = async () => {
+    if (provider !== "asaas") return;
+    try {
+      toast.info("Sincronizando histórico do Asaas…", { id: "asaas-sync" });
+      const { data, error } = await supabase.functions.invoke("asaas-api", {
+        body: { action: "sync_history", empresa_id: empresaId },
+      });
+      if (error || data?.error) throw new Error(data?.error || error?.message);
+      const ins = data?.inserted ?? 0;
+      const upd = data?.updated ?? 0;
+      toast.success(`Histórico sincronizado: ${ins} novas, ${upd} atualizadas`, { id: "asaas-sync" });
+    } catch (e) {
+      toast.error(`Falha ao sincronizar histórico: ${(e as Error).message}`, { id: "asaas-sync" });
+    }
+  };
+
+  const purgeAsaasHistory = async () => {
+    if (provider !== "asaas") return;
+    try {
+      await supabase.functions.invoke("asaas-api", {
+        body: { action: "purge_history", empresa_id: empresaId },
+      });
+    } catch (e) {
+      console.warn("[asaas] purge_history falhou:", e);
+    }
+  };
+
   const save = async () => {
     if (!apiKey) { toast.error("Informe a chave de API"); return; }
     setSaving(true);
@@ -350,6 +377,8 @@ function IntegrationCard({
       setApiKey("");
       setEditing(false);
       onChanged();
+
+      if (provider === "asaas") syncAsaasHistory();
     } catch (e) {
       toast.error(`Erro ao salvar: ${(e as Error).message}`);
     } finally { setSaving(false); }
@@ -358,12 +387,18 @@ function IntegrationCard({
   const toggleAtivo = async (checked: boolean) => {
     if (!cred) return;
     const { error } = await supabase.from("integracoes_credenciais").update({ ativo: checked }).eq("id", cred.id);
-    if (error) toast.error("Erro ao atualizar");
-    else { toast.success(checked ? "Integração ativada" : "Integração desativada"); onChanged(); }
+    if (error) { toast.error("Erro ao atualizar"); return; }
+    toast.success(checked ? "Integração ativada" : "Integração desativada");
+    onChanged();
+    if (provider === "asaas") {
+      if (checked) syncAsaasHistory();
+      else purgeAsaasHistory();
+    }
   };
 
   const remove = async () => {
     if (!cred) return;
+    if (provider === "asaas") await purgeAsaasHistory();
     const { error } = await supabase.from("integracoes_credenciais").delete().eq("id", cred.id);
     if (error) toast.error("Erro ao remover");
     else { toast.success("Integração removida"); onChanged(); }
