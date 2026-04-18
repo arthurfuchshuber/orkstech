@@ -46,6 +46,7 @@ import {
 import { format, startOfMonth, endOfMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 // Categories that represent internal bank movements (caixinhas, investments, etc.)
 const INTERNAL_CATEGORIES = ["Investments", "Same person transfer"];
@@ -302,14 +303,23 @@ export default function ExtratoBancario() {
 
   const updateCategoriaMutation = useMutation({
     mutationFn: async ({ id, categoria_financeira_id }: { id: string; categoria_financeira_id: string | null }) => {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from("pluggy_transactions" as any)
         .update({ categoria_financeira_id })
-        .eq("id", id);
+        .eq("id", id)
+        .select("id");
       if (error) throw error;
+      if (!data || data.length === 0) {
+        throw new Error("Nenhum registro atualizado. Verifique suas permissões.");
+      }
+      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["pluggy_transactions"] });
+      toast.success("Subcategoria atualizada");
+    },
+    onError: (err: any) => {
+      toast.error(err?.message || "Erro ao atualizar subcategoria");
     },
   });
 
