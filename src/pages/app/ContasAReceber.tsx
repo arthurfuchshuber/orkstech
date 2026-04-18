@@ -969,10 +969,10 @@ export default function ContasAReceber() {
                 <TableHead style={{ minWidth: 220 }}>Descrição</TableHead>
                 <TableHead style={{ minWidth: 110 }}>Valor</TableHead>
                 <TableHead style={{ minWidth: 110 }}>Vencimento</TableHead>
+                <TableHead style={{ minWidth: 120 }}>Status</TableHead>
                 <TableHead style={{ minWidth: 200 }}>Subcategoria</TableHead>
                 <TableHead style={{ minWidth: 180 }}>Forma</TableHead>
                 <TableHead style={{ minWidth: 180 }}>Conta Bancária</TableHead>
-                <TableHead style={{ minWidth: 120 }}>Status</TableHead>
                 <TableHead style={{ width: 50, minWidth: 50 }} className="text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
