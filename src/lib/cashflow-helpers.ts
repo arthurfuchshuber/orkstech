@@ -227,13 +227,14 @@ function detectColumnsByContent(rows: Record<string, unknown>[]): {
   if (rows.length === 0) return {};
   const sample = rows.slice(0, Math.min(20, rows.length));
   const keys = Object.keys(rows[0]);
-  const scores: Record<string, { date: number; amount: number; len: number }> = {};
+  const scores: Record<string, { date: number; amount: number; len: number; nonEmpty: number }> = {};
 
   for (const k of keys) {
-    scores[k] = { date: 0, amount: 0, len: 0 };
+    scores[k] = { date: 0, amount: 0, len: 0, nonEmpty: 0 };
     for (const row of sample) {
       const v = row[k];
       if (v == null || v === "") continue;
+      scores[k].nonEmpty++;
       if (parseDateSmart(v)) scores[k].date++;
       const num = parseAmount(v);
       if (num != null && /[\d]/.test(String(v))) scores[k].amount++;
@@ -257,7 +258,6 @@ function detectColumnsByContent(rows: Record<string, unknown>[]): {
   const dateKey = pickBest("date");
   const amountKey = pickBest("amount");
   let descKey = pickBest("len");
-  // Avoid description colliding with date/amount columns
   if (descKey && (descKey === dateKey || descKey === amountKey)) {
     descKey = Object.keys(scores).find((k) => k !== dateKey && k !== amountKey && scores[k].len > 0);
   }
@@ -265,21 +265,28 @@ function detectColumnsByContent(rows: Record<string, unknown>[]): {
   return { dateKey, amountKey, descKey };
 }
 
+interface MapContext {
+  dateKey?: string;
+  amountKey?: string;
+  descKey?: string;
+  dateFormat?: DateFormatHint;
+}
+
 function mapRow(
   raw: Record<string, unknown>,
   idx: number,
-  fallback: { dateKey?: string; amountKey?: string; descKey?: string } = {},
+  ctx: MapContext = {},
 ): ParsedRow {
   const errors: string[] = [];
-  const dateKey = findColumnKey(raw, COLUMN_MAP.forecast_date) ?? fallback.dateKey;
-  const amountKey = findColumnKey(raw, COLUMN_MAP.amount) ?? fallback.amountKey;
-  const descKey = findColumnKey(raw, COLUMN_MAP.description) ?? fallback.descKey;
+  const dateKey = findColumnKey(raw, COLUMN_MAP.forecast_date) ?? ctx.dateKey;
+  const amountKey = findColumnKey(raw, COLUMN_MAP.amount) ?? ctx.amountKey;
+  const descKey = findColumnKey(raw, COLUMN_MAP.description) ?? ctx.descKey;
   const docKey = findColumnKey(raw, COLUMN_MAP.document_number);
   const catKey = findColumnKey(raw, COLUMN_MAP.category);
   const dirKey = findColumnKey(raw, COLUMN_MAP.direction);
   const notesKey = findColumnKey(raw, COLUMN_MAP.notes);
 
-  const date = dateKey ? parseDateSmart(raw[dateKey]) : null;
+  const date = dateKey ? parseDateSmart(raw[dateKey], ctx.dateFormat ?? "auto") : null;
   const amount = amountKey ? parseAmount(raw[amountKey]) : null;
   const desc = descKey ? String(raw[descKey] ?? "").trim() : "";
 
@@ -296,15 +303,44 @@ function mapRow(
         ? `Valor inválido na coluna "${amountKey}" (valor: "${String(raw[amountKey] ?? "")}")`
         : `Coluna de valor não identificada. Renomeie para "valor"`,
     );
+  } else if (amount === 0) {
+    errors.push(`Valor zero na coluna "${amountKey}" — linha ignorada`);
   }
   if (!desc) {
+    // Auto-fallback: combine first non-empty text columns
+    const fallback = Object.entries(raw)
+      .filter(([k, v]) => k !== dateKey && k !== amountKey && v != null && String(v).trim() !== "" && /[a-zA-ZÀ-ÿ]/.test(String(v)))
+      .slice(0, 2)
+      .map(([, v]) => String(v).trim())
+      .join(" — ");
+    if (fallback) {
+      // accept fallback silently
+      return finishRow(idx, raw, dateKey, amountKey, fallback, docKey, catKey, dirKey, notesKey, date, amount, errors);
+    }
     errors.push(
       descKey
         ? `Descrição vazia na coluna "${descKey}"`
-        : `Coluna de descrição não identificada. Renomeie para "descrição"`,
+        : `Coluna de descrição não identificada`,
     );
   }
 
+  return finishRow(idx, raw, dateKey, amountKey, desc, docKey, catKey, dirKey, notesKey, date, amount, errors);
+}
+
+function finishRow(
+  idx: number,
+  raw: Record<string, unknown>,
+  dateKey: string | undefined,
+  amountKey: string | undefined,
+  desc: string,
+  docKey: string | null,
+  catKey: string | null,
+  dirKey: string | null,
+  notesKey: string | null,
+  date: string | null,
+  amount: number | null,
+  errors: string[],
+): ParsedRow {
   const dirHint = dirKey ? String(raw[dirKey] ?? "") : undefined;
   const direction = inferDirection(amount, dirHint);
 
