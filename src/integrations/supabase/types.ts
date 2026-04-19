@@ -655,6 +655,141 @@ export type Database = {
           },
         ]
       }
+      cashflow_forecasts: {
+        Row: {
+          amount: number
+          bank_account_id: string | null
+          category: string | null
+          created_at: string
+          dedup_hash: string
+          description: string
+          direction: Database["public"]["Enums"]["cashflow_direction"]
+          document_number: string | null
+          empresa_id: string | null
+          forecast_date: string
+          id: string
+          import_id: string | null
+          notes: string | null
+          source: Database["public"]["Enums"]["cashflow_source"]
+          status: Database["public"]["Enums"]["cashflow_status"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          bank_account_id?: string | null
+          category?: string | null
+          created_at?: string
+          dedup_hash?: string
+          description: string
+          direction: Database["public"]["Enums"]["cashflow_direction"]
+          document_number?: string | null
+          empresa_id?: string | null
+          forecast_date: string
+          id?: string
+          import_id?: string | null
+          notes?: string | null
+          source?: Database["public"]["Enums"]["cashflow_source"]
+          status?: Database["public"]["Enums"]["cashflow_status"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          bank_account_id?: string | null
+          category?: string | null
+          created_at?: string
+          dedup_hash?: string
+          description?: string
+          direction?: Database["public"]["Enums"]["cashflow_direction"]
+          document_number?: string | null
+          empresa_id?: string | null
+          forecast_date?: string
+          id?: string
+          import_id?: string | null
+          notes?: string | null
+          source?: Database["public"]["Enums"]["cashflow_source"]
+          status?: Database["public"]["Enums"]["cashflow_status"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cashflow_forecasts_bank_account_id_fkey"
+            columns: ["bank_account_id"]
+            isOneToOne: false
+            referencedRelation: "contas_bancarias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cashflow_forecasts_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cf_forecasts_import_fk"
+            columns: ["import_id"]
+            isOneToOne: false
+            referencedRelation: "cashflow_imports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cashflow_imports: {
+        Row: {
+          created_at: string
+          duplicate_count: number
+          empresa_id: string | null
+          errors: Json
+          filename: string
+          id: string
+          inserted_count: number
+          skipped_count: number
+          source: Database["public"]["Enums"]["cashflow_source"]
+          source_url: string | null
+          total_rows: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          duplicate_count?: number
+          empresa_id?: string | null
+          errors?: Json
+          filename: string
+          id?: string
+          inserted_count?: number
+          skipped_count?: number
+          source: Database["public"]["Enums"]["cashflow_source"]
+          source_url?: string | null
+          total_rows?: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          duplicate_count?: number
+          empresa_id?: string | null
+          errors?: Json
+          filename?: string
+          id?: string
+          inserted_count?: number
+          skipped_count?: number
+          source?: Database["public"]["Enums"]["cashflow_source"]
+          source_url?: string | null
+          total_rows?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cashflow_imports_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       categorias_cadastro: {
         Row: {
           ativo: boolean
@@ -2384,6 +2519,56 @@ export type Database = {
         }
         Returns: boolean
       }
+      cashflow_check_duplicate: {
+        Args: {
+          p_amount: number
+          p_date: string
+          p_description: string
+          p_direction: string
+          p_document: string
+          p_empresa_id: string
+          p_user_id: string
+        }
+        Returns: {
+          found: boolean
+          source_description: string
+          source_id: string
+          source_table: string
+        }[]
+      }
+      cashflow_consolidated: {
+        Args: {
+          p_empresa_id: string
+          p_end: string
+          p_start: string
+          p_user_id: string
+        }
+        Returns: {
+          amount: number
+          category: string
+          description: string
+          direction: string
+          document_number: string
+          movement_date: string
+          origin: string
+          source_id: string
+          source_table: string
+          status: string
+        }[]
+      }
+      cashflow_generate_hash: {
+        Args: {
+          p_amount: number
+          p_date: string
+          p_description: string
+          p_direction: string
+          p_document: string
+          p_empresa_id: string
+          p_user_id: string
+        }
+        Returns: string
+      }
+      cashflow_normalize_text: { Args: { p_text: string }; Returns: string }
       has_active_subscription: { Args: { p_user_id: string }; Returns: boolean }
       is_super_admin: { Args: never; Returns: boolean }
       processar_automacoes: {
@@ -2409,6 +2594,9 @@ export type Database = {
     }
     Enums: {
       cash_transaction_type: "income" | "expense"
+      cashflow_direction: "inflow" | "outflow"
+      cashflow_source: "manual" | "csv" | "xlsx" | "google_sheets" | "system"
+      cashflow_status: "forecast" | "confirmed" | "cancelled" | "reconciled"
       dre_group:
         | "revenue"
         | "deductions"
@@ -2580,6 +2768,9 @@ export const Constants = {
   public: {
     Enums: {
       cash_transaction_type: ["income", "expense"],
+      cashflow_direction: ["inflow", "outflow"],
+      cashflow_source: ["manual", "csv", "xlsx", "google_sheets", "system"],
+      cashflow_status: ["forecast", "confirmed", "cancelled", "reconciled"],
       dre_group: [
         "revenue",
         "deductions",
