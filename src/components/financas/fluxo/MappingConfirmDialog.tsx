@@ -150,7 +150,7 @@ export function MappingConfirmDialog({ open, rawRows, onCancel, onConfirm }: Pro
             <div className="flex items-center justify-between">
               <Label className="text-xs font-semibold">Pré-visualização ({previewRows.length} primeiras linhas)</Label>
               {!isReady && (
-                <span className="text-[11px] text-amber-600 flex items-center gap-1">
+                <span className="text-[11px] text-destructive flex items-center gap-1">
                   <AlertCircle className="w-3 h-3" />
                   Selecione Data, Valor e Descrição para continuar
                 </span>
