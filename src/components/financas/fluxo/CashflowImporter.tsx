@@ -15,10 +15,12 @@ import {
   parseXLSX,
   type ImportPreview,
   type CashflowSource,
+  type ColumnMapping,
 } from "@/lib/cashflow-helpers";
 import { useAuth } from "@/hooks/useAuth";
 import { useEmpresa } from "@/hooks/useEmpresa";
 import { cn } from "@/lib/utils";
+import { MappingConfirmDialog } from "./MappingConfirmDialog";
 
 const fmt = (v: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
 
@@ -35,12 +37,17 @@ export function CashflowImporter({ onImported }: Props) {
   const [filename, setFilename] = useState<string>("");
   const [source, setSource] = useState<CashflowSource>("csv");
   const [sheetsUrl, setSheetsUrl] = useState("");
+  // Holds raw rows between "read file" and "confirm mapping" steps
+  const [pendingRows, setPendingRows] = useState<Record<string, unknown>[] | null>(null);
+  const [mappingOpen, setMappingOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const reset = () => {
     setPreview(null);
     setFilename("");
     setSheetsUrl("");
+    setPendingRows(null);
+    setMappingOpen(false);
     if (inputRef.current) inputRef.current.value = "";
   };
 
@@ -52,11 +59,11 @@ export function CashflowImporter({ onImported }: Props) {
       const isXlsx = /\.xlsx$/i.test(file.name);
       const rows = isXlsx ? await parseXLSX(file) : await parseCSV(file);
       const src: CashflowSource = isXlsx ? "xlsx" : "csv";
-      const prev = await buildPreview(rows, user.id, empresaAtiva?.id);
-      setPreview(prev);
       setFilename(file.name);
       setSource(src);
-      toast.success(`${rows.length} linha(s) lida(s)`);
+      setPendingRows(rows);
+      setMappingOpen(true);
+      toast.success(`${rows.length} linha(s) lida(s) — confirme o mapeamento`);
     } catch (err: any) {
       toast.error(err?.message ?? "Falha ao ler arquivo");
     } finally {
@@ -69,16 +76,37 @@ export function CashflowImporter({ onImported }: Props) {
     setLoading(true);
     try {
       const rows = await parseGoogleSheetsURL(sheetsUrl);
-      const prev = await buildPreview(rows, user.id, empresaAtiva?.id);
-      setPreview(prev);
       setFilename(sheetsUrl);
       setSource("google_sheets");
-      toast.success(`${rows.length} linha(s) lida(s)`);
+      setPendingRows(rows);
+      setMappingOpen(true);
+      toast.success(`${rows.length} linha(s) lida(s) — confirme o mapeamento`);
     } catch (err: any) {
       toast.error(err?.message ?? "Falha ao baixar planilha");
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleMappingConfirm = async (mapping: ColumnMapping) => {
+    if (!user || !pendingRows) return;
+    setMappingOpen(false);
+    setLoading(true);
+    try {
+      const prev = await buildPreview(pendingRows, user.id, empresaAtiva?.id, mapping);
+      setPreview(prev);
+    } catch (err: any) {
+      toast.error(err?.message ?? "Falha ao processar");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleMappingCancel = () => {
+    setMappingOpen(false);
+    setPendingRows(null);
+    setFilename("");
+    if (inputRef.current) inputRef.current.value = "";
   };
 
   const handleCommit = async (includeDuplicates: boolean) => {
@@ -233,6 +261,13 @@ export function CashflowImporter({ onImported }: Props) {
           </div>
         )}
       </CardContent>
+
+      <MappingConfirmDialog
+        open={mappingOpen}
+        rawRows={pendingRows ?? []}
+        onCancel={handleMappingCancel}
+        onConfirm={handleMappingConfirm}
+      />
     </Card>
   );
 }
