@@ -377,10 +377,11 @@ function detectSeparator(text: string): string {
 function readCSVText(text: string): Record<string, unknown>[] {
   const clean = text.replace(/^\uFEFF/, "");
   const sep = detectSeparator(clean);
-  const wb = XLSX.read(clean, { type: "string", FS: sep, raw: true });
+  // raw:false → values come as strings, preserving quoted "1,283.25"
+  const wb = XLSX.read(clean, { type: "string", FS: sep, raw: false });
   const ws = wb.Sheets[wb.SheetNames[0]];
   if (!ws) return [];
-  return XLSX.utils.sheet_to_json(ws, { defval: "", raw: true });
+  return XLSX.utils.sheet_to_json(ws, { defval: "", raw: false });
 }
 
 export async function parseCSV(file: File): Promise<Record<string, unknown>[]> {
