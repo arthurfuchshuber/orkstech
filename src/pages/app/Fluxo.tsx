@@ -44,9 +44,10 @@ export default function Fluxo() {
     if (!user) return;
     setLoading(true);
     try {
+      const targetUserId = empresaAtiva?.user_id ?? user.id;
       const [data, bal] = await Promise.all([
-        fetchConsolidated(user.id, empresaAtiva?.id, start, end),
-        fetchBankBalance(empresaAtiva?.id, user.id),
+        fetchConsolidated(targetUserId, empresaAtiva?.id, start, end),
+        fetchBankBalance(empresaAtiva?.id, targetUserId),
       ]);
       setRows(data);
       setBankBalance(bal);
