@@ -276,18 +276,92 @@ export interface ColumnMapping {
   dateFormat?: DateFormatHint;
 }
 
+/** Validate that a column's content actually matches the expected field type. */
+function validateColumnContent(
+  rows: Record<string, unknown>[],
+  key: string,
+  field: keyof typeof COLUMN_MAP,
+): boolean {
+  const sample = rows.slice(0, Math.min(20, rows.length))
+    .map((r) => r[key])
+    .filter((v) => v != null && String(v).trim() !== "");
+
+  if (sample.length === 0) return false;
+
+  let hits = 0;
+  for (const v of sample) {
+    const s = String(v).trim();
+    switch (field) {
+      case "forecast_date":
+        if (parseDateSmart(v)) hits++;
+        break;
+      case "amount": {
+        const n = parseAmount(v);
+        // must parse as number AND look numeric (avoid IDs/codes that happen to parse)
+        if (n != null && /[\d.,\-+R$\s]/.test(s) && !/[a-zA-ZÀ-ÿ]{3,}/.test(s)) hits++;
+        break;
+      }
+      case "description":
+        // Has letters and reasonable text length (not a code/ID)
+        if (s.length >= 3 && /[a-zA-ZÀ-ÿ]/.test(s) && (/\s/.test(s) || /[a-zA-ZÀ-ÿ]{4,}/.test(s))) hits++;
+        break;
+      case "direction":
+        // Must look like entrada/saida, credit/debit, +/-, C/D, etc. — not random labels
+        if (/^(entrada|saida|saída|inflow|outflow|credit|crédito|credito|debit|débito|debito|receita|despesa|c|d|e|s|\+|-)$/i.test(s)) hits++;
+        break;
+      case "document_number":
+        // Numeric-ish short codes, NF-like patterns
+        if (/^[\w\-./]{3,}$/.test(s) && /\d/.test(s)) hits++;
+        break;
+      case "category":
+        // Short labels (not long sentences nor pure numbers)
+        if (s.length >= 2 && s.length <= 60 && /[a-zA-ZÀ-ÿ]/.test(s)) hits++;
+        break;
+      case "notes":
+        if (s.length >= 1) hits++;
+        break;
+    }
+  }
+
+  // Require at least 60% of non-empty samples to match the expected pattern
+  return hits / sample.length >= 0.6;
+}
+
+/** Find a column matching by header AND validate by content. */
+function findColumnKeyValidated(
+  rows: Record<string, unknown>[],
+  candidates: string[],
+  field: keyof typeof COLUMN_MAP,
+): string | null {
+  if (rows.length === 0) return null;
+  const first = rows[0];
+  const keys = Object.keys(first);
+  const normalizedCands = candidates.map(normalizeKey);
+
+  // Pass 1: exact normalized header match + content validation
+  for (const cand of normalizedCands) {
+    const hit = keys.find((k) => normalizeKey(k) === cand);
+    if (hit && validateColumnContent(rows, hit, field)) return hit;
+  }
+  // Pass 2: header substring match + content validation
+  for (const cand of normalizedCands) {
+    const hit = keys.find((k) => normalizeKey(k).includes(cand));
+    if (hit && validateColumnContent(rows, hit, field)) return hit;
+  }
+  return null;
+}
+
 /** Auto-detect a complete mapping from raw rows (header + content heuristic). */
 export function autoDetectMapping(rawRows: Record<string, unknown>[]): ColumnMapping {
   if (rawRows.length === 0) return {};
   const detected = detectColumnsByContent(rawRows);
-  const first = rawRows[0];
-  const dateKey = findColumnKey(first, COLUMN_MAP.forecast_date) ?? detected.dateKey;
-  const amountKey = findColumnKey(first, COLUMN_MAP.amount) ?? detected.amountKey;
-  const descKey = findColumnKey(first, COLUMN_MAP.description) ?? detected.descKey;
-  const docKey = findColumnKey(first, COLUMN_MAP.document_number) ?? undefined;
-  const catKey = findColumnKey(first, COLUMN_MAP.category) ?? undefined;
-  const dirKey = findColumnKey(first, COLUMN_MAP.direction) ?? undefined;
-  const notesKey = findColumnKey(first, COLUMN_MAP.notes) ?? undefined;
+  const dateKey = findColumnKeyValidated(rawRows, COLUMN_MAP.forecast_date, "forecast_date") ?? detected.dateKey;
+  const amountKey = findColumnKeyValidated(rawRows, COLUMN_MAP.amount, "amount") ?? detected.amountKey;
+  const descKey = findColumnKeyValidated(rawRows, COLUMN_MAP.description, "description") ?? detected.descKey;
+  const docKey = findColumnKeyValidated(rawRows, COLUMN_MAP.document_number, "document_number") ?? undefined;
+  const catKey = findColumnKeyValidated(rawRows, COLUMN_MAP.category, "category") ?? undefined;
+  const dirKey = findColumnKeyValidated(rawRows, COLUMN_MAP.direction, "direction") ?? undefined;
+  const notesKey = findColumnKeyValidated(rawRows, COLUMN_MAP.notes, "notes") ?? undefined;
   const dateFormat: DateFormatHint = dateKey
     ? detectDateFormat(rawRows.slice(0, 30).map((r) => r[dateKey]))
     : "auto";
