@@ -100,7 +100,7 @@ export function MappingConfirmDialog({ open, rawRows, onCancel, onConfirm }: Pro
                       {f.required && <span className="text-destructive ml-1">*</span>}
                     </Label>
                     {wasAutoDetected && (
-                      <Badge variant="outline" className="text-[10px] h-4 px-1.5 border-emerald-500/30 text-emerald-600">
+                      <Badge variant="outline" className="text-[10px] h-4 px-1.5 border-primary/30 text-primary">
                         auto
                       </Badge>
                     )}
