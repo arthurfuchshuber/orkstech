@@ -39,7 +39,9 @@ export interface ConsolidatedRow {
 }
 
 // ============ Date / amount parsers ============
-export function parseDateSmart(input: unknown): string | null {
+export type DateFormatHint = "br" | "us" | "iso" | "auto";
+
+export function parseDateSmart(input: unknown, hint: DateFormatHint = "auto"): string | null {
   if (input == null || input === "") return null;
 
   if (typeof input === "number" && Number.isFinite(input)) {
@@ -52,21 +54,36 @@ export function parseDateSmart(input: unknown): string | null {
   const str = String(input).trim();
   if (!str) return null;
 
-  // ISO YYYY-MM-DD
+  // ISO YYYY-MM-DD (always unambiguous)
   const iso = /^(\d{4})-(\d{1,2})-(\d{1,2})/.exec(str);
   if (iso) {
     return `${iso[1]}-${iso[2].padStart(2, "0")}-${iso[3].padStart(2, "0")}`;
   }
 
-  // BR DD/MM/YYYY or DD-MM-YYYY or DD.MM.YYYY
-  const br = /^(\d{1,2})[/\-.](\d{1,2})[/\-.](\d{2,4})/.exec(str);
-  if (br) {
-    let y = br[3];
+  // Numeric DD?/DD?/YYYY with separator / - .
+  const m = /^(\d{1,2})[/\-.](\d{1,2})[/\-.](\d{2,4})/.exec(str);
+  if (m) {
+    const a = parseInt(m[1], 10);
+    const b = parseInt(m[2], 10);
+    let y = m[3];
     if (y.length === 2) y = `20${y}`;
-    return `${y}-${br[2].padStart(2, "0")}-${br[1].padStart(2, "0")}`;
+
+    // Decide order
+    let day: number, month: number;
+    if (hint === "us") {
+      month = a; day = b;
+    } else if (hint === "br") {
+      day = a; month = b;
+    } else {
+      // auto: use disambiguating values
+      if (a > 12 && b <= 12) { day = a; month = b; }
+      else if (b > 12 && a <= 12) { month = a; day = b; }
+      else { day = a; month = b; } // tie → BR default
+    }
+    if (month < 1 || month > 12 || day < 1 || day > 31) return null;
+    return `${y}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
   }
 
-  // US M/D/YYYY (when day > 12 swap not needed; assume BR first)
   const t = Date.parse(str);
   if (!Number.isNaN(t)) {
     const d = new Date(t);
@@ -76,21 +93,57 @@ export function parseDateSmart(input: unknown): string | null {
   return null;
 }
 
+/** Inspect a column of date strings to decide BR vs US format. */
+function detectDateFormat(samples: unknown[]): DateFormatHint {
+  let brEvidence = 0;
+  let usEvidence = 0;
+  for (const v of samples) {
+    if (v == null || v === "") continue;
+    const s = String(v).trim();
+    const m = /^(\d{1,2})[/\-.](\d{1,2})[/\-.](\d{2,4})/.exec(s);
+    if (!m) continue;
+    const a = parseInt(m[1], 10);
+    const b = parseInt(m[2], 10);
+    if (a > 12 && b <= 12) brEvidence++; // first part can only be day
+    else if (b > 12 && a <= 12) usEvidence++; // second part can only be day
+  }
+  if (usEvidence > brEvidence) return "us";
+  if (brEvidence > 0) return "br";
+  return "auto";
+}
+
 export function parseAmount(input: unknown): number | null {
   if (input == null || input === "") return null;
   if (typeof input === "number") return Number.isFinite(input) ? input : null;
-  let s = String(input).trim().replace(/\s/g, "");
+  let s = String(input).trim();
+  // strip surrounding quotes
+  s = s.replace(/^["']|["']$/g, "").trim();
   s = s.replace(/[R$€£¥]/gi, "").replace(/\s/g, "");
   if (!s) return null;
-  // Brazilian: 1.234,56 → 1234.56
-  if (/,\d{1,2}$/.test(s) && /\./.test(s)) {
-    s = s.replace(/\./g, "").replace(",", ".");
-  } else if (/,\d{1,2}$/.test(s)) {
-    s = s.replace(",", ".");
-  } else if (/\.\d{3}(\D|$)/.test(s) && !/,/.test(s)) {
-    // Pure thousands separators 1.234.567 (no decimals)
-    s = s.replace(/\./g, "");
+
+  const hasComma = s.includes(",");
+  const hasDot = s.includes(".");
+
+  if (hasComma && hasDot) {
+    // Decide which is decimal: the rightmost one
+    const lastComma = s.lastIndexOf(",");
+    const lastDot = s.lastIndexOf(".");
+    if (lastComma > lastDot) {
+      // BR: 1.234,56
+      s = s.replace(/\./g, "").replace(",", ".");
+    } else {
+      // US: 1,234.56
+      s = s.replace(/,/g, "");
+    }
+  } else if (hasComma) {
+    // Only comma → if it looks like a decimal (1-2 digits after) treat as decimal, else thousands
+    if (/,\d{1,2}$/.test(s)) s = s.replace(",", ".");
+    else s = s.replace(/,/g, "");
+  } else if (hasDot) {
+    // Only dot → if format is .ddd (3 digits) treat as thousands, else decimal
+    if (/^\d{1,3}(\.\d{3})+$/.test(s)) s = s.replace(/\./g, "");
   }
+
   if (/^\(.*\)$/.test(s)) s = "-" + s.slice(1, -1);
   const n = parseFloat(s);
   return Number.isFinite(n) ? n : null;
