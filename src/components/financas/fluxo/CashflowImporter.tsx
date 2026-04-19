@@ -261,6 +261,13 @@ export function CashflowImporter({ onImported }: Props) {
           </div>
         )}
       </CardContent>
+
+      <MappingConfirmDialog
+        open={mappingOpen}
+        rawRows={pendingRows ?? []}
+        onCancel={handleMappingCancel}
+        onConfirm={handleMappingConfirm}
+      />
     </Card>
   );
 }
