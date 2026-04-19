@@ -590,19 +590,24 @@ export async function fetchBankBalance(empresaId?: string, userId?: string): Pro
     0,
   );
 
-  // 2) Saldo real do Open Finance (Pluggy) — saldo + investimentos + crédito disponível
-  let pq = supabase.from("pluggy_bank_accounts").select("balance, credit_available, type");
+  // 2) Open Finance (Pluggy) — apenas contas BANK (exclui CREDIT, que tem card próprio)
+  let pq = supabase.from("pluggy_bank_accounts").select("balance, type");
   if (userId) pq = pq.eq("user_id", userId);
   const { data: pluggy } = await pq;
-  const saldoOpenFinance = (pluggy ?? []).reduce((sum, r: any) => {
-    // Para contas de crédito, usa o limite disponível; para demais, usa o balance
-    if (String(r.type ?? "").toUpperCase() === "CREDIT") {
-      return sum + Number(r.credit_available ?? 0);
-    }
-    return sum + Number(r.balance ?? 0);
-  }, 0);
+  const saldoContasBancarias = (pluggy ?? [])
+    .filter((r: any) => String(r.type ?? "").toUpperCase() !== "CREDIT")
+    .reduce((sum, r: any) => sum + Number(r.balance ?? 0), 0);
 
-  return saldoManual + saldoOpenFinance;
+  // 3) Investimentos Pluggy (tabela própria)
+  let iq = supabase.from("pluggy_investments").select("balance");
+  if (userId) iq = iq.eq("user_id", userId);
+  const { data: invest } = await iq;
+  const saldoInvestimentos = (invest ?? []).reduce(
+    (sum, r: any) => sum + Number(r.balance ?? 0),
+    0,
+  );
+
+  return saldoManual + saldoContasBancarias + saldoInvestimentos;
 }
 
 export function summarize(rows: ConsolidatedRow[]) {
