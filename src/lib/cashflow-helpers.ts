@@ -39,7 +39,9 @@ export interface ConsolidatedRow {
 }
 
 // ============ Date / amount parsers ============
-export function parseDateSmart(input: unknown): string | null {
+export type DateFormatHint = "br" | "us" | "iso" | "auto";
+
+export function parseDateSmart(input: unknown, hint: DateFormatHint = "auto"): string | null {
   if (input == null || input === "") return null;
 
   if (typeof input === "number" && Number.isFinite(input)) {
@@ -52,21 +54,36 @@ export function parseDateSmart(input: unknown): string | null {
   const str = String(input).trim();
   if (!str) return null;
 
-  // ISO YYYY-MM-DD
+  // ISO YYYY-MM-DD (always unambiguous)
   const iso = /^(\d{4})-(\d{1,2})-(\d{1,2})/.exec(str);
   if (iso) {
     return `${iso[1]}-${iso[2].padStart(2, "0")}-${iso[3].padStart(2, "0")}`;
   }
 
-  // BR DD/MM/YYYY or DD-MM-YYYY or DD.MM.YYYY
-  const br = /^(\d{1,2})[/\-.](\d{1,2})[/\-.](\d{2,4})/.exec(str);
-  if (br) {
-    let y = br[3];
+  // Numeric DD?/DD?/YYYY with separator / - .
+  const m = /^(\d{1,2})[/\-.](\d{1,2})[/\-.](\d{2,4})/.exec(str);
+  if (m) {
+    const a = parseInt(m[1], 10);
+    const b = parseInt(m[2], 10);
+    let y = m[3];
     if (y.length === 2) y = `20${y}`;
-    return `${y}-${br[2].padStart(2, "0")}-${br[1].padStart(2, "0")}`;
+
+    // Decide order
+    let day: number, month: number;
+    if (hint === "us") {
+      month = a; day = b;
+    } else if (hint === "br") {
+      day = a; month = b;
+    } else {
+      // auto: use disambiguating values
+      if (a > 12 && b <= 12) { day = a; month = b; }
+      else if (b > 12 && a <= 12) { month = a; day = b; }
+      else { day = a; month = b; } // tie → BR default
+    }
+    if (month < 1 || month > 12 || day < 1 || day > 31) return null;
+    return `${y}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
   }
 
-  // US M/D/YYYY (when day > 12 swap not needed; assume BR first)
   const t = Date.parse(str);
   if (!Number.isNaN(t)) {
     const d = new Date(t);
@@ -76,21 +93,57 @@ export function parseDateSmart(input: unknown): string | null {
   return null;
 }
 
+/** Inspect a column of date strings to decide BR vs US format. */
+function detectDateFormat(samples: unknown[]): DateFormatHint {
+  let brEvidence = 0;
+  let usEvidence = 0;
+  for (const v of samples) {
+    if (v == null || v === "") continue;
+    const s = String(v).trim();
+    const m = /^(\d{1,2})[/\-.](\d{1,2})[/\-.](\d{2,4})/.exec(s);
+    if (!m) continue;
+    const a = parseInt(m[1], 10);
+    const b = parseInt(m[2], 10);
+    if (a > 12 && b <= 12) brEvidence++; // first part can only be day
+    else if (b > 12 && a <= 12) usEvidence++; // second part can only be day
+  }
+  if (usEvidence > brEvidence) return "us";
+  if (brEvidence > 0) return "br";
+  return "auto";
+}
+
 export function parseAmount(input: unknown): number | null {
   if (input == null || input === "") return null;
   if (typeof input === "number") return Number.isFinite(input) ? input : null;
-  let s = String(input).trim().replace(/\s/g, "");
+  let s = String(input).trim();
+  // strip surrounding quotes
+  s = s.replace(/^["']|["']$/g, "").trim();
   s = s.replace(/[R$€£¥]/gi, "").replace(/\s/g, "");
   if (!s) return null;
-  // Brazilian: 1.234,56 → 1234.56
-  if (/,\d{1,2}$/.test(s) && /\./.test(s)) {
-    s = s.replace(/\./g, "").replace(",", ".");
-  } else if (/,\d{1,2}$/.test(s)) {
-    s = s.replace(",", ".");
-  } else if (/\.\d{3}(\D|$)/.test(s) && !/,/.test(s)) {
-    // Pure thousands separators 1.234.567 (no decimals)
-    s = s.replace(/\./g, "");
+
+  const hasComma = s.includes(",");
+  const hasDot = s.includes(".");
+
+  if (hasComma && hasDot) {
+    // Decide which is decimal: the rightmost one
+    const lastComma = s.lastIndexOf(",");
+    const lastDot = s.lastIndexOf(".");
+    if (lastComma > lastDot) {
+      // BR: 1.234,56
+      s = s.replace(/\./g, "").replace(",", ".");
+    } else {
+      // US: 1,234.56
+      s = s.replace(/,/g, "");
+    }
+  } else if (hasComma) {
+    // Only comma → if it looks like a decimal (1-2 digits after) treat as decimal, else thousands
+    if (/,\d{1,2}$/.test(s)) s = s.replace(",", ".");
+    else s = s.replace(/,/g, "");
+  } else if (hasDot) {
+    // Only dot → if format is .ddd (3 digits) treat as thousands, else decimal
+    if (/^\d{1,3}(\.\d{3})+$/.test(s)) s = s.replace(/\./g, "");
   }
+
   if (/^\(.*\)$/.test(s)) s = "-" + s.slice(1, -1);
   const n = parseFloat(s);
   return Number.isFinite(n) ? n : null;
@@ -174,13 +227,14 @@ function detectColumnsByContent(rows: Record<string, unknown>[]): {
   if (rows.length === 0) return {};
   const sample = rows.slice(0, Math.min(20, rows.length));
   const keys = Object.keys(rows[0]);
-  const scores: Record<string, { date: number; amount: number; len: number }> = {};
+  const scores: Record<string, { date: number; amount: number; len: number; nonEmpty: number }> = {};
 
   for (const k of keys) {
-    scores[k] = { date: 0, amount: 0, len: 0 };
+    scores[k] = { date: 0, amount: 0, len: 0, nonEmpty: 0 };
     for (const row of sample) {
       const v = row[k];
       if (v == null || v === "") continue;
+      scores[k].nonEmpty++;
       if (parseDateSmart(v)) scores[k].date++;
       const num = parseAmount(v);
       if (num != null && /[\d]/.test(String(v))) scores[k].amount++;
@@ -204,7 +258,6 @@ function detectColumnsByContent(rows: Record<string, unknown>[]): {
   const dateKey = pickBest("date");
   const amountKey = pickBest("amount");
   let descKey = pickBest("len");
-  // Avoid description colliding with date/amount columns
   if (descKey && (descKey === dateKey || descKey === amountKey)) {
     descKey = Object.keys(scores).find((k) => k !== dateKey && k !== amountKey && scores[k].len > 0);
   }
@@ -212,21 +265,28 @@ function detectColumnsByContent(rows: Record<string, unknown>[]): {
   return { dateKey, amountKey, descKey };
 }
 
+interface MapContext {
+  dateKey?: string;
+  amountKey?: string;
+  descKey?: string;
+  dateFormat?: DateFormatHint;
+}
+
 function mapRow(
   raw: Record<string, unknown>,
   idx: number,
-  fallback: { dateKey?: string; amountKey?: string; descKey?: string } = {},
+  ctx: MapContext = {},
 ): ParsedRow {
   const errors: string[] = [];
-  const dateKey = findColumnKey(raw, COLUMN_MAP.forecast_date) ?? fallback.dateKey;
-  const amountKey = findColumnKey(raw, COLUMN_MAP.amount) ?? fallback.amountKey;
-  const descKey = findColumnKey(raw, COLUMN_MAP.description) ?? fallback.descKey;
+  const dateKey = findColumnKey(raw, COLUMN_MAP.forecast_date) ?? ctx.dateKey;
+  const amountKey = findColumnKey(raw, COLUMN_MAP.amount) ?? ctx.amountKey;
+  const descKey = findColumnKey(raw, COLUMN_MAP.description) ?? ctx.descKey;
   const docKey = findColumnKey(raw, COLUMN_MAP.document_number);
   const catKey = findColumnKey(raw, COLUMN_MAP.category);
   const dirKey = findColumnKey(raw, COLUMN_MAP.direction);
   const notesKey = findColumnKey(raw, COLUMN_MAP.notes);
 
-  const date = dateKey ? parseDateSmart(raw[dateKey]) : null;
+  const date = dateKey ? parseDateSmart(raw[dateKey], ctx.dateFormat ?? "auto") : null;
   const amount = amountKey ? parseAmount(raw[amountKey]) : null;
   const desc = descKey ? String(raw[descKey] ?? "").trim() : "";
 
@@ -243,15 +303,44 @@ function mapRow(
         ? `Valor inválido na coluna "${amountKey}" (valor: "${String(raw[amountKey] ?? "")}")`
         : `Coluna de valor não identificada. Renomeie para "valor"`,
     );
+  } else if (amount === 0) {
+    errors.push(`Valor zero na coluna "${amountKey}" — linha ignorada`);
   }
   if (!desc) {
+    // Auto-fallback: combine first non-empty text columns
+    const fallback = Object.entries(raw)
+      .filter(([k, v]) => k !== dateKey && k !== amountKey && v != null && String(v).trim() !== "" && /[a-zA-ZÀ-ÿ]/.test(String(v)))
+      .slice(0, 2)
+      .map(([, v]) => String(v).trim())
+      .join(" — ");
+    if (fallback) {
+      // accept fallback silently
+      return finishRow(idx, raw, dateKey, amountKey, fallback, docKey, catKey, dirKey, notesKey, date, amount, errors);
+    }
     errors.push(
       descKey
         ? `Descrição vazia na coluna "${descKey}"`
-        : `Coluna de descrição não identificada. Renomeie para "descrição"`,
+        : `Coluna de descrição não identificada`,
     );
   }
 
+  return finishRow(idx, raw, dateKey, amountKey, desc, docKey, catKey, dirKey, notesKey, date, amount, errors);
+}
+
+function finishRow(
+  idx: number,
+  raw: Record<string, unknown>,
+  dateKey: string | undefined,
+  amountKey: string | undefined,
+  desc: string,
+  docKey: string | null,
+  catKey: string | null,
+  dirKey: string | null,
+  notesKey: string | null,
+  date: string | null,
+  amount: number | null,
+  errors: string[],
+): ParsedRow {
   const dirHint = dirKey ? String(raw[dirKey] ?? "") : undefined;
   const direction = inferDirection(amount, dirHint);
 
@@ -288,10 +377,11 @@ function detectSeparator(text: string): string {
 function readCSVText(text: string): Record<string, unknown>[] {
   const clean = text.replace(/^\uFEFF/, "");
   const sep = detectSeparator(clean);
-  const wb = XLSX.read(clean, { type: "string", FS: sep, raw: true });
+  // raw:false → values come as strings, preserving quoted "1,283.25"
+  const wb = XLSX.read(clean, { type: "string", FS: sep, raw: false });
   const ws = wb.Sheets[wb.SheetNames[0]];
   if (!ws) return [];
-  return XLSX.utils.sheet_to_json(ws, { defval: "", raw: true });
+  return XLSX.utils.sheet_to_json(ws, { defval: "", raw: false });
 }
 
 export async function parseCSV(file: File): Promise<Record<string, unknown>[]> {
@@ -331,7 +421,17 @@ export async function buildPreview(
 
   // Auto-detect columns by content if header names are unknown
   const detected = detectColumnsByContent(rawRows);
-  const parsed = rawRows.map((r, i) => mapRow(r, i, detected));
+
+  // Resolve final date column (header-based wins over heuristic)
+  const firstRow = rawRows[0];
+  const resolvedDateKey = findColumnKey(firstRow, COLUMN_MAP.forecast_date) ?? detected.dateKey;
+
+  // Detect date format (BR vs US) by inspecting a sample of the date column
+  const dateFormat: DateFormatHint = resolvedDateKey
+    ? detectDateFormat(rawRows.slice(0, 30).map((r) => r[resolvedDateKey]))
+    : "auto";
+
+  const parsed = rawRows.map((r, i) => mapRow(r, i, { ...detected, dateFormat }));
 
   const valid: ParsedRow[] = [];
   const invalid: ParsedRow[] = [];
