@@ -12,7 +12,7 @@ const sourceLabel: Record<string, string> = { csv: "CSV", xlsx: "Excel", google_
 
 export function ImportsHistory({ refreshKey }: { refreshKey: number }) {
   const { user } = useAuth();
-  const { empresaAtiva } = useEmpresa();
+  const { empresa: empresaAtiva } = useEmpresa();
   const [rows, setRows] = useState<any[]>([]);
 
   useEffect(() => {

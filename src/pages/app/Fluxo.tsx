@@ -32,7 +32,7 @@ function plusDays(iso: string, days: number) {
 
 export default function Fluxo() {
   const { user } = useAuth();
-  const { empresaAtiva } = useEmpresa();
+  const { empresa: empresaAtiva } = useEmpresa();
   const [start, setStart] = useState(todayISO());
   const [end, setEnd] = useState(plusDays(todayISO(), 90));
   const [rows, setRows] = useState<ConsolidatedRow[]>([]);

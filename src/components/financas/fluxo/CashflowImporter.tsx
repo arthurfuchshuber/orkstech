@@ -28,7 +28,7 @@ interface Props {
 
 export function CashflowImporter({ onImported }: Props) {
   const { user } = useAuth();
-  const { empresaAtiva } = useEmpresa();
+  const { empresa: empresaAtiva } = useEmpresa();
   const [tab, setTab] = useState<"file" | "sheets">("file");
   const [loading, setLoading] = useState(false);
   const [preview, setPreview] = useState<ImportPreview | null>(null);
