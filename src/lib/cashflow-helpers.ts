@@ -437,24 +437,14 @@ export async function buildPreview(
   rawRows: Record<string, unknown>[],
   userId: string,
   empresaId: string | undefined,
+  mappingOverride?: ColumnMapping,
 ): Promise<ImportPreview> {
   if (rawRows.length === 0) {
     return { rows: [], valid: [], invalid: [], duplicates: [], detectedColumns: {} };
   }
 
-  // Auto-detect columns by content if header names are unknown
-  const detected = detectColumnsByContent(rawRows);
-
-  // Resolve final date column (header-based wins over heuristic)
-  const firstRow = rawRows[0];
-  const resolvedDateKey = findColumnKey(firstRow, COLUMN_MAP.forecast_date) ?? detected.dateKey;
-
-  // Detect date format (BR vs US) by inspecting a sample of the date column
-  const dateFormat: DateFormatHint = resolvedDateKey
-    ? detectDateFormat(rawRows.slice(0, 30).map((r) => r[resolvedDateKey]))
-    : "auto";
-
-  const parsed = rawRows.map((r, i) => mapRow(r, i, { ...detected, dateFormat }));
+  const mapping = mappingOverride ?? autoDetectMapping(rawRows);
+  const parsed = rawRows.map((r, i) => mapRow(r, i, mapping));
 
   const valid: ParsedRow[] = [];
   const invalid: ParsedRow[] = [];
