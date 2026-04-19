@@ -87,41 +87,70 @@ export function MappingConfirmDialog({ open, rawRows, onCancel, onConfirm }: Pro
         </DialogHeader>
 
         <div className="space-y-5 py-2">
-          {/* Mapping fields */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {FIELDS.map((f) => {
-              const value = (mapping[f.key] as string | undefined) ?? "";
-              const wasAutoDetected = !!value;
-              return (
-                <div key={f.key as string} className="space-y-1.5">
-                  <div className="flex items-center gap-2">
-                    <Label className="text-xs font-medium">
-                      {f.label}
-                      {f.required && <span className="text-destructive ml-1">*</span>}
-                    </Label>
-                    {wasAutoDetected && (
-                      <Badge variant="outline" className="text-[10px] h-4 px-1.5 border-primary/30 text-primary">
-                        auto
-                      </Badge>
-                    )}
+          {/* Mapping fields - layout SaaS -> CSV */}
+          <div className="rounded-lg border border-border/50 overflow-hidden">
+            {/* Header */}
+            <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3 px-4 py-2.5 bg-muted/40 border-b border-border/50">
+              <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                <Database className="w-3.5 h-3.5" />
+                Campo do sistema
+              </div>
+              <div className="w-5" />
+              <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                <FileSpreadsheet className="w-3.5 h-3.5" />
+                Coluna do arquivo
+              </div>
+            </div>
+
+            {/* Rows */}
+            <div className="divide-y divide-border/40">
+              {FIELDS.map((f) => {
+                const value = (mapping[f.key] as string | undefined) ?? "";
+                const wasAutoDetected = !!value;
+                return (
+                  <div
+                    key={f.key as string}
+                    className="grid grid-cols-[1fr_auto_1fr] items-center gap-3 px-4 py-3 hover:bg-muted/20 transition-colors"
+                  >
+                    {/* Left: system field */}
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2">
+                        <Label className="text-sm font-medium text-foreground truncate">
+                          {f.label}
+                          {f.required && <span className="text-destructive ml-1">*</span>}
+                        </Label>
+                      </div>
+                      <p className="text-[11px] text-muted-foreground mt-0.5 truncate">{f.help}</p>
+                    </div>
+
+                    {/* Arrow */}
+                    <ArrowRight className="w-4 h-4 text-muted-foreground/60 shrink-0" />
+
+                    {/* Right: file column */}
+                    <div className="min-w-0 flex items-center gap-2">
+                      <Select value={value || NONE} onValueChange={(v) => update(f.key, v)}>
+                        <SelectTrigger className="h-9 text-sm flex-1">
+                          <SelectValue placeholder="Selecione a coluna" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {!f.required && <SelectItem value={NONE}>— Nenhuma —</SelectItem>}
+                          {allColumns.map((col) => (
+                            <SelectItem key={col} value={col}>
+                              {col}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {wasAutoDetected && (
+                        <Badge variant="outline" className="text-[10px] h-5 px-1.5 border-primary/30 text-primary shrink-0">
+                          auto
+                        </Badge>
+                      )}
+                    </div>
                   </div>
-                  <Select value={value || NONE} onValueChange={(v) => update(f.key, v)}>
-                    <SelectTrigger className="h-9 text-sm">
-                      <SelectValue placeholder="Selecione a coluna" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {!f.required && <SelectItem value={NONE}>— Nenhuma —</SelectItem>}
-                      {allColumns.map((col) => (
-                        <SelectItem key={col} value={col}>
-                          {col}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <p className="text-[11px] text-muted-foreground">{f.help}</p>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
 
           {/* Date format selector */}
