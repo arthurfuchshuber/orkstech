@@ -486,7 +486,13 @@ export async function buildPreview(
     }
   }
 
-  return { rows: parsed, valid, invalid, duplicates, detectedColumns: detected };
+  return {
+    rows: parsed,
+    valid,
+    invalid,
+    duplicates,
+    detectedColumns: { dateKey: mapping.dateKey, amountKey: mapping.amountKey, descKey: mapping.descKey },
+  };
 }
 
 // ============ Persist import ============
