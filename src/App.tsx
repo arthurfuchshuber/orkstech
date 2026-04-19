@@ -26,6 +26,7 @@ import ContasBancarias from "./pages/app/ContasBancarias";
 import GerenciarMenu from "./pages/app/GerenciarMenu";
 import ContasAPagar from "./pages/app/ContasAPagar";
 import ContasAReceber from "./pages/app/ContasAReceber";
+import Fluxo from "./pages/app/Fluxo";
 import NotFound from "./pages/NotFound";
 import ExtratoBancario from "./pages/app/ExtratoBancario";
 import Conciliacao from "./pages/app/Conciliacao";
@@ -64,7 +65,7 @@ const App = () => (
                 <Route path="financas/dashboard" element={<FinanceiroDashboardPage />} />
                 <Route path="financas/pagar" element={<ContasAPagar />} />
                 <Route path="financas/receber" element={<ContasAReceber />} />
-                <Route path="financas/fluxo" element={<PlaceholderPage />} />
+                <Route path="financas/fluxo" element={<Fluxo />} />
                 <Route path="financas/dre" element={<DREPage />} />
                 <Route path="financas/cadastros" element={<Financeiro />} />
                 <Route path="financas/plano-de-contas" element={<Navigate to="/app/financas/cadastros" replace />} />
