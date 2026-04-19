@@ -41,7 +41,6 @@ export function CaixaKpis({
       label: "Investimentos",
       flag: "Aplicações",
       value: fmt(totalInvestments),
-      sub: `Liquidez total: ${fmt(liquidez)}`,
       tone: "emerald" as const,
     },
     {
@@ -57,7 +56,6 @@ export function CaixaKpis({
       label: "Faturas em Aberto",
       flag: "Cartões de Crédito",
       value: fmt(totalCreditBills),
-      sub: totalCreditBills > 0 ? "Próximas faturas a pagar" : "Sem faturas em aberto",
       tone: "amber" as const,
     },
   ];
