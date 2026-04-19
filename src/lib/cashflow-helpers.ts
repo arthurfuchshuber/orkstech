@@ -265,26 +265,49 @@ function detectColumnsByContent(rows: Record<string, unknown>[]): {
   return { dateKey, amountKey, descKey };
 }
 
-interface MapContext {
+export interface ColumnMapping {
   dateKey?: string;
   amountKey?: string;
   descKey?: string;
+  docKey?: string;
+  catKey?: string;
+  dirKey?: string;
+  notesKey?: string;
   dateFormat?: DateFormatHint;
+}
+
+/** Auto-detect a complete mapping from raw rows (header + content heuristic). */
+export function autoDetectMapping(rawRows: Record<string, unknown>[]): ColumnMapping {
+  if (rawRows.length === 0) return {};
+  const detected = detectColumnsByContent(rawRows);
+  const first = rawRows[0];
+  const dateKey = findColumnKey(first, COLUMN_MAP.forecast_date) ?? detected.dateKey;
+  const amountKey = findColumnKey(first, COLUMN_MAP.amount) ?? detected.amountKey;
+  const descKey = findColumnKey(first, COLUMN_MAP.description) ?? detected.descKey;
+  const docKey = findColumnKey(first, COLUMN_MAP.document_number) ?? undefined;
+  const catKey = findColumnKey(first, COLUMN_MAP.category) ?? undefined;
+  const dirKey = findColumnKey(first, COLUMN_MAP.direction) ?? undefined;
+  const notesKey = findColumnKey(first, COLUMN_MAP.notes) ?? undefined;
+  const dateFormat: DateFormatHint = dateKey
+    ? detectDateFormat(rawRows.slice(0, 30).map((r) => r[dateKey]))
+    : "auto";
+  return { dateKey, amountKey, descKey, docKey, catKey, dirKey, notesKey, dateFormat };
 }
 
 function mapRow(
   raw: Record<string, unknown>,
   idx: number,
-  ctx: MapContext = {},
+  ctx: ColumnMapping = {},
 ): ParsedRow {
   const errors: string[] = [];
-  const dateKey = findColumnKey(raw, COLUMN_MAP.forecast_date) ?? ctx.dateKey;
-  const amountKey = findColumnKey(raw, COLUMN_MAP.amount) ?? ctx.amountKey;
-  const descKey = findColumnKey(raw, COLUMN_MAP.description) ?? ctx.descKey;
-  const docKey = findColumnKey(raw, COLUMN_MAP.document_number);
-  const catKey = findColumnKey(raw, COLUMN_MAP.category);
-  const dirKey = findColumnKey(raw, COLUMN_MAP.direction);
-  const notesKey = findColumnKey(raw, COLUMN_MAP.notes);
+  // ctx wins over auto-detection (manual override mode)
+  const dateKey = ctx.dateKey ?? findColumnKey(raw, COLUMN_MAP.forecast_date);
+  const amountKey = ctx.amountKey ?? findColumnKey(raw, COLUMN_MAP.amount);
+  const descKey = ctx.descKey ?? findColumnKey(raw, COLUMN_MAP.description);
+  const docKey = ctx.docKey ?? findColumnKey(raw, COLUMN_MAP.document_number);
+  const catKey = ctx.catKey ?? findColumnKey(raw, COLUMN_MAP.category);
+  const dirKey = ctx.dirKey ?? findColumnKey(raw, COLUMN_MAP.direction);
+  const notesKey = ctx.notesKey ?? findColumnKey(raw, COLUMN_MAP.notes);
 
   const date = dateKey ? parseDateSmart(raw[dateKey], ctx.dateFormat ?? "auto") : null;
   const amount = amountKey ? parseAmount(raw[amountKey]) : null;
