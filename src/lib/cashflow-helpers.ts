@@ -420,7 +420,17 @@ export async function buildPreview(
 
   // Auto-detect columns by content if header names are unknown
   const detected = detectColumnsByContent(rawRows);
-  const parsed = rawRows.map((r, i) => mapRow(r, i, detected));
+
+  // Resolve final date column (header-based wins over heuristic)
+  const firstRow = rawRows[0];
+  const resolvedDateKey = findColumnKey(firstRow, COLUMN_MAP.forecast_date) ?? detected.dateKey;
+
+  // Detect date format (BR vs US) by inspecting a sample of the date column
+  const dateFormat: DateFormatHint = resolvedDateKey
+    ? detectDateFormat(rawRows.slice(0, 30).map((r) => r[resolvedDateKey]))
+    : "auto";
+
+  const parsed = rawRows.map((r, i) => mapRow(r, i, { ...detected, dateFormat }));
 
   const valid: ParsedRow[] = [];
   const invalid: ParsedRow[] = [];
