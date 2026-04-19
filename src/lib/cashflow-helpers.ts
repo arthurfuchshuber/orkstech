@@ -22,6 +22,7 @@ export interface ImportPreview {
   duplicates: Array<ParsedRow & { duplicateOf: { table: string; id: string; description: string } }>;
   invalid: ParsedRow[];
   valid: ParsedRow[];
+  detectedColumns: { dateKey?: string; amountKey?: string; descKey?: string };
 }
 
 export interface ConsolidatedRow {
@@ -41,7 +42,6 @@ export interface ConsolidatedRow {
 export function parseDateSmart(input: unknown): string | null {
   if (input == null || input === "") return null;
 
-  // Excel serial number
   if (typeof input === "number" && Number.isFinite(input)) {
     const d = XLSX.SSF.parse_date_code(input);
     if (d && d.y) {
@@ -58,7 +58,7 @@ export function parseDateSmart(input: unknown): string | null {
     return `${iso[1]}-${iso[2].padStart(2, "0")}-${iso[3].padStart(2, "0")}`;
   }
 
-  // BR DD/MM/YYYY or DD-MM-YYYY
+  // BR DD/MM/YYYY or DD-MM-YYYY or DD.MM.YYYY
   const br = /^(\d{1,2})[/\-.](\d{1,2})[/\-.](\d{2,4})/.exec(str);
   if (br) {
     let y = br[3];
@@ -66,7 +66,7 @@ export function parseDateSmart(input: unknown): string | null {
     return `${y}-${br[2].padStart(2, "0")}-${br[1].padStart(2, "0")}`;
   }
 
-  // Fallback Date.parse
+  // US M/D/YYYY (when day > 12 swap not needed; assume BR first)
   const t = Date.parse(str);
   if (!Number.isNaN(t)) {
     const d = new Date(t);
@@ -80,15 +80,17 @@ export function parseAmount(input: unknown): number | null {
   if (input == null || input === "") return null;
   if (typeof input === "number") return Number.isFinite(input) ? input : null;
   let s = String(input).trim().replace(/\s/g, "");
-  // Remove currency
   s = s.replace(/[R$€£¥]/gi, "").replace(/\s/g, "");
+  if (!s) return null;
   // Brazilian: 1.234,56 → 1234.56
   if (/,\d{1,2}$/.test(s) && /\./.test(s)) {
     s = s.replace(/\./g, "").replace(",", ".");
   } else if (/,\d{1,2}$/.test(s)) {
     s = s.replace(",", ".");
+  } else if (/\.\d{3}(\D|$)/.test(s) && !/,/.test(s)) {
+    // Pure thousands separators 1.234.567 (no decimals)
+    s = s.replace(/\./g, "");
   }
-  // Negative parentheses (123)
   if (/^\(.*\)$/.test(s)) s = "-" + s.slice(1, -1);
   const n = parseFloat(s);
   return Number.isFinite(n) ? n : null;
@@ -96,9 +98,9 @@ export function parseAmount(input: unknown): number | null {
 
 export function inferDirection(value: unknown, hint?: string): CashflowDirection {
   if (hint) {
-    const h = hint.toLowerCase();
-    if (/(entrada|inflow|cr[eé]dito|receit|receb)/i.test(h)) return "inflow";
-    if (/(sa[ií]da|outflow|d[eé]bito|despes|paga)/i.test(h)) return "outflow";
+    const h = hint.toLowerCase().trim();
+    if (/^[ce]$|cred|entrada|inflow|receit|receb|^\+/i.test(h)) return "inflow";
+    if (/^[ds]$|deb|saida|saída|outflow|despes|paga|^-/i.test(h)) return "outflow";
   }
   const n = typeof value === "number" ? value : parseAmount(value) ?? 0;
   return n < 0 ? "outflow" : "inflow";
@@ -106,13 +108,38 @@ export function inferDirection(value: unknown, hint?: string): CashflowDirection
 
 // ============ Column mapping (intelligent) ============
 const COLUMN_MAP: Record<keyof Omit<ParsedRow, "rowIndex" | "errors">, string[]> = {
-  forecast_date: ["data", "date", "vencimento", "due_date", "dt_vencto", "data prevista"],
-  amount: ["valor", "amount", "value", "montante", "total", "preço", "preco"],
-  description: ["descrição", "descricao", "description", "histórico", "historico", "memo", "lançamento", "lancamento", "title"],
-  document_number: ["documento", "doc", "document", "nf", "boleto", "ref", "referência", "referencia"],
-  category: ["categoria", "category", "classe", "grupo"],
-  direction: ["tipo", "type", "direction", "natureza", "movimento"],
-  notes: ["obs", "observação", "observacao", "notas", "notes", "comentário", "comentario"],
+  forecast_date: [
+    "data", "date", "vencimento", "duedate", "due_date", "dt_vencto", "dtvencto",
+    "data prevista", "dataprevista", "data vencimento", "datavencimento",
+    "data pagamento", "datapagamento", "competencia", "competência", "dia",
+    "data_lancamento", "datalancamento",
+  ],
+  amount: [
+    "valor", "amount", "value", "montante", "total", "preço", "preco",
+    "valortotal", "valor total", "vlr", "vl", "quantia",
+    "valor previsto", "valorprevisto", "r$", "valor (r$)",
+  ],
+  description: [
+    "descrição", "descricao", "description", "histórico", "historico", "memo",
+    "lançamento", "lancamento", "title", "titulo", "título", "nome",
+    "detalhe", "detalhes", "descricao do lancamento",
+  ],
+  document_number: [
+    "documento", "doc", "document", "nf", "boleto", "ref", "referência", "referencia",
+    "numero", "número", "nfe", "ndoc",
+  ],
+  category: [
+    "categoria", "category", "classe", "grupo", "plano de contas", "planodecontas",
+    "centro de custo", "centrocusto",
+  ],
+  direction: [
+    "tipo", "type", "direction", "natureza", "movimento", "operacao", "operação",
+    "entrada/saida", "credito/debito", "credebito",
+  ],
+  notes: [
+    "obs", "observação", "observacao", "observações", "observacoes",
+    "notas", "notes", "comentário", "comentario",
+  ],
 };
 
 function normalizeKey(s: string) {
@@ -126,25 +153,74 @@ function normalizeKey(s: string) {
 
 function findColumnKey(row: Record<string, unknown>, candidates: string[]): string | null {
   const keys = Object.keys(row);
-  for (const cand of candidates) {
-    const candNorm = normalizeKey(cand);
-    const hit = keys.find((k) => normalizeKey(k) === candNorm);
+  const normalizedCands = candidates.map(normalizeKey);
+  for (const cand of normalizedCands) {
+    const hit = keys.find((k) => normalizeKey(k) === cand);
     if (hit) return hit;
   }
-  // Partial match
-  for (const cand of candidates) {
-    const candNorm = normalizeKey(cand);
-    const hit = keys.find((k) => normalizeKey(k).includes(candNorm));
+  for (const cand of normalizedCands) {
+    const hit = keys.find((k) => normalizeKey(k).includes(cand));
     if (hit) return hit;
   }
   return null;
 }
 
-function mapRow(raw: Record<string, unknown>, idx: number): ParsedRow {
+/** Heuristic content-based column detection as fallback. */
+function detectColumnsByContent(rows: Record<string, unknown>[]): {
+  dateKey?: string;
+  amountKey?: string;
+  descKey?: string;
+} {
+  if (rows.length === 0) return {};
+  const sample = rows.slice(0, Math.min(20, rows.length));
+  const keys = Object.keys(rows[0]);
+  const scores: Record<string, { date: number; amount: number; len: number }> = {};
+
+  for (const k of keys) {
+    scores[k] = { date: 0, amount: 0, len: 0 };
+    for (const row of sample) {
+      const v = row[k];
+      if (v == null || v === "") continue;
+      if (parseDateSmart(v)) scores[k].date++;
+      const num = parseAmount(v);
+      if (num != null && /[\d]/.test(String(v))) scores[k].amount++;
+      const s = String(v).trim();
+      if (s.length > 3 && /[a-zA-ZÀ-ÿ]/.test(s)) scores[k].len += s.length;
+    }
+  }
+
+  const pickBest = (metric: "date" | "amount" | "len") => {
+    let best: string | undefined;
+    let bestScore = 0;
+    for (const k of keys) {
+      if (scores[k][metric] > bestScore) {
+        bestScore = scores[k][metric];
+        best = k;
+      }
+    }
+    return best;
+  };
+
+  const dateKey = pickBest("date");
+  const amountKey = pickBest("amount");
+  let descKey = pickBest("len");
+  // Avoid description colliding with date/amount columns
+  if (descKey && (descKey === dateKey || descKey === amountKey)) {
+    descKey = Object.keys(scores).find((k) => k !== dateKey && k !== amountKey && scores[k].len > 0);
+  }
+
+  return { dateKey, amountKey, descKey };
+}
+
+function mapRow(
+  raw: Record<string, unknown>,
+  idx: number,
+  fallback: { dateKey?: string; amountKey?: string; descKey?: string } = {},
+): ParsedRow {
   const errors: string[] = [];
-  const dateKey = findColumnKey(raw, COLUMN_MAP.forecast_date);
-  const amountKey = findColumnKey(raw, COLUMN_MAP.amount);
-  const descKey = findColumnKey(raw, COLUMN_MAP.description);
+  const dateKey = findColumnKey(raw, COLUMN_MAP.forecast_date) ?? fallback.dateKey;
+  const amountKey = findColumnKey(raw, COLUMN_MAP.amount) ?? fallback.amountKey;
+  const descKey = findColumnKey(raw, COLUMN_MAP.description) ?? fallback.descKey;
   const docKey = findColumnKey(raw, COLUMN_MAP.document_number);
   const catKey = findColumnKey(raw, COLUMN_MAP.category);
   const dirKey = findColumnKey(raw, COLUMN_MAP.direction);
@@ -154,15 +230,33 @@ function mapRow(raw: Record<string, unknown>, idx: number): ParsedRow {
   const amount = amountKey ? parseAmount(raw[amountKey]) : null;
   const desc = descKey ? String(raw[descKey] ?? "").trim() : "";
 
-  if (!date) errors.push("Data ausente ou inválida");
-  if (amount == null) errors.push("Valor ausente ou inválido");
-  if (!desc) errors.push("Descrição ausente");
+  if (!date) {
+    errors.push(
+      dateKey
+        ? `Data inválida na coluna "${dateKey}" (valor: "${String(raw[dateKey] ?? "")}")`
+        : `Coluna de data não identificada. Renomeie para "data" ou "vencimento"`,
+    );
+  }
+  if (amount == null) {
+    errors.push(
+      amountKey
+        ? `Valor inválido na coluna "${amountKey}" (valor: "${String(raw[amountKey] ?? "")}")`
+        : `Coluna de valor não identificada. Renomeie para "valor"`,
+    );
+  }
+  if (!desc) {
+    errors.push(
+      descKey
+        ? `Descrição vazia na coluna "${descKey}"`
+        : `Coluna de descrição não identificada. Renomeie para "descrição"`,
+    );
+  }
 
   const dirHint = dirKey ? String(raw[dirKey] ?? "") : undefined;
   const direction = inferDirection(amount, dirHint);
 
   return {
-    rowIndex: idx + 2, // +2 for header row + 1-indexed
+    rowIndex: idx + 2,
     direction,
     forecast_date: date ?? "",
     amount: amount != null ? Math.abs(amount) : 0,
@@ -175,12 +269,34 @@ function mapRow(raw: Record<string, unknown>, idx: number): ParsedRow {
 }
 
 // ============ File parsers ============
+function detectSeparator(text: string): string {
+  const firstLine = text.split(/\r?\n/).find((l) => l.trim().length > 0) ?? "";
+  const candidates = [";", ",", "\t", "|"];
+  let best = ",";
+  let bestCount = 0;
+  for (const c of candidates) {
+    const escaped = c === "\t" ? "\\t" : `\\${c}`;
+    const count = (firstLine.match(new RegExp(escaped, "g")) ?? []).length;
+    if (count > bestCount) {
+      bestCount = count;
+      best = c;
+    }
+  }
+  return best;
+}
+
+function readCSVText(text: string): Record<string, unknown>[] {
+  const clean = text.replace(/^\uFEFF/, "");
+  const sep = detectSeparator(clean);
+  const wb = XLSX.read(clean, { type: "string", FS: sep, raw: true });
+  const ws = wb.Sheets[wb.SheetNames[0]];
+  if (!ws) return [];
+  return XLSX.utils.sheet_to_json(ws, { defval: "", raw: true });
+}
+
 export async function parseCSV(file: File): Promise<Record<string, unknown>[]> {
   const text = await file.text();
-  // Use xlsx CSV parser for consistency
-  const wb = XLSX.read(text, { type: "string" });
-  const ws = wb.Sheets[wb.SheetNames[0]];
-  return XLSX.utils.sheet_to_json(ws, { defval: "", raw: true });
+  return readCSVText(text);
 }
 
 export async function parseXLSX(file: File): Promise<Record<string, unknown>[]> {
@@ -191,7 +307,6 @@ export async function parseXLSX(file: File): Promise<Record<string, unknown>[]> 
 }
 
 export async function parseGoogleSheetsURL(url: string): Promise<Record<string, unknown>[]> {
-  // Convert any Sheets URL to CSV export URL
   const m = url.match(/\/d\/([a-zA-Z0-9-_]+)/);
   if (!m) throw new Error("URL do Google Sheets inválida");
   const id = m[1];
@@ -201,9 +316,7 @@ export async function parseGoogleSheetsURL(url: string): Promise<Record<string, 
   const res = await fetch(csvUrl);
   if (!res.ok) throw new Error("Falha ao baixar planilha. Verifique se está pública (leitura).");
   const text = await res.text();
-  const wb = XLSX.read(text, { type: "string" });
-  const ws = wb.Sheets[wb.SheetNames[0]];
-  return XLSX.utils.sheet_to_json(ws, { defval: "", raw: true });
+  return readCSVText(text);
 }
 
 // ============ Duplicate detection ============
@@ -212,7 +325,13 @@ export async function buildPreview(
   userId: string,
   empresaId: string | undefined,
 ): Promise<ImportPreview> {
-  const parsed = rawRows.map((r, i) => mapRow(r, i));
+  if (rawRows.length === 0) {
+    return { rows: [], valid: [], invalid: [], duplicates: [], detectedColumns: {} };
+  }
+
+  // Auto-detect columns by content if header names are unknown
+  const detected = detectColumnsByContent(rawRows);
+  const parsed = rawRows.map((r, i) => mapRow(r, i, detected));
 
   const valid: ParsedRow[] = [];
   const invalid: ParsedRow[] = [];
@@ -254,7 +373,7 @@ export async function buildPreview(
     }
   }
 
-  return { rows: parsed, valid, invalid, duplicates };
+  return { rows: parsed, valid, invalid, duplicates, detectedColumns: detected };
 }
 
 // ============ Persist import ============

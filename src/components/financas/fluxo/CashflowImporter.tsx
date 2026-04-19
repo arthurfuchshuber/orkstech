@@ -155,6 +155,16 @@ export function CashflowImporter({ onImported }: Props) {
 
         {preview && (
           <div className="space-y-4">
+            {(preview.detectedColumns?.dateKey || preview.detectedColumns?.amountKey || preview.detectedColumns?.descKey) && (
+              <div className="p-3 rounded-lg bg-primary/5 border border-primary/20">
+                <p className="text-xs font-semibold text-primary mb-1">Colunas reconhecidas automaticamente</p>
+                <div className="flex flex-wrap gap-2 text-[11px]">
+                  {preview.detectedColumns.dateKey && <Badge variant="outline">Data: {preview.detectedColumns.dateKey}</Badge>}
+                  {preview.detectedColumns.amountKey && <Badge variant="outline">Valor: {preview.detectedColumns.amountKey}</Badge>}
+                  {preview.detectedColumns.descKey && <Badge variant="outline">Descrição: {preview.detectedColumns.descKey}</Badge>}
+                </div>
+              </div>
+            )}
             <div className="grid grid-cols-3 gap-3">
               <div className="p-3 rounded-lg bg-emerald-500/5 border border-emerald-500/20">
                 <div className="flex items-center gap-2 mb-1">
