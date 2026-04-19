@@ -579,15 +579,30 @@ export async function fetchConsolidated(
   return (data ?? []) as ConsolidatedRow[];
 }
 
-export async function fetchBankBalance(empresaId?: string): Promise<number> {
+export async function fetchBankBalance(empresaId?: string, userId?: string): Promise<number> {
+  // 1) Saldo manual (contas_bancarias cadastradas manualmente)
   let q = supabase.from("contas_bancarias").select("saldo_inicial, saldo_investimento").eq("ativo", true);
   if (empresaId) q = q.eq("empresa_id", empresaId);
-  const { data, error } = await q;
+  const { data: manuais, error } = await q;
   if (error) throw error;
-  return (data ?? []).reduce(
+  const saldoManual = (manuais ?? []).reduce(
     (sum, r: any) => sum + Number(r.saldo_inicial ?? 0) + Number(r.saldo_investimento ?? 0),
     0,
   );
+
+  // 2) Saldo real do Open Finance (Pluggy) — saldo + investimentos + crédito disponível
+  let pq = supabase.from("pluggy_bank_accounts").select("balance, credit_available, type");
+  if (userId) pq = pq.eq("user_id", userId);
+  const { data: pluggy } = await pq;
+  const saldoOpenFinance = (pluggy ?? []).reduce((sum, r: any) => {
+    // Para contas de crédito, usa o limite disponível; para demais, usa o balance
+    if (String(r.type ?? "").toUpperCase() === "CREDIT") {
+      return sum + Number(r.credit_available ?? 0);
+    }
+    return sum + Number(r.balance ?? 0);
+  }, 0);
+
+  return saldoManual + saldoOpenFinance;
 }
 
 export function summarize(rows: ConsolidatedRow[]) {
