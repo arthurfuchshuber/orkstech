@@ -5,6 +5,7 @@ import { useEmpresa } from "@/hooks/useEmpresa";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   Receipt,
   AlertTriangle,
@@ -16,10 +17,12 @@ import {
   
   PiggyBank,
   Sparkles,
+  Info,
 } from "lucide-react";
 import { format, differenceInDays, startOfMonth, endOfMonth, subMonths, addMonths, isBefore, subDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { CaixaKpis } from "./caixa/CaixaKpis";
 import { CaixaCharts } from "./caixa/CaixaCharts";
 
