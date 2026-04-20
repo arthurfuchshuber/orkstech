@@ -54,20 +54,31 @@ export default function DREPage() {
 
   const { lines, totalRevenue, grossMargin, ebitda, netIncome, transactions, isLoading, dateRange } = useDRE(filters);
 
-  // Extract key indicators for KPI cards
+  // Extract key indicators for KPI cards (deduplicates redundant values)
   const findLine = (id: string) => lines.find((l) => l.id === id);
   const kpis = useMemo(() => {
     const receitaLiq = findLine("receita-liquida");
     const lucroBruto = findLine("lucro-bruto");
     const ebitdaLine = findLine("ebitda");
     const lucroLiq = findLine("lucro-liquido");
-    return [
-      { id: "receita", label: "Receita Líquida", line: receitaLiq, accent: "text-success" },
-      { id: "bruto", label: "Lucro Bruto", line: lucroBruto, accent: "text-success" },
-      { id: "ebitda", label: "EBITDA", line: ebitdaLine, accent: "text-primary" },
-      { id: "liquido", label: "Lucro Líquido", line: lucroLiq, accent: "text-success" },
+    const all = [
+      { id: "receita", label: "Receita Líquida", line: receitaLiq, accent: "text-success", anchor: true },
+      { id: "bruto", label: "Lucro Bruto", line: lucroBruto, accent: "text-success", anchor: false },
+      { id: "ebitda", label: "EBITDA", line: ebitdaLine, accent: "text-primary", anchor: false },
+      { id: "liquido", label: "Lucro Líquido", line: lucroLiq, accent: "text-success", anchor: true },
     ];
+    // Hide non-anchor cards whose amount equals the previous visible card's amount
+    const result: typeof all = [];
+    for (const k of all) {
+      const prev = result[result.length - 1];
+      const amt = k.line?.amount ?? 0;
+      const prevAmt = prev?.line?.amount ?? null;
+      if (!k.anchor && prev && prevAmt !== null && Math.abs(amt - prevAmt) < 0.01) continue;
+      result.push(k);
+    }
+    return result;
   }, [lines]);
+
 
   const { data: bankAccounts = [] } = useQuery({
     queryKey: ["dre-bank-accounts", targetUserId],
