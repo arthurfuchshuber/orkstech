@@ -178,6 +178,7 @@ export default function ExtratoBancario() {
   const [cfModalOpen, setCfModalOpen] = useState(false);
   const [manualDialogOpen, setManualDialogOpen] = useState(false);
   const [editingManual, setEditingManual] = useState<any>(null);
+  const [batchSelection, setBatchSelection] = useState<Set<string>>(new Set());
 
   // Date range filter — default to current month
   const now = new Date();
