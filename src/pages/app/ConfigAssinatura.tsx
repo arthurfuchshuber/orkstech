@@ -125,10 +125,16 @@ export default function ConfigAssinatura() {
   const planLabel = currentPlan ? PLANS[currentPlan].name : null;
   const statusInfo = status ? STATUS_LABELS[status] : null;
 
-  const tabs = [
-    { id: "plano", label: "Plano", icon: LayoutGrid },
-    { id: "faturas", label: "Extrato de pagamentos", icon: Receipt, count: billing?.invoices?.length },
-  ];
+  const hasSubscription = subscribed || !!status;
+  const tabs = hasSubscription
+    ? [
+        { id: "plano", label: "Plano", icon: LayoutGrid },
+        { id: "faturas", label: "Extrato de pagamentos", icon: Receipt, count: billing?.invoices?.length },
+        { id: "planos", label: "Planos disponíveis", icon: Sparkles },
+      ]
+    : [
+        { id: "planos", label: "Planos disponíveis", icon: Sparkles },
+      ];
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -157,23 +163,11 @@ export default function ConfigAssinatura() {
           <Skeleton className="h-32 w-full" />
           <Skeleton className="h-24 w-full" />
         </div>
-      ) : !subscribed && !status ? (
-        <Card className="p-8 text-center border-dashed">
-          <CreditCard className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
-          <h3 className="text-base font-semibold text-foreground mb-1">Você ainda não tem um plano ativo</h3>
-          <p className="text-sm text-muted-foreground mb-4">
-            Escolha um plano para acessar todas as funcionalidades do sistema.
-          </p>
-          <Button onClick={() => navigate("/app/config/planos")} className="gap-1.5">
-            <Sparkles className="w-3.5 h-3.5" />
-            Ver planos disponíveis
-          </Button>
-        </Card>
       ) : (
         <>
           <ModuleTabs tabs={tabs} activeTab={activeTab} onTabChange={(id) => setActiveTab(id as any)} />
 
-          {activeTab === "plano" && (
+          {activeTab === "plano" && hasSubscription && (
             <div className="space-y-4">
               {/* Card principal: Plano ativo */}
               <Card className="p-5">
