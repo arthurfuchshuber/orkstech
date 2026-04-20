@@ -2571,6 +2571,7 @@ export type Database = {
       cashflow_normalize_text: { Args: { p_text: string }; Returns: string }
       has_active_subscription: { Args: { p_user_id: string }; Returns: boolean }
       is_super_admin: { Args: never; Returns: boolean }
+      normalizar_texto_regra: { Args: { p_texto: string }; Returns: string }
       processar_automacoes: {
         Args: {
           p_contexto?: Json
@@ -2591,6 +2592,7 @@ export type Database = {
         Args: { p_user_id: string }
         Returns: undefined
       }
+      unaccent: { Args: { "": string }; Returns: string }
     }
     Enums: {
       cash_transaction_type: "income" | "expense"
