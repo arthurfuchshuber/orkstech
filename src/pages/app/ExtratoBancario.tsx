@@ -28,6 +28,10 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { CategoriaFinanceiraModal } from "@/components/modals/CategoriaFinanceiraModal";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { GenericImporter } from "@/components/financas/importacoes/GenericImporter";
+import { ImportsHistoryTargeted } from "@/components/financas/importacoes/ImportsHistoryTargeted";
+import { ManualBankTransactionDialog } from "@/components/financas/extrato/ManualBankTransactionDialog";
 import {
   ArrowDownLeft,
   ArrowUpRight,
