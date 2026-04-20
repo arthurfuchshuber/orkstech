@@ -62,6 +62,7 @@ export default function FinanceiroDashboard() {
   const { empresa } = useEmpresa();
   const empresaId = empresa?.id;
   const targetUserId = empresa?.user_id ?? user?.id;
+  const navigate = useNavigate();
 
   // ── Pluggy accounts ──
   const { data: accounts = [] } = useQuery({
