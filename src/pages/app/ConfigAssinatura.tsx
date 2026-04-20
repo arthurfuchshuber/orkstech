@@ -306,7 +306,7 @@ export default function ConfigAssinatura() {
             </div>
           )}
 
-          {activeTab === "faturas" && (
+          {activeTab === "faturas" && hasSubscription && (
             <div className="space-y-4">
               {/* Método de pagamento */}
               <Card className="p-5">
