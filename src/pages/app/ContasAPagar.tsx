@@ -35,6 +35,9 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { GenericImporter } from "@/components/financas/importacoes/GenericImporter";
+import { ImportsHistoryTargeted } from "@/components/financas/importacoes/ImportsHistoryTargeted";
 import { useAuth } from "@/hooks/useAuth";
 import { refreshQueries } from "@/lib/query-refresh";
 import {
@@ -1027,6 +1030,14 @@ export default function ContasAPagar() {
       </div>
 
 
+      <Tabs defaultValue="lista" className="space-y-6">
+        <TabsList>
+          <TabsTrigger value="lista">Lista</TabsTrigger>
+          <TabsTrigger value="importacoes">Importações</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="lista" className="space-y-6 mt-4">
+
       <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
         <DueStatCard
           title="Contas Vencidas"
@@ -1585,6 +1596,14 @@ export default function ContasAPagar() {
           </Table>
         )}
       </Card>
+
+        </TabsContent>
+
+        <TabsContent value="importacoes" className="mt-4 space-y-4">
+          <GenericImporter target="payable" onImported={() => refreshQueries(queryClient, [["accounts-payable"], ["accounts-payable-counts"]])} />
+          <ImportsHistoryTargeted target="payable" onDeleted={() => refreshQueries(queryClient, [["accounts-payable"], ["accounts-payable-counts"]])} />
+        </TabsContent>
+      </Tabs>
 
       {/* Payment Dialog */}
       <Dialog open={showPaymentDialog} onOpenChange={setShowPaymentDialog}>

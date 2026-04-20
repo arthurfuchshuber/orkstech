@@ -508,20 +508,13 @@ export default function ExtratoBancario() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Landmark className="w-6 h-6 text-primary" />
-          <div>
-            <h1 className="text-xl font-bold text-foreground">Extrato Bancário</h1>
-            <p className="text-sm text-muted-foreground">
-              Transações sincronizadas via Open Finance + lançamentos manuais
-            </p>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button onClick={() => { setEditingManual(null); setManualDialogOpen(true); }}>
-            <Plus className="w-4 h-4 mr-2" /> Novo lançamento manual
-          </Button>
+      <div className="flex items-center gap-3">
+        <Landmark className="w-6 h-6 text-primary" />
+        <div>
+          <h1 className="text-xl font-bold text-foreground">Extrato Bancário</h1>
+          <p className="text-sm text-muted-foreground">
+            Transações sincronizadas via Open Finance + lançamentos manuais
+          </p>
         </div>
       </div>
 
@@ -848,6 +841,16 @@ export default function ExtratoBancario() {
         </div>
       </Card>
 
+      <div className="flex items-center justify-between">
+        <h2 className="text-sm font-semibold text-foreground">Lançamentos</h2>
+        <Button
+          size="sm"
+          onClick={() => { setEditingManual(null); setManualDialogOpen(true); }}
+        >
+          <Plus className="w-4 h-4 mr-2" /> Novo lançamento manual
+        </Button>
+      </div>
+
       <Card className="overflow-hidden">
         {loadingAccounts || loadingTx ? (
           <div className="py-12 text-center text-sm text-muted-foreground">
@@ -997,7 +1000,6 @@ export default function ExtratoBancario() {
         open={manualDialogOpen}
         onOpenChange={setManualDialogOpen}
         editing={editingManual}
-        bankAccounts={[]}
       />
     </div>
   );
