@@ -2239,6 +2239,8 @@ export default function ContasAReceber() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <AsaasChargeDialog
         receivableId={asaasReceivableId}
         empresaId={empresaId || null}
         onOpenChange={(open) => { if (!open) setAsaasReceivableId(null); }}
