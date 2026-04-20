@@ -2582,6 +2582,20 @@ export type Database = {
         }
         Returns: undefined
       }
+      resolver_categoria_por_regras: {
+        Args: {
+          p_amount: number
+          p_aplicar_em: string
+          p_cliente_id: string
+          p_description: string
+          p_empresa_id: string
+          p_payment_method_id: string
+          p_supplier_id: string
+          p_supplier_name: string
+          p_user_id: string
+        }
+        Returns: string
+      }
       seed_default_automacao_config: {
         Args: { p_user_id: string }
         Returns: undefined
