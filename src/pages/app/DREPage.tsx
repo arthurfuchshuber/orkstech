@@ -329,6 +329,18 @@ export default function DREPage() {
                             <TableCell className="text-right text-xs py-1.5 text-muted-foreground">
                               {line.isPercentual ? "" : fmtPct(line.percentage)}
                             </TableCell>
+                            <TableCell className="text-right text-xs py-1.5 text-muted-foreground/80">
+                              {line.isPercentual ? "—" : fmt(Math.abs(line.previousAmount))}
+                            </TableCell>
+                            <TableCell className="text-right text-xs py-1.5">
+                              {line.variation == null || line.isPercentual ? (
+                                <span className="text-muted-foreground/60">—</span>
+                              ) : (
+                                <span className={cn("font-medium", line.variation >= 0 ? "text-success" : "text-destructive")}>
+                                  {line.variation >= 0 ? "+" : ""}{line.variation.toFixed(1)}%
+                                </span>
+                              )}
+                            </TableCell>
                           </TableRow>
                         );
                       })}
