@@ -54,11 +54,10 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { PluggyLastSyncBadge } from "@/components/PluggyLastSyncBadge";
 
-// Categories that represent internal bank movements (caixinhas, investments, etc.)
-const INTERNAL_CATEGORIES = ["Investments", "Same person transfer"];
-
-const isInternalTransaction = (tx: { category: string | null }) =>
-  tx.category != null && INTERNAL_CATEGORIES.includes(tx.category);
+// Movimentos internos (aplicações/resgates/transferências entre contas próprias)
+// são identificados centralmente pela flag is_internal_transfer no banco.
+const isInternalTransaction = (tx: { is_internal_transfer?: boolean | null }) =>
+  tx.is_internal_transfer === true;
 
 interface BankAccount {
   id: string;
