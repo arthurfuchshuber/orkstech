@@ -28,6 +28,9 @@ export function CaixaKpis({
   totalCreditBills,
   totalCreditLimit,
   balanceDeltaPct,
+  lastSyncAt,
+  syncStatus,
+  hasPluggy,
 }: KpiProps) {
   const liquidez = totalBalance + totalInvestments;
   const utilizacao = totalCreditLimit > 0 ? ((totalCreditLimit - totalCreditAvailable) / totalCreditLimit) * 100 : 0;
