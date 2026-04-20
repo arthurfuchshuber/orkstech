@@ -54,11 +54,10 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { PluggyLastSyncBadge } from "@/components/PluggyLastSyncBadge";
 
-// Categories that represent internal bank movements (caixinhas, investments, etc.)
-const INTERNAL_CATEGORIES = ["Investments", "Same person transfer"];
-
-const isInternalTransaction = (tx: { category: string | null }) =>
-  tx.category != null && INTERNAL_CATEGORIES.includes(tx.category);
+// Movimentos internos (aplicações/resgates/transferências entre contas próprias)
+// são identificados centralmente pela flag is_internal_transfer no banco.
+const isInternalTransaction = (tx: { is_internal_transfer?: boolean | null }) =>
+  tx.is_internal_transfer === true;
 
 interface BankAccount {
   id: string;
@@ -95,6 +94,7 @@ interface Transaction {
   type: string;
   category: string | null;
   reconciled: boolean;
+  is_internal_transfer?: boolean | null;
   pluggy_account_id: string;
   categoria_financeira_id: string | null;
   payment_data?: {
@@ -317,7 +317,7 @@ export default function ExtratoBancario() {
         while (true) {
           const { data, error } = await supabase
             .from("pluggy_transactions" as any)
-            .select("id, amount, type, category, pluggy_account_id")
+            .select("id, amount, type, category, pluggy_account_id, is_internal_transfer")
             .eq("user_id", targetUserId!)
             .eq("pluggy_account_id", accId)
             .gte("date", dateFromStr)
@@ -340,7 +340,7 @@ export default function ExtratoBancario() {
     queryFn: async () => {
       let query = supabase
         .from("pluggy_transactions" as any)
-        .select("id, description, amount, date, type, category, reconciled, pluggy_account_id, categoria_financeira_id, payment_data")
+        .select("id, description, amount, date, type, category, reconciled, is_internal_transfer, pluggy_account_id, categoria_financeira_id, payment_data")
         .eq("user_id", targetUserId!)
         .gte("date", dateFromStr)
         .lte("date", dateToStr)

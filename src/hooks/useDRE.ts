@@ -171,12 +171,13 @@ export function useDRE(filters: DREFilters) {
     if (filters.bankAccountId) qRec = qRec.eq("bank_account_id", filters.bankAccountId);
     if (filters.costCenterId) qRec = qRec.eq("cost_center_id", filters.costCenterId);
 
-    // 3) Pluggy — não reconciliadas (para evitar duplicidade com AP/AR), com categoria definida
+    // 3) Pluggy — não reconciliadas, com categoria, EXCLUI transferências internas (aplicações/resgates)
     let qPlu = supabase
       .from("pluggy_transactions")
       .select("id, amount, date, categoria_financeira_id, description, type, reconciled, user_id")
       .eq("user_id", targetUserId!)
       .eq("reconciled", false)
+      .eq("is_internal_transfer", false)
       .not("categoria_financeira_id", "is", null)
       .gte("date", s)
       .lte("date", e);

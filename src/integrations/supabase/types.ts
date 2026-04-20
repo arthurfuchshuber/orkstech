@@ -2266,6 +2266,7 @@ export type Database = {
           date: string
           description: string | null
           id: string
+          is_internal_transfer: boolean
           payment_data: Json | null
           pluggy_account_id: string
           pluggy_transaction_id: string
@@ -2283,6 +2284,7 @@ export type Database = {
           date: string
           description?: string | null
           id?: string
+          is_internal_transfer?: boolean
           payment_data?: Json | null
           pluggy_account_id: string
           pluggy_transaction_id: string
@@ -2300,6 +2302,7 @@ export type Database = {
           date?: string
           description?: string | null
           id?: string
+          is_internal_transfer?: boolean
           payment_data?: Json | null
           pluggy_account_id?: string
           pluggy_transaction_id?: string
@@ -2669,6 +2672,14 @@ export type Database = {
       cashflow_normalize_text: { Args: { p_text: string }; Returns: string }
       delete_import_cascade: { Args: { p_import_id: string }; Returns: Json }
       has_active_subscription: { Args: { p_user_id: string }; Returns: boolean }
+      is_pluggy_internal_transfer: {
+        Args: {
+          p_category: string
+          p_description: string
+          p_payment_data: Json
+        }
+        Returns: boolean
+      }
       is_super_admin: { Args: never; Returns: boolean }
       normalizar_texto_regra: { Args: { p_texto: string }; Returns: string }
       processar_automacoes: {
