@@ -654,34 +654,66 @@ export async function fetchConsolidated(
 }
 
 export async function fetchBankBalance(empresaId?: string, userId?: string): Promise<number> {
-  // 1) Saldo manual (contas_bancarias cadastradas manualmente)
-  let q = supabase.from("contas_bancarias").select("saldo_inicial, saldo_investimento").eq("ativo", true);
+  // 1) Contas bancárias manuais: saldo atual = saldo_inicial + Σ(entradas - saídas)
+  //    + saldo_investimento (espelho do app do banco). Mesma fórmula do Dashboard Financeiro.
+  let q = supabase
+    .from("contas_bancarias")
+    .select("id, saldo_inicial, saldo_investimento")
+    .eq("ativo", true);
   if (empresaId) q = q.eq("empresa_id", empresaId);
+  else if (userId) q = q.eq("user_id", userId);
   const { data: manuais, error } = await q;
   if (error) throw error;
-  const saldoManual = (manuais ?? []).reduce(
-    (sum, r: any) => sum + Number(r.saldo_inicial ?? 0) + Number(r.saldo_investimento ?? 0),
+
+  const manualIds = (manuais ?? []).map((r: any) => r.id);
+  let movimentos: any[] = [];
+  if (manualIds.length > 0) {
+    let mq = supabase
+      .from("cash_transactions")
+      .select("amount, type, bank_account_id")
+      .in("bank_account_id", manualIds);
+    if (empresaId) mq = mq.eq("empresa_id", empresaId);
+    else if (userId) mq = mq.eq("user_id", userId);
+    const { data } = await mq;
+    movimentos = data ?? [];
+  }
+
+  const saldoPorConta = new Map<string, number>();
+  (manuais ?? []).forEach((r: any) => saldoPorConta.set(r.id, Number(r.saldo_inicial ?? 0)));
+  movimentos.forEach((t: any) => {
+    if (!t.bank_account_id) return;
+    const cur = saldoPorConta.get(t.bank_account_id) ?? 0;
+    const v = Number(t.amount ?? 0);
+    saldoPorConta.set(t.bank_account_id, cur + (t.type === "entrada" ? v : -v));
+  });
+
+  const saldoManualContas = Array.from(saldoPorConta.values()).reduce((s, v) => s + v, 0);
+  const saldoManualInvestimentos = (manuais ?? []).reduce(
+    (sum, r: any) => sum + Number(r.saldo_investimento ?? 0),
     0,
   );
 
   // 2) Open Finance (Pluggy) — apenas contas BANK (exclui CREDIT, que tem card próprio)
-  let pq = supabase.from("pluggy_bank_accounts").select("balance, type");
+  let pq = supabase
+    .from("pluggy_bank_accounts")
+    .select("balance, type, bank_data");
   if (userId) pq = pq.eq("user_id", userId);
   const { data: pluggy } = await pq;
-  const saldoContasBancarias = (pluggy ?? [])
-    .filter((r: any) => String(r.type ?? "").toUpperCase() !== "CREDIT")
-    .reduce((sum, r: any) => sum + Number(r.balance ?? 0), 0);
-
-  // 3) Investimentos Pluggy (tabela própria)
-  let iq = supabase.from("pluggy_investments").select("balance");
-  if (userId) iq = iq.eq("user_id", userId);
-  const { data: invest } = await iq;
-  const saldoInvestimentos = (invest ?? []).reduce(
-    (sum, r: any) => sum + Number(r.balance ?? 0),
-    0,
+  const pluggyBank = (pluggy ?? []).filter(
+    (r: any) => String(r.type ?? "").toUpperCase() !== "CREDIT",
   );
+  const saldoContasPluggy = pluggyBank.reduce((sum, r: any) => sum + Number(r.balance ?? 0), 0);
 
-  return saldoManual + saldoContasBancarias + saldoInvestimentos;
+  // 3) Investimentos Pluggy: usa bank_data.totalInvestments (mesma fonte do Dashboard)
+  //    para evitar duplicidade com a tabela alternativa pluggy_investments.
+  const saldoInvestPluggy = pluggyBank.reduce((sum, r: any) => {
+    const bd = r.bank_data ?? {};
+    const inv = Number(bd.totalInvestments ?? 0);
+    const auto = Number(bd.automaticallyInvestedBalance ?? 0);
+    return sum + (inv > 0 ? inv : auto);
+  }, 0);
+
+  return saldoManualContas + saldoManualInvestimentos + saldoContasPluggy + saldoInvestPluggy;
 }
 
 export function summarize(rows: ConsolidatedRow[]) {
