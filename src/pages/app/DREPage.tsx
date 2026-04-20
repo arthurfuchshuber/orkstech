@@ -249,9 +249,11 @@ export default function DREPage() {
                   <Table>
                     <TableHeader>
                       <TableRow className="border-border/30">
-                        <TableHead className="w-[60%] text-xs">Conta</TableHead>
+                        <TableHead className="w-[44%] text-xs">Conta</TableHead>
                         <TableHead className="text-right text-xs">Valor</TableHead>
-                        <TableHead className="text-right text-xs">%</TableHead>
+                        <TableHead className="text-right text-xs">% Receita</TableHead>
+                        <TableHead className="text-right text-xs">Período anterior</TableHead>
+                        <TableHead className="text-right text-xs">Variação</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
