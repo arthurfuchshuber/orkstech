@@ -948,7 +948,22 @@ export default function ExtratoBancario() {
           </div>
         ) : (
           <>
-            <div className="grid grid-cols-[120px_minmax(0,1.6fr)_220px_140px] gap-4 border-b border-border/50 bg-card px-4 py-3 text-sm text-muted-foreground">
+            <div className="grid grid-cols-[36px_120px_minmax(0,1.6fr)_220px_140px] gap-4 border-b border-border/50 bg-card px-4 py-3 text-sm text-muted-foreground">
+              <div className="flex items-center justify-center">
+                <Checkbox
+                  checked={
+                    filteredTx.length > 0 &&
+                    filteredTx.every((t) => batchSelection.has(t.id))
+                  }
+                  onCheckedChange={(checked) => {
+                    if (checked) {
+                      setBatchSelection(new Set(filteredTx.map((t) => t.id)));
+                    } else {
+                      setBatchSelection(new Set());
+                    }
+                  }}
+                />
+              </div>
               <div>Data</div>
               <div>Descrição</div>
               <div>Subcategoria</div>
