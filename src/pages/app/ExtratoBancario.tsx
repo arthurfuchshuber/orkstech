@@ -401,6 +401,35 @@ export default function ExtratoBancario() {
     },
   });
 
+  const batchUpdateCategoriaMutation = useMutation({
+    mutationFn: async ({ ids, categoria_financeira_id }: { ids: string[]; categoria_financeira_id: string | null }) => {
+      const { data, error } = await supabase
+        .from("pluggy_transactions" as any)
+        .update({ categoria_financeira_id })
+        .in("id", ids)
+        .select("id");
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["pluggy_transactions"] });
+      toast.success(`${data?.length ?? 0} transação(ões) atualizada(s)`);
+      setBatchSelection(new Set());
+    },
+    onError: (err: any) => {
+      toast.error(err?.message || "Erro ao atualizar em lote");
+    },
+  });
+
+  const toggleBatch = (id: string) => {
+    setBatchSelection((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
   const [syncing, setSyncing] = useState<string | null>(null);
 
   const handleSync = async (itemId: string) => {
