@@ -11,7 +11,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Plus, Trash2, Pencil, Wand2, ArrowUp, ArrowDown, Play, Zap, Eye } from "lucide-react";
+import { Plus, Trash2, Pencil, Wand2, GripVertical, Play, Zap, Eye } from "lucide-react";
+import { DragDropContext, Droppable, Draggable, type DropResult } from "@hello-pangea/dnd";
 import { toast } from "sonner";
 
 type Operador = "contains" | "equals" | "starts_with" | "gte" | "lte" | "between";
@@ -230,11 +231,13 @@ export function DRERegrasSection() {
     onError: (e: any) => toast.error(e.message),
   });
 
-  const move = (idx: number, dir: -1 | 1) => {
-    const next = idx + dir;
-    if (next < 0 || next >= regras.length) return;
-    reorderMut.mutate({ id: regras[idx].id, ordem: next });
-    reorderMut.mutate({ id: regras[next].id, ordem: idx });
+  const handleDragEnd = (result: DropResult) => {
+    if (!result.destination) return;
+    const from = result.source.index;
+    const to = result.destination.index;
+    if (from === to) return;
+    reorderMut.mutate({ id: regras[from].id, ordem: to });
+    reorderMut.mutate({ id: regras[to].id, ordem: from });
   };
 
   const nomeCliente = (c: any) => c.nome_fantasia || c.razao_social || c.nome_completo || "—";
@@ -290,48 +293,66 @@ export function DRERegrasSection() {
             Nenhuma regra criada. Clique em "Nova Regra" para começar.
           </div>
         ) : (
-          <div className="divide-y divide-border/30">
-            {regras.map((r, idx) => (
-              <div key={r.id} className="px-4 py-3 hover:bg-muted/20 transition-colors">
-                <div className="flex items-start gap-3">
-                  <div className="flex flex-col gap-0.5">
-                    <Button size="sm" variant="ghost" className="h-5 w-5 p-0" disabled={idx === 0} onClick={() => move(idx, -1)}>
-                      <ArrowUp className="w-3 h-3" />
-                    </Button>
-                    <Button size="sm" variant="ghost" className="h-5 w-5 p-0" disabled={idx === regras.length - 1} onClick={() => move(idx, 1)}>
-                      <ArrowDown className="w-3 h-3" />
-                    </Button>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="font-medium text-sm text-foreground">{r.nome}</span>
-                      <Badge variant="outline" className={`text-[10px] gap-1 ${r.escopo === "persistir" ? "text-success border-success/30" : "text-primary border-primary/30"}`}>
-                        {r.escopo === "persistir" ? <><Zap className="w-2.5 h-2.5" /> Persistir</> : <><Eye className="w-2.5 h-2.5" /> Visualização</>}
-                      </Badge>
-                      <Badge variant="outline" className="text-[10px] capitalize">{r.aplicar_em}</Badge>
-                      {r.executado_count > 0 && (
-                        <Badge variant="secondary" className="text-[10px]">{r.executado_count} aplicações</Badge>
+          <DragDropContext onDragEnd={handleDragEnd}>
+            <Droppable droppableId="dre-regras">
+              {(dropProvided) => (
+                <div
+                  ref={dropProvided.innerRef}
+                  {...dropProvided.droppableProps}
+                  className="divide-y divide-border/30"
+                >
+                  {regras.map((r, idx) => (
+                    <Draggable key={r.id} draggableId={r.id} index={idx}>
+                      {(dragProvided, snapshot) => (
+                        <div
+                          ref={dragProvided.innerRef}
+                          {...dragProvided.draggableProps}
+                          className={`px-4 py-3 hover:bg-muted/20 transition-colors ${snapshot.isDragging ? "bg-muted/40" : ""}`}
+                        >
+                          <div className="flex items-start gap-3">
+                            <div
+                              {...dragProvided.dragHandleProps}
+                              className="cursor-grab active:cursor-grabbing flex items-center pt-1"
+                              aria-label="Arrastar para reordenar"
+                            >
+                              <GripVertical className="w-3.5 h-3.5 text-muted-foreground/40" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 mb-1">
+                                <span className="font-medium text-sm text-foreground">{r.nome}</span>
+                                <Badge variant="outline" className={`text-[10px] gap-1 ${r.escopo === "persistir" ? "text-success border-success/30" : "text-primary border-primary/30"}`}>
+                                  {r.escopo === "persistir" ? <><Zap className="w-2.5 h-2.5" /> Persistir</> : <><Eye className="w-2.5 h-2.5" /> Visualização</>}
+                                </Badge>
+                                <Badge variant="outline" className="text-[10px] capitalize">{r.aplicar_em}</Badge>
+                                {r.executado_count > 0 && (
+                                  <Badge variant="secondary" className="text-[10px]">{r.executado_count} aplicações</Badge>
+                                )}
+                              </div>
+                              <div className="text-xs text-muted-foreground">
+                                <span className="font-medium">SE</span> {resumoCondicoes(r)}{" "}
+                                <span className="font-medium">ENTÃO classificar como</span>{" "}
+                                <span className="text-foreground font-medium">{nomeCategoria(r.categoria_destino_id)}</span>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Switch checked={r.ativo} onCheckedChange={(v) => toggleMut.mutate({ id: r.id, ativo: v })} />
+                              <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => { setEditing(r); setOpen(true); }}>
+                                <Pencil className="w-3.5 h-3.5" />
+                              </Button>
+                              <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-destructive hover:text-destructive" onClick={() => { if (confirm("Excluir esta regra?")) deleteMut.mutate(r.id); }}>
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
                       )}
-                    </div>
-                    <div className="text-xs text-muted-foreground">
-                      <span className="font-medium">SE</span> {resumoCondicoes(r)}{" "}
-                      <span className="font-medium">ENTÃO classificar como</span>{" "}
-                      <span className="text-foreground font-medium">{nomeCategoria(r.categoria_destino_id)}</span>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Switch checked={r.ativo} onCheckedChange={(v) => toggleMut.mutate({ id: r.id, ativo: v })} />
-                    <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => { setEditing(r); setOpen(true); }}>
-                      <Pencil className="w-3.5 h-3.5" />
-                    </Button>
-                    <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-destructive hover:text-destructive" onClick={() => { if (confirm("Excluir esta regra?")) deleteMut.mutate(r.id); }}>
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </Button>
-                  </div>
+                    </Draggable>
+                  ))}
+                  {dropProvided.placeholder}
                 </div>
-              </div>
-            ))}
-          </div>
+              )}
+            </Droppable>
+          </DragDropContext>
         )}
       </CardContent>
 
