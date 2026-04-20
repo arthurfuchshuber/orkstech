@@ -990,10 +990,17 @@ export default function ExtratoBancario() {
                   <div
                     key={tx.id}
                     className={cn(
-                      "grid grid-cols-[120px_minmax(0,1.6fr)_220px_140px] items-center gap-4 px-4 py-3 transition-colors hover:bg-muted/30",
-                      isInternal && "opacity-60"
+                      "grid grid-cols-[36px_120px_minmax(0,1.6fr)_220px_140px] items-center gap-4 px-4 py-3 transition-colors hover:bg-muted/30",
+                      isInternal && "opacity-60",
+                      batchSelection.has(tx.id) && "bg-primary/5"
                     )}
                   >
+                    <div className="flex items-center justify-center">
+                      <Checkbox
+                        checked={batchSelection.has(tx.id)}
+                        onCheckedChange={() => toggleBatch(tx.id)}
+                      />
+                    </div>
                     <div className="text-sm text-muted-foreground">
                       {formatDate(tx.date)}
                     </div>
