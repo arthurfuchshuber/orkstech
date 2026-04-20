@@ -231,11 +231,13 @@ export function DRERegrasSection() {
     onError: (e: any) => toast.error(e.message),
   });
 
-  const move = (idx: number, dir: -1 | 1) => {
-    const next = idx + dir;
-    if (next < 0 || next >= regras.length) return;
-    reorderMut.mutate({ id: regras[idx].id, ordem: next });
-    reorderMut.mutate({ id: regras[next].id, ordem: idx });
+  const handleDragEnd = (result: DropResult) => {
+    if (!result.destination) return;
+    const from = result.source.index;
+    const to = result.destination.index;
+    if (from === to) return;
+    reorderMut.mutate({ id: regras[from].id, ordem: to });
+    reorderMut.mutate({ id: regras[to].id, ordem: from });
   };
 
   const nomeCliente = (c: any) => c.nome_fantasia || c.razao_social || c.nome_completo || "—";
