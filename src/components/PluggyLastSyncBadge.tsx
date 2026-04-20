@@ -1,4 +1,4 @@
-import { Clock, AlertTriangle } from "lucide-react";
+import { Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type Props = {
@@ -21,28 +21,9 @@ function formatRelative(iso: string): string {
 }
 
 /**
- * Indicador discreto de frescor + saúde da conexão Open Finance.
- * - Conectado: relógio + tempo relativo da última sync
- * - Outro status (login_required, outdated, etc): alerta âmbar pedindo reconexão
+ * Indicador discreto de frescor da última sincronização Open Finance.
  */
-export function PluggyLastSyncBadge({ lastSyncAt, status, className }: Props) {
-  const needsReconnect = status && status !== "connected" && status !== "updating";
-
-  if (needsReconnect) {
-    return (
-      <span
-        className={cn(
-          "inline-flex items-center gap-1 rounded-full bg-warning/10 px-2 py-0.5 text-[10px] font-medium text-warning",
-          className
-        )}
-        title="A conexão expirou ou precisa de nova autenticação. Os dados exibidos são os últimos sincronizados."
-      >
-        <AlertTriangle className="h-2.5 w-2.5" />
-        Reconectar
-      </span>
-    );
-  }
-
+export function PluggyLastSyncBadge({ lastSyncAt, className }: Props) {
   if (!lastSyncAt) return null;
 
   return (
