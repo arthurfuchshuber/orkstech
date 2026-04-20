@@ -11,7 +11,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Plus, Trash2, Pencil, Wand2, ArrowUp, ArrowDown, Play, Zap, Eye } from "lucide-react";
+import { Plus, Trash2, Pencil, Wand2, GripVertical, Play, Zap, Eye } from "lucide-react";
+import { DragDropContext, Droppable, Draggable, type DropResult } from "@hello-pangea/dnd";
 import { toast } from "sonner";
 
 type Operador = "contains" | "equals" | "starts_with" | "gte" | "lte" | "between";
