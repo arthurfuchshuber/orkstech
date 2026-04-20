@@ -721,18 +721,89 @@ export function summarize(rows: ConsolidatedRow[]) {
   return { inflow, outflow, net: inflow - outflow };
 }
 
-export function buildDailySeries(rows: ConsolidatedRow[], startBalance: number) {
-  const byDate = new Map<string, { inflow: number; outflow: number }>();
+/**
+ * Constrói série diária com separação realizado/projetado.
+ *
+ * Estratégia (modelo "Histórico + tudo"):
+ * - `currentBalance`: saldo bancário consolidado de hoje.
+ * - Calcula retroativamente o saldo no dia inicial do período removendo as
+ *   movimentações realizadas (status `confirmed`/`reconciled`/`paid`/`received`)
+ *   ocorridas entre o início e hoje.
+ * - A partir daí, percorre dia a dia somando movimentações.
+ * - Para cada ponto, retorna `realizedBalance` (até hoje) e `projectedBalance`
+ *   (a partir de hoje), garantindo continuidade visual entre as duas linhas.
+ */
+export function buildDailySeries(rows: ConsolidatedRow[], currentBalance: number) {
+  const REALIZED_STATUSES = new Set([
+    "confirmed",
+    "reconciled",
+    "paid",
+    "received",
+    "settled",
+  ]);
+
+  const today = new Date();
+  const todayISO = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+
+  type Bucket = { realizedNet: number; projectedNet: number; inflow: number; outflow: number };
+  const byDate = new Map<string, Bucket>();
+
   for (const r of rows) {
-    const cur = byDate.get(r.movement_date) ?? { inflow: 0, outflow: 0 };
-    if (r.direction === "inflow") cur.inflow += Number(r.amount);
-    else cur.outflow += Number(r.amount);
+    const cur = byDate.get(r.movement_date) ?? { realizedNet: 0, projectedNet: 0, inflow: 0, outflow: 0 };
+    const amt = Number(r.amount);
+    const isRealized = REALIZED_STATUSES.has(r.status);
+
+    if (r.direction === "inflow") {
+      cur.inflow += amt;
+      if (isRealized) cur.realizedNet += amt;
+      else cur.projectedNet += amt;
+    } else {
+      cur.outflow += amt;
+      if (isRealized) cur.realizedNet -= amt;
+      else cur.projectedNet -= amt;
+    }
     byDate.set(r.movement_date, cur);
   }
+
   const sorted = [...byDate.entries()].sort(([a], [b]) => a.localeCompare(b));
-  let acc = startBalance;
+
+  // Calcula saldo no início do período: saldo atual - movimentações realizadas
+  // que ocorreram entre o início do período e hoje.
+  const realizedSinceStart = sorted
+    .filter(([d]) => d <= todayISO)
+    .reduce((sum, [, v]) => sum + v.realizedNet, 0);
+  const startingBalance = currentBalance - realizedSinceStart;
+
+  // Constrói a série dupla
+  let realizedAcc = startingBalance;
+  let projectedAcc = startingBalance;
+  let lastRealized = startingBalance;
+
   return sorted.map(([date, v]) => {
-    acc = acc + v.inflow - v.outflow;
-    return { date, inflow: v.inflow, outflow: v.outflow, balance: acc };
+    const isPast = date <= todayISO;
+
+    if (isPast) {
+      realizedAcc += v.realizedNet + v.projectedNet; // antes de hoje, tudo conta no realizado
+      lastRealized = realizedAcc;
+      projectedAcc = realizedAcc;
+      return {
+        date,
+        inflow: v.inflow,
+        outflow: v.outflow,
+        balance: realizedAcc,
+        realizedBalance: realizedAcc,
+        projectedBalance: null as number | null,
+      };
+    }
+
+    projectedAcc += v.realizedNet + v.projectedNet;
+    return {
+      date,
+      inflow: v.inflow,
+      outflow: v.outflow,
+      balance: projectedAcc,
+      realizedBalance: null as number | null,
+      projectedBalance: projectedAcc,
+    };
   });
 }
