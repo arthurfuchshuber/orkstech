@@ -48,6 +48,7 @@ import { format, startOfMonth, endOfMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { PluggyLastSyncBadge } from "@/components/PluggyLastSyncBadge";
 
 // Categories that represent internal bank movements (caixinhas, investments, etc.)
 const INTERNAL_CATEGORIES = ["Investments", "Same person transfer"];
