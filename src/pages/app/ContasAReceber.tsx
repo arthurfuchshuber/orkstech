@@ -34,6 +34,9 @@ import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { GenericImporter } from "@/components/financas/importacoes/GenericImporter";
+import { ImportsHistoryTargeted } from "@/components/financas/importacoes/ImportsHistoryTargeted";
 import { useAuth } from "@/hooks/useAuth";
 import { refreshQueries } from "@/lib/query-refresh";
 import {
