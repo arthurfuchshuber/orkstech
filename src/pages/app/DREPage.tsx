@@ -118,9 +118,16 @@ export default function DREPage() {
   const exportCSV = () => {
     const allLines = flatLines.map(f => f.line);
     const csvRows = [
-      ["Número", "Conta", "Valor", "% Receita"].join(";"),
+      ["Número", "Conta", "Valor", "% Receita", "Período anterior", "Variação %"].join(";"),
       ...allLines.map((l) =>
-        [l.number || "", l.label, l.amount.toFixed(2), l.percentage.toFixed(1)].join(";")
+        [
+          l.number || "",
+          l.label,
+          l.amount.toFixed(2),
+          l.percentage.toFixed(1),
+          l.previousAmount.toFixed(2),
+          l.variation == null ? "" : l.variation.toFixed(1),
+        ].join(";")
       ),
     ];
     const blob = new Blob([csvRows.join("\n")], { type: "text/csv;charset=utf-8" });
