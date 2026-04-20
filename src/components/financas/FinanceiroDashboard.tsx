@@ -80,10 +80,10 @@ export default function FinanceiroDashboard() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("pluggy_connections" as any)
-        .select("pluggy_item_id, connector_name, connector_id")
+        .select("pluggy_item_id, connector_name, connector_id, last_sync_at, status")
         .eq("user_id", targetUserId!);
       if (error) throw error;
-      return data as unknown as { pluggy_item_id: string; connector_name: string | null; connector_id: number | null }[];
+      return data as unknown as { pluggy_item_id: string; connector_name: string | null; connector_id: number | null; last_sync_at: string | null; status: string | null }[];
     },
     enabled: !!user && !!targetUserId,
   });
