@@ -30,6 +30,7 @@ export type Database = {
           empresa_id: string | null
           grupo_id: string | null
           id: string
+          import_id: string | null
           installment_number: number | null
           installment_total: number | null
           is_recurring: boolean
@@ -63,6 +64,7 @@ export type Database = {
           empresa_id?: string | null
           grupo_id?: string | null
           id?: string
+          import_id?: string | null
           installment_number?: number | null
           installment_total?: number | null
           is_recurring?: boolean
@@ -96,6 +98,7 @@ export type Database = {
           empresa_id?: string | null
           grupo_id?: string | null
           id?: string
+          import_id?: string | null
           installment_number?: number | null
           installment_total?: number | null
           is_recurring?: boolean
@@ -189,6 +192,7 @@ export type Database = {
           empresa_id: string | null
           grupo_id: string | null
           id: string
+          import_id: string | null
           installment_number: number | null
           installment_total: number | null
           is_recurring: boolean
@@ -218,6 +222,7 @@ export type Database = {
           empresa_id?: string | null
           grupo_id?: string | null
           id?: string
+          import_id?: string | null
           installment_number?: number | null
           installment_total?: number | null
           is_recurring?: boolean
@@ -247,6 +252,7 @@ export type Database = {
           empresa_id?: string | null
           grupo_id?: string | null
           id?: string
+          import_id?: string | null
           installment_number?: number | null
           installment_total?: number | null
           is_recurring?: boolean
@@ -749,6 +755,7 @@ export type Database = {
           skipped_count: number
           source: Database["public"]["Enums"]["cashflow_source"]
           source_url: string | null
+          target: string
           total_rows: number
           user_id: string
         }
@@ -763,6 +770,7 @@ export type Database = {
           skipped_count?: number
           source: Database["public"]["Enums"]["cashflow_source"]
           source_url?: string | null
+          target?: string
           total_rows?: number
           user_id: string
         }
@@ -777,6 +785,7 @@ export type Database = {
           skipped_count?: number
           source?: Database["public"]["Enums"]["cashflow_source"]
           source_url?: string | null
+          target?: string
           total_rows?: number
           user_id?: string
         }
@@ -1760,6 +1769,95 @@ export type Database = {
           },
         ]
       }
+      manual_bank_transactions: {
+        Row: {
+          amount: number
+          bank_account_id: string | null
+          categoria_financeira_id: string | null
+          category: string | null
+          created_at: string
+          description: string
+          document_number: string | null
+          empresa_id: string | null
+          id: string
+          import_id: string | null
+          notes: string | null
+          pluggy_account_id: string | null
+          source: string
+          transaction_date: string
+          type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          bank_account_id?: string | null
+          categoria_financeira_id?: string | null
+          category?: string | null
+          created_at?: string
+          description: string
+          document_number?: string | null
+          empresa_id?: string | null
+          id?: string
+          import_id?: string | null
+          notes?: string | null
+          pluggy_account_id?: string | null
+          source?: string
+          transaction_date: string
+          type: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          bank_account_id?: string | null
+          categoria_financeira_id?: string | null
+          category?: string | null
+          created_at?: string
+          description?: string
+          document_number?: string | null
+          empresa_id?: string | null
+          id?: string
+          import_id?: string | null
+          notes?: string | null
+          pluggy_account_id?: string | null
+          source?: string
+          transaction_date?: string
+          type?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "manual_bank_transactions_bank_account_id_fkey"
+            columns: ["bank_account_id"]
+            isOneToOne: false
+            referencedRelation: "contas_bancarias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "manual_bank_transactions_categoria_financeira_id_fkey"
+            columns: ["categoria_financeira_id"]
+            isOneToOne: false
+            referencedRelation: "categorias_financeiras"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "manual_bank_transactions_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "manual_bank_transactions_import_id_fkey"
+            columns: ["import_id"]
+            isOneToOne: false
+            referencedRelation: "cashflow_imports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       menu_permissions: {
         Row: {
           can_view: boolean
@@ -2569,6 +2667,7 @@ export type Database = {
         Returns: string
       }
       cashflow_normalize_text: { Args: { p_text: string }; Returns: string }
+      delete_import_cascade: { Args: { p_import_id: string }; Returns: Json }
       has_active_subscription: { Args: { p_user_id: string }; Returns: boolean }
       is_super_admin: { Args: never; Returns: boolean }
       normalizar_texto_regra: { Args: { p_texto: string }; Returns: string }

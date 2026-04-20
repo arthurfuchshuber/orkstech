@@ -508,11 +508,27 @@ export default function ExtratoBancario() {
           <div>
             <h1 className="text-xl font-bold text-foreground">Extrato Bancário</h1>
             <p className="text-sm text-muted-foreground">
-              Transações sincronizadas via Open Finance
+              Transações sincronizadas via Open Finance + lançamentos manuais
             </p>
           </div>
         </div>
+        <div className="flex items-center gap-2">
+          <Button onClick={() => { setEditingManual(null); setManualDialogOpen(true); }}>
+            <Plus className="w-4 h-4 mr-2" /> Novo lançamento manual
+          </Button>
+        </div>
       </div>
+
+      <Tabs defaultValue="lista">
+        <TabsList>
+          <TabsTrigger value="lista">Lista</TabsTrigger>
+          <TabsTrigger value="importacoes">Importações</TabsTrigger>
+        </TabsList>
+        <TabsContent value="importacoes" className="mt-4 space-y-4">
+          <GenericImporter target="bank_statement" onImported={() => queryClient.invalidateQueries()} />
+          <ImportsHistoryTargeted target="bank_statement" onDeleted={() => queryClient.invalidateQueries()} />
+        </TabsContent>
+        <TabsContent value="lista" className="space-y-6 mt-4">
 
       {/* Date range filter */}
       <Card className="p-4">
@@ -968,7 +984,17 @@ export default function ExtratoBancario() {
           queryClient.invalidateQueries({ queryKey: ["dre-categorias-financeiras"] });
         }}
       />
+        </TabsContent>
+      </Tabs>
+
+      <ManualBankTransactionDialog
+        open={manualDialogOpen}
+        onOpenChange={setManualDialogOpen}
+        editing={editingManual}
+        bankAccounts={[]}
+      />
     </div>
   );
 }
+
 
