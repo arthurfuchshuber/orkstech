@@ -411,7 +411,7 @@ export function useDRE(filters: DREFilters) {
     return {
       lines: [...lines, ...indicators],
       totalRevenue: totalReceitaAmount,
-      totalExpense: totalDespesaAmount + totalCustoAmount + totalDeducaoAmount + totalImpostoAmount + totalDespesaFinAmount,
+      totalExpense: totals.despesa + totals.custo + totals.deducao + totals.imposto + totals.despesa_fin,
       grossProfit: lucroBruto,
       grossMargin: totalReceitaAmount > 0 ? (lucroBruto / totalReceitaAmount) * 100 : 0,
       ebitda: resultadoOperacional,
