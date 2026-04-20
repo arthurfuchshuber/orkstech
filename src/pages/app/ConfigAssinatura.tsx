@@ -64,9 +64,27 @@ export default function ConfigAssinatura() {
   } = useSubscription();
   const [loadingPortal, setLoadingPortal] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  const [activeTab, setActiveTab] = useState<"plano" | "faturas">("plano");
+  const [activeTab, setActiveTab] = useState<"plano" | "faturas" | "planos">("plano");
 
   useEffect(() => { document.title = "Assinatura | NexusOS"; }, []);
+
+  // Carrega script da Stripe Pricing Table
+  useEffect(() => {
+    const existing = document.querySelector('script[src="https://js.stripe.com/v3/pricing-table.js"]');
+    if (!existing) {
+      const script = document.createElement("script");
+      script.src = "https://js.stripe.com/v3/pricing-table.js";
+      script.async = true;
+      document.head.appendChild(script);
+    }
+  }, []);
+
+  // Sem assinatura → abre direto na aba "Planos"
+  useEffect(() => {
+    if (!isLoading && !subscribed && !status) {
+      setActiveTab("planos");
+    }
+  }, [isLoading, subscribed, status]);
 
   const { data: billing, isLoading: billingLoading, refetch: refetchBilling } = useQuery({
     queryKey: ["stripe-invoices"],
@@ -107,10 +125,16 @@ export default function ConfigAssinatura() {
   const planLabel = currentPlan ? PLANS[currentPlan].name : null;
   const statusInfo = status ? STATUS_LABELS[status] : null;
 
-  const tabs = [
-    { id: "plano", label: "Plano", icon: LayoutGrid },
-    { id: "faturas", label: "Extrato de pagamentos", icon: Receipt, count: billing?.invoices?.length },
-  ];
+  const hasSubscription = subscribed || !!status;
+  const tabs = hasSubscription
+    ? [
+        { id: "plano", label: "Plano", icon: LayoutGrid },
+        { id: "faturas", label: "Extrato de pagamentos", icon: Receipt, count: billing?.invoices?.length },
+        { id: "planos", label: "Planos disponíveis", icon: Sparkles },
+      ]
+    : [
+        { id: "planos", label: "Planos disponíveis", icon: Sparkles },
+      ];
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -139,23 +163,11 @@ export default function ConfigAssinatura() {
           <Skeleton className="h-32 w-full" />
           <Skeleton className="h-24 w-full" />
         </div>
-      ) : !subscribed && !status ? (
-        <Card className="p-8 text-center border-dashed">
-          <CreditCard className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
-          <h3 className="text-base font-semibold text-foreground mb-1">Você ainda não tem um plano ativo</h3>
-          <p className="text-sm text-muted-foreground mb-4">
-            Escolha um plano para acessar todas as funcionalidades do sistema.
-          </p>
-          <Button onClick={() => navigate("/app/config/planos")} className="gap-1.5">
-            <Sparkles className="w-3.5 h-3.5" />
-            Ver planos disponíveis
-          </Button>
-        </Card>
       ) : (
         <>
           <ModuleTabs tabs={tabs} activeTab={activeTab} onTabChange={(id) => setActiveTab(id as any)} />
 
-          {activeTab === "plano" && (
+          {activeTab === "plano" && hasSubscription && (
             <div className="space-y-4">
               {/* Card principal: Plano ativo */}
               <Card className="p-5">
@@ -294,7 +306,7 @@ export default function ConfigAssinatura() {
             </div>
           )}
 
-          {activeTab === "faturas" && (
+          {activeTab === "faturas" && hasSubscription && (
             <div className="space-y-4">
               {/* Método de pagamento */}
               <Card className="p-5">
@@ -415,6 +427,31 @@ export default function ConfigAssinatura() {
                     })}
                   </div>
                 )}
+              </Card>
+            </div>
+          )}
+
+          {activeTab === "planos" && (
+            <div className="space-y-4">
+              {!hasSubscription && (
+                <Card className="p-4 border-primary/30 bg-primary/[0.05]">
+                  <div className="flex items-start gap-3">
+                    <Sparkles className="w-5 h-5 text-primary mt-0.5" />
+                    <div>
+                      <p className="text-sm font-medium text-foreground">Escolha seu plano para começar</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        Selecione abaixo o plano e o ciclo de cobrança. O acesso é liberado automaticamente após o pagamento.
+                      </p>
+                    </div>
+                  </div>
+                </Card>
+              )}
+              <Card className="p-5">
+                <div
+                  dangerouslySetInnerHTML={{
+                    __html: `<stripe-pricing-table pricing-table-id="prctbl_1TLE55J633HWAlBjLIDqdzsi" publishable-key="pk_test_51TFifCJ633HWAlBjiOg67fgb2hPnc0MO5gFCWvNqUE3yXPLQUNPzF9kCwFPt0ZZkNGfez75GX0WAQHVDzwiZ3dy200apPUxMmQ"></stripe-pricing-table>`,
+                  }}
+                />
               </Card>
             </div>
           )}
