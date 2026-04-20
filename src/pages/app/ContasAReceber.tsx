@@ -755,6 +755,36 @@ export default function ContasAReceber() {
     toast.success(`${ids.length} conta(s) atualizada(s)!`);
   };
 
+  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
+  const [bulkCancelOpen, setBulkCancelOpen] = useState(false);
+
+  const handleBulkDelete = async () => {
+    const ids = Array.from(selectedIds);
+    if (ids.length === 0) return;
+    let ok = 0, fail = 0;
+    for (const id of ids) {
+      try { await deleteAccountReceivable(id); ok++; } catch { fail++; }
+    }
+    setSelectedIds(new Set());
+    setBulkDeleteOpen(false);
+    await refreshQueries(queryClient, [["accounts-receivable"], ["accounts-receivable-counts"]]);
+    if (fail === 0) toast.success(`${ok} conta(s) excluída(s)`);
+    else toast.warning(`${ok} excluída(s), ${fail} falharam`);
+  };
+
+  const handleBulkCancel = async () => {
+    const ids = Array.from(selectedIds);
+    if (ids.length === 0) return;
+    for (const id of ids) {
+      await updateAccountReceivable(id, { status: "cancelled", payment_date: null });
+    }
+    setSelectedIds(new Set());
+    setBulkCancelOpen(false);
+    await refreshQueries(queryClient, [["accounts-receivable"], ["accounts-receivable-counts"]]);
+    toast.success(`${ids.length} conta(s) cancelada(s)`);
+  };
+
+
   const toggleSelectAll = () => {
     if (selectedIds.size === filtered.length) setSelectedIds(new Set());
     else setSelectedIds(new Set(filtered.map((p: any) => p.id)));
@@ -1095,6 +1125,14 @@ export default function ContasAReceber() {
                   ))}
                 </DropdownMenuContent>
               </DropdownMenu>
+
+              <Button size="sm" variant="outline" className="rounded-lg text-xs gap-1" onClick={() => setBulkCancelOpen(true)}>
+                <Ban className="w-3 h-3" /> Cancelar
+              </Button>
+
+              <Button size="sm" variant="outline" className="rounded-lg text-xs gap-1 text-destructive hover:text-destructive border-destructive/30" onClick={() => setBulkDeleteOpen(true)}>
+                <Trash2 className="w-3 h-3" /> Excluir
+              </Button>
 
               <Button size="sm" variant="ghost" className="rounded-lg text-xs" onClick={() => setSelectedIds(new Set())}>
                 Limpar seleção
@@ -2167,6 +2205,36 @@ export default function ContasAReceber() {
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction onClick={() => { if (deleteId) handleDelete(deleteId); }} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
               Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={bulkDeleteOpen} onOpenChange={setBulkDeleteOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir {selectedIds.size} conta(s)?</AlertDialogTitle>
+            <AlertDialogDescription>Esta ação é permanente. Contas com recebimento registrado podem não ser excluídas.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleBulkDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Excluir tudo
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={bulkCancelOpen} onOpenChange={setBulkCancelOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Cancelar {selectedIds.size} conta(s)?</AlertDialogTitle>
+            <AlertDialogDescription>O status será alterado para "Cancelado" e a data de recebimento será removida.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Voltar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleBulkCancel}>
+              Confirmar cancelamento
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
