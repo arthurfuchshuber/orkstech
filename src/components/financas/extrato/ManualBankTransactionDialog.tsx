@@ -67,18 +67,46 @@ export function ManualBankTransactionDialog({ open, onOpenChange, editing }: Pro
   const empresaId = empresa?.id ?? null;
   const targetUserId = empresa?.user_id ?? user?.id;
 
-  // Bank accounts (manual table only — Pluggy accounts are read-only sync)
+  // Bank accounts: manuais + Pluggy (Open Finance) — mesma lógica de Contas a Pagar/Receber
   const { data: bankAccounts = [] } = useQuery({
-    queryKey: ["contas-bancarias", empresaId],
+    queryKey: ["contas-bancarias-merged", empresaId, targetUserId],
     queryFn: async () => {
-      let q = supabase
+      // Manuais
+      let mq = supabase
         .from("contas_bancarias")
         .select("id, nome, banco")
         .eq("ativo", true)
         .order("nome");
-      if (empresaId) q = q.eq("empresa_id", empresaId);
-      const { data } = await q;
-      return data ?? [];
+      if (empresaId) mq = mq.eq("empresa_id", empresaId);
+      const { data: manual } = await mq;
+
+      // Pluggy (somente contas BANK / CHECKING_ACCOUNT)
+      let pq = supabase
+        .from("pluggy_bank_accounts")
+        .select("id, name, pluggy_item_id, type, subtype, bank_data")
+        .eq("type", "BANK")
+        .eq("subtype", "CHECKING_ACCOUNT")
+        .order("name");
+      if (targetUserId) pq = pq.eq("user_id", targetUserId);
+      const { data: pluggy } = await pq;
+
+      const itemIds = [...new Set((pluggy ?? []).map((p: any) => p.pluggy_item_id))];
+      let connectorMap: Record<string, string> = {};
+      if (itemIds.length) {
+        const { data: conns } = await supabase
+          .from("pluggy_connections")
+          .select("pluggy_item_id, connector_name")
+          .in("pluggy_item_id", itemIds);
+        for (const c of conns ?? []) connectorMap[c.pluggy_item_id] = c.connector_name || "";
+      }
+
+      const pluggyMapped = (pluggy ?? []).map((p: any) => ({
+        id: p.id,
+        nome: connectorMap[p.pluggy_item_id] || p.name,
+        banco: "Open Finance",
+      }));
+
+      return [...(manual ?? []), ...pluggyMapped];
     },
     enabled: !!targetUserId,
   });
@@ -100,14 +128,17 @@ export function ManualBankTransactionDialog({ open, onOpenChange, editing }: Pro
   });
 
   const { data: allCategoriasFin = [] } = useQuery({
-    queryKey: ["categorias-financeiras-all-hierarchy"],
+    queryKey: ["categorias-financeiras-all-hierarchy", empresaId],
     queryFn: async () => {
-      const { data } = await supabase
+      let q = supabase
         .from("categorias_financeiras")
         .select("id, categoria_pai_id")
         .eq("ativo", true);
+      if (empresaId) q = q.eq("empresa_id", empresaId);
+      const { data } = await q;
       return data ?? [];
     },
+    enabled: !!targetUserId,
   });
 
   const contasCrud = useManagedSelect("contas_bancarias");
