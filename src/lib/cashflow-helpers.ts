@@ -704,13 +704,12 @@ export async function fetchBankBalance(empresaId?: string, userId?: string): Pro
   );
   const saldoContasPluggy = pluggyBank.reduce((sum, r: any) => sum + Number(r.balance ?? 0), 0);
 
-  // 3) Investimentos Pluggy: usa bank_data.totalInvestments (mesma fonte do Dashboard)
-  //    para evitar duplicidade com a tabela alternativa pluggy_investments.
+  // 3) Investimentos Pluggy: usa SOMENTE bank_data.totalInvestments.
+  //    NÃO somar automaticallyInvestedBalance (já incluso no `balance` da conta corrente,
+  //    p.ex. "caixinha" do Nubank) — somá-lo gera duplicidade no saldo total.
   const saldoInvestPluggy = pluggyBank.reduce((sum, r: any) => {
     const bd = r.bank_data ?? {};
-    const inv = Number(bd.totalInvestments ?? 0);
-    const auto = Number(bd.automaticallyInvestedBalance ?? 0);
-    return sum + (inv > 0 ? inv : auto);
+    return sum + Number(bd.totalInvestments ?? 0);
   }, 0);
 
   return saldoManualContas + saldoManualInvestimentos + saldoContasPluggy + saldoInvestPluggy;

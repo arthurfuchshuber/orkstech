@@ -215,10 +215,11 @@ export default function FinanceiroDashboard() {
   const bankAccounts = accounts.filter((a) => a.type !== "CREDIT");
   const creditCards = accounts.filter((a) => a.type === "CREDIT");
 
+  // Saldo de investimentos REAIS da conta (apenas totalInvestments).
+  // automaticallyInvestedBalance NÃO é somado: é uma sub-parcela do `balance` (ex.: caixinha Nubank
+  // que rende sozinha mas continua dentro do saldo da conta corrente). Somá-lo causaria duplicidade.
   const getStoredBalance = (account: BankAccount) => {
-    const inv = account.bank_data?.totalInvestments ?? 0;
-    const autoInv = account.bank_data?.automaticallyInvestedBalance ?? 0;
-    return inv > 0 ? inv : autoInv;
+    return Number(account.bank_data?.totalInvestments ?? 0);
   };
 
   const totalPluggyBalance = bankAccounts.reduce((sum, a) => sum + a.balance, 0);
