@@ -54,6 +54,21 @@ export default function DREPage() {
 
   const { lines, totalRevenue, grossMargin, ebitda, netIncome, transactions, isLoading, dateRange } = useDRE(filters);
 
+  // Extract key indicators for KPI cards
+  const findLine = (id: string) => lines.find((l) => l.id === id);
+  const kpis = useMemo(() => {
+    const receitaLiq = findLine("receita-liquida");
+    const lucroBruto = findLine("lucro-bruto");
+    const ebitdaLine = findLine("ebitda");
+    const lucroLiq = findLine("lucro-liquido");
+    return [
+      { id: "receita", label: "Receita Líquida", line: receitaLiq, accent: "text-success" },
+      { id: "bruto", label: "Lucro Bruto", line: lucroBruto, accent: "text-success" },
+      { id: "ebitda", label: "EBITDA", line: ebitdaLine, accent: "text-primary" },
+      { id: "liquido", label: "Lucro Líquido", line: lucroLiq, accent: "text-success" },
+    ];
+  }, [lines]);
+
   const { data: bankAccounts = [] } = useQuery({
     queryKey: ["dre-bank-accounts", targetUserId],
     enabled: !!user && !!targetUserId,
