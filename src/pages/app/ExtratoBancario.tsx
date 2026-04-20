@@ -1000,8 +1000,10 @@ export default function ExtratoBancario() {
         open={manualDialogOpen}
         onOpenChange={setManualDialogOpen}
         editing={editingManual}
-        bankAccounts={[]}
       />
+    </div>
+  );
+}
     </div>
   );
 }
