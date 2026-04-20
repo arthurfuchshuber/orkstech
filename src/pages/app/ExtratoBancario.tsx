@@ -984,7 +984,17 @@ export default function ExtratoBancario() {
           queryClient.invalidateQueries({ queryKey: ["dre-categorias-financeiras"] });
         }}
       />
+        </TabsContent>
+      </Tabs>
+
+      <ManualBankTransactionDialog
+        open={manualDialogOpen}
+        onOpenChange={setManualDialogOpen}
+        editing={editingManual}
+        bankAccounts={[]}
+      />
     </div>
   );
 }
+
 
