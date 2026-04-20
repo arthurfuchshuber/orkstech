@@ -213,10 +213,14 @@ export function PluggyConnectionsList() {
             </span>
           </div>
           <Badge
-            variant={conn.status === "connected" ? "default" : "destructive"}
+            variant={conn.status === "connected" ? "default" : conn.status === "updating" ? "secondary" : "destructive"}
             className="text-[9px] px-1 py-0 leading-4 flex-shrink-0"
           >
-            {conn.status === "connected" ? "Conectado" : conn.status}
+            {conn.status === "connected"
+              ? "Conectado"
+              : conn.status === "updating"
+              ? "Sincronizando"
+              : "Reconectar"}
           </Badge>
           <div className="flex gap-0.5">
             <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => handleSync(conn.pluggy_item_id)}>
