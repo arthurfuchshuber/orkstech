@@ -216,12 +216,16 @@ export function DRERegrasSection() {
     mutationFn: async () => {
       const { data, error } = await supabase.rpc("aplicar_regras_retroativo" as any, { p_user_id: targetUserId });
       if (error) throw error;
-      return data as { pagar: number; receber: number; total: number };
+      return data as { pagar: number; receber: number; extrato?: number; total: number };
     },
     onSuccess: (d) => {
       qc.invalidateQueries({ queryKey: ["dre-regras"] });
       qc.invalidateQueries({ queryKey: ["dre-transactions"] });
-      toast.success(`${d.total} lançamento(s) reclassificado(s) (${d.pagar} a pagar, ${d.receber} a receber)`);
+      qc.invalidateQueries({ queryKey: ["dre-unified-tx"] });
+      qc.invalidateQueries({ queryKey: ["dre-unified-prev-tx"] });
+      qc.invalidateQueries({ queryKey: ["pluggy_transactions"] });
+      const ext = d.extrato ?? 0;
+      toast.success(`${d.total} lançamento(s) reclassificado(s) (${d.pagar} a pagar, ${d.receber} a receber, ${ext} no extrato)`);
     },
     onError: (e: any) => toast.error(e.message),
   });
