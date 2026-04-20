@@ -1597,6 +1597,14 @@ export default function ContasAPagar() {
         )}
       </Card>
 
+        </TabsContent>
+
+        <TabsContent value="importacoes" className="mt-4 space-y-4">
+          <GenericImporter target="payable" onImported={() => refreshQueries(queryClient, ["accounts-payable", "accounts-payable-counts"])} />
+          <ImportsHistoryTargeted target="payable" onDeleted={() => refreshQueries(queryClient, ["accounts-payable", "accounts-payable-counts"])} />
+        </TabsContent>
+      </Tabs>
+
       {/* Payment Dialog */}
       <Dialog open={showPaymentDialog} onOpenChange={setShowPaymentDialog}>
         <DialogContent className="max-w-md">
