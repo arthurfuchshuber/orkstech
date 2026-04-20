@@ -80,10 +80,10 @@ export default function FinanceiroDashboard() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("pluggy_connections" as any)
-        .select("pluggy_item_id, connector_name, connector_id")
+        .select("pluggy_item_id, connector_name, connector_id, last_sync_at, status")
         .eq("user_id", targetUserId!);
       if (error) throw error;
-      return data as unknown as { pluggy_item_id: string; connector_name: string | null; connector_id: number | null }[];
+      return data as unknown as { pluggy_item_id: string; connector_name: string | null; connector_id: number | null; last_sync_at: string | null; status: string | null }[];
     },
     enabled: !!user && !!targetUserId,
   });
@@ -511,6 +511,22 @@ export default function FinanceiroDashboard() {
 
   const hasPluggyData = accounts.length > 0;
 
+  // Última sincronização agregada (mais recente entre todas as conexões Pluggy)
+  // Status: "connected" se ao menos 1 OK; senão usa o pior status para alertar reconexão
+  const latestSyncAt = useMemo(() => {
+    const stamps = connections.map((c) => c.last_sync_at).filter(Boolean) as string[];
+    if (stamps.length === 0) return null;
+    return stamps.sort().reverse()[0];
+  }, [connections]);
+
+  const aggregatedSyncStatus = useMemo(() => {
+    if (connections.length === 0) return null;
+    const hasConnected = connections.some((c) => c.status === "connected" || c.status === "updating");
+    if (hasConnected) return "connected";
+    // Nenhuma conexão saudável: retorna o status da primeira para acionar o alerta
+    return connections[0]?.status ?? "outdated";
+  }, [connections]);
+
   return (
     <Tabs defaultValue="caixa" className="space-y-4 animate-fade-in">
       <TabsList>
@@ -528,6 +544,9 @@ export default function FinanceiroDashboard() {
           totalCreditBills={totalCreditBills}
           totalCreditLimit={totalCreditLimit}
           balanceDeltaPct={balanceDeltaPct}
+          lastSyncAt={latestSyncAt}
+          syncStatus={aggregatedSyncStatus}
+          hasPluggy={hasPluggyData}
         />
 
         {/* Visualizações */}

@@ -1,6 +1,7 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Landmark, CreditCard, PiggyBank, Receipt, TrendingUp, TrendingDown } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { PluggyLastSyncBadge } from "@/components/PluggyLastSyncBadge";
 
 const fmt = (v: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
@@ -12,6 +13,12 @@ interface KpiProps {
   totalCreditBills: number;
   totalCreditLimit: number;
   balanceDeltaPct?: number | null;
+  /** Última sincronização Open Finance (mais recente entre as conexões) */
+  lastSyncAt?: string | null;
+  /** Status agregado: "connected" se ao menos uma OK; senão o pior status */
+  syncStatus?: string | null;
+  /** True se existe ao menos uma conexão Pluggy ativa */
+  hasPluggy?: boolean;
 }
 
 export function CaixaKpis({
@@ -21,6 +28,9 @@ export function CaixaKpis({
   totalCreditBills,
   totalCreditLimit,
   balanceDeltaPct,
+  lastSyncAt,
+  syncStatus,
+  hasPluggy,
 }: KpiProps) {
   const liquidez = totalBalance + totalInvestments;
   const utilizacao = totalCreditLimit > 0 ? ((totalCreditLimit - totalCreditAvailable) / totalCreditLimit) * 100 : 0;
@@ -75,39 +85,46 @@ export function CaixaKpis({
   };
 
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-      {cards.map((c) => {
-        const Icon = c.icon;
-        return (
-          <Card key={c.label} className="border-border/50 hover:border-border transition-colors relative overflow-visible">
-            {c.flag && (
-              <span className={cn(
-                "absolute -top-2 right-3 text-[9px] uppercase tracking-wider font-medium px-2 py-0.5 rounded border whitespace-nowrap",
-                flagStyles[c.tone]
-              )}>
-                {c.flag}
-              </span>
-            )}
-            <CardContent className="p-4">
-              <div className="flex items-start justify-between mb-3">
-                <div className={cn("w-9 h-9 rounded-lg flex items-center justify-center", toneStyles[c.tone])}>
-                  <Icon className="w-4 h-4" />
-                </div>
-                {c.trend && (
-                  c.trend === "up"
-                    ? <TrendingUp className="w-3.5 h-3.5 text-success mt-5" />
-                    : <TrendingDown className="w-3.5 h-3.5 text-destructive mt-5" />
-                )}
-              </div>
-              <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium">{c.label}</p>
-              <p className="text-2xl font-bold text-foreground mt-1 tabular-nums">{c.value}</p>
-              {c.sub && (
-                <p className={cn("text-[11px] mt-1.5", c.subColor || "text-muted-foreground")}>{c.sub}</p>
+    <div className="space-y-2">
+      {hasPluggy && (
+        <div className="flex items-center justify-end px-1 min-h-[16px]">
+          <PluggyLastSyncBadge lastSyncAt={lastSyncAt} status={syncStatus} />
+        </div>
+      )}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {cards.map((c) => {
+          const Icon = c.icon;
+          return (
+            <Card key={c.label} className="border-border/50 hover:border-border transition-colors relative overflow-visible">
+              {c.flag && (
+                <span className={cn(
+                  "absolute -top-2 right-3 text-[9px] uppercase tracking-wider font-medium px-2 py-0.5 rounded border whitespace-nowrap",
+                  flagStyles[c.tone]
+                )}>
+                  {c.flag}
+                </span>
               )}
-            </CardContent>
-          </Card>
-        );
-      })}
+              <CardContent className="p-4">
+                <div className="flex items-start justify-between mb-3">
+                  <div className={cn("w-9 h-9 rounded-lg flex items-center justify-center", toneStyles[c.tone])}>
+                    <Icon className="w-4 h-4" />
+                  </div>
+                  {c.trend && (
+                    c.trend === "up"
+                      ? <TrendingUp className="w-3.5 h-3.5 text-success mt-5" />
+                      : <TrendingDown className="w-3.5 h-3.5 text-destructive mt-5" />
+                  )}
+                </div>
+                <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium">{c.label}</p>
+                <p className="text-2xl font-bold text-foreground mt-1 tabular-nums">{c.value}</p>
+                {c.sub && (
+                  <p className={cn("text-[11px] mt-1.5", c.subColor || "text-muted-foreground")}>{c.sub}</p>
+                )}
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
     </div>
   );
 }
