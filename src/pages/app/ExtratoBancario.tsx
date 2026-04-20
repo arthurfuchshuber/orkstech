@@ -873,14 +873,66 @@ export default function ExtratoBancario() {
         </div>
       </Card>
 
-      <div className="flex items-center justify-between">
-        <h2 className="text-sm font-semibold text-foreground">Lançamentos</h2>
-        <Button
-          size="sm"
-          onClick={() => { setEditingManual(null); setManualDialogOpen(true); }}
-        >
-          <Plus className="w-4 h-4 mr-2" /> Novo lançamento manual
-        </Button>
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <div className="flex items-center gap-3">
+          <h2 className="text-sm font-semibold text-foreground">Lançamentos</h2>
+          {batchSelection.size > 0 && (
+            <Badge variant="secondary" className="gap-1">
+              {batchSelection.size} selecionada(s)
+            </Badge>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          {batchSelection.size > 0 && (
+            <>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button size="sm" variant="outline" className="gap-2">
+                    Categorizar em massa <ChevronDown className="w-3.5 h-3.5" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="max-h-[320px] overflow-y-auto custom-scrollbar">
+                  {categoriasFinanceiras
+                    .filter((c: any) => !categoriasFinanceiras.some((child: any) => child.categoria_pai_id === c.id))
+                    .map((c: any) => (
+                      <DropdownMenuItem
+                        key={c.id}
+                        onClick={() =>
+                          batchUpdateCategoriaMutation.mutate({
+                            ids: Array.from(batchSelection),
+                            categoria_financeira_id: c.id,
+                          })
+                        }
+                      >
+                        {c.nome}
+                      </DropdownMenuItem>
+                    ))}
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    onClick={() =>
+                      batchUpdateCategoriaMutation.mutate({
+                        ids: Array.from(batchSelection),
+                        categoria_financeira_id: null,
+                      })
+                    }
+                    className="text-muted-foreground"
+                  >
+                    Limpar categoria
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+              <Button size="sm" variant="ghost" onClick={() => setBatchSelection(new Set())}>
+                Cancelar
+              </Button>
+            </>
+          )}
+          <Button
+            size="sm"
+            onClick={() => { setEditingManual(null); setManualDialogOpen(true); }}
+          >
+            <Plus className="w-4 h-4 mr-2" /> Novo lançamento manual
+          </Button>
+        </div>
       </div>
 
       <Card className="overflow-hidden">
