@@ -1429,6 +1429,14 @@ export default function ContasAReceber() {
         )}
       </Card>
 
+        </TabsContent>
+
+        <TabsContent value="importacoes" className="mt-4 space-y-4">
+          <GenericImporter target="receivable" onImported={() => refreshQueries(queryClient, [["accounts-receivable"], ["accounts-receivable-counts"]])} />
+          <ImportsHistoryTargeted target="receivable" onDeleted={() => refreshQueries(queryClient, [["accounts-receivable"], ["accounts-receivable-counts"]])} />
+        </TabsContent>
+      </Tabs>
+
       {/* Scope Dialog (parcelamento) */}
       <Dialog open={!!scopeDialogItem} onOpenChange={(open) => !open && setScopeDialogItem(null)}>
         <DialogContent className="max-w-md">
