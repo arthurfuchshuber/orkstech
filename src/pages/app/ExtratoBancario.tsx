@@ -202,10 +202,10 @@ export default function ExtratoBancario() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("pluggy_connections" as any)
-        .select("pluggy_item_id, connector_name")
+        .select("pluggy_item_id, connector_name, last_sync_at, status")
         .eq("user_id", targetUserId!);
       if (error) throw error;
-      return data as unknown as { pluggy_item_id: string; connector_name: string | null }[];
+      return data as unknown as { pluggy_item_id: string; connector_name: string | null; last_sync_at: string | null; status: string | null }[];
     },
     enabled: !!user && !!targetUserId,
   });
