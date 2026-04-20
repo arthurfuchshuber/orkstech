@@ -1,10 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Loader2, RefreshCw, BarChart3, FileText, Upload as UploadIcon } from "lucide-react";
+import { Loader2, RefreshCw } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useEmpresa } from "@/hooks/useEmpresa";
 import {
@@ -16,9 +14,6 @@ import {
 } from "@/lib/cashflow-helpers";
 import { CashflowKpis } from "@/components/financas/fluxo/CashflowKpis";
 import { CashflowChart } from "@/components/financas/fluxo/CashflowChart";
-import { CashflowExtrato } from "@/components/financas/fluxo/CashflowExtrato";
-import { CashflowImporter } from "@/components/financas/fluxo/CashflowImporter";
-import { ImportsHistory } from "@/components/financas/fluxo/ImportsHistory";
 
 function todayISO() {
   const d = new Date();
@@ -71,7 +66,9 @@ export default function Fluxo() {
         <div>
           <h1 className="text-2xl font-bold text-foreground">Fluxo de Caixa</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Projeção consolidada: contas a receber, contas a pagar, saldos bancários e previsões importadas.
+            Projeção consolidada a partir de Contas a Pagar, Contas a Receber, Extrato Bancário e
+            previsões importadas. Para importar lançamentos, use diretamente os módulos
+            correspondentes.
           </p>
         </div>
         <div className="flex items-end gap-2">
@@ -89,42 +86,14 @@ export default function Fluxo() {
         </div>
       </div>
 
-      <Tabs defaultValue="resumo">
-        <TabsList>
-          <TabsTrigger value="resumo"><BarChart3 className="w-4 h-4 mr-2" />Resumo</TabsTrigger>
-          <TabsTrigger value="extrato"><FileText className="w-4 h-4 mr-2" />Extrato Detalhado</TabsTrigger>
-          <TabsTrigger value="importacoes"><UploadIcon className="w-4 h-4 mr-2" />Importações</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="resumo" className="space-y-4 mt-4">
-          <CashflowKpis
-            inflow={summary.inflow}
-            outflow={summary.outflow}
-            startBalance={bankBalance}
-            endBalance={endBalance}
-          />
-          <CashflowChart data={series} />
-        </TabsContent>
-
-        <TabsContent value="extrato" className="mt-4">
-          <Card className="border-border/50">
-            <CardHeader>
-              <CardTitle className="text-base font-semibold">Movimentações Previstas</CardTitle>
-              <p className="text-xs text-muted-foreground">
-                Todas as entradas e saídas projetadas no período selecionado, com saldo acumulado.
-              </p>
-            </CardHeader>
-            <CardContent>
-              <CashflowExtrato rows={rows} />
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="importacoes" className="mt-4 space-y-4">
-          <CashflowImporter onImported={() => setReloadKey((k) => k + 1)} />
-          <ImportsHistory refreshKey={reloadKey} />
-        </TabsContent>
-      </Tabs>
+      <CashflowKpis
+        inflow={summary.inflow}
+        outflow={summary.outflow}
+        startBalance={bankBalance}
+        endBalance={endBalance}
+      />
+      <CashflowChart data={series} />
     </div>
   );
 }
+
