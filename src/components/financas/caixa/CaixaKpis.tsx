@@ -1,6 +1,7 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Landmark, CreditCard, PiggyBank, Receipt, TrendingUp, TrendingDown } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { PluggyLastSyncBadge } from "@/components/PluggyLastSyncBadge";
 
 const fmt = (v: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
@@ -12,6 +13,12 @@ interface KpiProps {
   totalCreditBills: number;
   totalCreditLimit: number;
   balanceDeltaPct?: number | null;
+  /** Última sincronização Open Finance (mais recente entre as conexões) */
+  lastSyncAt?: string | null;
+  /** Status agregado: "connected" se ao menos uma OK; senão o pior status */
+  syncStatus?: string | null;
+  /** True se existe ao menos uma conexão Pluggy ativa */
+  hasPluggy?: boolean;
 }
 
 export function CaixaKpis({
