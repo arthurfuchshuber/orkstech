@@ -40,15 +40,15 @@ export function ImportsHistoryTargeted({ target, refreshKey, onDeleted }: Props)
   const { data: rows = [], isLoading } = useQuery({
     queryKey: ["cashflow_imports", target, empresaAtiva?.id, refreshKey],
     queryFn: async () => {
-      let q = supabase
-        .from("cashflow_imports")
+      let q: any = supabase
+        .from("cashflow_imports" as any)
         .select("*")
-        .eq("target" as any, target)
+        .eq("target", target)
         .order("created_at", { ascending: false })
         .limit(50);
       if (empresaAtiva?.id) q = q.eq("empresa_id", empresaAtiva.id);
       const { data } = await q;
-      return data ?? [];
+      return (data ?? []) as any[];
     },
     enabled: !!user,
   });
