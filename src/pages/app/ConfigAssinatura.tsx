@@ -64,9 +64,27 @@ export default function ConfigAssinatura() {
   } = useSubscription();
   const [loadingPortal, setLoadingPortal] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  const [activeTab, setActiveTab] = useState<"plano" | "faturas">("plano");
+  const [activeTab, setActiveTab] = useState<"plano" | "faturas" | "planos">("plano");
 
   useEffect(() => { document.title = "Assinatura | NexusOS"; }, []);
+
+  // Carrega script da Stripe Pricing Table
+  useEffect(() => {
+    const existing = document.querySelector('script[src="https://js.stripe.com/v3/pricing-table.js"]');
+    if (!existing) {
+      const script = document.createElement("script");
+      script.src = "https://js.stripe.com/v3/pricing-table.js";
+      script.async = true;
+      document.head.appendChild(script);
+    }
+  }, []);
+
+  // Sem assinatura → abre direto na aba "Planos"
+  useEffect(() => {
+    if (!isLoading && !subscribed && !status) {
+      setActiveTab("planos");
+    }
+  }, [isLoading, subscribed, status]);
 
   const { data: billing, isLoading: billingLoading, refetch: refetchBilling } = useQuery({
     queryKey: ["stripe-invoices"],
