@@ -2210,7 +2210,35 @@ export default function ContasAReceber() {
         </AlertDialogContent>
       </AlertDialog>
 
-      <AsaasChargeDialog
+      <AlertDialog open={bulkDeleteOpen} onOpenChange={setBulkDeleteOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir {selectedIds.size} conta(s)?</AlertDialogTitle>
+            <AlertDialogDescription>Esta ação é permanente. Contas com recebimento registrado podem não ser excluídas.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleBulkDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Excluir tudo
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={bulkCancelOpen} onOpenChange={setBulkCancelOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Cancelar {selectedIds.size} conta(s)?</AlertDialogTitle>
+            <AlertDialogDescription>O status será alterado para "Cancelado" e a data de recebimento será removida.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Voltar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleBulkCancel}>
+              Confirmar cancelamento
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
         receivableId={asaasReceivableId}
         empresaId={empresaId || null}
         onOpenChange={(open) => { if (!open) setAsaasReceivableId(null); }}
