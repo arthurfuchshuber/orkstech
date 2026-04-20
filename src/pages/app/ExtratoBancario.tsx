@@ -27,6 +27,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Checkbox } from "@/components/ui/checkbox";
 import { CategoriaFinanceiraModal } from "@/components/modals/CategoriaFinanceiraModal";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { GenericImporter } from "@/components/financas/importacoes/GenericImporter";
@@ -178,6 +179,7 @@ export default function ExtratoBancario() {
   const [cfModalOpen, setCfModalOpen] = useState(false);
   const [manualDialogOpen, setManualDialogOpen] = useState(false);
   const [editingManual, setEditingManual] = useState<any>(null);
+  const [batchSelection, setBatchSelection] = useState<Set<string>>(new Set());
 
   // Date range filter — default to current month
   const now = new Date();
@@ -399,6 +401,35 @@ export default function ExtratoBancario() {
       toast.error(err?.message || "Erro ao atualizar subcategoria");
     },
   });
+
+  const batchUpdateCategoriaMutation = useMutation({
+    mutationFn: async ({ ids, categoria_financeira_id }: { ids: string[]; categoria_financeira_id: string | null }) => {
+      const { data, error } = await supabase
+        .from("pluggy_transactions" as any)
+        .update({ categoria_financeira_id })
+        .in("id", ids)
+        .select("id");
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["pluggy_transactions"] });
+      toast.success(`${data?.length ?? 0} transação(ões) atualizada(s)`);
+      setBatchSelection(new Set());
+    },
+    onError: (err: any) => {
+      toast.error(err?.message || "Erro ao atualizar em lote");
+    },
+  });
+
+  const toggleBatch = (id: string) => {
+    setBatchSelection((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
 
   const [syncing, setSyncing] = useState<string | null>(null);
 
@@ -842,14 +873,66 @@ export default function ExtratoBancario() {
         </div>
       </Card>
 
-      <div className="flex items-center justify-between">
-        <h2 className="text-sm font-semibold text-foreground">Lançamentos</h2>
-        <Button
-          size="sm"
-          onClick={() => { setEditingManual(null); setManualDialogOpen(true); }}
-        >
-          <Plus className="w-4 h-4 mr-2" /> Novo lançamento manual
-        </Button>
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <div className="flex items-center gap-3">
+          <h2 className="text-sm font-semibold text-foreground">Lançamentos</h2>
+          {batchSelection.size > 0 && (
+            <Badge variant="secondary" className="gap-1">
+              {batchSelection.size} selecionada(s)
+            </Badge>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          {batchSelection.size > 0 && (
+            <>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button size="sm" variant="outline" className="gap-2">
+                    Categorizar em massa <ChevronDown className="w-3.5 h-3.5" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="max-h-[320px] overflow-y-auto custom-scrollbar">
+                  {categoriasFinanceiras
+                    .filter((c: any) => !categoriasFinanceiras.some((child: any) => child.categoria_pai_id === c.id))
+                    .map((c: any) => (
+                      <DropdownMenuItem
+                        key={c.id}
+                        onClick={() =>
+                          batchUpdateCategoriaMutation.mutate({
+                            ids: Array.from(batchSelection),
+                            categoria_financeira_id: c.id,
+                          })
+                        }
+                      >
+                        {c.nome}
+                      </DropdownMenuItem>
+                    ))}
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    onClick={() =>
+                      batchUpdateCategoriaMutation.mutate({
+                        ids: Array.from(batchSelection),
+                        categoria_financeira_id: null,
+                      })
+                    }
+                    className="text-muted-foreground"
+                  >
+                    Limpar categoria
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+              <Button size="sm" variant="ghost" onClick={() => setBatchSelection(new Set())}>
+                Cancelar
+              </Button>
+            </>
+          )}
+          <Button
+            size="sm"
+            onClick={() => { setEditingManual(null); setManualDialogOpen(true); }}
+          >
+            <Plus className="w-4 h-4 mr-2" /> Novo lançamento manual
+          </Button>
+        </div>
       </div>
 
       <Card className="overflow-hidden">
@@ -865,7 +948,22 @@ export default function ExtratoBancario() {
           </div>
         ) : (
           <>
-            <div className="grid grid-cols-[120px_minmax(0,1.6fr)_220px_140px] gap-4 border-b border-border/50 bg-card px-4 py-3 text-sm text-muted-foreground">
+            <div className="grid grid-cols-[36px_120px_minmax(0,1.6fr)_220px_140px] gap-4 border-b border-border/50 bg-card px-4 py-3 text-sm text-muted-foreground">
+              <div className="flex items-center justify-center">
+                <Checkbox
+                  checked={
+                    filteredTx.length > 0 &&
+                    filteredTx.every((t) => batchSelection.has(t.id))
+                  }
+                  onCheckedChange={(checked) => {
+                    if (checked) {
+                      setBatchSelection(new Set(filteredTx.map((t) => t.id)));
+                    } else {
+                      setBatchSelection(new Set());
+                    }
+                  }}
+                />
+              </div>
               <div>Data</div>
               <div>Descrição</div>
               <div>Subcategoria</div>
@@ -892,10 +990,17 @@ export default function ExtratoBancario() {
                   <div
                     key={tx.id}
                     className={cn(
-                      "grid grid-cols-[120px_minmax(0,1.6fr)_220px_140px] items-center gap-4 px-4 py-3 transition-colors hover:bg-muted/30",
-                      isInternal && "opacity-60"
+                      "grid grid-cols-[36px_120px_minmax(0,1.6fr)_220px_140px] items-center gap-4 px-4 py-3 transition-colors hover:bg-muted/30",
+                      isInternal && "opacity-60",
+                      batchSelection.has(tx.id) && "bg-primary/5"
                     )}
                   >
+                    <div className="flex items-center justify-center">
+                      <Checkbox
+                        checked={batchSelection.has(tx.id)}
+                        onCheckedChange={() => toggleBatch(tx.id)}
+                      />
+                    </div>
                     <div className="text-sm text-muted-foreground">
                       {formatDate(tx.date)}
                     </div>

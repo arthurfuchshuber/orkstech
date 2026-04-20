@@ -17,7 +17,7 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { FileText, ChevronRight, ChevronDown, Download, Settings2, CalendarIcon } from "lucide-react";
+import { FileText, ChevronRight, ChevronDown, Download, Settings2, CalendarIcon, TrendingUp, TrendingDown, Minus } from "lucide-react";
 import { format } from "date-fns";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -53,6 +53,21 @@ export default function DREPage() {
   const [tempEnd, setTempEnd] = useState<Date | undefined>(filters.customEnd);
 
   const { lines, totalRevenue, grossMargin, ebitda, netIncome, transactions, isLoading, dateRange } = useDRE(filters);
+
+  // Extract key indicators for KPI cards
+  const findLine = (id: string) => lines.find((l) => l.id === id);
+  const kpis = useMemo(() => {
+    const receitaLiq = findLine("receita-liquida");
+    const lucroBruto = findLine("lucro-bruto");
+    const ebitdaLine = findLine("ebitda");
+    const lucroLiq = findLine("lucro-liquido");
+    return [
+      { id: "receita", label: "Receita Líquida", line: receitaLiq, accent: "text-success" },
+      { id: "bruto", label: "Lucro Bruto", line: lucroBruto, accent: "text-success" },
+      { id: "ebitda", label: "EBITDA", line: ebitdaLine, accent: "text-primary" },
+      { id: "liquido", label: "Lucro Líquido", line: lucroLiq, accent: "text-success" },
+    ];
+  }, [lines]);
 
   const { data: bankAccounts = [] } = useQuery({
     queryKey: ["dre-bank-accounts", targetUserId],
@@ -103,9 +118,16 @@ export default function DREPage() {
   const exportCSV = () => {
     const allLines = flatLines.map(f => f.line);
     const csvRows = [
-      ["Número", "Conta", "Valor", "% Receita"].join(";"),
+      ["Número", "Conta", "Valor", "% Receita", "Período anterior", "Variação %"].join(";"),
       ...allLines.map((l) =>
-        [l.number || "", l.label, l.amount.toFixed(2), l.percentage.toFixed(1)].join(";")
+        [
+          l.number || "",
+          l.label,
+          l.amount.toFixed(2),
+          l.percentage.toFixed(1),
+          l.previousAmount.toFixed(2),
+          l.variation == null ? "" : l.variation.toFixed(1),
+        ].join(";")
       ),
     ];
     const blob = new Blob([csvRows.join("\n")], { type: "text/csv;charset=utf-8" });
@@ -184,8 +206,39 @@ export default function DREPage() {
             </Select>
           </div>
 
+          {/* KPI Cards */}
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {kpis.map((k) => {
+              const amount = k.line?.amount ?? 0;
+              const prev = k.line?.previousAmount ?? 0;
+              const variation = k.line?.variation;
+              const positive = amount >= 0;
+              const VarIcon = variation == null ? Minus : variation >= 0 ? TrendingUp : TrendingDown;
+              const varColor = variation == null
+                ? "text-muted-foreground"
+                : variation >= 0 ? "text-success" : "text-destructive";
+              return (
+                <Card key={k.id} className="border-border/50">
+                  <CardContent className="p-4">
+                    <p className="text-xs text-muted-foreground">{k.label}</p>
+                    <p className={cn("text-2xl font-bold mt-1", positive ? k.accent : "text-destructive")}>
+                      {fmt(Math.abs(amount))}
+                    </p>
+                    <div className="flex items-center gap-1.5 mt-1.5">
+                      <VarIcon className={cn("w-3 h-3", varColor)} />
+                      <span className={cn("text-[11px] font-medium", varColor)}>
+                        {variation == null ? "—" : `${variation >= 0 ? "+" : ""}${variation.toFixed(1)}%`}
+                      </span>
+                      <span className="text-[11px] text-muted-foreground">vs período anterior ({fmt(Math.abs(prev))})</span>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+
           {/* DRE Table */}
-          <div className="w-full max-w-[50%]">
+          <div className="w-full">
             <Card className="border-border/50">
               <CardHeader className="py-3 px-4">
                 <CardTitle className="text-sm font-medium flex items-center gap-2">
@@ -203,9 +256,11 @@ export default function DREPage() {
                   <Table>
                     <TableHeader>
                       <TableRow className="border-border/30">
-                        <TableHead className="w-[60%] text-xs">Conta</TableHead>
+                        <TableHead className="w-[44%] text-xs">Conta</TableHead>
                         <TableHead className="text-right text-xs">Valor</TableHead>
-                        <TableHead className="text-right text-xs">%</TableHead>
+                        <TableHead className="text-right text-xs">% Receita</TableHead>
+                        <TableHead className="text-right text-xs">Período anterior</TableHead>
+                        <TableHead className="text-right text-xs">Variação</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -280,6 +335,18 @@ export default function DREPage() {
                             </TableCell>
                             <TableCell className="text-right text-xs py-1.5 text-muted-foreground">
                               {line.isPercentual ? "" : fmtPct(line.percentage)}
+                            </TableCell>
+                            <TableCell className="text-right text-xs py-1.5 text-muted-foreground/80">
+                              {line.isPercentual ? "—" : fmt(Math.abs(line.previousAmount))}
+                            </TableCell>
+                            <TableCell className="text-right text-xs py-1.5">
+                              {line.variation == null || line.isPercentual ? (
+                                <span className="text-muted-foreground/60">—</span>
+                              ) : (
+                                <span className={cn("font-medium", line.variation >= 0 ? "text-success" : "text-destructive")}>
+                                  {line.variation >= 0 ? "+" : ""}{line.variation.toFixed(1)}%
+                                </span>
+                              )}
                             </TableCell>
                           </TableRow>
                         );
