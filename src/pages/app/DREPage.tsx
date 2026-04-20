@@ -199,8 +199,39 @@ export default function DREPage() {
             </Select>
           </div>
 
+          {/* KPI Cards */}
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {kpis.map((k) => {
+              const amount = k.line?.amount ?? 0;
+              const prev = k.line?.previousAmount ?? 0;
+              const variation = k.line?.variation;
+              const positive = amount >= 0;
+              const VarIcon = variation == null ? Minus : variation >= 0 ? TrendingUp : TrendingDown;
+              const varColor = variation == null
+                ? "text-muted-foreground"
+                : variation >= 0 ? "text-success" : "text-destructive";
+              return (
+                <Card key={k.id} className="border-border/50">
+                  <CardContent className="p-4">
+                    <p className="text-xs text-muted-foreground">{k.label}</p>
+                    <p className={cn("text-2xl font-bold mt-1", positive ? k.accent : "text-destructive")}>
+                      {fmt(Math.abs(amount))}
+                    </p>
+                    <div className="flex items-center gap-1.5 mt-1.5">
+                      <VarIcon className={cn("w-3 h-3", varColor)} />
+                      <span className={cn("text-[11px] font-medium", varColor)}>
+                        {variation == null ? "—" : `${variation >= 0 ? "+" : ""}${variation.toFixed(1)}%`}
+                      </span>
+                      <span className="text-[11px] text-muted-foreground">vs período anterior ({fmt(Math.abs(prev))})</span>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+
           {/* DRE Table */}
-          <div className="w-full max-w-[50%]">
+          <div className="w-full">
             <Card className="border-border/50">
               <CardHeader className="py-3 px-4">
                 <CardTitle className="text-sm font-medium flex items-center gap-2">
