@@ -841,6 +841,16 @@ export default function ExtratoBancario() {
         </div>
       </Card>
 
+      <div className="flex items-center justify-between">
+        <h2 className="text-sm font-semibold text-foreground">Lançamentos</h2>
+        <Button
+          size="sm"
+          onClick={() => { setEditingManual(null); setManualDialogOpen(true); }}
+        >
+          <Plus className="w-4 h-4 mr-2" /> Novo lançamento manual
+        </Button>
+      </div>
+
       <Card className="overflow-hidden">
         {loadingAccounts || loadingTx ? (
           <div className="py-12 text-center text-sm text-muted-foreground">
