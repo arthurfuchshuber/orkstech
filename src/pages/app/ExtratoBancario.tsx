@@ -679,6 +679,10 @@ export default function ExtratoBancario() {
                     <RefreshCw className={cn("h-3.5 w-3.5", syncing === card.pluggy_item_id && "animate-spin")} />
                   </Button>
                 </div>
+                {(() => {
+                  const conn = connections.find((c) => c.pluggy_item_id === card.pluggy_item_id);
+                  return <PluggyLastSyncBadge lastSyncAt={conn?.last_sync_at} status={conn?.status} />;
+                })()}
 
                 <div className="grid grid-cols-2 gap-3 text-xs">
                   <div>
@@ -742,7 +746,13 @@ export default function ExtratoBancario() {
 
               return (
                 <Card key={account.id} className="space-y-1 p-3">
-                  <p className="text-xs text-muted-foreground">{getDisplayName(account)}</p>
+                  <div className="flex items-start justify-between gap-2">
+                    <p className="text-xs text-muted-foreground">{getDisplayName(account)}</p>
+                    {(() => {
+                      const conn = connections.find((c) => c.pluggy_item_id === account.pluggy_item_id);
+                      return <PluggyLastSyncBadge lastSyncAt={conn?.last_sync_at} status={conn?.status} />;
+                    })()}
+                  </div>
                   <p className="text-lg font-bold text-foreground">
                     {formatCurrency(getAccountTotalBalance(account))}
                   </p>
