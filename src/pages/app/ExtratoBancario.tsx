@@ -623,7 +623,6 @@ export default function ExtratoBancario() {
             <span className="text-xs text-muted-foreground">Entradas</span>
           </div>
           <p className="text-xl font-bold text-foreground">{formatCurrency(totalIncome)}</p>
-          <p className="mt-1 text-[11px] text-muted-foreground">{periodLabel}</p>
         </Card>
 
         <Card className="p-4">
@@ -632,7 +631,6 @@ export default function ExtratoBancario() {
             <span className="text-xs text-muted-foreground">Saídas</span>
           </div>
           <p className="text-xl font-bold text-destructive">{formatCurrency(totalExpense)}</p>
-          <p className="mt-1 text-[11px] text-muted-foreground">{periodLabel}</p>
         </Card>
 
         {(() => {
@@ -649,9 +647,6 @@ export default function ExtratoBancario() {
               </div>
               <p className={cn("text-xl font-bold", isPositive ? "text-primary" : "text-destructive")}>
                 {isPositive ? "+" : ""}{formatCurrency(resultado)}
-              </p>
-              <p className="mt-1 text-[11px] text-muted-foreground">
-                {isPositive ? "Superávit" : "Déficit"} no período
               </p>
             </Card>
           );
