@@ -190,11 +190,12 @@ export function ManualBankTransactionDialog({ open, onOpenChange, editing, bankA
               label="Data *"
               error={errors.transaction_date}
             />
-            <div>
-              <Label className="text-sm font-medium">Valor *</Label>
-              <CurrencyInput value={form.amount} onChange={(v) => update("amount", v)} />
-              {errors.amount && <p className="text-xs text-destructive mt-1">{errors.amount}</p>}
-            </div>
+            <CurrencyInput
+              value={Math.round(form.amount * 100)}
+              onValueChange={(cents) => update("amount", cents / 100)}
+              label="Valor *"
+              error={errors.amount}
+            />
           </div>
 
           <div>
