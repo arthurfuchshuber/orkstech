@@ -2272,6 +2272,7 @@ export type Database = {
           pluggy_transaction_id: string
           reconciled: boolean
           reconciled_payable_id: string | null
+          reconciled_receivable_id: string | null
           type: string
           updated_at: string
           user_id: string
@@ -2290,6 +2291,7 @@ export type Database = {
           pluggy_transaction_id: string
           reconciled?: boolean
           reconciled_payable_id?: string | null
+          reconciled_receivable_id?: string | null
           type?: string
           updated_at?: string
           user_id: string
@@ -2308,6 +2310,7 @@ export type Database = {
           pluggy_transaction_id?: string
           reconciled?: boolean
           reconciled_payable_id?: string | null
+          reconciled_receivable_id?: string | null
           type?: string
           updated_at?: string
           user_id?: string
@@ -2325,6 +2328,13 @@ export type Database = {
             columns: ["reconciled_payable_id"]
             isOneToOne: false
             referencedRelation: "accounts_payable"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pluggy_transactions_reconciled_receivable_id_fkey"
+            columns: ["reconciled_receivable_id"]
+            isOneToOne: false
+            referencedRelation: "accounts_receivable"
             referencedColumns: ["id"]
           },
         ]
@@ -2637,26 +2647,45 @@ export type Database = {
           source_table: string
         }[]
       }
-      cashflow_consolidated: {
-        Args: {
-          p_empresa_id: string
-          p_end: string
-          p_start: string
-          p_user_id: string
-        }
-        Returns: {
-          amount: number
-          category: string
-          description: string
-          direction: string
-          document_number: string
-          movement_date: string
-          origin: string
-          source_id: string
-          source_table: string
-          status: string
-        }[]
-      }
+      cashflow_consolidated:
+        | {
+            Args: {
+              p_empresa_id: string
+              p_end: string
+              p_start: string
+              p_user_id: string
+            }
+            Returns: {
+              amount: number
+              category: string
+              description: string
+              direction: string
+              document_number: string
+              movement_date: string
+              origin: string
+              source_id: string
+              source_table: string
+              status: string
+            }[]
+          }
+        | {
+            Args: { p_end: string; p_start: string; p_user_id: string }
+            Returns: {
+              amount: number
+              bank_account_id: string
+              bank_account_name: string
+              category_id: string
+              category_name: string
+              description: string
+              direction: string
+              document_number: string
+              movement_date: string
+              origin: string
+              source: string
+              source_id: string
+              status: string
+            }[]
+          }
       cashflow_generate_hash: {
         Args: {
           p_amount: number
