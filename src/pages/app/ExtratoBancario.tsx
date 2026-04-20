@@ -461,10 +461,11 @@ export default function ExtratoBancario() {
     return false;
   });
 
+  // Saldo de investimentos REAIS da conta (somente totalInvestments).
+  // automaticallyInvestedBalance NÃO é somado: já está incluso no `balance` da conta corrente
+  // (ex.: caixinha Nubank). Somá-lo causaria duplicidade no card de saldo total.
   const getStoredBalance = (account: BankAccount) => {
-    const investments = account.bank_data?.totalInvestments ?? 0;
-    const autoInvested = account.bank_data?.automaticallyInvestedBalance ?? 0;
-    return investments > 0 ? investments : autoInvested;
+    return Number(account.bank_data?.totalInvestments ?? 0);
   };
 
   const getAccountTotalBalance = (account: BankAccount) =>
