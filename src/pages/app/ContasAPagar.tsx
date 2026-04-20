@@ -1245,6 +1245,16 @@ export default function ContasAPagar() {
                 </DropdownMenuContent>
               </DropdownMenu>
 
+              {/* Bulk: Cancelar */}
+              <Button size="sm" variant="outline" className="rounded-lg text-xs gap-1" onClick={() => setBulkCancelOpen(true)}>
+                <Ban className="w-3 h-3" /> Cancelar
+              </Button>
+
+              {/* Bulk: Excluir */}
+              <Button size="sm" variant="outline" className="rounded-lg text-xs gap-1 text-destructive hover:text-destructive border-destructive/30" onClick={() => setBulkDeleteOpen(true)}>
+                <Trash2 className="w-3 h-3" /> Excluir
+              </Button>
+
               <Button size="sm" variant="ghost" className="rounded-lg text-xs" onClick={() => setSelectedIds(new Set())}>
                 Limpar seleção
               </Button>
