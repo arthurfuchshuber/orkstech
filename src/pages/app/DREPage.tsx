@@ -218,7 +218,7 @@ export default function DREPage() {
           </div>
 
           {/* KPI Cards */}
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <div className={cn("grid gap-3 sm:grid-cols-2", kpis.length === 3 ? "lg:grid-cols-3" : kpis.length === 2 ? "lg:grid-cols-2" : "lg:grid-cols-4")}>
             {kpis.map((k) => {
               const amount = k.line?.amount ?? 0;
               const prev = k.line?.previousAmount ?? 0;
