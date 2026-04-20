@@ -32,7 +32,7 @@ export function PluggyLastSyncBadge({ lastSyncAt, status, className }: Props) {
     return (
       <span
         className={cn(
-          "inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-2 py-0.5 text-[10px] font-medium text-amber-600 dark:text-amber-400",
+          "inline-flex items-center gap-1 rounded-full bg-warning/10 px-2 py-0.5 text-[10px] font-medium text-warning",
           className
         )}
         title="A conexão expirou ou precisa de nova autenticação. Os dados exibidos são os últimos sincronizados."
