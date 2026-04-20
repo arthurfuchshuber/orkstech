@@ -755,6 +755,36 @@ export default function ContasAReceber() {
     toast.success(`${ids.length} conta(s) atualizada(s)!`);
   };
 
+  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
+  const [bulkCancelOpen, setBulkCancelOpen] = useState(false);
+
+  const handleBulkDelete = async () => {
+    const ids = Array.from(selectedIds);
+    if (ids.length === 0) return;
+    let ok = 0, fail = 0;
+    for (const id of ids) {
+      try { await deleteAccountReceivable(id); ok++; } catch { fail++; }
+    }
+    setSelectedIds(new Set());
+    setBulkDeleteOpen(false);
+    await refreshQueries(queryClient, [["accounts-receivable"], ["accounts-receivable-counts"]]);
+    if (fail === 0) toast.success(`${ok} conta(s) excluída(s)`);
+    else toast.warning(`${ok} excluída(s), ${fail} falharam`);
+  };
+
+  const handleBulkCancel = async () => {
+    const ids = Array.from(selectedIds);
+    if (ids.length === 0) return;
+    for (const id of ids) {
+      await updateAccountReceivable(id, { status: "cancelled", payment_date: null });
+    }
+    setSelectedIds(new Set());
+    setBulkCancelOpen(false);
+    await refreshQueries(queryClient, [["accounts-receivable"], ["accounts-receivable-counts"]]);
+    toast.success(`${ids.length} conta(s) cancelada(s)`);
+  };
+
+
   const toggleSelectAll = () => {
     if (selectedIds.size === filtered.length) setSelectedIds(new Set());
     else setSelectedIds(new Set(filtered.map((p: any) => p.id)));
