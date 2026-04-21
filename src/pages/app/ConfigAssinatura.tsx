@@ -302,8 +302,6 @@ export default function ConfigAssinatura() {
               )}
             </div>
           )}
-            </div>
-          )}
 
           {/* ========= ABA: MÉTODO DE PAGAMENTO ========= */}
           {activeTab === "pagamento" && !hasSubscription && (
