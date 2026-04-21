@@ -59,6 +59,7 @@ export default function Landing() {
           </div>
           <div className="hidden md:flex items-center gap-8">
             <a href="#features" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Recursos</a>
+            <a href="#pricing" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Planos</a>
             <a href="#stats" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Métricas</a>
             <a href="#cta" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Começar</a>
           </div>
