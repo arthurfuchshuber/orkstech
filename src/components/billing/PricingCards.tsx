@@ -133,6 +133,25 @@ export function PricingCards() {
               : 0;
           const isLoading = loadingPriceId === price?.id;
 
+          // CTA dinâmico para quem já tem assinatura
+          const hasAnyPlan = !!currentPlan;
+          const currentPlanRank = currentPlan
+            ? plans.findIndex((p) => p.key === currentPlan)
+            : -1;
+          const thisPlanRank = plans.findIndex((p) => p.key === plan.key);
+          const isUpgrade = hasAnyPlan && !isCurrent && thisPlanRank > currentPlanRank;
+          const isDowngrade = hasAnyPlan && !isCurrent && thisPlanRank < currentPlanRank;
+
+          const ctaLabel = isCurrent
+            ? "Plano selecionado"
+            : !hasAnyPlan
+            ? "Começar teste grátis"
+            : isUpgrade
+            ? "Fazer upgrade"
+            : isDowngrade
+            ? "Mudar para este plano"
+            : "Migrar para este plano";
+
           return (
             <Card
               key={plan.key}
@@ -236,13 +255,13 @@ export function PricingCards() {
                 ) : isCurrent ? (
                   <>
                     <Check className="w-3.5 h-3.5 mr-1.5" />
-                    Plano selecionado
+                    {ctaLabel}
                   </>
                 ) : (
-                  "Começar teste grátis"
+                  ctaLabel
                 )}
               </Button>
-              {!isCurrent && price && (
+              {!isCurrent && price && !hasAnyPlan && (
                 <p className="text-[10px] text-center text-muted-foreground mt-2">
                   7 dias grátis • Cobrança após o período de teste
                 </p>

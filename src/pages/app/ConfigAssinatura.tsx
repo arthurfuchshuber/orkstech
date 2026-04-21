@@ -171,49 +171,49 @@ export default function ConfigAssinatura() {
             <div className="space-y-5">
               {/* Status atual (apenas se já tem assinatura) */}
               {hasSubscription && (
-                <Card className="p-5">
-                  <div className="flex items-start justify-between gap-4 mb-4">
-                    <div className="flex items-start gap-3">
-                      <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                        <Sparkles className="w-5 h-5 text-primary" />
+                <Card className="px-4 py-3">
+                  <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-md bg-primary/10 flex items-center justify-center">
+                        <Sparkles className="w-4 h-4 text-primary" />
                       </div>
-                      <div>
-                        <p className="text-xs text-muted-foreground uppercase tracking-wide">Plano atual</p>
-                        <p className="text-lg font-bold text-foreground">{planLabel ?? "—"}</p>
+                      <div className="leading-tight">
+                        <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Plano atual</p>
+                        <p className="text-sm font-semibold text-foreground">{planLabel ?? "—"}</p>
                       </div>
                     </div>
-                    {statusInfo && (
-                      <Badge variant="outline" className={`gap-1 ${statusInfo.tone}`}>
-                        <statusInfo.icon className="w-3 h-3" />
-                        {statusInfo.label}
-                      </Badge>
-                    )}
-                  </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-3 border-t border-border/40">
                     {isTrialing && trialEnd && (
-                      <div className="flex items-center gap-2">
-                        <Clock className="w-4 h-4 text-amber-500" />
+                      <div className="flex items-center gap-1.5 leading-tight">
+                        <Clock className="w-3.5 h-3.5 text-amber-500" />
                         <div>
                           <p className="text-[10px] text-muted-foreground uppercase">Trial termina</p>
-                          <p className="text-sm font-medium text-foreground">
+                          <p className="text-xs font-medium text-foreground">
                             {new Date(trialEnd).toLocaleDateString("pt-BR")}
                           </p>
                         </div>
                       </div>
                     )}
+
                     {subscriptionEnd && (
-                      <div className="flex items-center gap-2">
-                        <Calendar className="w-4 h-4 text-muted-foreground" />
+                      <div className="flex items-center gap-1.5 leading-tight">
+                        <Calendar className="w-3.5 h-3.5 text-muted-foreground" />
                         <div>
                           <p className="text-[10px] text-muted-foreground uppercase">
                             {cancelAtPeriodEnd ? "Cancela em" : "Próxima cobrança"}
                           </p>
-                          <p className="text-sm font-medium text-foreground">
+                          <p className="text-xs font-medium text-foreground">
                             {new Date(subscriptionEnd).toLocaleDateString("pt-BR")}
                           </p>
                         </div>
                       </div>
+                    )}
+
+                    {statusInfo && (
+                      <Badge variant="outline" className={`gap-1 ml-auto ${statusInfo.tone}`}>
+                        <statusInfo.icon className="w-3 h-3" />
+                        {statusInfo.label}
+                      </Badge>
                     )}
                   </div>
                 </Card>
