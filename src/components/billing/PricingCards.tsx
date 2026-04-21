@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Check, Loader2, Sparkles, Zap, Building2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -6,9 +7,15 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { usePlans, type BillingInterval } from "@/hooks/usePlans";
 import { useSubscription } from "@/hooks/useSubscription";
+import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+
+interface PricingCardsProps {
+  /** Quando true, força o modo público: CTAs redirecionam para /register em vez de checkout. */
+  publicMode?: boolean;
+}
 
 const PLAN_VISUALS: Record<string, { icon: any; tagline: string; highlight?: boolean; badge?: string }> = {
   starter: {
