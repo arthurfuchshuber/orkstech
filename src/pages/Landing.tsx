@@ -149,6 +149,26 @@ export default function Landing() {
         </div>
       </section>
 
+      {/* Pricing */}
+      <section id="pricing" className="py-24 border-t border-border/40 relative overflow-hidden">
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full bg-primary/[0.03] blur-3xl pointer-events-none" />
+        <div className="max-w-6xl mx-auto px-6 relative z-10">
+          <div className="text-center mb-12">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-primary/20 bg-primary/5 text-xs text-primary mb-4">
+              <Sparkles className="w-3 h-3" />
+              Planos & Preços
+            </div>
+            <h2 className="text-3xl md:text-4xl font-bold mb-4 text-foreground">
+              Escolha o plano <span className="gradient-text">ideal</span> para sua operação
+            </h2>
+            <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
+              Comece com 7 dias grátis. Sem cartão de crédito durante o teste. Cancele quando quiser.
+            </p>
+          </div>
+          <PricingCards publicMode />
+        </div>
+      </section>
+
       {/* CTA */}
       <section id="cta" className="py-24">
         <div className="max-w-3xl mx-auto px-6 text-center">
