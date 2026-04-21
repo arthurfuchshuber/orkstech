@@ -133,6 +133,25 @@ export function PricingCards() {
               : 0;
           const isLoading = loadingPriceId === price?.id;
 
+          // CTA dinâmico para quem já tem assinatura
+          const hasAnyPlan = !!currentPlan;
+          const currentPlanRank = currentPlan
+            ? plans.findIndex((p) => p.key === currentPlan)
+            : -1;
+          const thisPlanRank = plans.findIndex((p) => p.key === plan.key);
+          const isUpgrade = hasAnyPlan && !isCurrent && thisPlanRank > currentPlanRank;
+          const isDowngrade = hasAnyPlan && !isCurrent && thisPlanRank < currentPlanRank;
+
+          const ctaLabel = isCurrent
+            ? "Plano selecionado"
+            : !hasAnyPlan
+            ? "Começar teste grátis"
+            : isUpgrade
+            ? "Fazer upgrade"
+            : isDowngrade
+            ? "Mudar para este plano"
+            : "Migrar para este plano";
+
           return (
             <Card
               key={plan.key}
