@@ -52,6 +52,26 @@ serve(async (req) => {
 
     const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
 
+    // Resolve trial dinamicamente: 1) Price.recurring.trial_period_days
+    // 2) Product.metadata.trial_period_days  3) fallback 7 dias
+    let trialPeriodDays = 7;
+    try {
+      const price = await stripe.prices.retrieve(priceId, { expand: ["product"] });
+      const priceTrial = price.recurring?.trial_period_days;
+      const product = typeof price.product === "object" ? price.product as Stripe.Product : null;
+      const productTrialMeta = product?.metadata?.trial_period_days;
+      const productTrial = productTrialMeta ? parseInt(productTrialMeta, 10) : NaN;
+
+      if (typeof priceTrial === "number" && priceTrial > 0) {
+        trialPeriodDays = priceTrial;
+      } else if (!isNaN(productTrial) && productTrial > 0) {
+        trialPeriodDays = productTrial;
+      }
+      logStep("Trial period resolved", { trialPeriodDays, source: priceTrial ? "price" : !isNaN(productTrial) ? "product_metadata" : "fallback" });
+    } catch (e) {
+      logStep("Failed to resolve trial period, using default", { error: String(e) });
+    }
+
     const customers = await stripe.customers.list({ email: user.email, limit: 1 });
     let customerId: string | undefined;
     if (customers.data.length > 0) {
@@ -67,7 +87,7 @@ serve(async (req) => {
       line_items: [{ price: priceId, quantity: 1 }],
       mode: "subscription",
       subscription_data: {
-        trial_period_days: 7,
+        trial_period_days: trialPeriodDays,
       },
       allow_promotion_codes: true,
       success_url: `${origin}/app/config/planos?success=true`,

@@ -131,7 +131,7 @@ export function PricingCards({ publicMode = false }: PricingCardsProps) {
           </TabsList>
         </Tabs>
         <p className="text-[11px] text-muted-foreground">
-          7 dias grátis em qualquer plano. Cancele quando quiser.
+          {plans[0]?.trial_days ?? 7} dias grátis em qualquer plano. Cancele quando quiser.
         </p>
       </div>
 
@@ -280,7 +280,7 @@ export function PricingCards({ publicMode = false }: PricingCardsProps) {
               </Button>
               {!isCurrent && price && !hasAnyPlan && (
                 <p className="text-[10px] text-center text-muted-foreground mt-2">
-                  7 dias grátis • Cobrança após o período de teste
+                  {plan.trial_days} dias grátis • Cobrança após o período de teste
                 </p>
               )}
             </Card>

@@ -81,6 +81,18 @@ serve(async (req) => {
 
       const product = productPrices.find((p) => typeof p.product === "object")?.product as any;
 
+      // Trial dinâmico: prioriza Price.recurring.trial_period_days do plano mensal,
+      // depois product.metadata.trial_period_days, e por fim fallback de 7 dias
+      const priceTrial = monthly?.recurring?.trial_period_days
+        ?? semiannual?.recurring?.trial_period_days
+        ?? annual?.recurring?.trial_period_days;
+      const metaTrial = product?.metadata?.trial_period_days
+        ? parseInt(product.metadata.trial_period_days, 10)
+        : NaN;
+      const trialDays = (typeof priceTrial === "number" && priceTrial > 0)
+        ? priceTrial
+        : (!isNaN(metaTrial) && metaTrial > 0 ? metaTrial : 7);
+
       return {
         key: meta.key,
         order: meta.order,
@@ -88,6 +100,7 @@ serve(async (req) => {
         name: product?.name || meta.key,
         description: product?.description || "",
         features: meta.features,
+        trial_days: trialDays,
         prices: {
           monthly: monthly ? { id: monthly.id, amount: monthly.unit_amount } : null,
           semiannual: semiannual ? { id: semiannual.id, amount: semiannual.unit_amount } : null,
