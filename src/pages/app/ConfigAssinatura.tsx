@@ -438,13 +438,7 @@ export default function ConfigAssinatura() {
                   </div>
                 </Card>
               )}
-              <Card className="p-5">
-                <div
-                  dangerouslySetInnerHTML={{
-                    __html: `<stripe-pricing-table pricing-table-id="prctbl_1TOiRGJ633HWAlBjrvIAqj6L" publishable-key="pk_live_51TFifCJ633HWAlBjxKEAWCnxkRHoumxoRORhtAFO0MdR46Pg4OXsSqlcI1aavgo9seGo3Cpu1D1NNp9CQtq7HvM400z5wX4IVO"></stripe-pricing-table>`,
-                  }}
-                />
-              </Card>
+              <PricingCards />
             </div>
           )}
         </>
