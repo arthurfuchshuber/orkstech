@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Check, Loader2, Sparkles, Zap, Building2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -6,9 +7,15 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { usePlans, type BillingInterval } from "@/hooks/usePlans";
 import { useSubscription } from "@/hooks/useSubscription";
+import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+
+interface PricingCardsProps {
+  /** Quando true, força o modo público: CTAs redirecionam para /register em vez de checkout. */
+  publicMode?: boolean;
+}
 
 const PLAN_VISUALS: Record<string, { icon: any; tagline: string; highlight?: boolean; badge?: string }> = {
   starter: {
@@ -48,13 +55,23 @@ const INTERVAL_SUFFIX: Record<BillingInterval, string> = {
 const fmtBRL = (cents: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 0 }).format(cents / 100);
 
-export function PricingCards() {
+export function PricingCards({ publicMode = false }: PricingCardsProps) {
   const { data: plans, isLoading } = usePlans();
-  const { currentPlan, subscribed, isTrialing } = useSubscription();
+  const { user } = useAuth();
+  const { currentPlan } = useSubscription();
+  const navigate = useNavigate();
   const [interval, setInterval] = useState<BillingInterval>("monthly");
   const [loadingPriceId, setLoadingPriceId] = useState<string | null>(null);
 
+  // Em modo público (landing) ou sem usuário logado, sempre tratar como "sem plano"
+  const effectiveCurrentPlan = publicMode || !user ? null : currentPlan;
+
   const handleSubscribe = async (priceId: string) => {
+    // Sem usuário ou modo público: redireciona para cadastro carregando o priceId
+    if (publicMode || !user) {
+      navigate(`/register?priceId=${encodeURIComponent(priceId)}`);
+      return;
+    }
     setLoadingPriceId(priceId);
     try {
       const { data, error } = await supabase.functions.invoke("create-checkout", {
@@ -123,7 +140,7 @@ export function PricingCards() {
         {plans.map((plan) => {
           const visuals = PLAN_VISUALS[plan.key] ?? { icon: Sparkles, tagline: "" };
           const Icon = visuals.icon;
-          const isCurrent = currentPlan === plan.key;
+          const isCurrent = effectiveCurrentPlan === plan.key;
           const price = plan.prices[interval];
           const monthlyPrice = monthlyRef(plan.product_id);
           const effectivePerMonth = price ? Math.round(price.amount / INTERVAL_DIVISOR[interval]) : null;
@@ -134,9 +151,9 @@ export function PricingCards() {
           const isLoading = loadingPriceId === price?.id;
 
           // CTA dinâmico para quem já tem assinatura
-          const hasAnyPlan = !!currentPlan;
-          const currentPlanRank = currentPlan
-            ? plans.findIndex((p) => p.key === currentPlan)
+          const hasAnyPlan = !!effectiveCurrentPlan;
+          const currentPlanRank = effectiveCurrentPlan
+            ? plans.findIndex((p) => p.key === effectiveCurrentPlan)
             : -1;
           const thisPlanRank = plans.findIndex((p) => p.key === plan.key);
           const isUpgrade = hasAnyPlan && !isCurrent && thisPlanRank > currentPlanRank;
