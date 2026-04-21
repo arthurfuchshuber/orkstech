@@ -140,7 +140,7 @@ export function PricingCards({ publicMode = false }: PricingCardsProps) {
         {plans.map((plan) => {
           const visuals = PLAN_VISUALS[plan.key] ?? { icon: Sparkles, tagline: "" };
           const Icon = visuals.icon;
-          const isCurrent = currentPlan === plan.key;
+          const isCurrent = effectiveCurrentPlan === plan.key;
           const price = plan.prices[interval];
           const monthlyPrice = monthlyRef(plan.product_id);
           const effectivePerMonth = price ? Math.round(price.amount / INTERVAL_DIVISOR[interval]) : null;
@@ -151,9 +151,9 @@ export function PricingCards({ publicMode = false }: PricingCardsProps) {
           const isLoading = loadingPriceId === price?.id;
 
           // CTA dinâmico para quem já tem assinatura
-          const hasAnyPlan = !!currentPlan;
-          const currentPlanRank = currentPlan
-            ? plans.findIndex((p) => p.key === currentPlan)
+          const hasAnyPlan = !!effectiveCurrentPlan;
+          const currentPlanRank = effectiveCurrentPlan
+            ? plans.findIndex((p) => p.key === effectiveCurrentPlan)
             : -1;
           const thisPlanRank = plans.findIndex((p) => p.key === plan.key);
           const isUpgrade = hasAnyPlan && !isCurrent && thisPlanRank > currentPlanRank;
