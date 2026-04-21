@@ -81,6 +81,13 @@ export default function Register() {
             {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
             Criar conta
           </Button>
+
+          <p className="text-[11px] text-muted-foreground text-center leading-relaxed">
+            Ao criar sua conta, você concorda com nossos{" "}
+            <Link to="/termos" target="_blank" className="text-primary hover:underline">Termos de Uso</Link>
+            {" "}e{" "}
+            <Link to="/privacidade" target="_blank" className="text-primary hover:underline">Política de Privacidade</Link>.
+          </p>
         </form>
 
         <p className="text-center text-sm text-muted-foreground">

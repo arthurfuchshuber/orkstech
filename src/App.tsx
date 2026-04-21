@@ -12,6 +12,8 @@ import Login from "./pages/Login";
 import Register from "./pages/Register";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
+import Termos from "./pages/Termos";
+import Privacidade from "./pages/Privacidade";
 import AppLayout from "./components/AppLayout";
 import Onboarding from "./pages/app/Onboarding";
 import Clientes from "./pages/app/Clientes";
@@ -54,6 +56,8 @@ const App = () => (
               <Route path="/register" element={<Register />} />
               <Route path="/forgot-password" element={<ForgotPassword />} />
               <Route path="/reset-password" element={<ResetPassword />} />
+              <Route path="/termos" element={<Termos />} />
+              <Route path="/privacidade" element={<Privacidade />} />
               <Route path="/app/onboarding" element={<OnboardingRoute><Onboarding /></OnboardingRoute>} />
               <Route path="/app" element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
                 <Route index element={<Navigate to="/app/financas/dashboard" replace />} />
