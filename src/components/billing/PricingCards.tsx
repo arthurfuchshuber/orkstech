@@ -280,7 +280,7 @@ export function PricingCards({ publicMode = false }: PricingCardsProps) {
               </Button>
               {!isCurrent && price && !hasAnyPlan && (
                 <p className="text-[10px] text-center text-muted-foreground mt-2">
-                  7 dias grátis • Cobrança após o período de teste
+                  {plan.trial_days} dias grátis • Cobrança após o período de teste
                 </p>
               )}
             </Card>
