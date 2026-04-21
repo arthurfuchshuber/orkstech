@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import {
   CreditCard, ExternalLink, RefreshCw, Sparkles, Clock, AlertTriangle,
-  CheckCircle2, Calendar, Receipt, Download, FileText, LayoutGrid,
+  CheckCircle2, Calendar, Receipt, Download, FileText,
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
