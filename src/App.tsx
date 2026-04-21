@@ -12,6 +12,8 @@ import Login from "./pages/Login";
 import Register from "./pages/Register";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
+import Termos from "./pages/Termos";
+import Privacidade from "./pages/Privacidade";
 import AppLayout from "./components/AppLayout";
 import Onboarding from "./pages/app/Onboarding";
 import Clientes from "./pages/app/Clientes";
