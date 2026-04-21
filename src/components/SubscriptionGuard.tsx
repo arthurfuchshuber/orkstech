@@ -45,8 +45,10 @@ export function SubscriptionGuard({ children }: { children: ReactNode }) {
   const location = useLocation();
   const [portalLoading, setPortalLoading] = useState(false);
 
-  // Não bloqueia: super admin, carregando, na própria página de planos, ou no onboarding
-  const isOnPlansPage = location.pathname === "/app/config/planos";
+  // Não bloqueia: super admin, carregando, na própria página de planos/assinatura, ou no onboarding
+  const isOnPlansPage =
+    location.pathname === "/app/config/planos" ||
+    location.pathname === "/app/config/assinatura";
   const isOnOnboarding = location.pathname === "/app/onboarding";
   const shouldBlock =
     !isSuperAdmin &&
@@ -71,7 +73,7 @@ export function SubscriptionGuard({ children }: { children: ReactNode }) {
         setPortalLoading(false);
       }
     } else {
-      navigate("/app/config/planos");
+      navigate("/app/config/assinatura");
     }
   };
 

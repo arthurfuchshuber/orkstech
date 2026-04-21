@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import {
   CreditCard, ExternalLink, RefreshCw, Sparkles, Clock, AlertTriangle,
-  CheckCircle2, Calendar, Receipt, ArrowUpRight, Download, FileText, LayoutGrid,
+  CheckCircle2, Calendar, Receipt, Download, FileText, LayoutGrid,
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -12,7 +12,6 @@ import { useSubscription, PLANS } from "@/hooks/useSubscription";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { useNavigate } from "react-router-dom";
 import { PricingCards } from "@/components/billing/PricingCards";
 
 const STATUS_LABELS: Record<string, { label: string; tone: string; icon: any }> = {
@@ -57,30 +56,31 @@ interface PaymentMethodCard {
 const formatCurrency = (cents: number, currency = "brl") =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: currency.toUpperCase() }).format(cents / 100);
 
+type TabId = "plano" | "planos" | "pagamento" | "faturas";
+
 export default function ConfigAssinatura() {
-  const navigate = useNavigate();
   const {
     subscribed, currentPlan, status, subscriptionEnd, isLoading, refetch,
     isTrialing, trialEnd, cancelAtPeriodEnd,
   } = useSubscription();
   const [loadingPortal, setLoadingPortal] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  const [activeTab, setActiveTab] = useState<"plano" | "faturas" | "planos">("plano");
+  const [activeTab, setActiveTab] = useState<TabId>("plano");
 
-  useEffect(() => { document.title = "Assinatura | NexusOS"; }, []);
+  useEffect(() => { document.title = "Planos e Pagamentos | NexusOS"; }, []);
 
-  // Removido: script da Stripe Pricing Table — agora usamos PricingCards nativo
+  const hasSubscription = subscribed || !!status;
 
-  // Sem assinatura → abre direto na aba "Planos"
+  // Sem assinatura → abre direto na aba "Planos disponíveis"
   useEffect(() => {
-    if (!isLoading && !subscribed && !status) {
+    if (!isLoading && !hasSubscription) {
       setActiveTab("planos");
     }
-  }, [isLoading, subscribed, status]);
+  }, [isLoading, hasSubscription]);
 
   const { data: billing, isLoading: billingLoading, refetch: refetchBilling } = useQuery({
     queryKey: ["stripe-invoices"],
-    enabled: !!subscribed || !!status,
+    enabled: hasSubscription,
     queryFn: async () => {
       const { data, error } = await supabase.functions.invoke("list-invoices");
       if (error) throw error;
@@ -117,12 +117,12 @@ export default function ConfigAssinatura() {
   const planLabel = currentPlan ? PLANS[currentPlan].name : null;
   const statusInfo = status ? STATUS_LABELS[status] : null;
 
-  const hasSubscription = subscribed || !!status;
   const tabs = hasSubscription
     ? [
         { id: "plano", label: "Plano", icon: LayoutGrid },
-        { id: "faturas", label: "Extrato de pagamentos", icon: Receipt, count: billing?.invoices?.length },
         { id: "planos", label: "Planos disponíveis", icon: Sparkles },
+        { id: "pagamento", label: "Método de pagamento", icon: CreditCard },
+        { id: "faturas", label: "Faturas", icon: Receipt, count: billing?.invoices?.length },
       ]
     : [
         { id: "planos", label: "Planos disponíveis", icon: Sparkles },
@@ -133,21 +133,23 @@ export default function ConfigAssinatura() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold text-foreground tracking-tight">Assinatura</h1>
+          <h1 className="text-xl font-bold text-foreground tracking-tight">Planos e Pagamentos</h1>
           <p className="text-sm text-muted-foreground mt-0.5">
             Gerencie seu plano, método de pagamento e histórico de faturas
           </p>
         </div>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={handleForceRefresh}
-          disabled={refreshing || isLoading}
-          className="gap-1.5"
-        >
-          <RefreshCw className={`w-3.5 h-3.5 ${refreshing || isLoading ? "animate-spin" : ""}`} />
-          Sincronizar
-        </Button>
+        {hasSubscription && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleForceRefresh}
+            disabled={refreshing || isLoading}
+            className="gap-1.5"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${refreshing || isLoading ? "animate-spin" : ""}`} />
+            Sincronizar
+          </Button>
+        )}
       </div>
 
       {isLoading ? (
@@ -157,11 +159,11 @@ export default function ConfigAssinatura() {
         </div>
       ) : (
         <>
-          <ModuleTabs tabs={tabs} activeTab={activeTab} onTabChange={(id) => setActiveTab(id as any)} />
+          <ModuleTabs tabs={tabs} activeTab={activeTab} onTabChange={(id) => setActiveTab(id as TabId)} />
 
+          {/* ========= ABA: PLANO ========= */}
           {activeTab === "plano" && hasSubscription && (
             <div className="space-y-4">
-              {/* Card principal: Plano ativo */}
               <Card className="p-5">
                 <div className="flex items-start justify-between gap-4 mb-4">
                   <div className="flex items-start gap-3">
@@ -209,7 +211,6 @@ export default function ConfigAssinatura() {
                 </div>
               </Card>
 
-              {/* Avisos contextuais */}
               {cancelAtPeriodEnd && (
                 <Card className="p-4 border-amber-500/30 bg-amber-500/[0.05]">
                   <div className="flex items-start gap-3">
@@ -252,28 +253,6 @@ export default function ConfigAssinatura() {
                 </Card>
               )}
 
-              {/* Ação principal: Trocar de plano */}
-              <Card className="p-5">
-                <div className="flex items-center justify-between gap-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                      <ArrowUpRight className="w-5 h-5 text-primary" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-semibold text-foreground">Trocar de plano</p>
-                      <p className="text-xs text-muted-foreground">
-                        Faça upgrade ou downgrade. O valor é ajustado proporcionalmente (pro-rata).
-                      </p>
-                    </div>
-                  </div>
-                  <Button variant="outline" size="sm" onClick={() => navigate("/app/config/planos")} className="gap-1.5">
-                    <Sparkles className="w-3.5 h-3.5" />
-                    Ver planos
-                  </Button>
-                </div>
-              </Card>
-
-              {/* Cancelar */}
               {subscribed && !cancelAtPeriodEnd && (
                 <Card className="p-4 border-border/40">
                   <div className="flex items-center justify-between">
@@ -298,9 +277,29 @@ export default function ConfigAssinatura() {
             </div>
           )}
 
-          {activeTab === "faturas" && hasSubscription && (
+          {/* ========= ABA: PLANOS DISPONÍVEIS ========= */}
+          {activeTab === "planos" && (
             <div className="space-y-4">
-              {/* Método de pagamento */}
+              {!hasSubscription && (
+                <Card className="p-4 border-primary/30 bg-primary/[0.05]">
+                  <div className="flex items-start gap-3">
+                    <Sparkles className="w-5 h-5 text-primary mt-0.5" />
+                    <div>
+                      <p className="text-sm font-medium text-foreground">Escolha seu plano para começar</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        Selecione abaixo o plano e o ciclo de cobrança. O acesso é liberado automaticamente após o pagamento.
+                      </p>
+                    </div>
+                  </div>
+                </Card>
+              )}
+              <PricingCards />
+            </div>
+          )}
+
+          {/* ========= ABA: MÉTODO DE PAGAMENTO ========= */}
+          {activeTab === "pagamento" && hasSubscription && (
+            <div className="space-y-4">
               <Card className="p-5">
                 <div className="flex items-center justify-between gap-4">
                   <div className="flex items-center gap-3">
@@ -308,7 +307,7 @@ export default function ConfigAssinatura() {
                       <CreditCard className="w-5 h-5 text-primary" />
                     </div>
                     <div>
-                      <p className="text-xs text-muted-foreground uppercase tracking-wide">Método de pagamento</p>
+                      <p className="text-xs text-muted-foreground uppercase tracking-wide">Cartão cadastrado</p>
                       {billingLoading ? (
                         <Skeleton className="h-5 w-40 mt-1" />
                       ) : billing?.payment_method ? (
@@ -337,109 +336,86 @@ export default function ConfigAssinatura() {
                 </div>
               </Card>
 
-              {/* Lista de faturas */}
-              <Card className="overflow-hidden">
-                <div className="p-4 border-b border-border/40 flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Receipt className="w-4 h-4 text-primary" />
-                    <h3 className="text-sm font-semibold text-foreground">Histórico de faturas</h3>
-                  </div>
-                  <Button variant="ghost" size="sm" onClick={() => refetchBilling()} className="gap-1.5 h-7">
-                    <RefreshCw className={`w-3 h-3 ${billingLoading ? "animate-spin" : ""}`} />
-                    Atualizar
-                  </Button>
-                </div>
-
-                {billingLoading ? (
-                  <div className="p-4 space-y-2">
-                    <Skeleton className="h-12 w-full" />
-                    <Skeleton className="h-12 w-full" />
-                    <Skeleton className="h-12 w-full" />
-                  </div>
-                ) : !billing?.invoices?.length ? (
-                  <div className="p-8 text-center">
-                    <FileText className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
-                    <p className="text-sm text-muted-foreground">Nenhuma fatura emitida ainda</p>
-                  </div>
-                ) : (
-                  <div className="divide-y divide-border/40">
-                    {billing.invoices.map((inv) => {
-                      const statusBadge = INVOICE_STATUS[inv.status] ?? { label: inv.status, tone: "text-muted-foreground bg-muted/30 border-border" };
-                      const amount = inv.status === "paid" ? inv.amount_paid : inv.amount_due;
-                      return (
-                        <div key={inv.id} className="px-4 py-3 flex items-center gap-4 hover:bg-muted/30 transition-colors">
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2">
-                              <p className="text-sm font-medium text-foreground truncate">
-                                {inv.number ?? inv.id.slice(-8).toUpperCase()}
-                              </p>
-                              <Badge variant="outline" className={`text-[10px] px-1.5 py-0 h-4 ${statusBadge.tone}`}>
-                                {statusBadge.label}
-                              </Badge>
-                            </div>
-                            <p className="text-xs text-muted-foreground truncate mt-0.5">
-                              {inv.description ?? "Assinatura"} • {new Date(inv.created * 1000).toLocaleDateString("pt-BR")}
-                            </p>
-                          </div>
-                          <div className="text-right">
-                            <p className="text-sm font-semibold text-foreground tabular-nums">
-                              {formatCurrency(amount, inv.currency)}
-                            </p>
-                          </div>
-                          <div className="flex items-center gap-1">
-                            {inv.invoice_pdf && (
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                asChild
-                                className="h-8 w-8 p-0"
-                                title="Baixar PDF"
-                              >
-                                <a href={inv.invoice_pdf} target="_blank" rel="noopener noreferrer">
-                                  <Download className="w-3.5 h-3.5" />
-                                </a>
-                              </Button>
-                            )}
-                            {inv.hosted_invoice_url && (
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                asChild
-                                className="h-8 w-8 p-0"
-                                title="Ver fatura"
-                              >
-                                <a href={inv.hosted_invoice_url} target="_blank" rel="noopener noreferrer">
-                                  <ExternalLink className="w-3.5 h-3.5" />
-                                </a>
-                              </Button>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
+              <Card className="p-4 border-border/40">
+                <p className="text-xs text-muted-foreground">
+                  A atualização do cartão é feita pelo portal seguro da Stripe. Você pode trocar a forma de pagamento, alterar o endereço de cobrança e baixar comprovantes.
+                </p>
               </Card>
             </div>
           )}
 
-          {activeTab === "planos" && (
-            <div className="space-y-4">
-              {!hasSubscription && (
-                <Card className="p-4 border-primary/30 bg-primary/[0.05]">
-                  <div className="flex items-start gap-3">
-                    <Sparkles className="w-5 h-5 text-primary mt-0.5" />
-                    <div>
-                      <p className="text-sm font-medium text-foreground">Escolha seu plano para começar</p>
-                      <p className="text-xs text-muted-foreground mt-0.5">
-                        Selecione abaixo o plano e o ciclo de cobrança. O acesso é liberado automaticamente após o pagamento.
-                      </p>
-                    </div>
-                  </div>
-                </Card>
+          {/* ========= ABA: FATURAS ========= */}
+          {activeTab === "faturas" && hasSubscription && (
+            <Card className="overflow-hidden">
+              <div className="p-4 border-b border-border/40 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Receipt className="w-4 h-4 text-primary" />
+                  <h3 className="text-sm font-semibold text-foreground">Histórico de faturas</h3>
+                </div>
+                <Button variant="ghost" size="sm" onClick={() => refetchBilling()} className="gap-1.5 h-7">
+                  <RefreshCw className={`w-3 h-3 ${billingLoading ? "animate-spin" : ""}`} />
+                  Atualizar
+                </Button>
+              </div>
+
+              {billingLoading ? (
+                <div className="p-4 space-y-2">
+                  <Skeleton className="h-12 w-full" />
+                  <Skeleton className="h-12 w-full" />
+                  <Skeleton className="h-12 w-full" />
+                </div>
+              ) : !billing?.invoices?.length ? (
+                <div className="p-8 text-center">
+                  <FileText className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
+                  <p className="text-sm text-muted-foreground">Nenhuma fatura emitida ainda</p>
+                </div>
+              ) : (
+                <div className="divide-y divide-border/40">
+                  {billing.invoices.map((inv) => {
+                    const statusBadge = INVOICE_STATUS[inv.status] ?? { label: inv.status, tone: "text-muted-foreground bg-muted/30 border-border" };
+                    const amount = inv.status === "paid" ? inv.amount_paid : inv.amount_due;
+                    return (
+                      <div key={inv.id} className="px-4 py-3 flex items-center gap-4 hover:bg-muted/30 transition-colors">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <p className="text-sm font-medium text-foreground truncate">
+                              {inv.number ?? inv.id.slice(-8).toUpperCase()}
+                            </p>
+                            <Badge variant="outline" className={`text-[10px] px-1.5 py-0 h-4 ${statusBadge.tone}`}>
+                              {statusBadge.label}
+                            </Badge>
+                          </div>
+                          <p className="text-xs text-muted-foreground truncate mt-0.5">
+                            {inv.description ?? "Assinatura"} • {new Date(inv.created * 1000).toLocaleDateString("pt-BR")}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-sm font-semibold text-foreground tabular-nums">
+                            {formatCurrency(amount, inv.currency)}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          {inv.invoice_pdf && (
+                            <Button variant="ghost" size="sm" asChild className="h-8 w-8 p-0" title="Baixar PDF">
+                              <a href={inv.invoice_pdf} target="_blank" rel="noopener noreferrer">
+                                <Download className="w-3.5 h-3.5" />
+                              </a>
+                            </Button>
+                          )}
+                          {inv.hosted_invoice_url && (
+                            <Button variant="ghost" size="sm" asChild className="h-8 w-8 p-0" title="Ver fatura">
+                              <a href={inv.hosted_invoice_url} target="_blank" rel="noopener noreferrer">
+                                <ExternalLink className="w-3.5 h-3.5" />
+                              </a>
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
               )}
-              <PricingCards />
-            </div>
+            </Card>
           )}
         </>
       )}
