@@ -131,7 +131,7 @@ export function PricingCards({ publicMode = false }: PricingCardsProps) {
           </TabsList>
         </Tabs>
         <p className="text-[11px] text-muted-foreground">
-          7 dias grátis em qualquer plano. Cancele quando quiser.
+          {plans[0]?.trial_days ?? 7} dias grátis em qualquer plano. Cancele quando quiser.
         </p>
       </div>
 
