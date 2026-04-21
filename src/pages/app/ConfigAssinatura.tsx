@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import {
   CreditCard, ExternalLink, RefreshCw, Sparkles, Clock, AlertTriangle,
-  CheckCircle2, Calendar, Receipt, Download, FileText, LayoutGrid,
+  CheckCircle2, Calendar, Receipt, Download, FileText,
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -56,7 +56,7 @@ interface PaymentMethodCard {
 const formatCurrency = (cents: number, currency = "brl") =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: currency.toUpperCase() }).format(cents / 100);
 
-type TabId = "plano" | "planos" | "pagamento" | "faturas";
+type TabId = "planos" | "pagamento" | "faturas";
 
 export default function ConfigAssinatura() {
   const {
@@ -65,18 +65,16 @@ export default function ConfigAssinatura() {
   } = useSubscription();
   const [loadingPortal, setLoadingPortal] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  const [activeTab, setActiveTab] = useState<TabId>("plano");
+  const [activeTab, setActiveTab] = useState<TabId>("planos");
 
   useEffect(() => { document.title = "Planos e Pagamentos | NexusOS"; }, []);
 
   const hasSubscription = subscribed || !!status;
 
-  // Sem assinatura → abre direto na aba "Planos disponíveis"
+  // Sempre abre na aba "Planos" (que agora unifica status atual + cards)
   useEffect(() => {
-    if (!isLoading && !hasSubscription) {
-      setActiveTab("planos");
-    }
-  }, [isLoading, hasSubscription]);
+    setActiveTab("planos");
+  }, []);
 
   const { data: billing, isLoading: billingLoading, refetch: refetchBilling } = useQuery({
     queryKey: ["stripe-invoices"],
@@ -130,8 +128,7 @@ export default function ConfigAssinatura() {
   const statusInfo = status ? STATUS_LABELS[status] : null;
 
   const tabs = [
-    { id: "plano", label: "Plano", icon: LayoutGrid },
-    { id: "planos", label: "Planos disponíveis", icon: Sparkles },
+    { id: "planos", label: "Planos", icon: Sparkles },
     { id: "pagamento", label: "Método de pagamento", icon: CreditCard },
     { id: "faturas", label: "Faturas", icon: Receipt, count: billing?.invoices?.length },
   ];
@@ -169,61 +166,58 @@ export default function ConfigAssinatura() {
         <>
           <ModuleTabs tabs={tabs} activeTab={activeTab} onTabChange={(id) => setActiveTab(id as TabId)} />
 
-          {/* ========= ABA: PLANO ========= */}
-          {activeTab === "plano" && !hasSubscription && (
-            <EmptyState
-              title="Você ainda não tem um plano ativo"
-              description="Escolha um plano para liberar todos os recursos da plataforma. O acesso é ativado automaticamente após o pagamento."
-            />
-          )}
-          {activeTab === "plano" && hasSubscription && (
-            <div className="space-y-4">
-              <Card className="p-5">
-                <div className="flex items-start justify-between gap-4 mb-4">
-                  <div className="flex items-start gap-3">
-                    <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                      <Sparkles className="w-5 h-5 text-primary" />
+          {/* ========= ABA: PLANOS (status + cards unificados) ========= */}
+          {activeTab === "planos" && (
+            <div className="space-y-5">
+              {/* Status atual (apenas se já tem assinatura) */}
+              {hasSubscription && (
+                <Card className="p-5">
+                  <div className="flex items-start justify-between gap-4 mb-4">
+                    <div className="flex items-start gap-3">
+                      <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                        <Sparkles className="w-5 h-5 text-primary" />
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground uppercase tracking-wide">Plano atual</p>
+                        <p className="text-lg font-bold text-foreground">{planLabel ?? "—"}</p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground uppercase tracking-wide">Plano atual</p>
-                      <p className="text-lg font-bold text-foreground">{planLabel ?? "—"}</p>
-                    </div>
+                    {statusInfo && (
+                      <Badge variant="outline" className={`gap-1 ${statusInfo.tone}`}>
+                        <statusInfo.icon className="w-3 h-3" />
+                        {statusInfo.label}
+                      </Badge>
+                    )}
                   </div>
-                  {statusInfo && (
-                    <Badge variant="outline" className={`gap-1 ${statusInfo.tone}`}>
-                      <statusInfo.icon className="w-3 h-3" />
-                      {statusInfo.label}
-                    </Badge>
-                  )}
-                </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-3 border-t border-border/40">
-                  {isTrialing && trialEnd && (
-                    <div className="flex items-center gap-2">
-                      <Clock className="w-4 h-4 text-amber-500" />
-                      <div>
-                        <p className="text-[10px] text-muted-foreground uppercase">Trial termina</p>
-                        <p className="text-sm font-medium text-foreground">
-                          {new Date(trialEnd).toLocaleDateString("pt-BR")}
-                        </p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-3 border-t border-border/40">
+                    {isTrialing && trialEnd && (
+                      <div className="flex items-center gap-2">
+                        <Clock className="w-4 h-4 text-amber-500" />
+                        <div>
+                          <p className="text-[10px] text-muted-foreground uppercase">Trial termina</p>
+                          <p className="text-sm font-medium text-foreground">
+                            {new Date(trialEnd).toLocaleDateString("pt-BR")}
+                          </p>
+                        </div>
                       </div>
-                    </div>
-                  )}
-                  {subscriptionEnd && (
-                    <div className="flex items-center gap-2">
-                      <Calendar className="w-4 h-4 text-muted-foreground" />
-                      <div>
-                        <p className="text-[10px] text-muted-foreground uppercase">
-                          {cancelAtPeriodEnd ? "Cancela em" : "Próxima cobrança"}
-                        </p>
-                        <p className="text-sm font-medium text-foreground">
-                          {new Date(subscriptionEnd).toLocaleDateString("pt-BR")}
-                        </p>
+                    )}
+                    {subscriptionEnd && (
+                      <div className="flex items-center gap-2">
+                        <Calendar className="w-4 h-4 text-muted-foreground" />
+                        <div>
+                          <p className="text-[10px] text-muted-foreground uppercase">
+                            {cancelAtPeriodEnd ? "Cancela em" : "Próxima cobrança"}
+                          </p>
+                          <p className="text-sm font-medium text-foreground">
+                            {new Date(subscriptionEnd).toLocaleDateString("pt-BR")}
+                          </p>
+                        </div>
                       </div>
-                    </div>
-                  )}
-                </div>
-              </Card>
+                    )}
+                  </div>
+                </Card>
+              )}
 
               {cancelAtPeriodEnd && (
                 <Card className="p-4 border-amber-500/30 bg-amber-500/[0.05]">
@@ -267,6 +261,24 @@ export default function ConfigAssinatura() {
                 </Card>
               )}
 
+              {!hasSubscription && (
+                <Card className="p-4 border-primary/30 bg-primary/[0.05]">
+                  <div className="flex items-start gap-3">
+                    <Sparkles className="w-5 h-5 text-primary mt-0.5" />
+                    <div>
+                      <p className="text-sm font-medium text-foreground">Escolha seu plano para começar</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        Selecione abaixo o plano e o ciclo de cobrança. O acesso é liberado automaticamente após o pagamento.
+                      </p>
+                    </div>
+                  </div>
+                </Card>
+              )}
+
+              {/* Cards de planos */}
+              <PricingCards />
+
+              {/* Cancelar plano (rodapé discreto) */}
               {subscribed && !cancelAtPeriodEnd && (
                 <Card className="p-4 border-border/40">
                   <div className="flex items-center justify-between">
@@ -288,26 +300,6 @@ export default function ConfigAssinatura() {
                   </div>
                 </Card>
               )}
-            </div>
-          )}
-
-          {/* ========= ABA: PLANOS DISPONÍVEIS ========= */}
-          {activeTab === "planos" && (
-            <div className="space-y-4">
-              {!hasSubscription && (
-                <Card className="p-4 border-primary/30 bg-primary/[0.05]">
-                  <div className="flex items-start gap-3">
-                    <Sparkles className="w-5 h-5 text-primary mt-0.5" />
-                    <div>
-                      <p className="text-sm font-medium text-foreground">Escolha seu plano para começar</p>
-                      <p className="text-xs text-muted-foreground mt-0.5">
-                        Selecione abaixo o plano e o ciclo de cobrança. O acesso é liberado automaticamente após o pagamento.
-                      </p>
-                    </div>
-                  </div>
-                </Card>
-              )}
-              <PricingCards />
             </div>
           )}
 

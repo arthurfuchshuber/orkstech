@@ -234,14 +234,17 @@ export function PricingCards() {
                     Redirecionando...
                   </>
                 ) : isCurrent ? (
-                  subscribed && !isTrialing ? "Plano ativo" : "Em uso"
+                  <>
+                    <Check className="w-3.5 h-3.5 mr-1.5" />
+                    Plano selecionado
+                  </>
                 ) : (
                   "Começar teste grátis"
                 )}
               </Button>
               {!isCurrent && price && (
                 <p className="text-[10px] text-center text-muted-foreground mt-2">
-                  7 dias grátis • Sem cartão até o fim do trial é opcional
+                  7 dias grátis • Cobrança após o período de teste
                 </p>
               )}
             </Card>
