@@ -55,13 +55,23 @@ const INTERVAL_SUFFIX: Record<BillingInterval, string> = {
 const fmtBRL = (cents: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 0 }).format(cents / 100);
 
-export function PricingCards() {
+export function PricingCards({ publicMode = false }: PricingCardsProps) {
   const { data: plans, isLoading } = usePlans();
-  const { currentPlan, subscribed, isTrialing } = useSubscription();
+  const { user } = useAuth();
+  const { currentPlan } = useSubscription();
+  const navigate = useNavigate();
   const [interval, setInterval] = useState<BillingInterval>("monthly");
   const [loadingPriceId, setLoadingPriceId] = useState<string | null>(null);
 
+  // Em modo público (landing) ou sem usuário logado, sempre tratar como "sem plano"
+  const effectiveCurrentPlan = publicMode || !user ? null : currentPlan;
+
   const handleSubscribe = async (priceId: string) => {
+    // Sem usuário ou modo público: redireciona para cadastro carregando o priceId
+    if (publicMode || !user) {
+      navigate(`/register?priceId=${encodeURIComponent(priceId)}`);
+      return;
+    }
     setLoadingPriceId(priceId);
     try {
       const { data, error } = await supabase.functions.invoke("create-checkout", {
