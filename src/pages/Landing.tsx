@@ -1,6 +1,7 @@
 import { ArrowRight, BarChart3, Users, Shield, Zap, TrendingUp, Layers, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
+import { PricingCards } from "@/components/billing/PricingCards";
 
 const features = [
   {
