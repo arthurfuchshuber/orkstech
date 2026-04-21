@@ -1,12 +1,11 @@
-import { Settings, ChevronRight, Building2, CreditCard, Menu, Sparkles } from "lucide-react";
+import { Settings, ChevronRight, Building2, CreditCard, Menu } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import type { LucideIcon } from "lucide-react";
 
 const sections: { icon: LucideIcon; title: string; description: string; url: string }[] = [
   { icon: Settings, title: "Geral", description: "Preferências gerais do sistema, fuso horário e moeda", url: "/app/config/geral" },
   { icon: Building2, title: "Empresa e Usuários", description: "Dados da empresa, informações de usuários e permissões de acesso", url: "/app/config/conta" },
-  { icon: Sparkles, title: "Assinatura", description: "Visualize seu plano atual, faturamento, ciclo de cobrança e status da assinatura", url: "/app/config/assinatura" },
-  { icon: CreditCard, title: "Planos disponíveis", description: "Compare planos, faça upgrade, downgrade ou troque de ciclo de cobrança", url: "/app/config/planos" },
+  { icon: CreditCard, title: "Planos e Pagamentos", description: "Gerencie seu plano, método de pagamento, faturas e compare opções disponíveis", url: "/app/config/assinatura" },
   { icon: Menu, title: "Gerenciar Menu", description: "Reordene e configure os itens de navegação do sistema", url: "/app/config/menus" },
 ];
 

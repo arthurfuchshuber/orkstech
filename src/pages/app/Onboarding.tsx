@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Building2, Loader2, Zap, CheckCircle2, AlertCircle, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -50,6 +51,7 @@ type CnpjStatus = "idle" | "loading" | "valid" | "error";
 export default function Onboarding() {
   const { user, signOut } = useAuth();
   const { refetch } = useEmpresa();
+  const navigate = useNavigate();
   const [form, setForm] = useState<EmpresaForm>(initialForm);
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -166,8 +168,9 @@ export default function Onboarding() {
         observacoes: form.observacoes.trim() || null,
       });
       if (error) throw error;
-      toast.success("Empresa cadastrada com sucesso!");
+      toast.success("Empresa cadastrada! Agora escolha seu plano.");
       await refetch();
+      navigate("/app/config/assinatura", { replace: true });
     } catch (err: any) {
       toast.error(err.message || "Erro ao cadastrar empresa");
     } finally {
