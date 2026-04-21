@@ -33,15 +33,7 @@ export default function ConfigPlanos() {
     }
   }, [searchParams, refetch]);
 
-  useEffect(() => {
-    const existingScript = document.querySelector('script[src="https://js.stripe.com/v3/pricing-table.js"]');
-    if (!existingScript) {
-      const script = document.createElement("script");
-      script.src = "https://js.stripe.com/v3/pricing-table.js";
-      script.async = true;
-      document.head.appendChild(script);
-    }
-  }, []);
+  // Removido: script da Stripe Pricing Table — agora usamos PricingCards nativo
 
   const handleManageSubscription = async () => {
     setLoadingPortal(true);
@@ -188,14 +180,8 @@ export default function ConfigPlanos() {
         </Card>
       )}
 
-      {/* Stripe Pricing Table */}
-      <Card className="p-5">
-        <div
-          dangerouslySetInnerHTML={{
-            __html: `<stripe-pricing-table pricing-table-id="prctbl_1TOiRGJ633HWAlBjrvIAqj6L" publishable-key="pk_live_51TFifCJ633HWAlBjxKEAWCnxkRHoumxoRORhtAFO0MdR46Pg4OXsSqlcI1aavgo9seGo3Cpu1D1NNp9CQtq7HvM400z5wX4IVO"></stripe-pricing-table>`,
-          }}
-        />
-      </Card>
+      {/* Pricing Cards (nativo, em PT-BR) */}
+      <PricingCards />
 
       <Card className="p-5">
         <div className="flex items-center gap-3 mb-3">
