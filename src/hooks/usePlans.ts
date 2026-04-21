@@ -12,6 +12,8 @@ export interface Plan {
   name: string;
   description: string;
   features: string[];
+  /** Trial em dias retornado dinamicamente do Stripe (Price ou Product metadata). */
+  trial_days: number;
   prices: {
     monthly: PlanPrice | null;
     semiannual: PlanPrice | null;
