@@ -449,7 +449,7 @@ export default function ConfigAssinatura() {
               <Card className="p-5">
                 <div
                   dangerouslySetInnerHTML={{
-                    __html: `<stripe-pricing-table pricing-table-id="prctbl_1TLE55J633HWAlBjLIDqdzsi" publishable-key="pk_test_51TFifCJ633HWAlBjiOg67fgb2hPnc0MO5gFCWvNqUE3yXPLQUNPzF9kCwFPt0ZZkNGfez75GX0WAQHVDzwiZ3dy200apPUxMmQ"></stripe-pricing-table>`,
+                    __html: `<stripe-pricing-table pricing-table-id="prctbl_1TOiRGJ633HWAlBjrvIAqj6L" publishable-key="pk_live_51TFifCJ633HWAlBjxKEAWCnxkRHoumxoRORhtAFO0MdR46Pg4OXsSqlcI1aavgo9seGo3Cpu1D1NNp9CQtq7HvM400z5wX4IVO"></stripe-pricing-table>`,
                   }}
                 />
               </Card>
