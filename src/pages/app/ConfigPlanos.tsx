@@ -12,6 +12,7 @@ import { useSubscription, PLANS } from "@/hooks/useSubscription";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useSearchParams } from "react-router-dom";
+import { PricingCards } from "@/components/billing/PricingCards";
 
 export default function ConfigPlanos() {
   const {
