@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Zap, Mail, Lock, User, Loader2, Eye, EyeOff } from "lucide-react";
@@ -13,6 +13,15 @@ export default function Register() {
   const [loading, setLoading] = useState(false);
   const { signUp } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const preselectedPriceId = searchParams.get("priceId");
+
+  // Persiste o plano pré-selecionado para uso após autenticação/onboarding
+  useEffect(() => {
+    if (preselectedPriceId) {
+      sessionStorage.setItem("preselectedPriceId", preselectedPriceId);
+    }
+  }, [preselectedPriceId]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
