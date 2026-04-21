@@ -13,6 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
+import { PricingCards } from "@/components/billing/PricingCards";
 
 const STATUS_LABELS: Record<string, { label: string; tone: string; icon: any }> = {
   active: { label: "Ativa", tone: "text-green-600 bg-green-500/10 border-green-500/30", icon: CheckCircle2 },
@@ -68,16 +69,7 @@ export default function ConfigAssinatura() {
 
   useEffect(() => { document.title = "Assinatura | NexusOS"; }, []);
 
-  // Carrega script da Stripe Pricing Table
-  useEffect(() => {
-    const existing = document.querySelector('script[src="https://js.stripe.com/v3/pricing-table.js"]');
-    if (!existing) {
-      const script = document.createElement("script");
-      script.src = "https://js.stripe.com/v3/pricing-table.js";
-      script.async = true;
-      document.head.appendChild(script);
-    }
-  }, []);
+  // Removido: script da Stripe Pricing Table — agora usamos PricingCards nativo
 
   // Sem assinatura → abre direto na aba "Planos"
   useEffect(() => {
@@ -446,13 +438,7 @@ export default function ConfigAssinatura() {
                   </div>
                 </Card>
               )}
-              <Card className="p-5">
-                <div
-                  dangerouslySetInnerHTML={{
-                    __html: `<stripe-pricing-table pricing-table-id="prctbl_1TOiRGJ633HWAlBjrvIAqj6L" publishable-key="pk_live_51TFifCJ633HWAlBjxKEAWCnxkRHoumxoRORhtAFO0MdR46Pg4OXsSqlcI1aavgo9seGo3Cpu1D1NNp9CQtq7HvM400z5wX4IVO"></stripe-pricing-table>`,
-                  }}
-                />
-              </Card>
+              <PricingCards />
             </div>
           )}
         </>
