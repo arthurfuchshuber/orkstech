@@ -168,12 +168,16 @@ export default function Landing() {
       <footer className="border-t border-border/40 py-8">
         <div className="max-w-6xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded bg-primary/20 flex items-center justify-center">
-              <Zap className="w-3 h-3 text-primary" />
+            <div className="w-8 h-8 rounded-md bg-primary/10 flex items-center justify-center">
+              <span className="text-primary font-bold text-sm">N</span>
             </div>
             <span className="text-sm font-semibold text-foreground">NexusOS</span>
           </div>
-          <p className="text-sm text-muted-foreground">© 2026 NexusOS. Todos os direitos reservados.</p>
+          <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-sm text-muted-foreground">
+            <a href="/termos" className="hover:text-foreground transition-colors">Termos de Uso</a>
+            <a href="/privacidade" className="hover:text-foreground transition-colors">Política de Privacidade</a>
+            <span className="hidden md:inline">© 2026 NexusOS</span>
+          </div>
         </div>
       </footer>
     </div>
