@@ -88,6 +88,18 @@ export default function ConfigAssinatura() {
     },
   });
 
+  const EmptyState = ({ title, description }: { title: string; description: string }) => (
+    <Card className="p-8 text-center border-dashed">
+      <Sparkles className="w-8 h-8 text-primary/60 mx-auto mb-3" />
+      <p className="text-sm font-semibold text-foreground">{title}</p>
+      <p className="text-xs text-muted-foreground mt-1 mb-4 max-w-sm mx-auto">{description}</p>
+      <Button size="sm" onClick={() => setActiveTab("planos")} className="gap-1.5">
+        <Sparkles className="w-3.5 h-3.5" />
+        Ver planos disponíveis
+      </Button>
+    </Card>
+  );
+
   const handleManageSubscription = async () => {
     setLoadingPortal(true);
     try {
@@ -117,16 +129,12 @@ export default function ConfigAssinatura() {
   const planLabel = currentPlan ? PLANS[currentPlan].name : null;
   const statusInfo = status ? STATUS_LABELS[status] : null;
 
-  const tabs = hasSubscription
-    ? [
-        { id: "plano", label: "Plano", icon: LayoutGrid },
-        { id: "planos", label: "Planos disponíveis", icon: Sparkles },
-        { id: "pagamento", label: "Método de pagamento", icon: CreditCard },
-        { id: "faturas", label: "Faturas", icon: Receipt, count: billing?.invoices?.length },
-      ]
-    : [
-        { id: "planos", label: "Planos disponíveis", icon: Sparkles },
-      ];
+  const tabs = [
+    { id: "plano", label: "Plano", icon: LayoutGrid },
+    { id: "planos", label: "Planos disponíveis", icon: Sparkles },
+    { id: "pagamento", label: "Método de pagamento", icon: CreditCard },
+    { id: "faturas", label: "Faturas", icon: Receipt, count: billing?.invoices?.length },
+  ];
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -162,6 +170,12 @@ export default function ConfigAssinatura() {
           <ModuleTabs tabs={tabs} activeTab={activeTab} onTabChange={(id) => setActiveTab(id as TabId)} />
 
           {/* ========= ABA: PLANO ========= */}
+          {activeTab === "plano" && !hasSubscription && (
+            <EmptyState
+              title="Você ainda não tem um plano ativo"
+              description="Escolha um plano para liberar todos os recursos da plataforma. O acesso é ativado automaticamente após o pagamento."
+            />
+          )}
           {activeTab === "plano" && hasSubscription && (
             <div className="space-y-4">
               <Card className="p-5">
@@ -298,6 +312,12 @@ export default function ConfigAssinatura() {
           )}
 
           {/* ========= ABA: MÉTODO DE PAGAMENTO ========= */}
+          {activeTab === "pagamento" && !hasSubscription && (
+            <EmptyState
+              title="Nenhum método de pagamento cadastrado"
+              description="Ao escolher um plano, você cadastra o cartão de crédito que será usado para as cobranças recorrentes."
+            />
+          )}
           {activeTab === "pagamento" && hasSubscription && (
             <div className="space-y-4">
               <Card className="p-5">
@@ -345,6 +365,12 @@ export default function ConfigAssinatura() {
           )}
 
           {/* ========= ABA: FATURAS ========= */}
+          {activeTab === "faturas" && !hasSubscription && (
+            <EmptyState
+              title="Nenhuma fatura emitida"
+              description="As faturas aparecem aqui automaticamente após a primeira cobrança da sua assinatura."
+            />
+          )}
           {activeTab === "faturas" && hasSubscription && (
             <Card className="overflow-hidden">
               <div className="p-4 border-b border-border/40 flex items-center justify-between">
