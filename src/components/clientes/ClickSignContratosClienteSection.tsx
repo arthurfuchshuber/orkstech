@@ -30,6 +30,12 @@ export function ClickSignContratosClienteSection({ clienteId }: Props) {
 
   const openPreview = async (docId: string, nome: string) => {
     setLoadingDocId(docId);
+    // Abre o modal imediatamente (sem dados) para feedback instantâneo
+    setPreview((current) => {
+      if (current?.url?.startsWith("blob:")) URL.revokeObjectURL(current.url);
+      return { url: null as any, nome, mime: "application/pdf" };
+    });
+
     try {
       const { data: auth } = await supabase.auth.getSession();
       const accessToken = auth.session?.access_token;
@@ -68,6 +74,7 @@ export function ClickSignContratosClienteSection({ clienteId }: Props) {
       console.error("[clicksign preview]", e);
       const { toast } = await import("sonner");
       toast.error("Não foi possível carregar o documento");
+      setPreview(null);
     } finally {
       setLoadingDocId(null);
     }
