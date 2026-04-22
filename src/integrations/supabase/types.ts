@@ -2649,6 +2649,47 @@ export type Database = {
           },
         ]
       }
+      user_permissions: {
+        Row: {
+          action_key: string
+          can_edit: boolean
+          can_view: boolean
+          created_at: string
+          empresa_id: string
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          action_key: string
+          can_edit?: boolean
+          can_view?: boolean
+          created_at?: string
+          empresa_id: string
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          action_key?: string
+          can_edit?: boolean
+          can_view?: boolean
+          created_at?: string
+          empresa_id?: string
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_permissions_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -2740,6 +2781,19 @@ export type Database = {
       cashflow_normalize_text: { Args: { p_text: string }; Returns: string }
       delete_import_cascade: { Args: { p_import_id: string }; Returns: Json }
       has_active_subscription: { Args: { p_user_id: string }; Returns: boolean }
+      has_permission: {
+        Args: {
+          p_action_key: string
+          p_empresa_id: string
+          p_level?: string
+          p_user_id: string
+        }
+        Returns: boolean
+      }
+      is_empresa_owner: {
+        Args: { p_empresa_id: string; p_user_id: string }
+        Returns: boolean
+      }
       is_pluggy_internal_transfer: {
         Args: {
           p_category: string
