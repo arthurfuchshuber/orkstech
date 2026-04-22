@@ -517,6 +517,16 @@ function IntegrationCard({
                   <span className="text-xs text-foreground">{cred.ativo ? "Ativa" : "Pausada"}</span>
                 </div>
                 <div className="flex items-center gap-1">
+                  {provider === "clicksign" && cred.ativo && (
+                    <Button variant="ghost" size="sm" className="h-7 px-2 text-xs gap-1" onClick={syncClicksignHistory}>
+                      <Loader2 className="w-3 h-3" /> Sincronizar
+                    </Button>
+                  )}
+                  {provider === "asaas" && cred.ativo && (
+                    <Button variant="ghost" size="sm" className="h-7 px-2 text-xs gap-1" onClick={syncAsaasHistory}>
+                      <Loader2 className="w-3 h-3" /> Sincronizar
+                    </Button>
+                  )}
                   <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={() => setEditing(true)}>
                     Editar
                   </Button>
