@@ -340,9 +340,11 @@ function UsuariosTab() {
                   <TableCell className="text-xs text-muted-foreground">{new Date(u.created_at).toLocaleDateString("pt-BR")}</TableCell>
                   <TableCell>
                     {isOwner ? (
-                      <Badge variant="outline" className="text-[10px] bg-primary/10 text-primary border-primary/30">Dono · acesso total</Badge>
+                      <Badge variant="outline" className="text-[10px] bg-primary/10 text-primary border-primary/30 whitespace-nowrap gap-1">
+                        <ShieldCheck className="h-2.5 w-2.5" /> Dono
+                      </Badge>
                     ) : (
-                      <Badge variant="outline" className="text-[10px]">Permissões personalizadas</Badge>
+                      <Badge variant="outline" className="text-[10px] whitespace-nowrap">Personalizadas</Badge>
                     )}
                   </TableCell>
                   <TableCell className="text-center"><Switch checked={u.ativo} onCheckedChange={(v) => toggleActive.mutate({ user_id: u.id, ativo: v })} disabled={isSelf || isOwner} /></TableCell>
