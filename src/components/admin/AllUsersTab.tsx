@@ -170,12 +170,62 @@ export function AllUsersTab({ users, isLoading }: Props) {
           <TableBody>
             {isLoading ? (
               <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8 text-sm">Carregando...</TableCell></TableRow>
-            ) : !companies.length ? (
+            ) : !companies.length && !orphanUsers.length ? (
               <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8 text-sm">
-                <div className="flex flex-col items-center gap-2"><Building2 className="w-8 h-8 text-muted-foreground/30" /><p>Nenhuma empresa encontrada</p></div>
+                <div className="flex flex-col items-center gap-2"><Building2 className="w-8 h-8 text-muted-foreground/30" /><p>Nenhum usuário encontrado</p></div>
               </TableCell></TableRow>
             ) : (
-              companies.map((c) => {
+              <>
+              {/* Orphan users (Super Admins sem empresa, etc.) */}
+              {orphanUsers.length > 0 && (
+                <>
+                  <TableRow className="bg-muted/30 hover:bg-muted/30 border-border/20">
+                    <TableCell colSpan={6} className="py-2 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+                      Sem empresa vinculada ({orphanUsers.length})
+                    </TableCell>
+                  </TableRow>
+                  {orphanUsers.map((u) => {
+                    const isSelf = u.id === user?.id;
+                    return (
+                      <TableRow key={`orphan-${u.id}`} className="bg-muted/10 hover:bg-muted/20 border-border/10">
+                        <TableCell></TableCell>
+                        <TableCell colSpan={2}>
+                          <div className="flex items-center gap-2.5 pl-2">
+                            <div className="flex items-center justify-center w-7 h-7 rounded-md bg-primary/10 shrink-0">
+                              <Shield className="w-3.5 h-3.5 text-primary" />
+                            </div>
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <span className="text-sm font-medium text-foreground">{u.nome || "Sem nome"}</span>
+                                <Badge variant="outline" className="text-[9px] font-normal px-1.5 py-0">{u.nivel}</Badge>
+                              </div>
+                              <p className="text-xs text-muted-foreground">{u.email}</p>
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-xs text-muted-foreground">—</TableCell>
+                        <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
+                          {format(new Date(u.created_at), "dd/MM/yyyy")}
+                        </TableCell>
+                        <TableCell onClick={(e) => e.stopPropagation()}>
+                          {!isSelf && (
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive"><Trash2 className="w-3.5 h-3.5" /></Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader><AlertDialogTitle>Excluir usuário</AlertDialogTitle><AlertDialogDescription>Tem certeza que deseja excluir <strong>{u.email}</strong>?</AlertDialogDescription></AlertDialogHeader>
+                                <AlertDialogFooter><AlertDialogCancel>Cancelar</AlertDialogCancel><AlertDialogAction onClick={() => deleteUserMutation.mutate(u.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Excluir</AlertDialogAction></AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </>
+              )}
+              {companies.map((c) => {
                 const isExpanded = expandedCompanies.has(c.empresa.id);
                 const allUsers = [c.owner, ...c.members].filter(Boolean) as AdminUser[];
                 const userCount = allUsers.length;
