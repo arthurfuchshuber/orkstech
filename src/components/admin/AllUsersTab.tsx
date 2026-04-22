@@ -14,7 +14,7 @@ import {
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import { Users, Building2, Pencil, Trash2, Search, ChevronRight, User } from "lucide-react";
+import { Users, Building2, Pencil, Trash2, Search, ChevronRight, User, Shield } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -121,6 +121,17 @@ export function AllUsersTab({ users, isLoading }: Props) {
     onError: (e: any) => toast.error(e.message),
   });
 
+  const promoteMutation = useMutation({
+    mutationFn: async (user_id: string) => {
+      const { error } = await supabase.functions.invoke("admin-dashboard", {
+        body: { action: "promote_to_super_admin", user_id },
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => { toast.success("Usuário promovido a Super Admin"); qc.invalidateQueries({ queryKey: ["admin-all-users"] }); },
+    onError: (e: any) => toast.error(e.message),
+  });
+
   return (
     <div className="space-y-4">
       <div className="relative max-w-sm">
@@ -215,13 +226,36 @@ export function AllUsersTab({ users, isLoading }: Props) {
                           </TableCell>
                           <TableCell onClick={(e) => e.stopPropagation()}>
                             {!isSelf && (
-                              <AlertDialog>
-                                <AlertDialogTrigger asChild><Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive"><Trash2 className="w-3.5 h-3.5" /></Button></AlertDialogTrigger>
-                                <AlertDialogContent>
-                                  <AlertDialogHeader><AlertDialogTitle>Excluir usuário</AlertDialogTitle><AlertDialogDescription>Tem certeza que deseja excluir <strong>{u.email}</strong>?</AlertDialogDescription></AlertDialogHeader>
-                                  <AlertDialogFooter><AlertDialogCancel>Cancelar</AlertDialogCancel><AlertDialogAction onClick={() => deleteUserMutation.mutate(u.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Excluir</AlertDialogAction></AlertDialogFooter>
-                                </AlertDialogContent>
-                              </AlertDialog>
+                              <div className="flex items-center gap-0.5">
+                                {u.nivel !== "Super Admin" && (
+                                  <AlertDialog>
+                                    <AlertDialogTrigger asChild>
+                                      <Button variant="ghost" size="icon" className="h-7 w-7 text-primary hover:text-primary" title="Promover a Super Admin">
+                                        <Shield className="w-3.5 h-3.5" />
+                                      </Button>
+                                    </AlertDialogTrigger>
+                                    <AlertDialogContent>
+                                      <AlertDialogHeader>
+                                        <AlertDialogTitle>Promover a Super Admin</AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                          Conceder acesso global da plataforma para <strong>{u.email}</strong>? Essa pessoa poderá ver todos os dados de todas as empresas.
+                                        </AlertDialogDescription>
+                                      </AlertDialogHeader>
+                                      <AlertDialogFooter>
+                                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                        <AlertDialogAction onClick={() => promoteMutation.mutate(u.id)}>Promover</AlertDialogAction>
+                                      </AlertDialogFooter>
+                                    </AlertDialogContent>
+                                  </AlertDialog>
+                                )}
+                                <AlertDialog>
+                                  <AlertDialogTrigger asChild><Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive"><Trash2 className="w-3.5 h-3.5" /></Button></AlertDialogTrigger>
+                                  <AlertDialogContent>
+                                    <AlertDialogHeader><AlertDialogTitle>Excluir usuário</AlertDialogTitle><AlertDialogDescription>Tem certeza que deseja excluir <strong>{u.email}</strong>?</AlertDialogDescription></AlertDialogHeader>
+                                    <AlertDialogFooter><AlertDialogCancel>Cancelar</AlertDialogCancel><AlertDialogAction onClick={() => deleteUserMutation.mutate(u.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Excluir</AlertDialogAction></AlertDialogFooter>
+                                  </AlertDialogContent>
+                                </AlertDialog>
+                              </div>
                             )}
                           </TableCell>
                         </TableRow>

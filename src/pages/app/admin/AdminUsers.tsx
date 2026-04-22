@@ -4,6 +4,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Users, Building2 } from "lucide-react";
 import { OwnersTab } from "@/components/admin/OwnersTab";
 import { AllUsersTab } from "@/components/admin/AllUsersTab";
+import { CreateSuperAdminDialog } from "@/components/admin/CreateSuperAdminDialog";
 import type { AdminUser, NivelPermissao } from "@/components/admin/AdminUserTypes";
 
 export default function AdminUsers() {
@@ -24,16 +25,19 @@ export default function AdminUsers() {
   return (
     <div className="space-y-6 animate-fade-in">
       <Tabs defaultValue="owners" className="w-full">
-        <TabsList className="mb-4">
-          <TabsTrigger value="owners" className="gap-1.5">
-            <Users className="w-3.5 h-3.5" />
-            Donos
-          </TabsTrigger>
-          <TabsTrigger value="all" className="gap-1.5">
-            <Building2 className="w-3.5 h-3.5" />
-            Todos os Usuários
-          </TabsTrigger>
-        </TabsList>
+        <div className="flex items-center justify-between mb-4 gap-3">
+          <TabsList>
+            <TabsTrigger value="owners" className="gap-1.5">
+              <Users className="w-3.5 h-3.5" />
+              Donos
+            </TabsTrigger>
+            <TabsTrigger value="all" className="gap-1.5">
+              <Building2 className="w-3.5 h-3.5" />
+              Todos os Usuários
+            </TabsTrigger>
+          </TabsList>
+          <CreateSuperAdminDialog />
+        </div>
 
         <TabsContent value="owners">
           <OwnersTab users={users} niveis={niveis} isLoading={isLoading} />
