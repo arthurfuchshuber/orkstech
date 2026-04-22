@@ -27,6 +27,32 @@ const STATUS_LABEL: Record<string, { label: string; className: string }> = {
 export function ClickSignContratosClienteSection({ clienteId }: Props) {
   const { empresa } = useEmpresa();
   const [preview, setPreview] = useState<{ url: string; nome: string } | null>(null);
+  const [loadingDocId, setLoadingDocId] = useState<string | null>(null);
+
+  const openPreview = async (docId: string, nome: string) => {
+    setLoadingDocId(docId);
+    try {
+      const { data, error } = await supabase.functions.invoke("clicksign-api", {
+        body: { action: "download_document", documento_id: docId, empresa_id: empresa?.id },
+      });
+      if (error) throw error;
+      // supabase-js returns a Blob for binary responses
+      const blob = data instanceof Blob ? data : new Blob([data as ArrayBuffer], { type: "application/pdf" });
+      const url = URL.createObjectURL(blob);
+      setPreview({ url, nome });
+    } catch (e) {
+      console.error("[clicksign preview]", e);
+      const { toast } = await import("sonner");
+      toast.error("Não foi possível carregar o documento");
+    } finally {
+      setLoadingDocId(null);
+    }
+  };
+
+  const closePreview = (open: boolean) => {
+    if (!open && preview?.url?.startsWith("blob:")) URL.revokeObjectURL(preview.url);
+    if (!open) setPreview(null);
+  };
 
   // Busca credencial ClickSign ativa para essa empresa
   const { data: cred } = useQuery({
