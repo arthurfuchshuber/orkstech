@@ -415,6 +415,9 @@ function IntegrationCard({
       if (checked) syncAsaasHistory();
       else purgeAsaasHistory();
     }
+    if (provider === "clicksign" && checked) {
+      syncClicksignHistory();
+    }
   };
 
   const remove = async () => {
