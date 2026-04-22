@@ -6,6 +6,51 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "*",
 };
 
+function normalize(s: string | null | undefined): string {
+  return (s || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9@. ]/g, "")
+    .trim();
+}
+function onlyDigits(s: string | null | undefined): string {
+  return (s || "").replace(/\D/g, "");
+}
+
+async function findClienteIdFromSigners(
+  supabase: any,
+  userId: string,
+  empresaId: string | null,
+  signers: any[],
+): Promise<string | null> {
+  if (!signers?.length) return null;
+  let q = supabase
+    .from("clientes")
+    .select("id, nome_completo, nome_fantasia, razao_social, email, cpf, cnpj")
+    .eq("user_id", userId);
+  if (empresaId) q = q.eq("empresa_id", empresaId);
+  const { data: clientes } = await q;
+  if (!clientes?.length) return null;
+
+  for (const signer of signers) {
+    const sName = normalize(signer?.name);
+    const sEmail = normalize(signer?.email);
+    const sDoc = onlyDigits(signer?.documentation || signer?.cpf || signer?.cnpj);
+
+    for (const c of clientes) {
+      if (sDoc && (onlyDigits(c.cpf) === sDoc || onlyDigits(c.cnpj) === sDoc)) return c.id;
+      if (sEmail && c.email && normalize(c.email) === sEmail) return c.id;
+      if (sName && sName.split(" ").length >= 2) {
+        const names = [c.nome_completo, c.nome_fantasia, c.razao_social]
+          .filter(Boolean).map((n: string) => normalize(n));
+        if (names.some((n: string) => n === sName)) return c.id;
+      }
+    }
+  }
+  return null;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -34,46 +79,82 @@ Deno.serve(async (req) => {
     const csDoc = event?.document;
     if (!csDoc?.key) return new Response("ok", { status: 200 });
 
+    const signers = csDoc?.signers || csDoc?.list?.signers || [];
+    const status = csDoc?.status || "unknown";
+    const downloadUrl = csDoc?.downloads?.signed_file_url || csDoc?.downloads?.original_file_url || null;
+    const originalUrl = csDoc?.downloads?.original_file_url || null;
+
     const { data: doc } = await supabase
       .from("clicksign_documentos")
       .select("*")
       .eq("clicksign_document_key", csDoc.key)
       .maybeSingle();
 
-    if (!doc) return new Response("ok", { status: 200 });
+    let docId: string;
+    let clienteId: string | null;
 
-    const status = csDoc?.status || doc.status;
-    const downloadUrl = csDoc?.downloads?.signed_file_url || null;
+    if (!doc) {
+      // Documento ainda não existe — cria e tenta auto-vincular cliente
+      clienteId = await findClienteIdFromSigners(supabase, cred.user_id, cred.empresa_id, signers);
+      const { data: inserted, error: insErr } = await supabase
+        .from("clicksign_documentos")
+        .insert({
+          user_id: cred.user_id,
+          empresa_id: cred.empresa_id,
+          clicksign_document_key: csDoc.key,
+          nome: csDoc?.filename || csDoc?.path || "Documento ClickSign",
+          status,
+          cliente_id: clienteId,
+          signatarios: signers,
+          url_original: originalUrl,
+          url_assinado: downloadUrl,
+          finalizado_em: csDoc?.finished_at || null,
+          raw_data: csDoc,
+        })
+        .select("id")
+        .single();
+      if (insErr) throw insErr;
+      docId = inserted.id;
+    } else {
+      // Atualiza, preservando vínculo manual se houver
+      clienteId = doc.cliente_id || await findClienteIdFromSigners(supabase, cred.user_id, cred.empresa_id, signers);
+      await supabase.from("clicksign_documentos")
+        .update({
+          status,
+          url_original: originalUrl,
+          url_assinado: downloadUrl,
+          finalizado_em: csDoc?.finished_at || null,
+          raw_data: csDoc,
+          signatarios: signers,
+          cliente_id: clienteId,
+          nome: csDoc?.filename || doc.nome,
+        })
+        .eq("id", doc.id);
+      docId = doc.id;
+    }
 
-    await supabase.from("clicksign_documentos")
-      .update({
-        status,
-        url_assinado: downloadUrl,
-        finalizado_em: csDoc?.finished_at || null,
-        raw_data: csDoc,
-      })
-      .eq("id", doc.id);
-
-    // Notify when finalized
+    // Notifica quando finalizado
     const finishedEvents = ["auto_close", "close", "document_closed"];
-    if (finishedEvents.includes(event?.event?.name) && doc.cliente_id) {
-      await supabase.from("cliente_interacoes").insert({
-        user_id: doc.user_id,
-        empresa_id: doc.empresa_id,
-        cliente_id: doc.cliente_id,
-        tipo: "documento",
-        descricao: `Documento "${doc.nome}" assinado via ClickSign`,
-        usuario_nome: "ClickSign",
-      });
+    if (finishedEvents.includes(event?.event?.name)) {
+      if (clienteId) {
+        await supabase.from("cliente_interacoes").insert({
+          user_id: cred.user_id,
+          empresa_id: cred.empresa_id,
+          cliente_id: clienteId,
+          tipo: "documento",
+          descricao: `Documento "${csDoc?.filename || "ClickSign"}" assinado`,
+          usuario_nome: "ClickSign",
+        });
+      }
 
       await supabase.from("notificacoes_sistema").insert({
-        user_id: doc.user_id,
-        empresa_id: doc.empresa_id,
+        user_id: cred.user_id,
+        empresa_id: cred.empresa_id,
         titulo: "Documento assinado",
-        descricao: `${doc.nome} foi totalmente assinado`,
+        descricao: `${csDoc?.filename || "Documento"} foi totalmente assinado`,
         tipo: "sucesso",
         entidade_tipo: "clicksign_documento",
-        entidade_id: doc.id,
+        entidade_id: docId,
       });
     }
 
