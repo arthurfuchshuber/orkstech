@@ -10,8 +10,10 @@ export interface Plan {
   key: string;
   product_id: string;
   name: string;
+  tagline: string;
   description: string;
   features: string[];
+  highlight: boolean;
   /** Trial em dias retornado dinamicamente do Stripe (Price ou Product metadata). */
   trial_days: number;
   prices: {
@@ -26,7 +28,7 @@ export type BillingInterval = "monthly" | "semiannual" | "annual";
 export function usePlans() {
   return useQuery({
     queryKey: ["stripe-plans"],
-    staleTime: 5 * 60 * 1000, // cache 5 min
+    staleTime: 60 * 1000, // 1 min — overrides may change
     queryFn: async (): Promise<Plan[]> => {
       const { data, error } = await supabase.functions.invoke("list-plans");
       if (error) throw error;
