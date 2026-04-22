@@ -1,128 +1,108 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Building2, Users, CreditCard, TrendingUp, UserPlus, BarChart3 } from "lucide-react";
-import { PLANS } from "@/hooks/useSubscription";
+import { Building2, Users, CreditCard, TrendingUp, UserPlus, BarChart3, Activity, AlertTriangle } from "lucide-react";
+import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
 
 export default function AdminDashboard() {
-  const { data, isLoading } = useQuery({
+  const { data } = useQuery({
     queryKey: ["admin-overview"],
     queryFn: async () => {
-      const { data, error } = await supabase.functions.invoke("admin-dashboard", {
-        body: { action: "overview" },
-      });
+      const { data, error } = await supabase.functions.invoke("admin-dashboard", { body: { action: "overview" } });
       if (error) throw error;
-      return data as {
-        totalEmpresas: number;
-        totalUsers: number;
-        recentUsers: number;
-        activeSubscriptions: number;
-        mrr: number;
-        planBreakdown: Record<string, number>;
-      };
+      return data as any;
     },
   });
 
   const fmt = (v: number) =>
     new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v / 100);
 
-  const planName = (productId: string) => {
-    for (const [, plan] of Object.entries(PLANS)) {
-      if (plan.product_id === productId) return plan.name;
-    }
-    return productId.slice(0, 12);
-  };
-
   return (
     <div className="space-y-6 animate-fade-in">
+      {/* KPIs */}
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+        {[
+          { icon: Building2, label: "Empresas", value: data?.totalEmpresas ?? "—", tone: "primary" },
+          { icon: Users, label: "Usuários", value: data?.totalUsers ?? "—", tone: "primary" },
+          { icon: UserPlus, label: "Novos (30d)", value: data?.recentUsers ?? "—", tone: "success" },
+          { icon: CreditCard, label: "Assinantes", value: data?.activeSubscriptions ?? "—", tone: "warning" },
+          { icon: TrendingUp, label: "MRR", value: data ? fmt(data.mrr) : "—", tone: "primary" },
+          { icon: Activity, label: "ARR", value: data ? fmt(data.arr) : "—", tone: "primary" },
+        ].map((kpi) => (
+          <Card key={kpi.label} className="border-border/50">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div className={`w-9 h-9 rounded-lg bg-${kpi.tone}/10 flex items-center justify-center`}>
+                  <kpi.icon className={`w-4 h-4 text-${kpi.tone}`} />
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">{kpi.label}</p>
+                  <p className="text-lg font-bold text-foreground">{kpi.value}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+      {/* Trial + churn */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card className="border-border/50">
           <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center">
-                <Building2 className="w-4 h-4 text-primary" />
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Empresas</p>
-                <p className="text-xl font-bold text-foreground">{data?.totalEmpresas ?? "—"}</p>
-              </div>
-            </div>
+            <p className="text-xs text-muted-foreground">Em trial</p>
+            <p className="text-2xl font-bold text-primary mt-1">{data?.trialingSubscriptions ?? "—"}</p>
           </CardContent>
         </Card>
-
         <Card className="border-border/50">
           <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center">
-                <Users className="w-4 h-4 text-primary" />
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Usuários</p>
-                <p className="text-xl font-bold text-foreground">{data?.totalUsers ?? "—"}</p>
-              </div>
-            </div>
+            <p className="text-xs text-muted-foreground">Cancelados (30d)</p>
+            <p className="text-2xl font-bold text-destructive mt-1">{data?.canceledLast30d ?? "—"}</p>
           </CardContent>
         </Card>
-
         <Card className="border-border/50">
           <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-lg bg-success/10 flex items-center justify-center">
-                <UserPlus className="w-4 h-4 text-success" />
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Novos (30d)</p>
-                <p className="text-xl font-bold text-foreground">{data?.recentUsers ?? "—"}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-border/50">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-lg bg-warning/10 flex items-center justify-center">
-                <CreditCard className="w-4 h-4 text-warning" />
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Assinantes</p>
-                <p className="text-xl font-bold text-foreground">{data?.activeSubscriptions ?? "—"}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-border/50">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center">
-                <TrendingUp className="w-4 h-4 text-primary" />
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">MRR</p>
-                <p className="text-xl font-bold text-foreground">{data ? fmt(data.mrr) : "—"}</p>
-              </div>
-            </div>
+            <p className="text-xs text-muted-foreground">Churn rate</p>
+            <p className="text-2xl font-bold text-warning mt-1">{data ? `${data.churnRate}%` : "—"}</p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Plan breakdown */}
-      {data?.planBreakdown && Object.keys(data.planBreakdown).length > 0 && (
+      {/* Crescimento */}
+      {data?.growth && (
         <Card className="border-border/50">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <BarChart3 className="w-4 h-4 text-primary" />
-              Assinantes por Plano
+              <BarChart3 className="w-4 h-4 text-primary" /> Crescimento de usuários (6 meses)
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {Object.entries(data.planBreakdown).map(([productId, count]) => (
-                <div key={productId} className="flex items-center justify-between p-3 rounded-lg bg-muted/30">
-                  <span className="text-sm text-foreground font-medium">{planName(productId)}</span>
-                  <span className="text-lg font-bold text-primary">{count}</span>
+            <ResponsiveContainer width="100%" height={220}>
+              <LineChart data={data.growth}>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                <XAxis dataKey="month" stroke="hsl(var(--muted-foreground))" fontSize={11} />
+                <YAxis stroke="hsl(var(--muted-foreground))" fontSize={11} />
+                <Tooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))" }} />
+                <Line type="monotone" dataKey="count" stroke="hsl(var(--primary))" strokeWidth={2} />
+              </LineChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Top empresas */}
+      {data?.topEmpresas?.length > 0 && (
+        <Card className="border-border/50">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <Building2 className="w-4 h-4 text-primary" /> Top empresas por atividade
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {data.topEmpresas.map((e: any) => (
+                <div key={e.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/30">
+                  <span className="text-sm text-foreground font-medium">{e.nome}</span>
+                  <span className="text-xs text-muted-foreground">{e.total} lançamentos</span>
                 </div>
               ))}
             </div>
