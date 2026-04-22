@@ -1,5 +1,6 @@
 import { useState, useCallback } from "react";
-import { Building2, Pencil, Trash2, UserPlus, Users, ShieldAlert } from "lucide-react";
+import { Building2, Pencil, Trash2, UserPlus, Users, ShieldAlert, ShieldCheck } from "lucide-react";
+import { PermissionsModal } from "@/components/admin/PermissionsModal";
 import { DocumentInput } from "@/components/inputs/DocumentInput";
 import { PhoneInput } from "@/components/inputs/PhoneInput";
 import { DateInput } from "@/components/inputs/DateInput";
@@ -11,7 +12,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import {
   Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
@@ -28,7 +29,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { useMemo } from "react";
+
 
 /* ─── Types ─── */
 interface UserRow {
@@ -233,7 +234,8 @@ function UsuariosTab() {
   const [editForm, setEditForm] = useState({ nome: "", cpf: "", telefone: "", data_nascimento: "" });
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [adminBlockMsg, setAdminBlockMsg] = useState<string | null>(null);
-  const [createForm, setCreateForm] = useState({ email: "", password: "", nome: "", nivel_permissao_id: "" });
+  const [createForm, setCreateForm] = useState({ email: "", password: "", nome: "" });
+  const [permModal, setPermModal] = useState<{ userId: string; email: string; isOwner: boolean } | null>(null);
   const { data, isLoading } = useUserManagementData();
   const users = data?.users ?? [];
   const niveis = data?.niveis ?? [];
@@ -248,18 +250,10 @@ function UsuariosTab() {
       const { data, error } = await supabase.functions.invoke("manage-users", { body: { action: "create_user", ...createForm } });
       if (error) throw error; if (data?.error) throw new Error(data.error);
     },
-    onSuccess: () => { toast.success("Usuário criado!"); setShowCreateModal(false); setCreateForm({ email: "", password: "", nome: "", nivel_permissao_id: "" }); qc.invalidateQueries({ queryKey: ["manage-users"] }); },
+    onSuccess: () => { toast.success("Usuário criado! Configure as permissões em seguida."); setShowCreateModal(false); setCreateForm({ email: "", password: "", nome: "" }); qc.invalidateQueries({ queryKey: ["manage-users"] }); },
     onError: (e: Error) => toast.error(e.message),
   });
 
-  const updateRole = useMutation({
-    mutationFn: async ({ user_id, nivel_permissao_id }: { user_id: string; nivel_permissao_id: string }) => {
-      const { data, error } = await supabase.functions.invoke("manage-users", { body: { action: "update_role", user_id, nivel_permissao_id, empresa_id: empresa?.id } });
-      if (error) throw error; if (data?.error) throw new Error(data.error);
-    },
-    onSuccess: () => { toast.success("Nível atualizado"); qc.invalidateQueries({ queryKey: ["manage-users"] }); },
-    onError: (e: Error) => toast.error(e.message),
-  });
 
   const toggleActive = useMutation({
     mutationFn: async ({ user_id, ativo }: { user_id: string; ativo: boolean }) => {
@@ -293,58 +287,25 @@ function UsuariosTab() {
 
   if (isLoading) return <p className="py-8 text-center text-sm text-muted-foreground">Carregando...</p>;
 
-  const getNivelDescription = (nome: string) => {
-    const n = nome.toLowerCase();
-    if (n.includes("admin")) return "Gerencia operação, usuários e configurações da empresa.";
-    if (n.includes("finance")) return "Focado em rotinas financeiras, cadastros estruturais e contas bancárias.";
-    if (n.includes("operac")) return "Acesso às rotinas operacionais do dia a dia.";
-    if (n.includes("visual") || n.includes("leitura")) return "Acesso consultivo, ideal para acompanhamento.";
-    return "Define o escopo de acesso do usuário dentro do sistema.";
-  };
-
-  const niveisFiltered = niveis.filter((n) => n.nome !== "Super Admin");
-  const resumo = niveisFiltered.map((nivel) => ({
-    ...nivel,
-    count: users.filter((u) => u.nivel_permissao_id === nivel.id).length,
-  }));
-  const adminNivelId = niveis.find((n) => n.nome === "Admin")?.id;
-  const activeAdminCount = users.filter((u) => u.ativo && u.nivel_permissao_id === adminNivelId).length;
-
-  const isOnlyActiveAdmin = (targetUser: UserRow) => (
-    !!adminNivelId
-    && targetUser.ativo
-    && targetUser.nivel_permissao_id === adminNivelId
-    && activeAdminCount === 1
-  );
-
-  const handleRoleChange = (targetUser: UserRow, nextNivelId: string) => {
-    if (isOnlyActiveAdmin(targetUser) && nextNivelId !== adminNivelId) {
-      setAdminBlockMsg("Não é possível remover o nível Admin do único administrador da empresa.");
-      return;
-    }
-
-    updateRole.mutate({ user_id: targetUser.id, nivel_permissao_id: nextNivelId });
-  };
+  const ownerUserId = empresa?.user_id;
 
   return (
     <div className="space-y-4">
-      {/* Permissions summary */}
-      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-        {resumo.map((nivel) => (
-          <div key={nivel.id} className="rounded-xl border border-border/60 bg-muted/20 p-4">
-            <div className="flex items-start justify-between gap-3">
-              <div className="space-y-1">
-                <p className="text-sm font-semibold text-foreground">{nivel.nome}</p>
-                <p className="text-xs leading-relaxed text-muted-foreground">{getNivelDescription(nivel.nome)}</p>
-              </div>
-              <Badge variant="secondary" className="shrink-0">{nivel.count}</Badge>
-            </div>
+      <div className="rounded-xl border border-primary/20 bg-primary/5 p-4">
+        <div className="flex items-start gap-3">
+          <ShieldCheck className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
+          <div className="space-y-1">
+            <p className="text-sm font-semibold text-foreground">Permissões personalizadas por usuário</p>
+            <p className="text-xs leading-relaxed text-muted-foreground">
+              Cada usuário pode ter permissões individuais de visualização e edição para cada página e área do sistema.
+              O dono da empresa sempre tem acesso total.
+            </p>
           </div>
-        ))}
+        </div>
       </div>
 
       <div className="flex items-center justify-between">
-        <p className="text-sm text-muted-foreground">Gerencie os usuários do sistema, seus níveis de acesso e status.</p>
+        <p className="text-sm text-muted-foreground">Gerencie os usuários e suas permissões de acesso.</p>
         <Button size="sm" onClick={() => setShowCreateModal(true)} className="gap-1.5"><UserPlus className="h-3.5 w-3.5" /> Novo Usuário</Button>
       </div>
 
@@ -354,9 +315,9 @@ function UsuariosTab() {
             <TableRow>
               <TableHead>E-mail</TableHead>
               <TableHead className="w-[130px]">Criado em</TableHead>
-              <TableHead className="w-[180px]">Nível de Acesso</TableHead>
+              <TableHead className="w-[140px]">Tipo</TableHead>
               <TableHead className="w-[80px] text-center">Ativo</TableHead>
-              <TableHead className="w-[90px]" />
+              <TableHead className="w-[170px] text-right">Ações</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -364,6 +325,7 @@ function UsuariosTab() {
               <TableRow><TableCell colSpan={5} className="py-8 text-center text-muted-foreground">Nenhum usuário encontrado</TableCell></TableRow>
             ) : users.map((u) => {
               const isSelf = u.id === user?.id;
+              const isOwner = u.id === ownerUserId;
               return (
                 <TableRow key={u.id} className={!u.ativo ? "opacity-50" : ""}>
                   <TableCell className="text-sm">
@@ -377,18 +339,27 @@ function UsuariosTab() {
                   </TableCell>
                   <TableCell className="text-xs text-muted-foreground">{new Date(u.created_at).toLocaleDateString("pt-BR")}</TableCell>
                   <TableCell>
-                    <Select value={u.nivel_permissao_id ?? ""} onValueChange={(v) => handleRoleChange(u, v)} disabled={isSelf}>
-                      <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Selecione" /></SelectTrigger>
-                      <SelectContent>{niveis.map((n) => <SelectItem key={n.id} value={n.id}>{n.nome}</SelectItem>)}</SelectContent>
-                    </Select>
+                    {isOwner ? (
+                      <Badge variant="outline" className="text-[10px] bg-primary/10 text-primary border-primary/30">Dono · acesso total</Badge>
+                    ) : (
+                      <Badge variant="outline" className="text-[10px]">Permissões personalizadas</Badge>
+                    )}
                   </TableCell>
-                  <TableCell className="text-center"><Switch checked={u.ativo} onCheckedChange={(v) => toggleActive.mutate({ user_id: u.id, ativo: v })} disabled={isSelf} /></TableCell>
+                  <TableCell className="text-center"><Switch checked={u.ativo} onCheckedChange={(v) => toggleActive.mutate({ user_id: u.id, ativo: v })} disabled={isSelf || isOwner} /></TableCell>
                   <TableCell>
-                    <div className="flex items-center gap-1">
-                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(u)}><Pencil className="h-4 w-4" /></Button>
-                      {!isSelf && (
+                    <div className="flex items-center justify-end gap-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 px-2 text-xs gap-1"
+                        onClick={() => setPermModal({ userId: u.id, email: u.email, isOwner })}
+                      >
+                        <ShieldCheck className="h-3 w-3" /> Permissões
+                      </Button>
+                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEdit(u)}><Pencil className="h-3.5 w-3.5" /></Button>
+                      {!isSelf && !isOwner && (
                         <AlertDialog>
-                          <AlertDialogTrigger asChild><Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive"><Trash2 className="h-4 w-4" /></Button></AlertDialogTrigger>
+                          <AlertDialogTrigger asChild><Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive"><Trash2 className="h-3.5 w-3.5" /></Button></AlertDialogTrigger>
                           <AlertDialogContent>
                             <AlertDialogHeader><AlertDialogTitle>Excluir usuário</AlertDialogTitle><AlertDialogDescription>Tem certeza que deseja excluir <strong>{u.email}</strong>? Esta ação é irreversível.</AlertDialogDescription></AlertDialogHeader>
                             <AlertDialogFooter><AlertDialogCancel>Cancelar</AlertDialogCancel><AlertDialogAction onClick={() => deleteUser.mutate(u.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Excluir</AlertDialogAction></AlertDialogFooter>
@@ -404,6 +375,15 @@ function UsuariosTab() {
         </Table>
       </Card>
 
+      {/* Permissions Modal */}
+      <PermissionsModal
+        userId={permModal?.userId ?? null}
+        userEmail={permModal?.email ?? null}
+        isOwner={permModal?.isOwner ?? false}
+        open={!!permModal}
+        onOpenChange={(open) => !open && setPermModal(null)}
+      />
+
       {/* Create User Modal */}
       <Dialog open={showCreateModal} onOpenChange={setShowCreateModal}>
         <DialogContent className="max-w-md">
@@ -412,9 +392,14 @@ function UsuariosTab() {
             <div><label className="mb-1 block text-xs font-medium text-muted-foreground">Nome completo *</label><Input value={createForm.nome} onChange={(e) => setCreateForm({ ...createForm, nome: e.target.value })} className="h-9 text-sm" placeholder="Ex: João Silva" /></div>
             <div><label className="mb-1 block text-xs font-medium text-muted-foreground">E-mail *</label><Input type="email" value={createForm.email} onChange={(e) => setCreateForm({ ...createForm, email: e.target.value })} className="h-9 text-sm" placeholder="usuario@empresa.com" /></div>
             <div><label className="mb-1 block text-xs font-medium text-muted-foreground">Senha temporária *</label><Input type="password" value={createForm.password} onChange={(e) => setCreateForm({ ...createForm, password: e.target.value })} className="h-9 text-sm" placeholder="Mínimo 6 caracteres" /><p className="mt-1 text-[10px] text-muted-foreground">O usuário poderá alterar a senha após o primeiro login.</p></div>
-            <div><label className="mb-1 block text-xs font-medium text-muted-foreground">Nível de Acesso *</label><Select value={createForm.nivel_permissao_id} onValueChange={(v) => setCreateForm({ ...createForm, nivel_permissao_id: v })}><SelectTrigger className="h-9 text-sm"><SelectValue placeholder="Selecione o nível" /></SelectTrigger><SelectContent>{niveis.map((n) => <SelectItem key={n.id} value={n.id}>{n.nome}</SelectItem>)}</SelectContent></Select></div>
+            <div className="rounded-md border border-info/30 bg-info/5 p-2.5">
+              <p className="text-[11px] text-muted-foreground">
+                <ShieldCheck className="w-3 h-3 inline mr-1 text-info" />
+                Após criar o usuário, defina suas permissões clicando em <strong>Permissões</strong> na lista.
+              </p>
+            </div>
           </div>
-          <DialogFooter><Button variant="outline" onClick={() => setShowCreateModal(false)}>Cancelar</Button><Button onClick={() => createUser.mutate()} disabled={createUser.isPending || !createForm.email || !createForm.password || !createForm.nome || !createForm.nivel_permissao_id}>{createUser.isPending ? "Criando..." : "Criar Usuário"}</Button></DialogFooter>
+          <DialogFooter><Button variant="outline" onClick={() => setShowCreateModal(false)}>Cancelar</Button><Button onClick={() => createUser.mutate()} disabled={createUser.isPending || !createForm.email || !createForm.password || !createForm.nome}>{createUser.isPending ? "Criando..." : "Criar Usuário"}</Button></DialogFooter>
         </DialogContent>
       </Dialog>
 

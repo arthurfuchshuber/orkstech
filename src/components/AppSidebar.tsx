@@ -7,6 +7,7 @@ import { useMenus, type MenuItem } from "@/hooks/useMenus";
 import { useAuth } from "@/hooks/useAuth";
 import { useSuperAdmin } from "@/hooks/useSuperAdmin";
 import { useEmpresa } from "@/hooks/useEmpresa";
+import { usePermissions } from "@/hooks/usePermissions";
 import { supabase } from "@/integrations/supabase/client";
 import { ChevronRight, Zap } from "lucide-react";
 import { EmpresaSelector } from "@/components/EmpresaSelector";
@@ -232,6 +233,7 @@ export function AppSidebar() {
   const { isSuperAdmin } = useSuperAdmin();
   const { tree, flatMenus, isLoading } = useMenus();
   const { empresa } = useEmpresa();
+  const { canView } = usePermissions();
 
   // Super Admin without empresa: auto-navigate to admin panel
   useEffect(() => {
@@ -255,18 +257,25 @@ export function AppSidebar() {
     },
   });
 
-  // Filter tree: hide "extrato-bancario" if no open finance connections
+  // Filter tree by:
+  // 1. Hide "extrato-bancario" if no open finance connections
+  // 2. Hide menus the user has no view permission for
   const filteredTree = useMemo(() => {
-    if (hasOpenFinance) return tree;
     const filterItems = (items: MenuItem[]): MenuItem[] =>
       items
-        .filter((item) => item.slug !== "extrato-bancario")
+        .filter((item) => {
+          if (item.slug === "extrato-bancario" && !hasOpenFinance) return false;
+          // canView always returns true for owners/super admins; for sub-users it checks user_permissions
+          return canView(`menu:${item.slug}`);
+        })
         .map((item) => ({
           ...item,
           children: item.children ? filterItems(item.children) : [],
-        }));
+        }))
+        // Remove pais que ficaram sem filhos visíveis (a menos que tenham rota própria)
+        .filter((item) => item.route || (item.children && item.children.length > 0));
     return filterItems(tree);
-  }, [tree, hasOpenFinance]);
+  }, [tree, hasOpenFinance, canView]);
 
   const findActiveIds = (items: MenuItem[], path: string): string[] => {
     for (const item of items) {
