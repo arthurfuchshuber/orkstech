@@ -17,21 +17,11 @@ interface PricingCardsProps {
   publicMode?: boolean;
 }
 
-const PLAN_VISUALS: Record<string, { icon: any; tagline: string; highlight?: boolean; badge?: string }> = {
-  starter: {
-    icon: Zap,
-    tagline: "Para pequenos negócios começando a organizar a operação.",
-  },
-  pro: {
-    icon: Sparkles,
-    tagline: "Para empresas em crescimento que precisam de tudo integrado.",
-    highlight: true,
-    badge: "Mais popular",
-  },
-  enterprise: {
-    icon: Building2,
-    tagline: "Para operações complexas com múltiplas empresas e times.",
-  },
+// Visuais base (ícone) — tagline e highlight agora vêm do banco (plan_overrides)
+const PLAN_ICONS: Record<string, any> = {
+  starter: Zap,
+  pro: Sparkles,
+  enterprise: Building2,
 };
 
 const INTERVAL_LABELS: Record<BillingInterval, string> = {
