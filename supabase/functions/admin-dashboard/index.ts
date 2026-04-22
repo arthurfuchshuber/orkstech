@@ -848,7 +848,7 @@ serve(async (req) => {
           ? "Este e-mail já está cadastrado"
           : createErr.message;
         return new Response(JSON.stringify({ error: msg }), {
-          status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
 
