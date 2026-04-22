@@ -203,7 +203,6 @@ export function AllUsersTab({ users, isLoading }: Props) {
   /** Linha de ações reutilizável (edit + permissões + promote + delete) */
   const renderUserActions = (u: AdminUser, opts: { isOwner: boolean; empresaId: string | null }) => {
     const isSelf = u.id === user?.id;
-    if (isSelf) return null;
     const isSuperAdmin = u.nivel === "Super Admin";
     return (
       <div className="flex items-center gap-0.5 justify-end">
@@ -222,7 +221,7 @@ export function AllUsersTab({ users, isLoading }: Props) {
         <Button variant="ghost" size="icon" className="h-7 w-7" title="Editar perfil" onClick={() => openEdit(u)}>
           <Pencil className="w-3.5 h-3.5" />
         </Button>
-        {!isSuperAdmin && (
+        {!isSuperAdmin && !isSelf && (
           <AlertDialog>
             <AlertDialogTrigger asChild>
               <Button variant="ghost" size="icon" className="h-7 w-7 text-primary hover:text-primary" title="Promover a Super Admin">
