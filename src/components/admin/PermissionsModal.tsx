@@ -44,14 +44,14 @@ export function PermissionsModal({ userId, userEmail, isOwner, open, onOpenChang
   const [search, setSearch] = useState("");
 
   const { data: existing, isLoading } = useQuery({
-    queryKey: ["user-permissions-edit", userId, empresa?.id],
-    enabled: open && !!userId && !!empresa?.id,
+    queryKey: ["user-permissions-edit", userId, empresaId],
+    enabled: open && !!userId && !!empresaId,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("user_permissions")
         .select("action_key, can_view, can_edit")
         .eq("user_id", userId!)
-        .eq("empresa_id", empresa!.id);
+        .eq("empresa_id", empresaId!);
       if (error) throw error;
       return data ?? [];
     },
@@ -77,10 +77,10 @@ export function PermissionsModal({ userId, userEmail, isOwner, open, onOpenChang
 
   const save = useMutation({
     mutationFn: async () => {
-      if (!userId || !empresa?.id) throw new Error("Dados ausentes");
+      if (!userId || !empresaId) throw new Error("Dados ausentes");
       const rows = Object.entries(state).map(([action_key, level]) => ({
         user_id: userId,
-        empresa_id: empresa.id,
+        empresa_id: empresaId,
         action_key,
         can_view: level !== "none",
         can_edit: level === "edit",
