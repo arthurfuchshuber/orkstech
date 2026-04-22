@@ -25,15 +25,15 @@ const STATUS_LABEL: Record<string, { label: string; className: string }> = {
 
 export function ClickSignContratosClienteSection({ clienteId }: Props) {
   const { empresa } = useEmpresa();
-  const [preview, setPreview] = useState<{ url: string; nome: string; mime: string; data?: Uint8Array; blob?: Blob } | null>(null);
+  const [preview, setPreview] = useState<{ url: string | null; nome: string; mime: string; blob?: Blob } | null>(null);
   const [loadingDocId, setLoadingDocId] = useState<string | null>(null);
 
   const openPreview = async (docId: string, nome: string) => {
     setLoadingDocId(docId);
-    // Abre o modal imediatamente (sem dados) para feedback instantâneo
+
     setPreview((current) => {
       if (current?.url?.startsWith("blob:")) URL.revokeObjectURL(current.url);
-      return { url: null as any, nome, mime: "application/pdf" };
+      return { url: null, nome, mime: "application/pdf" };
     });
 
     try {
@@ -63,12 +63,12 @@ export function ClickSignContratosClienteSection({ clienteId }: Props) {
       const buffer = await response.arrayBuffer();
       if (!buffer.byteLength) throw new Error("Documento vazio");
 
-      const data = new Uint8Array(buffer.slice(0));
-      const blob = new Blob([data], { type: mime });
+      const blob = new Blob([buffer.slice(0)], { type: mime });
       const url = URL.createObjectURL(blob);
+
       setPreview((current) => {
         if (current?.url?.startsWith("blob:")) URL.revokeObjectURL(current.url);
-        return { url, nome, mime, data, blob };
+        return { url, nome, mime, blob };
       });
     } catch (e) {
       console.error("[clicksign preview]", e);
@@ -85,7 +85,6 @@ export function ClickSignContratosClienteSection({ clienteId }: Props) {
     if (!open) setPreview(null);
   };
 
-  // Busca credencial ClickSign ativa para essa empresa
   const { data: cred } = useQuery({
     queryKey: ["clicksign-cred", empresa?.id],
     queryFn: async () => {
@@ -116,7 +115,6 @@ export function ClickSignContratosClienteSection({ clienteId }: Props) {
     enabled: !!cred,
   });
 
-  // Só renderiza se a integração estiver ativa
   if (!cred) return null;
 
   return (
@@ -203,7 +201,6 @@ export function ClickSignContratosClienteSection({ clienteId }: Props) {
         url={preview?.url || null}
         nome={preview?.nome}
         mime={preview?.mime || "application/pdf"}
-        data={preview?.data}
         blob={preview?.blob}
       />
     </div>
