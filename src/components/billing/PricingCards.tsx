@@ -128,8 +128,10 @@ export function PricingCards({ publicMode = false }: PricingCardsProps) {
       {/* Plan cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
         {plans.map((plan) => {
-          const visuals = PLAN_VISUALS[plan.key] ?? { icon: Sparkles, tagline: "" };
-          const Icon = visuals.icon;
+          const Icon = PLAN_ICONS[plan.key] ?? Sparkles;
+          const tagline = plan.tagline ?? "";
+          const highlight = plan.highlight;
+          const badge = highlight ? "Mais popular" : null;
           const isCurrent = effectiveCurrentPlan === plan.key;
           const price = plan.prices[interval];
           const monthlyPrice = monthlyRef(plan.product_id);
@@ -164,16 +166,16 @@ export function PricingCards({ publicMode = false }: PricingCardsProps) {
               key={plan.key}
               className={cn(
                 "relative p-6 flex flex-col transition-all duration-200",
-                visuals.highlight
+                highlight
                   ? "border-primary/60 bg-gradient-to-b from-primary/[0.04] to-transparent shadow-[0_0_0_1px_hsl(var(--primary)/0.2),0_8px_32px_-12px_hsl(var(--primary)/0.3)] md:scale-[1.02]"
                   : "border-border/50 hover:border-border",
                 isCurrent && "ring-2 ring-primary/40"
               )}
             >
-              {visuals.badge && (
+              {badge && (
                 <div className="absolute -top-2.5 left-1/2 -translate-x-1/2">
                   <Badge className="bg-primary text-primary-foreground text-[10px] uppercase tracking-wider px-2.5 py-0.5 shadow-sm">
-                    {visuals.badge}
+                    {badge}
                   </Badge>
                 </div>
               )}
@@ -191,13 +193,17 @@ export function PricingCards({ publicMode = false }: PricingCardsProps) {
                 <div
                   className={cn(
                     "h-9 w-9 rounded-lg flex items-center justify-center",
-                    visuals.highlight ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground"
+                    highlight ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground"
                   )}
                 >
                   <Icon className="w-4 h-4" />
                 </div>
                 <h3 className="text-lg font-semibold text-foreground">{plan.name}</h3>
               </div>
+              <p className="text-xs text-muted-foreground min-h-[32px]">{tagline}</p>
+              {plan.description && (
+                <p className="text-[11px] text-muted-foreground/80 mt-1">{plan.description}</p>
+              )}
               <p className="text-xs text-muted-foreground min-h-[32px]">{visuals.tagline}</p>
 
               {/* Price */}
