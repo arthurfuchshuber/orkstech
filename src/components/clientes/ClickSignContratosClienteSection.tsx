@@ -25,7 +25,7 @@ const STATUS_LABEL: Record<string, { label: string; className: string }> = {
 
 export function ClickSignContratosClienteSection({ clienteId }: Props) {
   const { empresa } = useEmpresa();
-  const [preview, setPreview] = useState<{ url: string; nome: string; mime: string; data?: Uint8Array } | null>(null);
+  const [preview, setPreview] = useState<{ url: string; nome: string; mime: string; data?: Uint8Array; blob?: Blob } | null>(null);
   const [loadingDocId, setLoadingDocId] = useState<string | null>(null);
 
   const openPreview = async (docId: string, nome: string) => {
@@ -62,7 +62,7 @@ export function ClickSignContratosClienteSection({ clienteId }: Props) {
       const url = URL.createObjectURL(blob);
       setPreview((current) => {
         if (current?.url?.startsWith("blob:")) URL.revokeObjectURL(current.url);
-        return { url, nome, mime, data };
+        return { url, nome, mime, data, blob };
       });
     } catch (e) {
       console.error("[clicksign preview]", e);
@@ -197,6 +197,7 @@ export function ClickSignContratosClienteSection({ clienteId }: Props) {
         nome={preview?.nome}
         mime={preview?.mime || "application/pdf"}
         data={preview?.data}
+        blob={preview?.blob}
       />
     </div>
   );

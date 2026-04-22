@@ -14,6 +14,7 @@ interface Props {
   nome?: string | null;
   mime?: string | null;
   data?: Uint8Array | null;
+  blob?: Blob | null;
 }
 
 function detectKind(url: string | null, mime?: string | null): "pdf" | "image" | "other" {
@@ -27,11 +28,16 @@ function detectKind(url: string | null, mime?: string | null): "pdf" | "image" |
   return "other";
 }
 
-export function FilePreviewModal({ open, onOpenChange, url, nome, mime, data }: Props) {
+export function FilePreviewModal({ open, onOpenChange, url, nome, mime, data, blob }: Props) {
   const kind = useMemo(() => detectKind(url, mime), [url, mime]);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [pageCount, setPageCount] = useState(0);
   const [pageWidth, setPageWidth] = useState<number>(820);
+  const pdfFile = useMemo(() => {
+    if (blob) return blob;
+    if (data?.byteLength) return { data: data.slice() };
+    return url;
+  }, [blob, data, url]);
 
   useEffect(() => {
     if (!open || kind !== "pdf") return;
@@ -51,7 +57,7 @@ export function FilePreviewModal({ open, onOpenChange, url, nome, mime, data }: 
 
   useEffect(() => {
     if (!open) setPageCount(0);
-  }, [open, url, data]);
+  }, [open, url, data, blob]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -87,7 +93,7 @@ export function FilePreviewModal({ open, onOpenChange, url, nome, mime, data }: 
             <div ref={containerRef} className="h-full overflow-auto p-4 md:p-6">
               <Document
                 key={`${nome || "arquivo"}-${url || "sem-url"}-${data?.byteLength || 0}`}
-                file={data ? { data } : url}
+                file={pdfFile}
                 loading={
                   <div className="flex items-center justify-center py-12 text-sm text-muted-foreground">
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Carregando PDF...
