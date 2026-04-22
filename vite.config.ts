@@ -23,8 +23,8 @@ export default defineConfig(({ mode }) => ({
     viteStaticCopy({
       targets: [
         {
-          src: standardFontsPath,
-          dest: "",
+          src: normalizePath(path.join(standardFontsPath, "*")),
+          dest: "standard_fonts",
         },
       ],
     }),
