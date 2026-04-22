@@ -334,6 +334,26 @@ function IntegrationCard({
     }
   };
 
+  const syncClicksignHistory = async () => {
+    if (provider !== "clicksign") return;
+    try {
+      toast.info("Sincronizando histórico do ClickSign…", { id: "cs-sync" });
+      const { data, error } = await supabase.functions.invoke("clicksign-sync-historico", {
+        body: { empresa_id: empresaId },
+      });
+      if (error || data?.error) throw new Error(data?.error || error?.message);
+      const ins = data?.inserted ?? 0;
+      const upd = data?.updated ?? 0;
+      const matched = data?.matched ?? 0;
+      toast.success(
+        `Histórico sincronizado: ${ins} novos, ${upd} atualizados, ${matched} vinculados a clientes`,
+        { id: "cs-sync" }
+      );
+    } catch (e) {
+      toast.error(`Falha ao sincronizar ClickSign: ${(e as Error).message}`, { id: "cs-sync" });
+    }
+  };
+
   const purgeAsaasHistory = async () => {
     if (provider !== "asaas") return;
     try {
@@ -379,6 +399,7 @@ function IntegrationCard({
       onChanged();
 
       if (provider === "asaas") syncAsaasHistory();
+      if (provider === "clicksign") syncClicksignHistory();
     } catch (e) {
       toast.error(`Erro ao salvar: ${(e as Error).message}`);
     } finally { setSaving(false); }
@@ -393,6 +414,9 @@ function IntegrationCard({
     if (provider === "asaas") {
       if (checked) syncAsaasHistory();
       else purgeAsaasHistory();
+    }
+    if (provider === "clicksign" && checked) {
+      syncClicksignHistory();
     }
   };
 
@@ -493,6 +517,16 @@ function IntegrationCard({
                   <span className="text-xs text-foreground">{cred.ativo ? "Ativa" : "Pausada"}</span>
                 </div>
                 <div className="flex items-center gap-1">
+                  {provider === "clicksign" && cred.ativo && (
+                    <Button variant="ghost" size="sm" className="h-7 px-2 text-xs gap-1" onClick={syncClicksignHistory}>
+                      <Loader2 className="w-3 h-3" /> Sincronizar
+                    </Button>
+                  )}
+                  {provider === "asaas" && cred.ativo && (
+                    <Button variant="ghost" size="sm" className="h-7 px-2 text-xs gap-1" onClick={syncAsaasHistory}>
+                      <Loader2 className="w-3 h-3" /> Sincronizar
+                    </Button>
+                  )}
                   <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={() => setEditing(true)}>
                     Editar
                   </Button>

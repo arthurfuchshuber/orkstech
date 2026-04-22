@@ -14,6 +14,7 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { ClickSignContratosClienteSection } from "./ClickSignContratosClienteSection";
 
 interface Props {
   clienteId: string;
@@ -161,10 +162,13 @@ export function ClienteDocumentosTab({ clienteId }: Props) {
 
   return (
     <div className="space-y-8">
-      {/* Contracts section */}
+      {/* ClickSign — só aparece se a integração estiver ativa */}
+      <ClickSignContratosClienteSection clienteId={clienteId} />
+
+      {/* Contracts section (uploads manuais) */}
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <h3 className="text-base font-bold text-foreground">Contratos</h3>
+          <h3 className="text-base font-bold text-foreground">Contratos manuais</h3>
           <div>
             <input
               ref={contractRef}
@@ -186,7 +190,7 @@ export function ClienteDocumentosTab({ clienteId }: Props) {
           </div>
         </div>
         {contracts.length === 0 ? (
-          <p className="text-sm text-muted-foreground py-4 text-center">Nenhum contrato enviado</p>
+          <p className="text-sm text-muted-foreground py-4 text-center">Nenhum contrato manual enviado</p>
         ) : (
           <div className="space-y-2">
             {contracts.map((doc) => <FileItem key={doc.id} doc={doc} />)}
