@@ -712,7 +712,25 @@ serve(async (req) => {
         if (u?.email) userEmails.push(u.email);
       }
 
-      // 2) Cascade delete de todas as tabelas que referenciam empresa_id
+      // 2a) Limpar tabelas Pluggy (referenciam por user_id, não empresa_id)
+      const pluggyUserIds = new Set<string>(userIdsToDelete);
+      if (emp?.user_id) pluggyUserIds.add(emp.user_id); // dono mesmo se for o caller
+      const pluggyTables = [
+        "pluggy_transactions",
+        "pluggy_investments",
+        "pluggy_bank_accounts",
+        "pluggy_connections",
+      ];
+      for (const tbl of pluggyTables) {
+        for (const uid of pluggyUserIds) {
+          const { error: delErr } = await supabaseAdmin.from(tbl).delete().eq("user_id", uid);
+          if (delErr && delErr.code !== "42P01") {
+            console.error(`Erro ao limpar ${tbl} para user ${uid}:`, delErr);
+          }
+        }
+      }
+
+      // 2b) Cascade delete de todas as tabelas que referenciam empresa_id
       const dependentTables = [
         "cash_transactions",
         "cashflow_forecasts",
