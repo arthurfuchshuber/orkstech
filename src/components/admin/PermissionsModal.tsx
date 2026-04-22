@@ -26,6 +26,8 @@ interface Props {
   isOwner: boolean;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /** Override empresa do contexto (usado pelo painel admin que opera cross-tenant) */
+  empresaIdOverride?: string | null;
 }
 
 const LEVELS: { value: AccessLevel; label: string; icon: typeof Eye; tone: string }[] = [
@@ -34,8 +36,9 @@ const LEVELS: { value: AccessLevel; label: string; icon: typeof Eye; tone: strin
   { value: "edit", label: "Editar", icon: Pencil, tone: "text-success" },
 ];
 
-export function PermissionsModal({ userId, userEmail, isOwner, open, onOpenChange }: Props) {
+export function PermissionsModal({ userId, userEmail, isOwner, open, onOpenChange, empresaIdOverride }: Props) {
   const { empresa } = useEmpresa();
+  const empresaId = empresaIdOverride ?? empresa?.id ?? null;
   const qc = useQueryClient();
   const [state, setState] = useState<PermissionState>({});
   const [search, setSearch] = useState("");
