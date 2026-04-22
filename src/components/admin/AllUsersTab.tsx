@@ -329,7 +329,8 @@ export function AllUsersTab({ users, isLoading }: Props) {
                     })}
                   </>
                 );
-              })
+              })}
+              </>
             )}
           </TableBody>
         </Table>
