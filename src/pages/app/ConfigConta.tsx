@@ -254,14 +254,6 @@ function UsuariosTab() {
     onError: (e: Error) => toast.error(e.message),
   });
 
-  const updateRole = useMutation({
-    mutationFn: async ({ user_id, nivel_permissao_id }: { user_id: string; nivel_permissao_id: string }) => {
-      const { data, error } = await supabase.functions.invoke("manage-users", { body: { action: "update_role", user_id, nivel_permissao_id, empresa_id: empresa?.id } });
-      if (error) throw error; if (data?.error) throw new Error(data.error);
-    },
-    onSuccess: () => { toast.success("Nível atualizado"); qc.invalidateQueries({ queryKey: ["manage-users"] }); },
-    onError: (e: Error) => toast.error(e.message),
-  });
 
   const toggleActive = useMutation({
     mutationFn: async ({ user_id, ativo }: { user_id: string; ativo: boolean }) => {
