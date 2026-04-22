@@ -7,6 +7,10 @@ import pdfWorker from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 
 pdfjs.GlobalWorkerOptions.workerSrc = pdfWorker;
 
+const pdfOptions = {
+  standardFontDataUrl: "/standard_fonts/",
+};
+
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -94,6 +98,7 @@ export function FilePreviewModal({ open, onOpenChange, url, nome, mime, data, bl
               <Document
                 key={`${nome || "arquivo"}-${url || "sem-url"}-${data?.byteLength || 0}`}
                 file={pdfFile}
+                options={pdfOptions}
                 loading={
                   <div className="flex items-center justify-center py-12 text-sm text-muted-foreground">
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Carregando PDF...
