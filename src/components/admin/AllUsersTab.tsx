@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -12,15 +12,25 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import {
+  Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
+import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import { Users, Building2, Pencil, Trash2, Search, ChevronRight, User, Shield } from "lucide-react";
+import { Building2, Pencil, Trash2, Search, ChevronRight, User, Shield, ShieldCheck } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import { CompanyNameDisplay } from "./CompanyNameDisplay";
-import type { AdminUser, EmpresaInfo } from "./AdminUserTypes";
+import { PermissionsModal } from "./PermissionsModal";
+import { DocumentInput } from "@/components/inputs/DocumentInput";
+import { PhoneInput } from "@/components/inputs/PhoneInput";
+import { DateInput } from "@/components/inputs/DateInput";
+import type { AdminUser, EmpresaInfo, NivelPermissao } from "./AdminUserTypes";
 
 interface CompanyWithUsers {
   empresa: EmpresaInfo;
@@ -39,11 +49,26 @@ export function AllUsersTab({ users, isLoading }: Props) {
   const [searchTerm, setSearchTerm] = useState("");
   const [expandedCompanies, setExpandedCompanies] = useState<Set<string>>(new Set());
 
+  // Modal de edição de perfil
+  const [editingUser, setEditingUser] = useState<AdminUser | null>(null);
+  const [editForm, setEditForm] = useState({ nome: "", cpf: "", telefone: "", data_nascimento: "", nivel_permissao_id: "" });
+
+  // Modal de permissões customizadas
+  const [permModal, setPermModal] = useState<{ userId: string; email: string; isOwner: boolean; empresaId: string | null } | null>(null);
+
+  // Lista de níveis de permissão (para dropdown)
+  const { data: niveis = [] } = useQuery({
+    queryKey: ["niveis-permissao-admin"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("niveis_permissao").select("id, nome").order("nome");
+      if (error) throw error;
+      return (data ?? []) as NivelPermissao[];
+    },
+  });
+
   // Build company-first hierarchy
   const companies = useMemo(() => {
     const empresaMap = new Map<string, CompanyWithUsers>();
-
-    // First, gather all unique empresas from owner users
     for (const u of users) {
       if (u.is_owner) {
         for (const emp of u.empresas) {
@@ -53,19 +78,14 @@ export function AllUsersTab({ users, isLoading }: Props) {
         }
       }
     }
-
-    // Then, assign all users to their empresa_id
     for (const u of users) {
       if (u.empresa_id && empresaMap.has(u.empresa_id)) {
         const entry = empresaMap.get(u.empresa_id)!;
-        if (entry.owner?.id !== u.id) {
-          entry.members.push(u);
-        }
+        if (entry.owner?.id !== u.id) entry.members.push(u);
       }
     }
 
     let result = Array.from(empresaMap.values());
-
     if (searchTerm) {
       const q = searchTerm.toLowerCase();
       result = result.filter(
@@ -78,11 +98,9 @@ export function AllUsersTab({ users, isLoading }: Props) {
           c.members.some((m) => m.nome?.toLowerCase().includes(q) || m.email?.toLowerCase().includes(q))
       );
     }
-
     return result.sort((a, b) => new Date(b.empresa.created_at).getTime() - new Date(a.empresa.created_at).getTime());
   }, [users, searchTerm]);
 
-  // Users without an empresa (Super Admins criados via dialog, usuários órfãos)
   const orphanUsers = useMemo(() => {
     const inCompany = new Set<string>();
     for (const u of users) {
@@ -92,9 +110,7 @@ export function AllUsersTab({ users, isLoading }: Props) {
     let result = users.filter((u) => !inCompany.has(u.id));
     if (searchTerm) {
       const q = searchTerm.toLowerCase();
-      result = result.filter(
-        (u) => u.nome?.toLowerCase().includes(q) || u.email?.toLowerCase().includes(q)
-      );
+      result = result.filter((u) => u.nome?.toLowerCase().includes(q) || u.email?.toLowerCase().includes(q));
     }
     return result.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
   }, [users, searchTerm]);
@@ -108,6 +124,17 @@ export function AllUsersTab({ users, isLoading }: Props) {
     });
   };
 
+  const openEdit = (u: AdminUser) => {
+    setEditingUser(u);
+    setEditForm({
+      nome: u.nome ?? "",
+      cpf: u.cpf ?? "",
+      telefone: u.telefone ?? "",
+      data_nascimento: u.data_nascimento ?? "",
+      nivel_permissao_id: u.nivel_permissao_id ?? "",
+    });
+  };
+
   const toggleMutation = useMutation({
     mutationFn: async ({ user_id, ativo }: { user_id: string; ativo: boolean }) => {
       const { error } = await supabase.functions.invoke("admin-dashboard", {
@@ -117,6 +144,31 @@ export function AllUsersTab({ users, isLoading }: Props) {
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["admin-all-users"] }); toast.success("Status atualizado"); },
     onError: (e: any) => toast.error(e.message),
+  });
+
+  const updateUserMutation = useMutation({
+    mutationFn: async () => {
+      if (!editingUser) return;
+      const { data, error } = await supabase.functions.invoke("admin-dashboard", {
+        body: {
+          action: "update_user",
+          user_id: editingUser.id,
+          nome: editForm.nome || null,
+          cpf: editForm.cpf || null,
+          telefone: editForm.telefone || null,
+          data_nascimento: editForm.data_nascimento || null,
+          nivel_permissao_id: editForm.nivel_permissao_id || null,
+        },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+    },
+    onSuccess: () => {
+      toast.success("Usuário atualizado");
+      setEditingUser(null);
+      qc.invalidateQueries({ queryKey: ["admin-all-users"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
   });
 
   const deleteUserMutation = useMutation({
@@ -148,6 +200,70 @@ export function AllUsersTab({ users, isLoading }: Props) {
     onError: (e: any) => toast.error(e.message),
   });
 
+  /** Linha de ações reutilizável (edit + permissões + promote + delete) */
+  const renderUserActions = (u: AdminUser, opts: { isOwner: boolean; empresaId: string | null }) => {
+    const isSelf = u.id === user?.id;
+    if (isSelf) return null;
+    const isSuperAdmin = u.nivel === "Super Admin";
+    return (
+      <div className="flex items-center gap-0.5 justify-end">
+        {/* Permissões: só faz sentido quando há empresa vinculada */}
+        {opts.empresaId && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7"
+            title="Permissões personalizadas"
+            onClick={() => setPermModal({ userId: u.id, email: u.email, isOwner: opts.isOwner, empresaId: opts.empresaId })}
+          >
+            <ShieldCheck className="w-3.5 h-3.5" />
+          </Button>
+        )}
+        <Button variant="ghost" size="icon" className="h-7 w-7" title="Editar perfil" onClick={() => openEdit(u)}>
+          <Pencil className="w-3.5 h-3.5" />
+        </Button>
+        {!isSuperAdmin && (
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-7 w-7 text-primary hover:text-primary" title="Promover a Super Admin">
+                <Shield className="w-3.5 h-3.5" />
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Promover a Super Admin</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Conceder acesso global da plataforma para <strong>{u.email}</strong>? Essa pessoa poderá ver todos os dados de todas as empresas.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                <AlertDialogAction onClick={() => promoteMutation.mutate(u.id)}>Promover</AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        )}
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" title="Excluir">
+              <Trash2 className="w-3.5 h-3.5" />
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Excluir usuário</AlertDialogTitle>
+              <AlertDialogDescription>Tem certeza que deseja excluir <strong>{u.email}</strong>?</AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogAction onClick={() => deleteUserMutation.mutate(u.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Excluir</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </div>
+    );
+  };
+
   return (
     <div className="space-y-4">
       <div className="relative max-w-sm">
@@ -164,7 +280,7 @@ export function AllUsersTab({ users, isLoading }: Props) {
               <TableHead>CNPJ</TableHead>
               <TableHead>Usuários</TableHead>
               <TableHead>Criado em</TableHead>
-              <TableHead className="w-[90px]"></TableHead>
+              <TableHead className="w-[170px] text-right">Ações</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -184,45 +300,32 @@ export function AllUsersTab({ users, isLoading }: Props) {
                       Sem empresa vinculada ({orphanUsers.length})
                     </TableCell>
                   </TableRow>
-                  {orphanUsers.map((u) => {
-                    const isSelf = u.id === user?.id;
-                    return (
-                      <TableRow key={`orphan-${u.id}`} className="bg-muted/10 hover:bg-muted/20 border-border/10">
-                        <TableCell></TableCell>
-                        <TableCell colSpan={2}>
-                          <div className="flex items-center gap-2.5 pl-2">
-                            <div className="flex items-center justify-center w-7 h-7 rounded-md bg-primary/10 shrink-0">
-                              <Shield className="w-3.5 h-3.5 text-primary" />
-                            </div>
-                            <div>
-                              <div className="flex items-center gap-2">
-                                <span className="text-sm font-medium text-foreground">{u.nome || "Sem nome"}</span>
-                                <Badge variant="outline" className="text-[9px] font-normal px-1.5 py-0">{u.nivel}</Badge>
-                              </div>
-                              <p className="text-xs text-muted-foreground">{u.email}</p>
-                            </div>
+                  {orphanUsers.map((u) => (
+                    <TableRow key={`orphan-${u.id}`} className="bg-muted/10 hover:bg-muted/20 border-border/10">
+                      <TableCell></TableCell>
+                      <TableCell colSpan={2}>
+                        <div className="flex items-center gap-2.5 pl-2">
+                          <div className="flex items-center justify-center w-7 h-7 rounded-md bg-primary/10 shrink-0">
+                            <Shield className="w-3.5 h-3.5 text-primary" />
                           </div>
-                        </TableCell>
-                        <TableCell className="text-xs text-muted-foreground">—</TableCell>
-                        <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
-                          {format(new Date(u.created_at), "dd/MM/yyyy")}
-                        </TableCell>
-                        <TableCell onClick={(e) => e.stopPropagation()}>
-                          {!isSelf && (
-                            <AlertDialog>
-                              <AlertDialogTrigger asChild>
-                                <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive"><Trash2 className="w-3.5 h-3.5" /></Button>
-                              </AlertDialogTrigger>
-                              <AlertDialogContent>
-                                <AlertDialogHeader><AlertDialogTitle>Excluir usuário</AlertDialogTitle><AlertDialogDescription>Tem certeza que deseja excluir <strong>{u.email}</strong>?</AlertDialogDescription></AlertDialogHeader>
-                                <AlertDialogFooter><AlertDialogCancel>Cancelar</AlertDialogCancel><AlertDialogAction onClick={() => deleteUserMutation.mutate(u.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Excluir</AlertDialogAction></AlertDialogFooter>
-                              </AlertDialogContent>
-                            </AlertDialog>
-                          )}
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm font-medium text-foreground">{u.nome || "Sem nome"}</span>
+                              <Badge variant="outline" className="text-[9px] font-normal px-1.5 py-0">{u.nivel}</Badge>
+                            </div>
+                            <p className="text-xs text-muted-foreground">{u.email}</p>
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-xs text-muted-foreground">—</TableCell>
+                      <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
+                        {format(new Date(u.created_at), "dd/MM/yyyy")}
+                      </TableCell>
+                      <TableCell onClick={(e) => e.stopPropagation()}>
+                        {renderUserActions(u, { isOwner: false, empresaId: null })}
+                      </TableCell>
+                    </TableRow>
+                  ))}
                 </>
               )}
               {companies.map((c) => {
@@ -250,7 +353,7 @@ export function AllUsersTab({ users, isLoading }: Props) {
                       <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
                         {format(new Date(c.empresa.created_at), "dd/MM/yyyy")}
                       </TableCell>
-                      <TableCell onClick={(e) => e.stopPropagation()}>
+                      <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
                             <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive"><Trash2 className="w-3.5 h-3.5" /></Button>
@@ -290,39 +393,8 @@ export function AllUsersTab({ users, isLoading }: Props) {
                           <TableCell className="text-center" onClick={(e) => e.stopPropagation()}>
                             <Switch checked={u.ativo} onCheckedChange={(v) => toggleMutation.mutate({ user_id: u.id, ativo: v })} disabled={isSelf} />
                           </TableCell>
-                          <TableCell onClick={(e) => e.stopPropagation()}>
-                            {!isSelf && (
-                              <div className="flex items-center gap-0.5">
-                                {u.nivel !== "Super Admin" && (
-                                  <AlertDialog>
-                                    <AlertDialogTrigger asChild>
-                                      <Button variant="ghost" size="icon" className="h-7 w-7 text-primary hover:text-primary" title="Promover a Super Admin">
-                                        <Shield className="w-3.5 h-3.5" />
-                                      </Button>
-                                    </AlertDialogTrigger>
-                                    <AlertDialogContent>
-                                      <AlertDialogHeader>
-                                        <AlertDialogTitle>Promover a Super Admin</AlertDialogTitle>
-                                        <AlertDialogDescription>
-                                          Conceder acesso global da plataforma para <strong>{u.email}</strong>? Essa pessoa poderá ver todos os dados de todas as empresas.
-                                        </AlertDialogDescription>
-                                      </AlertDialogHeader>
-                                      <AlertDialogFooter>
-                                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                        <AlertDialogAction onClick={() => promoteMutation.mutate(u.id)}>Promover</AlertDialogAction>
-                                      </AlertDialogFooter>
-                                    </AlertDialogContent>
-                                  </AlertDialog>
-                                )}
-                                <AlertDialog>
-                                  <AlertDialogTrigger asChild><Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive"><Trash2 className="w-3.5 h-3.5" /></Button></AlertDialogTrigger>
-                                  <AlertDialogContent>
-                                    <AlertDialogHeader><AlertDialogTitle>Excluir usuário</AlertDialogTitle><AlertDialogDescription>Tem certeza que deseja excluir <strong>{u.email}</strong>?</AlertDialogDescription></AlertDialogHeader>
-                                    <AlertDialogFooter><AlertDialogCancel>Cancelar</AlertDialogCancel><AlertDialogAction onClick={() => deleteUserMutation.mutate(u.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Excluir</AlertDialogAction></AlertDialogFooter>
-                                  </AlertDialogContent>
-                                </AlertDialog>
-                              </div>
-                            )}
+                          <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                            {renderUserActions(u, { isOwner, empresaId: c.empresa.id })}
                           </TableCell>
                         </TableRow>
                       );
@@ -335,6 +407,62 @@ export function AllUsersTab({ users, isLoading }: Props) {
           </TableBody>
         </Table>
       </Card>
+
+      {/* Modal: Editar perfil + nível */}
+      <Dialog open={!!editingUser} onOpenChange={(open) => !open && setEditingUser(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-base">
+              <Pencil className="w-4 h-4 text-primary" />
+              Editar usuário
+            </DialogTitle>
+          </DialogHeader>
+
+          {editingUser && (
+            <div className="space-y-4 py-2">
+              <div>
+                <p className="text-xs text-muted-foreground mb-1">E-mail</p>
+                <p className="text-sm font-medium">{editingUser.email}</p>
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium text-muted-foreground">Nome</label>
+                <Input value={editForm.nome} onChange={(e) => setEditForm({ ...editForm, nome: e.target.value })} className="h-9 text-sm" />
+              </div>
+              <DocumentInput type="cpf" value={editForm.cpf} onValueChange={(raw) => setEditForm({ ...editForm, cpf: raw })} label="CPF" />
+              <PhoneInput value={editForm.telefone} onValueChange={(raw) => setEditForm({ ...editForm, telefone: raw })} label="Telefone" />
+              <DateInput value={editForm.data_nascimento} onValueChange={(raw) => setEditForm({ ...editForm, data_nascimento: raw })} label="Data de nascimento" />
+              <div>
+                <label className="mb-1 block text-xs font-medium text-muted-foreground">Nível de permissão</label>
+                <Select value={editForm.nivel_permissao_id} onValueChange={(v) => setEditForm({ ...editForm, nivel_permissao_id: v })}>
+                  <SelectTrigger className="h-9 text-sm"><SelectValue placeholder="Selecione um nível" /></SelectTrigger>
+                  <SelectContent>
+                    {niveis.map((n) => (
+                      <SelectItem key={n.id} value={n.id}>{n.nome}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditingUser(null)}>Cancelar</Button>
+            <Button onClick={() => updateUserMutation.mutate()} disabled={updateUserMutation.isPending}>
+              {updateUserMutation.isPending ? "Salvando..." : "Salvar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal: Permissões personalizadas (PáginaSistêmicas com 3 níveis) */}
+      <PermissionsModal
+        userId={permModal?.userId ?? null}
+        userEmail={permModal?.email ?? null}
+        isOwner={permModal?.isOwner ?? false}
+        empresaIdOverride={permModal?.empresaId ?? null}
+        open={!!permModal}
+        onOpenChange={(open) => !open && setPermModal(null)}
+      />
     </div>
   );
 }
