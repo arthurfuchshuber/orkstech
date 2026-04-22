@@ -58,7 +58,6 @@ export function AllUsersTab({ users, isLoading }: Props) {
     for (const u of users) {
       if (u.empresa_id && empresaMap.has(u.empresa_id)) {
         const entry = empresaMap.get(u.empresa_id)!;
-        // Add as member if not already the owner
         if (entry.owner?.id !== u.id) {
           entry.members.push(u);
         }
@@ -81,6 +80,23 @@ export function AllUsersTab({ users, isLoading }: Props) {
     }
 
     return result.sort((a, b) => new Date(b.empresa.created_at).getTime() - new Date(a.empresa.created_at).getTime());
+  }, [users, searchTerm]);
+
+  // Users without an empresa (Super Admins criados via dialog, usuários órfãos)
+  const orphanUsers = useMemo(() => {
+    const inCompany = new Set<string>();
+    for (const u of users) {
+      if (u.is_owner) inCompany.add(u.id);
+      if (u.empresa_id) inCompany.add(u.id);
+    }
+    let result = users.filter((u) => !inCompany.has(u.id));
+    if (searchTerm) {
+      const q = searchTerm.toLowerCase();
+      result = result.filter(
+        (u) => u.nome?.toLowerCase().includes(q) || u.email?.toLowerCase().includes(q)
+      );
+    }
+    return result.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
   }, [users, searchTerm]);
 
   const toggleExpanded = (empresaId: string) => {
