@@ -399,6 +399,7 @@ function IntegrationCard({
       onChanged();
 
       if (provider === "asaas") syncAsaasHistory();
+      if (provider === "clicksign") syncClicksignHistory();
     } catch (e) {
       toast.error(`Erro ao salvar: ${(e as Error).message}`);
     } finally { setSaving(false); }
