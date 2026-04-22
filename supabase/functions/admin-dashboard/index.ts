@@ -606,7 +606,10 @@ serve(async (req) => {
     }
 
     if (action === "update_company") {
-      const { empresa_id, razao_social, nome_fantasia, cnpj, email, telefone } = body;
+      const {
+        empresa_id, razao_social, nome_fantasia, cnpj, email, telefone,
+        inscricao_estadual, inscricao_municipal, cep, logradouro, bairro, cidade, estado, observacoes,
+      } = body;
       if (!empresa_id) {
         return new Response(JSON.stringify({ error: "empresa_id obrigatório" }), {
           status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -618,11 +621,58 @@ serve(async (req) => {
       if (cnpj !== undefined) updateData.cnpj = cnpj;
       if (email !== undefined) updateData.email = email;
       if (telefone !== undefined) updateData.telefone = telefone;
+      if (inscricao_estadual !== undefined) updateData.inscricao_estadual = inscricao_estadual;
+      if (inscricao_municipal !== undefined) updateData.inscricao_municipal = inscricao_municipal;
+      if (cep !== undefined) updateData.cep = cep;
+      if (logradouro !== undefined) updateData.logradouro = logradouro;
+      if (bairro !== undefined) updateData.bairro = bairro;
+      if (cidade !== undefined) updateData.cidade = cidade;
+      if (estado !== undefined) updateData.estado = estado;
+      if (observacoes !== undefined) updateData.observacoes = observacoes;
 
       const { error } = await supabaseAdmin.from("empresas").update(updateData).eq("id", empresa_id);
       if (error) throw error;
 
       await logAdminAction("admin.empresa_editada", `Empresa ${nome_fantasia || razao_social || empresa_id} editada`, { empresa_id });
+
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (action === "toggle_company_active") {
+      const { empresa_id, ativo } = body;
+      if (!empresa_id || typeof ativo !== "boolean") {
+        return new Response(JSON.stringify({ error: "Parâmetros inválidos" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const { data: emp } = await supabaseAdmin
+        .from("empresas")
+        .select("razao_social, nome_fantasia, user_id")
+        .eq("id", empresa_id)
+        .single();
+
+      // Update empresa
+      const { error: empErr } = await supabaseAdmin
+        .from("empresas")
+        .update({ ativo })
+        .eq("id", empresa_id);
+      if (empErr) throw empErr;
+
+      // Cascade: ativar/inativar todos os perfis vinculados (membros e o próprio dono)
+      // Membros = profiles.empresa_id = empresa.id
+      await supabaseAdmin.from("profiles").update({ ativo }).eq("empresa_id", empresa_id);
+      // Dono = profiles.user_id = empresa.user_id (caso ainda não tenha empresa_id setado)
+      if (emp?.user_id) {
+        await supabaseAdmin.from("profiles").update({ ativo }).eq("user_id", emp.user_id);
+      }
+
+      await logAdminAction(
+        ativo ? "admin.empresa_ativada" : "admin.empresa_inativada",
+        `Empresa ${emp?.nome_fantasia || emp?.razao_social || empresa_id} ${ativo ? "reativada" : "inativada"} (cascade em usuários)`,
+        { empresa_id }
+      );
 
       return new Response(JSON.stringify({ success: true }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },

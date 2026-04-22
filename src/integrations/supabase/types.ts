@@ -1457,6 +1457,7 @@ export type Database = {
       }
       empresas: {
         Row: {
+          ativo: boolean
           bairro: string | null
           cep: string | null
           cidade: string | null
@@ -1476,6 +1477,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          ativo?: boolean
           bairro?: string | null
           cep?: string | null
           cidade?: string | null
@@ -1495,6 +1497,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          ativo?: boolean
           bairro?: string | null
           cep?: string | null
           cidade?: string | null
