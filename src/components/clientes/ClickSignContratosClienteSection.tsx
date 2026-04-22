@@ -111,7 +111,6 @@ export function ClickSignContratosClienteSection({ clienteId }: Props) {
           {docs.map((doc: any) => {
             const meta = STATUS_LABEL[doc.status] || { label: doc.status, className: "bg-muted text-muted-foreground border-border" };
             const signers = Array.isArray(doc.signatarios) ? doc.signatarios : [];
-            const fileUrl = doc.url_assinado || doc.url_original;
             return (
               <Card
                 key={doc.id}
