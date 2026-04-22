@@ -204,7 +204,7 @@ export function PricingCards({ publicMode = false }: PricingCardsProps) {
               {plan.description && (
                 <p className="text-[11px] text-muted-foreground/80 mt-1">{plan.description}</p>
               )}
-              <p className="text-xs text-muted-foreground min-h-[32px]">{visuals.tagline}</p>
+              
 
               {/* Price */}
               <div className="mt-5 mb-5">
@@ -241,7 +241,7 @@ export function PricingCards({ publicMode = false }: PricingCardsProps) {
                     <Check
                       className={cn(
                         "w-3.5 h-3.5 mt-0.5 shrink-0",
-                        visuals.highlight ? "text-primary" : "text-emerald-500"
+                        highlight ? "text-primary" : "text-emerald-500"
                       )}
                     />
                     <span>{feature}</span>
@@ -253,10 +253,10 @@ export function PricingCards({ publicMode = false }: PricingCardsProps) {
               <Button
                 onClick={() => price && handleSubscribe(price.id)}
                 disabled={!price || isLoading || isCurrent}
-                variant={visuals.highlight ? "default" : "outline"}
+                variant={highlight ? "default" : "outline"}
                 className={cn(
                   "w-full",
-                  visuals.highlight && "shadow-sm",
+                  highlight && "shadow-sm",
                   isCurrent && "opacity-60"
                 )}
               >
