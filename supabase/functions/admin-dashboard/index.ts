@@ -120,6 +120,7 @@ serve(async (req) => {
       let mrr = 0, arr = 0, activeSubscriptions = 0, trialingSubscriptions = 0, canceledLast30d = 0;
       let planBreakdown: Record<string, number> = {};
       const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
+      const stripeTrialUserIds = new Set<string>();
       if (stripeKey) {
         const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
 
@@ -146,6 +147,17 @@ serve(async (req) => {
           }
         }
         arr = mrr * 12;
+      }
+
+      // Manual trials (definidos pelo admin) — somente os ativos (não expirados)
+      // e que não estejam já contados via Stripe trialing
+      const { data: manualTrials } = await supabaseAdmin
+        .from("subscribers")
+        .select("user_id, trial_end")
+        .eq("is_manual_trial", true)
+        .gt("trial_end", new Date().toISOString());
+      for (const mt of manualTrials ?? []) {
+        if (!stripeTrialUserIds.has(mt.user_id)) trialingSubscriptions++;
       }
       const churnRate = activeSubscriptions + canceledLast30d > 0
         ? (canceledLast30d / (activeSubscriptions + canceledLast30d)) * 100
