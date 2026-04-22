@@ -22,11 +22,11 @@ interface Props {
 }
 
 function detectKind(url: string | null, mime?: string | null): "pdf" | "image" | "other" {
-  if (!url) return "other";
+  if (!url && !mime) return "other";
   const m = (mime || "").toLowerCase();
   if (m.includes("pdf")) return "pdf";
   if (m.startsWith("image/")) return "image";
-  const lower = url.toLowerCase().split("?")[0];
+  const lower = (url || "").toLowerCase().split("?")[0];
   if (lower.endsWith(".pdf")) return "pdf";
   if (/\.(png|jpe?g|webp|gif|bmp|svg)$/.test(lower)) return "image";
   return "other";
@@ -37,11 +37,19 @@ export function FilePreviewModal({ open, onOpenChange, url, nome, mime, data, bl
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [pageCount, setPageCount] = useState(0);
   const [pageWidth, setPageWidth] = useState<number>(820);
-  const pdfFile = useMemo(() => {
+
+  const stablePdfBlob = useMemo(() => {
     if (blob) return blob;
-    if (data?.byteLength) return { data: data.slice() };
+    if (data?.byteLength) {
+      return new Blob([data.slice()], { type: mime || "application/pdf" });
+    }
+    return null;
+  }, [blob, data, mime]);
+
+  const pdfFile = useMemo(() => {
+    if (stablePdfBlob) return stablePdfBlob;
     return url;
-  }, [blob, data, url]);
+  }, [stablePdfBlob, url]);
 
   useEffect(() => {
     if (!open || kind !== "pdf") return;
@@ -61,7 +69,7 @@ export function FilePreviewModal({ open, onOpenChange, url, nome, mime, data, bl
 
   useEffect(() => {
     if (!open) setPageCount(0);
-  }, [open, url, data, blob]);
+  }, [open, url, blob]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -97,7 +105,7 @@ export function FilePreviewModal({ open, onOpenChange, url, nome, mime, data, bl
           ) : kind === "pdf" ? (
             <div ref={containerRef} className="h-full overflow-auto p-4 md:p-6">
               <Document
-                key={`${nome || "arquivo"}-${url || "sem-url"}-${data?.byteLength || 0}`}
+                key={`${nome || "arquivo"}-${url || "sem-url"}-${stablePdfBlob?.size || 0}`}
                 file={pdfFile}
                 options={pdfOptions}
                 loading={
