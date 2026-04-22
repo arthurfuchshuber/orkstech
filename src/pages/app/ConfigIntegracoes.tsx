@@ -334,6 +334,26 @@ function IntegrationCard({
     }
   };
 
+  const syncClicksignHistory = async () => {
+    if (provider !== "clicksign") return;
+    try {
+      toast.info("Sincronizando histórico do ClickSign…", { id: "cs-sync" });
+      const { data, error } = await supabase.functions.invoke("clicksign-sync-historico", {
+        body: { empresa_id: empresaId },
+      });
+      if (error || data?.error) throw new Error(data?.error || error?.message);
+      const ins = data?.inserted ?? 0;
+      const upd = data?.updated ?? 0;
+      const matched = data?.matched ?? 0;
+      toast.success(
+        `Histórico sincronizado: ${ins} novos, ${upd} atualizados, ${matched} vinculados a clientes`,
+        { id: "cs-sync" }
+      );
+    } catch (e) {
+      toast.error(`Falha ao sincronizar ClickSign: ${(e as Error).message}`, { id: "cs-sync" });
+    }
+  };
+
   const purgeAsaasHistory = async () => {
     if (provider !== "asaas") return;
     try {
