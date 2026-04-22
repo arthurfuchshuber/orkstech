@@ -1,5 +1,6 @@
 import { useState, useCallback } from "react";
-import { Building2, Pencil, Trash2, UserPlus, Users, ShieldAlert } from "lucide-react";
+import { Building2, Pencil, Trash2, UserPlus, Users, ShieldAlert, ShieldCheck } from "lucide-react";
+import { PermissionsModal } from "@/components/admin/PermissionsModal";
 import { DocumentInput } from "@/components/inputs/DocumentInput";
 import { PhoneInput } from "@/components/inputs/PhoneInput";
 import { DateInput } from "@/components/inputs/DateInput";
@@ -233,7 +234,8 @@ function UsuariosTab() {
   const [editForm, setEditForm] = useState({ nome: "", cpf: "", telefone: "", data_nascimento: "" });
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [adminBlockMsg, setAdminBlockMsg] = useState<string | null>(null);
-  const [createForm, setCreateForm] = useState({ email: "", password: "", nome: "", nivel_permissao_id: "" });
+  const [createForm, setCreateForm] = useState({ email: "", password: "", nome: "" });
+  const [permModal, setPermModal] = useState<{ userId: string; email: string; isOwner: boolean } | null>(null);
   const { data, isLoading } = useUserManagementData();
   const users = data?.users ?? [];
   const niveis = data?.niveis ?? [];
@@ -248,7 +250,7 @@ function UsuariosTab() {
       const { data, error } = await supabase.functions.invoke("manage-users", { body: { action: "create_user", ...createForm } });
       if (error) throw error; if (data?.error) throw new Error(data.error);
     },
-    onSuccess: () => { toast.success("Usuário criado!"); setShowCreateModal(false); setCreateForm({ email: "", password: "", nome: "", nivel_permissao_id: "" }); qc.invalidateQueries({ queryKey: ["manage-users"] }); },
+    onSuccess: () => { toast.success("Usuário criado! Configure as permissões em seguida."); setShowCreateModal(false); setCreateForm({ email: "", password: "", nome: "" }); qc.invalidateQueries({ queryKey: ["manage-users"] }); },
     onError: (e: Error) => toast.error(e.message),
   });
 
@@ -293,58 +295,25 @@ function UsuariosTab() {
 
   if (isLoading) return <p className="py-8 text-center text-sm text-muted-foreground">Carregando...</p>;
 
-  const getNivelDescription = (nome: string) => {
-    const n = nome.toLowerCase();
-    if (n.includes("admin")) return "Gerencia operação, usuários e configurações da empresa.";
-    if (n.includes("finance")) return "Focado em rotinas financeiras, cadastros estruturais e contas bancárias.";
-    if (n.includes("operac")) return "Acesso às rotinas operacionais do dia a dia.";
-    if (n.includes("visual") || n.includes("leitura")) return "Acesso consultivo, ideal para acompanhamento.";
-    return "Define o escopo de acesso do usuário dentro do sistema.";
-  };
-
-  const niveisFiltered = niveis.filter((n) => n.nome !== "Super Admin");
-  const resumo = niveisFiltered.map((nivel) => ({
-    ...nivel,
-    count: users.filter((u) => u.nivel_permissao_id === nivel.id).length,
-  }));
-  const adminNivelId = niveis.find((n) => n.nome === "Admin")?.id;
-  const activeAdminCount = users.filter((u) => u.ativo && u.nivel_permissao_id === adminNivelId).length;
-
-  const isOnlyActiveAdmin = (targetUser: UserRow) => (
-    !!adminNivelId
-    && targetUser.ativo
-    && targetUser.nivel_permissao_id === adminNivelId
-    && activeAdminCount === 1
-  );
-
-  const handleRoleChange = (targetUser: UserRow, nextNivelId: string) => {
-    if (isOnlyActiveAdmin(targetUser) && nextNivelId !== adminNivelId) {
-      setAdminBlockMsg("Não é possível remover o nível Admin do único administrador da empresa.");
-      return;
-    }
-
-    updateRole.mutate({ user_id: targetUser.id, nivel_permissao_id: nextNivelId });
-  };
+  const ownerUserId = empresa?.user_id;
 
   return (
     <div className="space-y-4">
-      {/* Permissions summary */}
-      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-        {resumo.map((nivel) => (
-          <div key={nivel.id} className="rounded-xl border border-border/60 bg-muted/20 p-4">
-            <div className="flex items-start justify-between gap-3">
-              <div className="space-y-1">
-                <p className="text-sm font-semibold text-foreground">{nivel.nome}</p>
-                <p className="text-xs leading-relaxed text-muted-foreground">{getNivelDescription(nivel.nome)}</p>
-              </div>
-              <Badge variant="secondary" className="shrink-0">{nivel.count}</Badge>
-            </div>
+      <div className="rounded-xl border border-primary/20 bg-primary/5 p-4">
+        <div className="flex items-start gap-3">
+          <ShieldCheck className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
+          <div className="space-y-1">
+            <p className="text-sm font-semibold text-foreground">Permissões personalizadas por usuário</p>
+            <p className="text-xs leading-relaxed text-muted-foreground">
+              Cada usuário pode ter permissões individuais de visualização e edição para cada página e área do sistema.
+              O dono da empresa sempre tem acesso total.
+            </p>
           </div>
-        ))}
+        </div>
       </div>
 
       <div className="flex items-center justify-between">
-        <p className="text-sm text-muted-foreground">Gerencie os usuários do sistema, seus níveis de acesso e status.</p>
+        <p className="text-sm text-muted-foreground">Gerencie os usuários e suas permissões de acesso.</p>
         <Button size="sm" onClick={() => setShowCreateModal(true)} className="gap-1.5"><UserPlus className="h-3.5 w-3.5" /> Novo Usuário</Button>
       </div>
 
