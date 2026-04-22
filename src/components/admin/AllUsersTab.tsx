@@ -430,7 +430,11 @@ export function AllUsersTab({ users, isLoading }: Props) {
               </div>
               <DocumentInput type="cpf" value={editForm.cpf} onValueChange={(raw) => setEditForm({ ...editForm, cpf: raw })} label="CPF" />
               <PhoneInput value={editForm.telefone} onValueChange={(raw) => setEditForm({ ...editForm, telefone: raw })} label="Telefone" />
-              <DateInput value={editForm.data_nascimento} onValueChange={(raw) => setEditForm({ ...editForm, data_nascimento: raw })} label="Data de nascimento" />
+              <DateInput
+                value={editForm.data_nascimento ? new Date(editForm.data_nascimento) : undefined}
+                onValueChange={(d) => setEditForm({ ...editForm, data_nascimento: d ? d.toISOString().slice(0, 10) : "" })}
+                label="Data de nascimento"
+              />
               <div>
                 <label className="mb-1 block text-xs font-medium text-muted-foreground">Nível de permissão</label>
                 <Select value={editForm.nivel_permissao_id} onValueChange={(v) => setEditForm({ ...editForm, nivel_permissao_id: v })}>
