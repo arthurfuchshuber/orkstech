@@ -15,6 +15,7 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { ClickSignContratosClienteSection } from "./ClickSignContratosClienteSection";
+import { FilePreviewModal } from "@/components/FilePreviewModal";
 
 interface Props {
   clienteId: string;
@@ -34,6 +35,7 @@ export function ClienteDocumentosTab({ clienteId }: Props) {
   const [uploading, setUploading] = useState(false);
   const [uploadingContract, setUploadingContract] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [preview, setPreview] = useState<{ url: string; nome: string; mime?: string | null } | null>(null);
 
   const { data: docs = [], isLoading } = useQuery({
     queryKey: ["cliente-documentos", clienteId],
@@ -123,28 +125,39 @@ export function ClienteDocumentosTab({ clienteId }: Props) {
   });
 
   const FileItem = ({ doc }: { doc: any }) => (
-    <Card className="p-4 border-border/40 shadow-sm flex items-center justify-between group hover:border-border/60 transition-colors">
-      <div className="flex items-center gap-3">
-        <div className="w-9 h-9 rounded-lg bg-muted/50 flex items-center justify-center">
+    <Card
+      role="button"
+      tabIndex={0}
+      onClick={() => setPreview({ url: doc.url, nome: doc.nome, mime: doc.tipo })}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          setPreview({ url: doc.url, nome: doc.nome, mime: doc.tipo });
+        }
+      }}
+      className="p-4 border-border/40 shadow-sm flex items-center justify-between group hover:border-border/60 hover:bg-muted/30 transition-colors cursor-pointer"
+    >
+      <div className="flex items-center gap-3 min-w-0">
+        <div className="w-9 h-9 rounded-lg bg-muted/50 flex items-center justify-center shrink-0">
           <FileText className="w-4 h-4 text-muted-foreground" />
         </div>
-        <div>
-          <p className="text-sm font-medium text-foreground">{doc.nome}</p>
+        <div className="min-w-0">
+          <p className="text-sm font-medium text-foreground truncate">{doc.nome}</p>
           <p className="text-xs text-muted-foreground">
             {format(new Date(doc.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
             {doc.tamanho ? ` · ${formatBytes(doc.tamanho)}` : ""}
           </p>
         </div>
       </div>
-      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-        <Button variant="ghost" size="icon" className="h-8 w-8" asChild>
+      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+        <Button variant="ghost" size="icon" className="h-8 w-8" asChild onClick={(e) => e.stopPropagation()}>
           <a href={doc.url} download={doc.nome}><Download className="w-4 h-4" /></a>
         </Button>
         <Button
           variant="ghost"
           size="icon"
           className="h-8 w-8 text-destructive hover:text-destructive"
-          onClick={() => setDeleteId(doc.id)}
+          onClick={(e) => { e.stopPropagation(); setDeleteId(doc.id); }}
         >
           <Trash2 className="w-4 h-4" />
         </Button>
@@ -249,6 +262,14 @@ export function ClienteDocumentosTab({ clienteId }: Props) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <FilePreviewModal
+        open={!!preview}
+        onOpenChange={(o) => !o && setPreview(null)}
+        url={preview?.url || null}
+        nome={preview?.nome}
+        mime={preview?.mime}
+      />
     </div>
   );
 }
