@@ -1,0 +1,1 @@
+ALTER TABLE public.subscribers ADD COLUMN IF NOT EXISTS is_manual_trial boolean NOT NULL DEFAULT false;
