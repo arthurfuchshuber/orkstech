@@ -813,6 +813,102 @@ serve(async (req) => {
       });
     }
 
+    // ============= CREATE SUPER ADMIN (do zero, sem onboarding de empresa) =============
+    if (action === "create_super_admin") {
+      const { email, password, nome } = body;
+      if (!email || !password || !nome) {
+        return new Response(JSON.stringify({ error: "email, password e nome são obrigatórios" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      if (typeof password !== "string" || password.length < 8) {
+        return new Response(JSON.stringify({ error: "Senha deve ter pelo menos 8 caracteres" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Get Super Admin level id
+      const { data: saNivel } = await supabaseAdmin
+        .from("niveis_permissao").select("id").eq("nome", "Super Admin").single();
+      if (!saNivel?.id) {
+        return new Response(JSON.stringify({ error: "Nível 'Super Admin' não encontrado no sistema" }), {
+          status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Create auth user (email already confirmed, no onboarding needed)
+      const { data: created, error: createErr } = await supabaseAdmin.auth.admin.createUser({
+        email,
+        password,
+        email_confirm: true,
+        user_metadata: { full_name: nome },
+      });
+      if (createErr) {
+        const msg = createErr.message?.includes("already been registered")
+          ? "Este e-mail já está cadastrado"
+          : createErr.message;
+        return new Response(JSON.stringify({ error: msg }), {
+          status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Promote profile to Super Admin (handle_new_user trigger criou perfil como Admin)
+      const { error: profErr } = await supabaseAdmin
+        .from("profiles")
+        .update({ nome, nivel_permissao_id: saNivel.id, ativo: true })
+        .eq("user_id", created.user.id);
+      if (profErr) {
+        // Rollback auth user on failure
+        await supabaseAdmin.auth.admin.deleteUser(created.user.id);
+        throw profErr;
+      }
+
+      await logAdminAction(
+        "admin.super_admin_criado",
+        `Novo Super Admin criado: ${email}`,
+        { target_user_id: created.user.id, target_email: email, target_nome: nome }
+      );
+
+      return new Response(JSON.stringify({ success: true, user_id: created.user.id }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // ============= PROMOTE EXISTING USER TO SUPER ADMIN =============
+    if (action === "promote_to_super_admin") {
+      const { user_id } = body;
+      if (!user_id) {
+        return new Response(JSON.stringify({ error: "user_id obrigatório" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const { data: saNivel } = await supabaseAdmin
+        .from("niveis_permissao").select("id").eq("nome", "Super Admin").single();
+      if (!saNivel?.id) {
+        return new Response(JSON.stringify({ error: "Nível 'Super Admin' não encontrado" }), {
+          status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const { error } = await supabaseAdmin
+        .from("profiles")
+        .update({ nivel_permissao_id: saNivel.id, ativo: true })
+        .eq("user_id", user_id);
+      if (error) throw error;
+
+      const { data: { user: target } } = await supabaseAdmin.auth.admin.getUserById(user_id);
+      await logAdminAction(
+        "admin.super_admin_promovido",
+        `Usuário ${target?.email ?? user_id} promovido a Super Admin`,
+        { target_user_id: user_id, target_email: target?.email }
+      );
+
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     if (action === "request_account_deletion") {
       await supabaseAdmin.from("historico_sistema").insert({
         user_id: caller.id,
