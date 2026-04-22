@@ -687,6 +687,50 @@ serve(async (req) => {
         });
       }
       const { data: emp } = await supabaseAdmin.from("empresas").select("razao_social, nome_fantasia").eq("id", empresa_id).single();
+
+      // Cascade delete de todas as tabelas que referenciam empresa_id
+      const dependentTables = [
+        "cash_transactions",
+        "cashflow_forecasts",
+        "cashflow_imports",
+        "manual_bank_transactions",
+        "asaas_cobrancas",
+        "clicksign_documentos",
+        "cliente_documentos",
+        "cliente_interacoes",
+        "cliente_interacao_tipos",
+        "accounts_payable",
+        "accounts_receivable",
+        "dre_regras",
+        "categorias_financeiras",
+        "categorias_cadastro",
+        "centros_custo",
+        "formas_pagamento",
+        "tipos_forma_pagamento",
+        "bancos",
+        "contas_bancarias",
+        "produtos",
+        "colaboradores",
+        "fornecedores",
+        "clientes",
+        "automacoes",
+        "automacao_acoes_tipo",
+        "automacao_gatilhos",
+        "notificacoes_sistema",
+        "historico_sistema",
+        "integracoes_credenciais",
+        "menu_permissions",
+        "menus",
+        "profiles",
+      ];
+
+      for (const tbl of dependentTables) {
+        const { error: delErr } = await supabaseAdmin.from(tbl).delete().eq("empresa_id", empresa_id);
+        if (delErr && delErr.code !== "42P01") {
+          console.error(`Erro ao limpar ${tbl}:`, delErr);
+        }
+      }
+
       const { error } = await supabaseAdmin.from("empresas").delete().eq("id", empresa_id);
       if (error) throw error;
 
