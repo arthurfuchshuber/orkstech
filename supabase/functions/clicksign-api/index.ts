@@ -36,6 +36,16 @@ async function csFetch(cred: CredRow, path: string, init: RequestInit = {}) {
   return data;
 }
 
+async function fetchFreshDownloadUrls(cred: CredRow, key: string): Promise<{ signed: string | null; original: string | null; doc: any }> {
+  const res = await csFetch(cred, `/api/v1/documents/${key}`);
+  const csDoc = res?.document || res;
+  return {
+    signed: csDoc?.downloads?.signed_file_url || null,
+    original: csDoc?.downloads?.original_file_url || null,
+    doc: csDoc,
+  };
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -92,20 +102,49 @@ Deno.serve(async (req) => {
       const { data: doc, error } = await serviceClient
         .from("clicksign_documentos").select("*").eq("id", documento_id).eq("user_id", userId).single();
       if (error || !doc) throw new Error("Documento não encontrado");
-      const res = await csFetch(cred as CredRow, `/api/v1/documents/${doc.clicksign_document_key}`);
-      const csDoc = res?.document;
-      const status = csDoc?.status || doc.status;
-      const downloadUrl = csDoc?.downloads?.signed_file_url || null;
+      const fresh = await fetchFreshDownloadUrls(cred as CredRow, doc.clicksign_document_key);
       await serviceClient.from("clicksign_documentos")
         .update({
-          status,
-          url_assinado: downloadUrl,
-          finalizado_em: csDoc?.finished_at || null,
-          raw_data: csDoc,
+          status: fresh.doc?.status || doc.status,
+          url_assinado: fresh.signed,
+          url_original: fresh.original,
+          finalizado_em: fresh.doc?.finished_at || null,
+          raw_data: fresh.doc,
         })
         .eq("id", documento_id);
-      return new Response(JSON.stringify({ success: true, document: csDoc }), {
+      return new Response(JSON.stringify({ success: true, document: fresh.doc }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (action === "download_document") {
+      const { documento_id } = body;
+      const { data: doc, error } = await serviceClient
+        .from("clicksign_documentos").select("*").eq("id", documento_id).eq("user_id", userId).single();
+      if (error || !doc) throw new Error("Documento não encontrado");
+
+      // Busca URL fresca (S3 expira em 5 min)
+      const fresh = await fetchFreshDownloadUrls(cred as CredRow, doc.clicksign_document_key);
+      const fileUrl = fresh.signed || fresh.original;
+      if (!fileUrl) throw new Error("URL de download indisponível");
+
+      const fileRes = await fetch(fileUrl);
+      if (!fileRes.ok) throw new Error(`Falha ao baixar arquivo: ${fileRes.status}`);
+      const buffer = await fileRes.arrayBuffer();
+
+      // Atualiza cache de URLs
+      await serviceClient.from("clicksign_documentos")
+        .update({ url_assinado: fresh.signed, url_original: fresh.original })
+        .eq("id", documento_id);
+
+      const filename = doc.nome || `documento-${doc.clicksign_document_key}.pdf`;
+      return new Response(buffer, {
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "application/pdf",
+          "Content-Disposition": `inline; filename="${encodeURIComponent(filename)}"`,
+          "Cache-Control": "private, max-age=60",
+        },
       });
     }
 
