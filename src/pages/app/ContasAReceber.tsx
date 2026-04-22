@@ -518,7 +518,6 @@ export default function ContasAReceber() {
         data: {
           description: form.description,
           cliente_id: isCliente ? form.cliente_id || null : null,
-          supplier_id: !isCliente ? form.supplier_id || null : null,
           supplier_name: payerName || null,
           document_number: form.document_number || null,
           amount: form.amount / 100,
