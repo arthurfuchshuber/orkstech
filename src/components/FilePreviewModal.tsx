@@ -90,8 +90,9 @@ export function FilePreviewModal({ open, onOpenChange, url, nome, mime, data, bl
         </DialogHeader>
         <div className="flex-1 min-h-0 bg-muted/30">
           {!url ? (
-            <div className="h-full flex items-center justify-center text-sm text-muted-foreground">
-              Arquivo indisponível
+            <div className="h-full flex flex-col items-center justify-center gap-2 text-sm text-muted-foreground">
+              <Loader2 className="w-5 h-5 animate-spin" />
+              Carregando documento...
             </div>
           ) : kind === "pdf" ? (
             <div ref={containerRef} className="h-full overflow-auto p-4 md:p-6">
