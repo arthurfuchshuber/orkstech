@@ -730,9 +730,18 @@ serve(async (req) => {
     return new Response(JSON.stringify({ error: "Ação inválida" }), {
       status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
-  } catch (error) {
-    const msg = error instanceof Error ? error.message : String(error);
-    return new Response(JSON.stringify({ error: msg }), {
+  } catch (error: any) {
+    // Extract a useful message from Error, PostgrestError, or any object
+    let msg = "Erro interno";
+    if (error instanceof Error) {
+      msg = error.message;
+    } else if (error && typeof error === "object") {
+      msg = error.message || error.error_description || error.error || error.details || error.hint || JSON.stringify(error);
+    } else {
+      msg = String(error);
+    }
+    console.error("[admin-dashboard] error:", msg, error);
+    return new Response(JSON.stringify({ error: msg, details: error?.details ?? null, hint: error?.hint ?? null, code: error?.code ?? null }), {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
