@@ -135,7 +135,6 @@ export function EditCompanyModal({ company, open, onOpenChange }: Props) {
         </DialogHeader>
 
         <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5">
-          {/* Aviso */}
           <div className="flex items-start gap-2 rounded-md border border-warning/30 bg-warning/5 px-3 py-2 text-xs text-warning">
             <ShieldAlert className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
             <span>
@@ -143,7 +142,6 @@ export function EditCompanyModal({ company, open, onOpenChange }: Props) {
             </span>
           </div>
 
-          {/* Identificação */}
           <section className="space-y-3">
             <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Identificação</p>
             <DocumentInput
@@ -156,32 +154,31 @@ export function EditCompanyModal({ company, open, onOpenChange }: Props) {
             <TextInput
               label="Razão Social *"
               value={form.razao_social}
-              onValueChange={(v) => update("razao_social", v)}
+              onChange={(e) => update("razao_social", e.target.value)}
               maxLength={120}
             />
             <TextInput
               label="Nome Fantasia"
               value={form.nome_fantasia || ""}
-              onValueChange={(v) => update("nome_fantasia", v)}
+              onChange={(e) => update("nome_fantasia", e.target.value)}
               maxLength={120}
             />
             <div className="grid grid-cols-2 gap-3">
               <TextInput
                 label="Inscrição Estadual"
                 value={form.inscricao_estadual || ""}
-                onValueChange={(v) => update("inscricao_estadual", v)}
+                onChange={(e) => update("inscricao_estadual", e.target.value)}
                 maxLength={20}
               />
               <TextInput
                 label="Inscrição Municipal"
                 value={form.inscricao_municipal || ""}
-                onValueChange={(v) => update("inscricao_municipal", v)}
+                onChange={(e) => update("inscricao_municipal", e.target.value)}
                 maxLength={20}
               />
             </div>
           </section>
 
-          {/* Contato */}
           <section className="space-y-3">
             <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Contato</p>
             <div className="grid grid-cols-2 gap-3">
@@ -189,7 +186,7 @@ export function EditCompanyModal({ company, open, onOpenChange }: Props) {
                 label="E-mail"
                 type="email"
                 value={form.email || ""}
-                onValueChange={(v) => update("email", v)}
+                onChange={(e) => update("email", e.target.value)}
                 maxLength={120}
               />
               <PhoneInput
@@ -199,7 +196,6 @@ export function EditCompanyModal({ company, open, onOpenChange }: Props) {
             </div>
           </section>
 
-          {/* Endereço */}
           <section className="space-y-3">
             <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Endereço</p>
             <div className="grid grid-cols-3 gap-3">
@@ -220,7 +216,7 @@ export function EditCompanyModal({ company, open, onOpenChange }: Props) {
                 <TextInput
                   label="Logradouro"
                   value={form.logradouro || ""}
-                  onValueChange={(v) => update("logradouro", v)}
+                  onChange={(e) => update("logradouro", e.target.value)}
                   maxLength={120}
                 />
               </div>
@@ -229,30 +225,29 @@ export function EditCompanyModal({ company, open, onOpenChange }: Props) {
               <TextInput
                 label="Bairro"
                 value={form.bairro || ""}
-                onValueChange={(v) => update("bairro", v)}
+                onChange={(e) => update("bairro", e.target.value)}
                 maxLength={60}
               />
               <TextInput
                 label="Cidade"
                 value={form.cidade || ""}
-                onValueChange={(v) => update("cidade", v)}
+                onChange={(e) => update("cidade", e.target.value)}
                 maxLength={60}
               />
               <TextInput
                 label="UF"
                 value={form.estado || ""}
-                onValueChange={(v) => update("estado", v.toUpperCase().slice(0, 2))}
+                onChange={(e) => update("estado", e.target.value.toUpperCase().slice(0, 2))}
                 maxLength={2}
               />
             </div>
           </section>
 
-          {/* Observações */}
           <section className="space-y-3">
             <TextareaInput
               label="Observações"
               value={form.observacoes || ""}
-              onValueChange={(v) => update("observacoes", v)}
+              onChange={(e) => update("observacoes", e.target.value)}
               rows={3}
               maxLength={500}
             />
