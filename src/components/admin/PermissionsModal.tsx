@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useEmpresa } from "@/hooks/useEmpresa";
@@ -7,26 +7,38 @@ import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { ShieldCheck, Loader2, Eye, Pencil, Lock } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { cn } from "@/lib/utils";
+import {
+  ShieldCheck, Loader2, Lock, Search, EyeOff, Eye, Pencil,
+  LayoutGrid, Settings2, CheckCheck, XCircle,
+} from "lucide-react";
 import { toast } from "sonner";
 
-type PermissionState = Record<string, { can_view: boolean; can_edit: boolean }>;
+type AccessLevel = "none" | "view" | "edit";
+type PermissionState = Record<string, AccessLevel>;
 
 interface Props {
   userId: string | null;
   userEmail: string | null;
-  isOwner: boolean; // se for owner, somente leitura
+  isOwner: boolean;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
+
+const LEVELS: { value: AccessLevel; label: string; icon: typeof Eye; tone: string }[] = [
+  { value: "none", label: "Sem acesso", icon: EyeOff, tone: "text-muted-foreground" },
+  { value: "view", label: "Visualizar", icon: Eye, tone: "text-primary" },
+  { value: "edit", label: "Editar", icon: Pencil, tone: "text-success" },
+];
 
 export function PermissionsModal({ userId, userEmail, isOwner, open, onOpenChange }: Props) {
   const { empresa } = useEmpresa();
   const qc = useQueryClient();
   const [state, setState] = useState<PermissionState>({});
+  const [search, setSearch] = useState("");
 
   const { data: existing, isLoading } = useQuery({
     queryKey: ["user-permissions-edit", userId, empresa?.id],
@@ -47,10 +59,15 @@ export function PermissionsModal({ userId, userEmail, isOwner, open, onOpenChang
     const initial: PermissionState = {};
     [...PERMISSION_CATALOG.menu, ...PERMISSION_CATALOG.system].forEach((p) => {
       const found = existing.find((e) => e.action_key === p.key);
-      initial[p.key] = {
-        can_view: isOwner ? true : found?.can_view ?? false,
-        can_edit: isOwner ? true : found?.can_edit ?? false,
-      };
+      if (isOwner) {
+        initial[p.key] = "edit";
+      } else if (found?.can_edit) {
+        initial[p.key] = "edit";
+      } else if (found?.can_view) {
+        initial[p.key] = "view";
+      } else {
+        initial[p.key] = "none";
+      }
     });
     setState(initial);
   }, [existing, isOwner]);
@@ -58,20 +75,16 @@ export function PermissionsModal({ userId, userEmail, isOwner, open, onOpenChang
   const save = useMutation({
     mutationFn: async () => {
       if (!userId || !empresa?.id) throw new Error("Dados ausentes");
-
-      // Upsert para cada permissão
-      const rows = Object.entries(state).map(([action_key, perms]) => ({
+      const rows = Object.entries(state).map(([action_key, level]) => ({
         user_id: userId,
         empresa_id: empresa.id,
         action_key,
-        can_view: perms.can_view,
-        can_edit: perms.can_edit,
+        can_view: level !== "none",
+        can_edit: level === "edit",
       }));
-
       const { error } = await supabase
         .from("user_permissions")
         .upsert(rows, { onConflict: "user_id,empresa_id,action_key" });
-
       if (error) throw error;
     },
     onSuccess: () => {
@@ -83,84 +96,219 @@ export function PermissionsModal({ userId, userEmail, isOwner, open, onOpenChang
     onError: (e: Error) => toast.error(e.message),
   });
 
-  const toggle = (key: string, field: "can_view" | "can_edit", value: boolean) => {
+  const setLevel = (key: string, level: AccessLevel) => {
+    setState((prev) => ({ ...prev, [key]: level }));
+  };
+
+  const bulkSet = (items: readonly { key: string; alwaysOn?: boolean }[], level: AccessLevel) => {
     setState((prev) => {
-      const next = { ...prev, [key]: { ...prev[key], [field]: value } };
-      // Se desmarcar visualizar, desmarca editar também
-      if (field === "can_view" && !value) next[key].can_edit = false;
-      // Se marcar editar, marca visualizar também
-      if (field === "can_edit" && value) next[key].can_view = true;
+      const next = { ...prev };
+      items.forEach((item) => {
+        if (item.alwaysOn && level === "none") return; // não desativa sempre-on
+        next[item.key] = item.alwaysOn ? (level === "none" ? "view" : level) : level;
+      });
       return next;
     });
   };
 
-  const renderSection = (title: string, items: readonly { key: string; label: string; alwaysOn?: boolean }[]) => (
-    <div className="space-y-2">
-      <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground px-1">{title}</p>
-      <div className="rounded-lg border border-border/50 divide-y divide-border/30 overflow-hidden">
-        {items.map((item) => {
-          const perms = state[item.key] ?? { can_view: false, can_edit: false };
-          const locked = isOwner || item.alwaysOn;
-          return (
-            <div key={item.key} className="flex items-center gap-3 px-3 py-2 hover:bg-muted/30 transition-colors">
-              <span className="flex-1 text-xs text-foreground">{item.label}</span>
-              {item.alwaysOn && (
-                <Badge variant="outline" className="text-[9px] h-4 px-1.5">sempre</Badge>
-              )}
-              <label className="flex items-center gap-1.5 cursor-pointer text-[11px] text-muted-foreground hover:text-foreground">
-                <Checkbox
-                  checked={perms.can_view}
-                  disabled={locked}
-                  onCheckedChange={(v) => toggle(item.key, "can_view", !!v)}
-                />
-                <Eye className="w-3 h-3" /> Ver
-              </label>
-              <label className="flex items-center gap-1.5 cursor-pointer text-[11px] text-muted-foreground hover:text-foreground">
-                <Checkbox
-                  checked={perms.can_edit}
-                  disabled={locked}
-                  onCheckedChange={(v) => toggle(item.key, "can_edit", !!v)}
-                />
-                <Pencil className="w-3 h-3" /> Editar
-              </label>
-            </div>
-          );
-        })}
+  const filterItems = <T extends { label: string }>(items: readonly T[]) =>
+    search
+      ? items.filter((i) => i.label.toLowerCase().includes(search.toLowerCase()))
+      : items;
+
+  const stats = useMemo(() => {
+    const values = Object.values(state);
+    return {
+      edit: values.filter((v) => v === "edit").length,
+      view: values.filter((v) => v === "view").length,
+      none: values.filter((v) => v === "none").length,
+      total: values.length,
+    };
+  }, [state]);
+
+  const renderRow = (item: { key: string; label: string; alwaysOn?: boolean }) => {
+    const current = state[item.key] ?? "none";
+    const locked = isOwner || item.alwaysOn;
+
+    return (
+      <div
+        key={item.key}
+        className="group flex items-center gap-3 px-3 py-2 hover:bg-muted/40 transition-colors"
+      >
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-foreground truncate">{item.label}</span>
+            {item.alwaysOn && (
+              <Badge variant="outline" className="text-[9px] h-4 px-1.5 font-normal">
+                obrigatório
+              </Badge>
+            )}
+          </div>
+        </div>
+
+        <div
+          className={cn(
+            "inline-flex items-center rounded-md border border-border/50 bg-muted/30 p-0.5 gap-0.5",
+            locked && "opacity-60"
+          )}
+        >
+          {LEVELS.map((lvl) => {
+            const Icon = lvl.icon;
+            const active = current === lvl.value;
+            const disabled = locked || (item.alwaysOn && lvl.value === "none");
+            return (
+              <button
+                key={lvl.value}
+                type="button"
+                disabled={disabled}
+                onClick={() => setLevel(item.key, lvl.value)}
+                className={cn(
+                  "inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-[11px] font-medium transition-all",
+                  "disabled:cursor-not-allowed",
+                  active
+                    ? lvl.value === "edit"
+                      ? "bg-success/15 text-success shadow-sm"
+                      : lvl.value === "view"
+                      ? "bg-primary/15 text-primary shadow-sm"
+                      : "bg-foreground/10 text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
+                )}
+              >
+                <Icon className="w-3 h-3" />
+                {lvl.label}
+              </button>
+            );
+          })}
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
+
+  const renderSection = (
+    title: string,
+    Icon: typeof LayoutGrid,
+    items: readonly { key: string; label: string; alwaysOn?: boolean }[]
+  ) => {
+    const filtered = filterItems(items);
+    if (filtered.length === 0) return null;
+    return (
+      <div className="space-y-2">
+        <div className="flex items-center justify-between px-1">
+          <div className="flex items-center gap-1.5">
+            <Icon className="w-3.5 h-3.5 text-muted-foreground" />
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+              {title}
+            </p>
+            <span className="text-[10px] text-muted-foreground/60">({filtered.length})</span>
+          </div>
+          {!isOwner && (
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={() => bulkSet(items, "none")}
+                className="text-[10px] text-muted-foreground hover:text-destructive transition-colors flex items-center gap-1"
+              >
+                <XCircle className="w-3 h-3" /> Limpar
+              </button>
+              <span className="text-muted-foreground/30">·</span>
+              <button
+                type="button"
+                onClick={() => bulkSet(items, "view")}
+                className="text-[10px] text-muted-foreground hover:text-primary transition-colors flex items-center gap-1"
+              >
+                <Eye className="w-3 h-3" /> Tudo ver
+              </button>
+              <span className="text-muted-foreground/30">·</span>
+              <button
+                type="button"
+                onClick={() => bulkSet(items, "edit")}
+                className="text-[10px] text-muted-foreground hover:text-success transition-colors flex items-center gap-1"
+              >
+                <CheckCheck className="w-3 h-3" /> Tudo editar
+              </button>
+            </div>
+          )}
+        </div>
+        <div className="rounded-lg border border-border/50 divide-y divide-border/30 overflow-hidden bg-card/30">
+          {filtered.map(renderRow)}
+        </div>
+      </div>
+    );
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col">
-        <DialogHeader>
+      <DialogContent className="max-w-3xl max-h-[92vh] flex flex-col p-0 gap-0 overflow-hidden">
+        <DialogHeader className="px-6 pt-6 pb-4 border-b border-border/50">
           <DialogTitle className="flex items-center gap-2 text-base">
-            <ShieldCheck className="w-4 h-4 text-primary" />
-            Permissões personalizadas
+            <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+              <ShieldCheck className="w-4 h-4 text-primary" />
+            </div>
+            <div className="flex flex-col">
+              <span>Permissões personalizadas</span>
+              <span className="text-xs font-normal text-muted-foreground">{userEmail}</span>
+            </div>
           </DialogTitle>
-          <DialogDescription className="text-xs">
-            {isOwner ? (
-              <span className="flex items-center gap-1.5 text-warning">
-                <Lock className="w-3 h-3" /> {userEmail} é o dono da empresa e tem acesso total. Permissões não podem ser alteradas.
-              </span>
-            ) : (
-              <>Defina o que <strong>{userEmail}</strong> pode visualizar e editar nesta empresa.</>
-            )}
-          </DialogDescription>
+
+          {isOwner ? (
+            <div className="mt-3 flex items-center gap-2 rounded-md border border-warning/30 bg-warning/5 px-3 py-2 text-xs text-warning">
+              <Lock className="w-3.5 h-3.5 flex-shrink-0" />
+              <span>Este usuário é o dono da empresa e tem acesso total. As permissões não podem ser alteradas.</span>
+            </div>
+          ) : (
+            <DialogDescription className="text-xs sr-only">
+              Defina o nível de acesso para cada página e área do sistema.
+            </DialogDescription>
+          )}
         </DialogHeader>
 
+        {/* Stats + busca */}
+        {!isLoading && (
+          <div className="px-6 py-3 border-b border-border/30 bg-muted/20 flex items-center gap-3 flex-wrap">
+            <div className="flex items-center gap-2 text-xs">
+              <Badge variant="outline" className="gap-1 font-normal">
+                <Pencil className="w-3 h-3 text-success" />
+                <span className="text-success font-medium">{stats.edit}</span>
+                <span className="text-muted-foreground">editar</span>
+              </Badge>
+              <Badge variant="outline" className="gap-1 font-normal">
+                <Eye className="w-3 h-3 text-primary" />
+                <span className="text-primary font-medium">{stats.view}</span>
+                <span className="text-muted-foreground">ver</span>
+              </Badge>
+              <Badge variant="outline" className="gap-1 font-normal">
+                <EyeOff className="w-3 h-3 text-muted-foreground" />
+                <span className="text-foreground font-medium">{stats.none}</span>
+                <span className="text-muted-foreground">bloqueado</span>
+              </Badge>
+            </div>
+            <div className="relative ml-auto flex-1 min-w-[180px] max-w-xs">
+              <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                placeholder="Buscar permissão..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="h-8 pl-8 text-xs"
+              />
+            </div>
+          </div>
+        )}
+
         {isLoading ? (
-          <div className="py-12 text-center text-sm text-muted-foreground">Carregando...</div>
+          <div className="py-16 text-center text-sm text-muted-foreground">
+            <Loader2 className="w-5 h-5 animate-spin mx-auto mb-2" />
+            Carregando permissões...
+          </div>
         ) : (
-          <ScrollArea className="flex-1 pr-2 -mr-2">
-            <div className="space-y-4 py-1">
-              {renderSection("Páginas do menu", PERMISSION_CATALOG.menu)}
-              {renderSection("Áreas sistêmicas", PERMISSION_CATALOG.system)}
+          <ScrollArea className="flex-1 px-6 py-4">
+            <div className="space-y-5">
+              {renderSection("Páginas do menu", LayoutGrid, PERMISSION_CATALOG.menu)}
+              {renderSection("Áreas sistêmicas", Settings2, PERMISSION_CATALOG.system)}
             </div>
           </ScrollArea>
         )}
 
-        <DialogFooter>
+        <DialogFooter className="px-6 py-4 border-t border-border/50 bg-muted/10">
           <Button variant="ghost" size="sm" onClick={() => onOpenChange(false)}>
             {isOwner ? "Fechar" : "Cancelar"}
           </Button>
