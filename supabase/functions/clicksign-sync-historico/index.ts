@@ -158,14 +158,31 @@ Deno.serve(async (req) => {
       const docsArray: any[] = Array.isArray(docs) ? docs : [docs];
       if (docsArray.length === 0) break;
 
-      for (const csDoc of docsArray) {
-        if (!csDoc?.key) continue;
+      for (const csDocSummary of docsArray) {
+        if (!csDocSummary?.key) continue;
         totalProcessed++;
-        const status = csDoc?.status || "unknown";
+        const summaryStatus = csDocSummary?.status || "unknown";
         // Filtra: somente status considerados ativos
-        if (!ACTIVE_STATUSES.includes(status)) continue;
+        if (!ACTIVE_STATUSES.includes(summaryStatus)) continue;
 
-        const signers = csDoc?.signers || csDoc?.list?.signers || [];
+        // O endpoint /documents lista NÃO traz signers — buscar detalhe individual
+        let csDoc: any = csDocSummary;
+        let signers: any[] = csDocSummary?.signers || csDocSummary?.list?.signers || [];
+        try {
+          const detail = await csFetch(cred as CredRow, `/api/v1/documents/${csDocSummary.key}`);
+          const detailDoc = detail?.document || detail;
+          if (detailDoc) {
+            csDoc = { ...csDocSummary, ...detailDoc };
+            signers = detailDoc?.signers
+              || detailDoc?.list?.signers
+              || (Array.isArray(detailDoc?.signatures) ? detailDoc.signatures.map((s: any) => s?.signer || s) : [])
+              || [];
+          }
+        } catch (e) {
+          console.warn("[clicksign-sync] detail fetch failed for", csDocSummary.key, String(e).slice(0, 200));
+        }
+
+        const status = csDoc?.status || summaryStatus;
         const matchedClienteId = matchClienteFromSigners(signers, (clientes || []) as ClienteRow[]);
         if (matchedClienteId) matched++;
 
