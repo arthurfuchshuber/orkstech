@@ -13,6 +13,7 @@ interface Props {
   url: string | null;
   nome?: string | null;
   mime?: string | null;
+  data?: Uint8Array | null;
 }
 
 function detectKind(url: string | null, mime?: string | null): "pdf" | "image" | "other" {
@@ -26,7 +27,7 @@ function detectKind(url: string | null, mime?: string | null): "pdf" | "image" |
   return "other";
 }
 
-export function FilePreviewModal({ open, onOpenChange, url, nome, mime }: Props) {
+export function FilePreviewModal({ open, onOpenChange, url, nome, mime, data }: Props) {
   const kind = useMemo(() => detectKind(url, mime), [url, mime]);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [pageCount, setPageCount] = useState(0);
@@ -50,7 +51,7 @@ export function FilePreviewModal({ open, onOpenChange, url, nome, mime }: Props)
 
   useEffect(() => {
     if (!open) setPageCount(0);
-  }, [open, url]);
+  }, [open, url, data]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -85,7 +86,8 @@ export function FilePreviewModal({ open, onOpenChange, url, nome, mime }: Props)
           ) : kind === "pdf" ? (
             <div ref={containerRef} className="h-full overflow-auto p-4 md:p-6">
               <Document
-                file={url}
+                key={`${nome || "arquivo"}-${url || "sem-url"}-${data?.byteLength || 0}`}
+                file={data ? { data } : url}
                 loading={
                   <div className="flex items-center justify-center py-12 text-sm text-muted-foreground">
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Carregando PDF...

@@ -25,7 +25,7 @@ const STATUS_LABEL: Record<string, { label: string; className: string }> = {
 
 export function ClickSignContratosClienteSection({ clienteId }: Props) {
   const { empresa } = useEmpresa();
-  const [preview, setPreview] = useState<{ url: string; nome: string } | null>(null);
+  const [preview, setPreview] = useState<{ url: string; nome: string; mime: string; data?: Uint8Array } | null>(null);
   const [loadingDocId, setLoadingDocId] = useState<string | null>(null);
 
   const openPreview = async (docId: string, nome: string) => {
@@ -53,13 +53,16 @@ export function ClickSignContratosClienteSection({ clienteId }: Props) {
         throw new Error(message || "Não foi possível carregar o documento");
       }
 
-      const blob = await response.blob();
-      if (!blob.size) throw new Error("Documento vazio");
+      const mime = response.headers.get("content-type") || "application/pdf";
+      const buffer = await response.arrayBuffer();
+      if (!buffer.byteLength) throw new Error("Documento vazio");
 
+      const data = new Uint8Array(buffer.slice(0));
+      const blob = new Blob([data], { type: mime });
       const url = URL.createObjectURL(blob);
       setPreview((current) => {
         if (current?.url?.startsWith("blob:")) URL.revokeObjectURL(current.url);
-        return { url, nome };
+        return { url, nome, mime, data };
       });
     } catch (e) {
       console.error("[clicksign preview]", e);
@@ -192,7 +195,8 @@ export function ClickSignContratosClienteSection({ clienteId }: Props) {
         onOpenChange={closePreview}
         url={preview?.url || null}
         nome={preview?.nome}
-        mime="application/pdf"
+        mime={preview?.mime || "application/pdf"}
+        data={preview?.data}
       />
     </div>
   );
