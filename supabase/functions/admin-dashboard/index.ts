@@ -120,6 +120,7 @@ serve(async (req) => {
       let mrr = 0, arr = 0, activeSubscriptions = 0, trialingSubscriptions = 0, canceledLast30d = 0;
       let planBreakdown: Record<string, number> = {};
       const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
+      const stripeTrialUserIds = new Set<string>();
       if (stripeKey) {
         const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
 
@@ -147,6 +148,17 @@ serve(async (req) => {
         }
         arr = mrr * 12;
       }
+
+      // Manual trials (definidos pelo admin) — somente os ativos (não expirados)
+      // e que não estejam já contados via Stripe trialing
+      const { data: manualTrials } = await supabaseAdmin
+        .from("subscribers")
+        .select("user_id, trial_end")
+        .eq("is_manual_trial", true)
+        .gt("trial_end", new Date().toISOString());
+      for (const mt of manualTrials ?? []) {
+        if (!stripeTrialUserIds.has(mt.user_id)) trialingSubscriptions++;
+      }
       const churnRate = activeSubscriptions + canceledLast30d > 0
         ? (canceledLast30d / (activeSubscriptions + canceledLast30d)) * 100
         : 0;
@@ -171,10 +183,16 @@ serve(async (req) => {
     if (action === "list_companies") {
       const { data: empresas } = await supabaseAdmin.from("empresas").select("*").order("created_at", { ascending: false });
       const { data: { users } } = await supabaseAdmin.auth.admin.listUsers({ perPage: 1000 });
+      const { data: subscribersAll } = await supabaseAdmin
+        .from("subscribers")
+        .select("user_id, trial_end, is_manual_trial, status");
+
+      const subByUser = new Map((subscribersAll ?? []).map((s) => [s.user_id, s]));
 
       const result: any[] = [];
       for (const e of empresas ?? []) {
         const owner = users?.find((u) => u.id === e.user_id);
+        const sub = subByUser.get(e.user_id);
         const { count: payCount } = await supabaseAdmin.from("accounts_payable").select("id", { count: "exact", head: true }).eq("empresa_id", e.id);
         const { count: recCount } = await supabaseAdmin.from("accounts_receivable").select("id", { count: "exact", head: true }).eq("empresa_id", e.id);
         const { count: clientesCount } = await supabaseAdmin.from("clientes").select("id", { count: "exact", head: true }).eq("empresa_id", e.id);
@@ -182,6 +200,9 @@ serve(async (req) => {
           ...e,
           owner_email: owner?.email ?? "—",
           owner_last_sign_in: owner?.last_sign_in_at ?? null,
+          trial_end: sub?.trial_end ?? null,
+          is_manual_trial: sub?.is_manual_trial ?? false,
+          subscription_status: sub?.status ?? null,
           stats: {
             payables: payCount ?? 0,
             receivables: recCount ?? 0,
@@ -191,6 +212,72 @@ serve(async (req) => {
       }
 
       return new Response(JSON.stringify({ companies: result }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // ============= SET MANUAL TRIAL (admin define período de teste para uma empresa) =============
+    if (action === "set_manual_trial") {
+      const { empresa_id, days } = body;
+      if (!empresa_id || typeof days !== "number" || days < 0 || days > 3650) {
+        return new Response(JSON.stringify({ error: "Parâmetros inválidos (days deve ser 0-3650)" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const { data: empresa } = await supabaseAdmin
+        .from("empresas")
+        .select("id, user_id, razao_social, nome_fantasia")
+        .eq("id", empresa_id)
+        .single();
+      if (!empresa) {
+        return new Response(JSON.stringify({ error: "Empresa não encontrada" }), {
+          status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const { data: { user: ownerUser } } = await supabaseAdmin.auth.admin.getUserById(empresa.user_id);
+      const ownerEmail = ownerUser?.email ?? "";
+
+      if (days === 0) {
+        // Encerra o trial manual imediatamente
+        await supabaseAdmin.from("subscribers").upsert(
+          {
+            user_id: empresa.user_id,
+            email: ownerEmail,
+            is_manual_trial: false,
+            trial_end: null,
+            status: null,
+            last_synced_at: new Date().toISOString(),
+          },
+          { onConflict: "user_id" }
+        );
+        await logAdminAction(
+          "manual_trial_cleared",
+          `Trial manual removido para ${empresa.nome_fantasia || empresa.razao_social}`,
+          { empresa_id, owner_email: ownerEmail }
+        );
+      } else {
+        const trialEnd = new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString();
+        await supabaseAdmin.from("subscribers").upsert(
+          {
+            user_id: empresa.user_id,
+            email: ownerEmail,
+            is_manual_trial: true,
+            trial_end: trialEnd,
+            status: "trialing",
+            last_synced_at: new Date().toISOString(),
+          },
+          { onConflict: "user_id" }
+        );
+        await logAdminAction(
+          "manual_trial_set",
+          `Trial manual de ${days} dias definido para ${empresa.nome_fantasia || empresa.razao_social}`,
+          { empresa_id, days, trial_end: trialEnd, owner_email: ownerEmail }
+        );
+      }
+
+      return new Response(JSON.stringify({ success: true }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }

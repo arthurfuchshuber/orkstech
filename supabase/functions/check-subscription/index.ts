@@ -47,10 +47,37 @@ serve(async (req) => {
       .eq("user_id", user.id)
       .maybeSingle();
 
+    // ============ TRIAL MANUAL (definido pelo admin) ============
+    // Se há um trial manual ativo, ele tem prioridade absoluta sobre o Stripe
+    if (cached?.is_manual_trial && cached.trial_end) {
+      const trialEndMs = new Date(cached.trial_end).getTime();
+      if (trialEndMs > Date.now()) {
+        log("Returning manual trial");
+        return new Response(
+          JSON.stringify({
+            subscribed: true,
+            status: "trialing",
+            product_id: cached.product_id,
+            price_id: cached.price_id,
+            subscription_end: cached.current_period_end,
+            trial_end: cached.trial_end,
+            cancel_at_period_end: false,
+          }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
+        );
+      }
+      // Trial manual expirado → limpa flag para que Stripe assuma novamente
+      await supabaseAdmin
+        .from("subscribers")
+        .update({ is_manual_trial: false, status: null, last_synced_at: new Date().toISOString() })
+        .eq("user_id", user.id);
+    }
+
     // Cache válido se foi sincronizado nos últimos 5 min E não é force
     const cacheValid =
       cached &&
       !force &&
+      !cached.is_manual_trial &&
       new Date(cached.last_synced_at).getTime() > Date.now() - 5 * 60 * 1000;
 
     if (cacheValid) {
