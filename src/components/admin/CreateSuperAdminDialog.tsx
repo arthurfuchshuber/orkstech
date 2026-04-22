@@ -30,7 +30,21 @@ export function CreateSuperAdminDialog() {
           password: form.password,
         },
       });
-      if (error) throw error;
+      if (error) {
+        // Try to extract structured error from edge function response body
+        let serverMsg: string | null = null;
+        try {
+          const ctx = (error as any)?.context;
+          if (ctx && typeof ctx.json === "function") {
+            const body = await ctx.json();
+            if (body?.error) serverMsg = String(body.error);
+          } else if (ctx && typeof ctx.text === "function") {
+            const txt = await ctx.text();
+            try { serverMsg = JSON.parse(txt)?.error ?? null; } catch { serverMsg = txt; }
+          }
+        } catch { /* ignore */ }
+        throw new Error(serverMsg ?? error.message ?? "Falha ao criar Super Admin");
+      }
       if ((data as any)?.error) throw new Error((data as any).error);
     },
     onSuccess: () => {
