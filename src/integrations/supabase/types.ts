@@ -2043,6 +2043,42 @@ export type Database = {
           },
         ]
       }
+      plan_overrides: {
+        Row: {
+          created_at: string
+          description: string | null
+          display_name: string | null
+          features: Json
+          highlight: boolean
+          id: string
+          product_id: string
+          tagline: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          display_name?: string | null
+          features?: Json
+          highlight?: boolean
+          id?: string
+          product_id: string
+          tagline?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          display_name?: string | null
+          features?: Json
+          highlight?: boolean
+          id?: string
+          product_id?: string
+          tagline?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       pluggy_bank_accounts: {
         Row: {
           balance: number
