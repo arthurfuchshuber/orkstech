@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { ScrollText } from "lucide-react";
+import { History } from "lucide-react";
 import { format } from "date-fns";
 
 interface LogEntry {
@@ -34,8 +34,8 @@ export default function AdminLogs() {
       <Card className="border-border/50">
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-medium flex items-center gap-2">
-            <ScrollText className="w-4 h-4 text-primary" />
-            Histórico
+            <History className="w-4 h-4 text-primary" />
+            Histórico de Ações
           </CardTitle>
         </CardHeader>
         <CardContent className="p-0">
