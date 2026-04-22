@@ -400,9 +400,14 @@ function UsuariosTab() {
             <div><label className="mb-1 block text-xs font-medium text-muted-foreground">Nome completo *</label><Input value={createForm.nome} onChange={(e) => setCreateForm({ ...createForm, nome: e.target.value })} className="h-9 text-sm" placeholder="Ex: João Silva" /></div>
             <div><label className="mb-1 block text-xs font-medium text-muted-foreground">E-mail *</label><Input type="email" value={createForm.email} onChange={(e) => setCreateForm({ ...createForm, email: e.target.value })} className="h-9 text-sm" placeholder="usuario@empresa.com" /></div>
             <div><label className="mb-1 block text-xs font-medium text-muted-foreground">Senha temporária *</label><Input type="password" value={createForm.password} onChange={(e) => setCreateForm({ ...createForm, password: e.target.value })} className="h-9 text-sm" placeholder="Mínimo 6 caracteres" /><p className="mt-1 text-[10px] text-muted-foreground">O usuário poderá alterar a senha após o primeiro login.</p></div>
-            <div><label className="mb-1 block text-xs font-medium text-muted-foreground">Nível de Acesso *</label><Select value={createForm.nivel_permissao_id} onValueChange={(v) => setCreateForm({ ...createForm, nivel_permissao_id: v })}><SelectTrigger className="h-9 text-sm"><SelectValue placeholder="Selecione o nível" /></SelectTrigger><SelectContent>{niveis.map((n) => <SelectItem key={n.id} value={n.id}>{n.nome}</SelectItem>)}</SelectContent></Select></div>
+            <div className="rounded-md border border-info/30 bg-info/5 p-2.5">
+              <p className="text-[11px] text-muted-foreground">
+                <ShieldCheck className="w-3 h-3 inline mr-1 text-info" />
+                Após criar o usuário, defina suas permissões clicando em <strong>Permissões</strong> na lista.
+              </p>
+            </div>
           </div>
-          <DialogFooter><Button variant="outline" onClick={() => setShowCreateModal(false)}>Cancelar</Button><Button onClick={() => createUser.mutate()} disabled={createUser.isPending || !createForm.email || !createForm.password || !createForm.nome || !createForm.nivel_permissao_id}>{createUser.isPending ? "Criando..." : "Criar Usuário"}</Button></DialogFooter>
+          <DialogFooter><Button variant="outline" onClick={() => setShowCreateModal(false)}>Cancelar</Button><Button onClick={() => createUser.mutate()} disabled={createUser.isPending || !createForm.email || !createForm.password || !createForm.nome}>{createUser.isPending ? "Criando..." : "Criar Usuário"}</Button></DialogFooter>
         </DialogContent>
       </Dialog>
 
