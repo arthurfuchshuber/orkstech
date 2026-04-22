@@ -323,9 +323,9 @@ function UsuariosTab() {
             <TableRow>
               <TableHead>E-mail</TableHead>
               <TableHead className="w-[130px]">Criado em</TableHead>
-              <TableHead className="w-[180px]">Nível de Acesso</TableHead>
+              <TableHead className="w-[140px]">Tipo</TableHead>
               <TableHead className="w-[80px] text-center">Ativo</TableHead>
-              <TableHead className="w-[90px]" />
+              <TableHead className="w-[170px] text-right">Ações</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -333,6 +333,7 @@ function UsuariosTab() {
               <TableRow><TableCell colSpan={5} className="py-8 text-center text-muted-foreground">Nenhum usuário encontrado</TableCell></TableRow>
             ) : users.map((u) => {
               const isSelf = u.id === user?.id;
+              const isOwner = u.id === ownerUserId;
               return (
                 <TableRow key={u.id} className={!u.ativo ? "opacity-50" : ""}>
                   <TableCell className="text-sm">
@@ -346,18 +347,27 @@ function UsuariosTab() {
                   </TableCell>
                   <TableCell className="text-xs text-muted-foreground">{new Date(u.created_at).toLocaleDateString("pt-BR")}</TableCell>
                   <TableCell>
-                    <Select value={u.nivel_permissao_id ?? ""} onValueChange={(v) => handleRoleChange(u, v)} disabled={isSelf}>
-                      <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Selecione" /></SelectTrigger>
-                      <SelectContent>{niveis.map((n) => <SelectItem key={n.id} value={n.id}>{n.nome}</SelectItem>)}</SelectContent>
-                    </Select>
+                    {isOwner ? (
+                      <Badge variant="outline" className="text-[10px] bg-primary/10 text-primary border-primary/30">Dono · acesso total</Badge>
+                    ) : (
+                      <Badge variant="outline" className="text-[10px]">Permissões personalizadas</Badge>
+                    )}
                   </TableCell>
-                  <TableCell className="text-center"><Switch checked={u.ativo} onCheckedChange={(v) => toggleActive.mutate({ user_id: u.id, ativo: v })} disabled={isSelf} /></TableCell>
+                  <TableCell className="text-center"><Switch checked={u.ativo} onCheckedChange={(v) => toggleActive.mutate({ user_id: u.id, ativo: v })} disabled={isSelf || isOwner} /></TableCell>
                   <TableCell>
-                    <div className="flex items-center gap-1">
-                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(u)}><Pencil className="h-4 w-4" /></Button>
-                      {!isSelf && (
+                    <div className="flex items-center justify-end gap-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 px-2 text-xs gap-1"
+                        onClick={() => setPermModal({ userId: u.id, email: u.email, isOwner })}
+                      >
+                        <ShieldCheck className="h-3 w-3" /> Permissões
+                      </Button>
+                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEdit(u)}><Pencil className="h-3.5 w-3.5" /></Button>
+                      {!isSelf && !isOwner && (
                         <AlertDialog>
-                          <AlertDialogTrigger asChild><Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive"><Trash2 className="h-4 w-4" /></Button></AlertDialogTrigger>
+                          <AlertDialogTrigger asChild><Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive"><Trash2 className="h-3.5 w-3.5" /></Button></AlertDialogTrigger>
                           <AlertDialogContent>
                             <AlertDialogHeader><AlertDialogTitle>Excluir usuário</AlertDialogTitle><AlertDialogDescription>Tem certeza que deseja excluir <strong>{u.email}</strong>? Esta ação é irreversível.</AlertDialogDescription></AlertDialogHeader>
                             <AlertDialogFooter><AlertDialogCancel>Cancelar</AlertDialogCancel><AlertDialogAction onClick={() => deleteUser.mutate(u.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Excluir</AlertDialogAction></AlertDialogFooter>
@@ -372,6 +382,15 @@ function UsuariosTab() {
           </TableBody>
         </Table>
       </Card>
+
+      {/* Permissions Modal */}
+      <PermissionsModal
+        userId={permModal?.userId ?? null}
+        userEmail={permModal?.email ?? null}
+        isOwner={permModal?.isOwner ?? false}
+        open={!!permModal}
+        onOpenChange={(open) => !open && setPermModal(null)}
+      />
 
       {/* Create User Modal */}
       <Dialog open={showCreateModal} onOpenChange={setShowCreateModal}>
