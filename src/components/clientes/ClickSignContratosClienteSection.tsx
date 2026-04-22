@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
 import { ExternalLink, FileSignature, Loader2, Users } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -8,6 +9,7 @@ import { useEmpresa } from "@/hooks/useEmpresa";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
+import { FilePreviewModal } from "@/components/FilePreviewModal";
 
 interface Props {
   clienteId: string;
@@ -24,6 +26,7 @@ const STATUS_LABEL: Record<string, { label: string; className: string }> = {
 
 export function ClickSignContratosClienteSection({ clienteId }: Props) {
   const { empresa } = useEmpresa();
+  const [preview, setPreview] = useState<{ url: string; nome: string } | null>(null);
 
   // Busca credencial ClickSign ativa para essa empresa
   const { data: cred } = useQuery({
@@ -85,7 +88,22 @@ export function ClickSignContratosClienteSection({ clienteId }: Props) {
             const signers = Array.isArray(doc.signatarios) ? doc.signatarios : [];
             const fileUrl = doc.url_assinado || doc.url_original;
             return (
-              <Card key={doc.id} className="p-4 border-border/40 shadow-sm flex items-center justify-between group hover:border-border/60 transition-colors">
+              <Card
+                key={doc.id}
+                role={fileUrl ? "button" : undefined}
+                tabIndex={fileUrl ? 0 : undefined}
+                onClick={() => fileUrl && setPreview({ url: fileUrl, nome: doc.nome })}
+                onKeyDown={(e) => {
+                  if (fileUrl && (e.key === "Enter" || e.key === " ")) {
+                    e.preventDefault();
+                    setPreview({ url: fileUrl, nome: doc.nome });
+                  }
+                }}
+                className={cn(
+                  "p-4 border-border/40 shadow-sm flex items-center justify-between group hover:border-border/60 transition-colors",
+                  fileUrl && "cursor-pointer hover:bg-muted/30"
+                )}
+              >
                 <div className="flex items-start gap-3 min-w-0 flex-1">
                   <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
                     <FileSignature className="w-4 h-4 text-primary" />
@@ -114,8 +132,14 @@ export function ClickSignContratosClienteSection({ clienteId }: Props) {
                   </div>
                 </div>
                 {fileUrl && (
-                  <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" asChild>
-                    <a href={fileUrl} target="_blank" rel="noopener noreferrer">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 shrink-0"
+                    asChild
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <a href={fileUrl} target="_blank" rel="noopener noreferrer" title="Abrir em nova aba">
                       <ExternalLink className="w-4 h-4" />
                     </a>
                   </Button>
@@ -125,6 +149,14 @@ export function ClickSignContratosClienteSection({ clienteId }: Props) {
           })}
         </div>
       )}
+
+      <FilePreviewModal
+        open={!!preview}
+        onOpenChange={(o) => !o && setPreview(null)}
+        url={preview?.url || null}
+        nome={preview?.nome}
+        mime="application/pdf"
+      />
     </div>
   );
 }
