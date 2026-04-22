@@ -686,9 +686,33 @@ serve(async (req) => {
           status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      const { data: emp } = await supabaseAdmin.from("empresas").select("razao_social, nome_fantasia").eq("id", empresa_id).single();
+      const { data: emp } = await supabaseAdmin
+        .from("empresas")
+        .select("razao_social, nome_fantasia, user_id, cnpj")
+        .eq("id", empresa_id)
+        .single();
 
-      // Cascade delete de todas as tabelas que referenciam empresa_id
+      // 1) Coletar todos user_ids vinculados à empresa (dono + membros)
+      const userIdsToDelete = new Set<string>();
+      if (emp?.user_id) userIdsToDelete.add(emp.user_id);
+      const { data: linkedProfiles } = await supabaseAdmin
+        .from("profiles")
+        .select("user_id")
+        .eq("empresa_id", empresa_id);
+      for (const p of linkedProfiles ?? []) {
+        if (p.user_id) userIdsToDelete.add(p.user_id);
+      }
+      // Nunca excluir o próprio admin que executa a ação (proteção)
+      userIdsToDelete.delete(caller.id);
+
+      // Coletar emails antes para log
+      const userEmails: string[] = [];
+      for (const uid of userIdsToDelete) {
+        const { data: { user: u } } = await supabaseAdmin.auth.admin.getUserById(uid);
+        if (u?.email) userEmails.push(u.email);
+      }
+
+      // 2) Cascade delete de todas as tabelas que referenciam empresa_id
       const dependentTables = [
         "cash_transactions",
         "cashflow_forecasts",
@@ -719,6 +743,7 @@ serve(async (req) => {
         "notificacoes_sistema",
         "historico_sistema",
         "integracoes_credenciais",
+        "user_permissions",
         "menu_permissions",
         "menus",
         "profiles",
@@ -731,12 +756,41 @@ serve(async (req) => {
         }
       }
 
+      // 3) Excluir a empresa
       const { error } = await supabaseAdmin.from("empresas").delete().eq("id", empresa_id);
       if (error) throw error;
 
-      await logAdminAction("admin.empresa_excluida", `Empresa ${emp?.nome_fantasia || emp?.razao_social || empresa_id} excluída`, { empresa_id });
+      // 4) Excluir os usuários do auth (depois de limpar profiles para evitar FK)
+      const deletedUsers: string[] = [];
+      const failedUsers: { user_id: string; error: string }[] = [];
+      for (const uid of userIdsToDelete) {
+        const { error: authErr } = await supabaseAdmin.auth.admin.deleteUser(uid);
+        if (authErr) {
+          failedUsers.push({ user_id: uid, error: authErr.message });
+          console.error(`Falha ao excluir auth user ${uid}:`, authErr);
+        } else {
+          deletedUsers.push(uid);
+        }
+      }
 
-      return new Response(JSON.stringify({ success: true }), {
+      await logAdminAction(
+        "admin.empresa_excluida",
+        `Empresa ${emp?.nome_fantasia || emp?.razao_social || empresa_id} excluída (${deletedUsers.length} usuário(s) removido(s))`,
+        {
+          empresa_id,
+          empresa_cnpj: emp?.cnpj,
+          empresa_nome: emp?.nome_fantasia || emp?.razao_social,
+          deleted_user_ids: deletedUsers,
+          deleted_user_emails: userEmails,
+          failed_user_deletions: failedUsers,
+        }
+      );
+
+      return new Response(JSON.stringify({
+        success: true,
+        deleted_users: deletedUsers.length,
+        failed_users: failedUsers.length,
+      }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
