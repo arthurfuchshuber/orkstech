@@ -149,6 +149,14 @@ export function ClickSignContratosClienteSection({ clienteId }: Props) {
           })}
         </div>
       )}
+
+      <FilePreviewModal
+        open={!!preview}
+        onOpenChange={(o) => !o && setPreview(null)}
+        url={preview?.url || null}
+        nome={preview?.nome}
+        mime="application/pdf"
+      />
     </div>
   );
 }
