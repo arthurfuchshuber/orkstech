@@ -58,23 +58,33 @@ serve(async (req) => {
 
     // ============= OVERVIEW (real numbers, only existing data) =============
     if (action === "overview") {
-      // Real counts from DB tables (excludes deleted)
+      // Real empresas count
       const { count: totalEmpresas } = await supabaseAdmin.from("empresas").select("id", { count: "exact", head: true });
-      const { count: totalProfiles } = await supabaseAdmin.from("profiles").select("id", { count: "exact", head: true });
 
-      // Recent profiles (last 30d) — based on profiles.created_at, not auth.users
-      const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
-      const { count: recentUsers } = await supabaseAdmin
+      // Identify Super Admin user_ids to EXCLUDE from user counts (they are SaaS operators, not customers)
+      const { data: saNivel } = await supabaseAdmin.from("niveis_permissao").select("id").eq("nome", "Super Admin").single();
+      const { data: saProfiles } = await supabaseAdmin.from("profiles").select("user_id").eq("nivel_permissao_id", saNivel?.id);
+      const superAdminIds = new Set((saProfiles ?? []).map((p) => p.user_id));
+
+      // Identify owners (users that created at least one empresa) and team members (profiles with empresa_id)
+      const { data: empresasOwners } = await supabaseAdmin.from("empresas").select("user_id");
+      const ownerIds = new Set((empresasOwners ?? []).map((e) => e.user_id));
+
+      const { data: allProfiles } = await supabaseAdmin
         .from("profiles")
-        .select("id", { count: "exact", head: true })
-        .gte("created_at", thirtyDaysAgo);
+        .select("user_id, empresa_id, created_at");
 
-      // Growth: users per month (last 6 months)
-      const { data: profilesAll } = await supabaseAdmin
-        .from("profiles")
-        .select("created_at")
-        .gte("created_at", new Date(Date.now() - 180 * 24 * 60 * 60 * 1000).toISOString());
+      // Real users = profiles that are owners OR linked to an empresa, excluding Super Admins
+      const realProfiles = (allProfiles ?? []).filter((p) =>
+        !superAdminIds.has(p.user_id) && (ownerIds.has(p.user_id) || !!p.empresa_id)
+      );
+      const totalProfiles = realProfiles.length;
 
+      // Recent (last 30d) — same filter
+      const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
+      const recentUsers = realProfiles.filter((p) => new Date(p.created_at).getTime() >= thirtyDaysAgo).length;
+
+      // Growth (last 6 months) — same filter
       const growthMap: Record<string, number> = {};
       for (let i = 5; i >= 0; i--) {
         const d = new Date();
@@ -82,12 +92,15 @@ serve(async (req) => {
         const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
         growthMap[key] = 0;
       }
-      for (const p of profilesAll ?? []) {
+      const sixMonthsAgo = Date.now() - 180 * 24 * 60 * 60 * 1000;
+      for (const p of realProfiles) {
+        if (new Date(p.created_at).getTime() < sixMonthsAgo) continue;
         const d = new Date(p.created_at);
         const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
         if (key in growthMap) growthMap[key]++;
       }
       const growth = Object.entries(growthMap).map(([month, count]) => ({ month, count }));
+
 
       // Top empresas by activity (sum of payable + receivable counts)
       const { data: empresas } = await supabaseAdmin.from("empresas").select("id, razao_social, nome_fantasia");
