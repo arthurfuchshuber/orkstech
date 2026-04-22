@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { LayoutDashboard, Users, CreditCard, Settings2, Plug, Shield, ScrollText, Trash2, Building2, Receipt } from "lucide-react";
+import { LayoutDashboard, Users, CreditCard, Settings2, Plug, Shield, History, Trash2, Building2, Receipt } from "lucide-react";
 import { cn } from "@/lib/utils";
 import AdminDashboard from "./AdminDashboard";
 import AdminUsers from "./AdminUsers";
@@ -33,7 +33,7 @@ const subTabsMap: Record<MainTabId, { id: string; label: string; icon: any }[]> 
   system: [
     { id: "integrations", label: "Integrações", icon: Plug },
     { id: "audit", label: "Auditoria Admin", icon: Shield },
-    { id: "logs", label: "Logs Gerais", icon: ScrollText },
+    { id: "logs", label: "Histórico de Ações", icon: History },
     { id: "requests", label: "Solicitações", icon: Trash2 },
   ],
 };
