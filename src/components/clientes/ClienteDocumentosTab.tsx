@@ -1,20 +1,22 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Upload, Download, Trash2, FileText, Loader2, Plus } from "lucide-react";
+import { Download, Trash2, FileText, Loader2, Plus, FileSignature, Upload, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useEmpresa } from "@/hooks/useEmpresa";
 import { refreshQueries } from "@/lib/query-refresh";
 import { logClienteEvent } from "@/lib/cliente-history";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { cn } from "@/lib/utils";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { ClickSignContratosClienteSection } from "./ClickSignContratosClienteSection";
 import { FilePreviewModal } from "@/components/FilePreviewModal";
 
 interface Props {
@@ -27,15 +29,30 @@ function formatBytes(bytes: number) {
   return (bytes / 1048576).toFixed(1) + " MB";
 }
 
+const CS_STATUS: Record<string, { label: string; className: string }> = {
+  running: { label: "Em assinatura", className: "bg-amber-500/15 text-amber-600 border-amber-500/30" },
+  pending: { label: "Pendente", className: "bg-amber-500/15 text-amber-600 border-amber-500/30" },
+  waiting: { label: "Aguardando", className: "bg-amber-500/15 text-amber-600 border-amber-500/30" },
+  closed: { label: "Assinado", className: "bg-green-500/15 text-green-600 border-green-500/30" },
+  auto_closed: { label: "Assinado", className: "bg-green-500/15 text-green-600 border-green-500/30" },
+  canceled: { label: "Cancelado", className: "bg-muted text-muted-foreground border-border" },
+};
+
+type UnifiedContract =
+  | { kind: "manual"; id: string; nome: string; created_at: string; tamanho: number | null; tipo: string | null; url: string }
+  | { kind: "clicksign"; id: string; nome: string; created_at: string; status: string; finalizado_em: string | null; signatarios: any[] };
+
 export function ClienteDocumentosTab({ clienteId }: Props) {
   const { user } = useAuth();
+  const { empresa } = useEmpresa();
   const queryClient = useQueryClient();
   const fileRef = useRef<HTMLInputElement>(null);
   const contractRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadingContract, setUploadingContract] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
-  const [preview, setPreview] = useState<{ url: string; nome: string; mime?: string | null } | null>(null);
+  const [preview, setPreview] = useState<{ url: string | null; nome: string; mime?: string | null; blob?: Blob } | null>(null);
+  const [loadingCsId, setLoadingCsId] = useState<string | null>(null);
 
   const { data: docs = [], isLoading } = useQuery({
     queryKey: ["cliente-documentos", clienteId],
@@ -50,23 +67,75 @@ export function ClienteDocumentosTab({ clienteId }: Props) {
     },
   });
 
-  // Separate contracts from other documents
-  const contracts = docs.filter((d) => d.tipo?.includes("contract") || d.nome?.toLowerCase().includes("contrato"));
-  const documents = docs.filter((d) => !d.tipo?.includes("contract") && !d.nome?.toLowerCase().includes("contrato"));
+  const { data: csCred } = useQuery({
+    queryKey: ["clicksign-cred", empresa?.id],
+    queryFn: async () => {
+      if (!empresa?.id) return null;
+      const { data } = await supabase
+        .from("integracoes_credenciais")
+        .select("id, ativo")
+        .eq("provider", "clicksign")
+        .eq("empresa_id", empresa.id)
+        .eq("ativo", true)
+        .maybeSingle();
+      return data;
+    },
+    enabled: !!empresa?.id,
+  });
 
-  const uploadFile = async (file: File, isContract: boolean) => {
+  const { data: csDocs = [] } = useQuery({
+    queryKey: ["clicksign-cliente-docs", clienteId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("clicksign_documentos")
+        .select("*")
+        .eq("cliente_id", clienteId)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!csCred,
+  });
+
+  const isContract = (d: any) => d.tipo?.includes("contract") || d.nome?.toLowerCase().includes("contrato");
+  const manualContracts = docs.filter(isContract);
+  const documents = docs.filter((d) => !isContract(d));
+
+  const allContracts = useMemo<UnifiedContract[]>(() => {
+    const merged: UnifiedContract[] = [
+      ...csDocs.map((d: any) => ({
+        kind: "clicksign" as const,
+        id: d.id,
+        nome: d.nome,
+        created_at: d.created_at,
+        status: d.status,
+        finalizado_em: d.finalizado_em,
+        signatarios: Array.isArray(d.signatarios) ? d.signatarios : [],
+      })),
+      ...manualContracts.map((d: any) => ({
+        kind: "manual" as const,
+        id: d.id,
+        nome: d.nome,
+        created_at: d.created_at,
+        tamanho: d.tamanho,
+        tipo: d.tipo,
+        url: d.url,
+      })),
+    ];
+    return merged.sort((a, b) => +new Date(b.created_at) - +new Date(a.created_at));
+  }, [csDocs, manualContracts]);
+
+  const uploadFile = async (file: File, asContract: boolean) => {
     if (!user) return;
     if (file.size > 10 * 1024 * 1024) {
       toast.error("Arquivo deve ter no máximo 10MB");
       return;
     }
 
-    if (isContract) { setUploadingContract(true); } else { setUploading(true); }
+    if (asContract) setUploadingContract(true); else setUploading(true);
     try {
       const path = `${user.id}/${clienteId}/${Date.now()}_${file.name}`;
-      const { error: uploadError } = await supabase.storage
-        .from("client-documents")
-        .upload(path, file);
+      const { error: uploadError } = await supabase.storage.from("client-documents").upload(path, file);
       if (uploadError) throw uploadError;
 
       const { data: urlData } = supabase.storage.from("client-documents").getPublicUrl(path);
@@ -75,7 +144,7 @@ export function ClienteDocumentosTab({ clienteId }: Props) {
         user_id: user.id,
         cliente_id: clienteId,
         nome: file.name,
-        tipo: isContract ? "contract" : (file.type || "application/octet-stream"),
+        tipo: asContract ? "contract" : (file.type || "application/octet-stream"),
         url: urlData.publicUrl,
         tamanho: file.size,
       });
@@ -85,16 +154,16 @@ export function ClienteDocumentosTab({ clienteId }: Props) {
       logClienteEvent({
         clienteId,
         userId: user.id,
-        tipo: isContract ? "Contrato" : "Documento",
-        titulo: isContract ? "Contrato enviado" : "Documento enviado",
+        tipo: asContract ? "Contrato" : "Documento",
+        titulo: asContract ? "Contrato enviado" : "Documento enviado",
         descricao: file.name,
         usuarioNome: user.email || "Sistema",
       });
-      toast.success(isContract ? "Contrato enviado" : "Documento enviado");
+      toast.success(asContract ? "Contrato enviado" : "Documento enviado");
     } catch {
       toast.error("Erro ao enviar arquivo");
     } finally {
-      if (isContract) { setUploadingContract(false); } else { setUploading(false); }
+      if (asContract) setUploadingContract(false); else setUploading(false);
       if (fileRef.current) fileRef.current.value = "";
       if (contractRef.current) contractRef.current.value = "";
     }
@@ -124,7 +193,60 @@ export function ClienteDocumentosTab({ clienteId }: Props) {
     },
   });
 
-  const FileItem = ({ doc }: { doc: any }) => (
+  const openClickSignPreview = async (docId: string, nome: string) => {
+    setLoadingCsId(docId);
+    setPreview((current) => {
+      if (current?.url?.startsWith("blob:")) URL.revokeObjectURL(current.url);
+      return { url: null, nome, mime: "application/pdf" };
+    });
+    try {
+      const { data: auth } = await supabase.auth.getSession();
+      const accessToken = auth.session?.access_token;
+      if (!accessToken) throw new Error("Sessão expirada");
+
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/clicksign-api`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({ action: "download_document", documento_id: docId, empresa_id: empresa?.id }),
+      });
+
+      if (!response.ok) {
+        const ct = response.headers.get("content-type") || "";
+        const message = ct.includes("application/json")
+          ? (await response.json())?.error || "Não foi possível carregar o documento"
+          : await response.text();
+        throw new Error(message || "Não foi possível carregar o documento");
+      }
+
+      const mime = response.headers.get("content-type") || "application/pdf";
+      const buffer = await response.arrayBuffer();
+      if (!buffer.byteLength) throw new Error("Documento vazio");
+
+      const blob = new Blob([buffer.slice(0)], { type: mime });
+      const url = URL.createObjectURL(blob);
+      setPreview((current) => {
+        if (current?.url?.startsWith("blob:")) URL.revokeObjectURL(current.url);
+        return { url, nome, mime, blob };
+      });
+    } catch (e) {
+      console.error("[clicksign preview]", e);
+      toast.error("Não foi possível carregar o documento");
+      setPreview(null);
+    } finally {
+      setLoadingCsId(null);
+    }
+  };
+
+  const closePreview = (open: boolean) => {
+    if (!open && preview?.url?.startsWith("blob:")) URL.revokeObjectURL(preview.url);
+    if (!open) setPreview(null);
+  };
+
+  const ManualItem = ({ doc }: { doc: Extract<UnifiedContract, { kind: "manual" }> }) => (
     <Card
       role="button"
       tabIndex={0}
@@ -165,6 +287,62 @@ export function ClienteDocumentosTab({ clienteId }: Props) {
     </Card>
   );
 
+  const ClickSignItem = ({ doc }: { doc: Extract<UnifiedContract, { kind: "clicksign" }> }) => {
+    const meta = CS_STATUS[doc.status] || { label: doc.status, className: "bg-muted text-muted-foreground border-border" };
+    return (
+      <Card
+        role="button"
+        tabIndex={0}
+        onClick={() => openClickSignPreview(doc.id, doc.nome)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            openClickSignPreview(doc.id, doc.nome);
+          }
+        }}
+        className={cn(
+          "p-4 border-border/40 shadow-sm flex items-center justify-between group hover:border-border/60 hover:bg-muted/30 transition-colors cursor-pointer",
+          loadingCsId === doc.id && "opacity-70"
+        )}
+      >
+        <div className="flex items-start gap-3 min-w-0 flex-1">
+          <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+            {loadingCsId === doc.id ? (
+              <Loader2 className="w-4 h-4 text-primary animate-spin" />
+            ) : (
+              <FileSignature className="w-4 h-4 text-primary" />
+            )}
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2 flex-wrap">
+              <p className="text-sm font-medium text-foreground truncate">{doc.nome}</p>
+              <Badge variant="outline" className="text-[10px] px-2 py-0 border-primary/30 bg-primary/5 text-primary gap-1">
+                <FileSignature className="w-2.5 h-2.5" /> ClickSign
+              </Badge>
+              <Badge variant="outline" className={cn("text-[10px] px-2 py-0", meta.className)}>
+                {meta.label}
+              </Badge>
+            </div>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              {format(new Date(doc.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+              {doc.finalizado_em && (
+                <> · Assinado em {format(new Date(doc.finalizado_em), "dd/MM/yyyy", { locale: ptBR })}</>
+              )}
+            </p>
+            {doc.signatarios.length > 0 && (
+              <div className="flex items-center gap-1 mt-1.5 text-[11px] text-muted-foreground">
+                <Users className="w-3 h-3" />
+                <span className="truncate">
+                  {doc.signatarios.map((s: any) => s?.name || s?.email).filter(Boolean).join(", ") || `${doc.signatarios.length} signatário(s)`}
+                </span>
+              </div>
+            )}
+          </div>
+        </div>
+      </Card>
+    );
+  };
+
   if (isLoading) {
     return (
       <div className="flex justify-center py-12">
@@ -175,13 +353,10 @@ export function ClienteDocumentosTab({ clienteId }: Props) {
 
   return (
     <div className="space-y-8">
-      {/* ClickSign — só aparece se a integração estiver ativa */}
-      <ClickSignContratosClienteSection clienteId={clienteId} />
-
-      {/* Contracts section (uploads manuais) */}
+      {/* Contratos e aditivos (manuais + ClickSign unificados) */}
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <h3 className="text-base font-bold text-foreground">Contratos manuais</h3>
+          <h3 className="text-base font-bold text-foreground">Contratos e aditivos</h3>
           <div>
             <input
               ref={contractRef}
@@ -202,11 +377,13 @@ export function ClienteDocumentosTab({ clienteId }: Props) {
             </Button>
           </div>
         </div>
-        {contracts.length === 0 ? (
-          <p className="text-sm text-muted-foreground py-4 text-center">Nenhum contrato manual enviado</p>
+        {allContracts.length === 0 ? (
+          <p className="text-sm text-muted-foreground py-4 text-center">Nenhum contrato vinculado a este cliente.</p>
         ) : (
           <div className="space-y-2">
-            {contracts.map((doc) => <FileItem key={doc.id} doc={doc} />)}
+            {allContracts.map((c) =>
+              c.kind === "clicksign" ? <ClickSignItem key={`cs-${c.id}`} doc={c} /> : <ManualItem key={`m-${c.id}`} doc={c} />
+            )}
           </div>
         )}
       </div>
@@ -239,7 +416,10 @@ export function ClienteDocumentosTab({ clienteId }: Props) {
           <p className="text-sm text-muted-foreground py-4 text-center">Nenhum documento enviado</p>
         ) : (
           <div className="space-y-2">
-            {documents.map((doc) => <FileItem key={doc.id} doc={doc} />)}
+            {documents.map((doc) => <ManualItem key={doc.id} doc={{
+              kind: "manual", id: doc.id, nome: doc.nome, created_at: doc.created_at,
+              tamanho: doc.tamanho, tipo: doc.tipo, url: doc.url,
+            }} />)}
           </div>
         )}
       </div>
@@ -265,10 +445,11 @@ export function ClienteDocumentosTab({ clienteId }: Props) {
 
       <FilePreviewModal
         open={!!preview}
-        onOpenChange={(o) => !o && setPreview(null)}
+        onOpenChange={closePreview}
         url={preview?.url || null}
         nome={preview?.nome}
         mime={preview?.mime}
+        blob={preview?.blob}
       />
     </div>
   );
