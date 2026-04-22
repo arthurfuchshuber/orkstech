@@ -31,14 +31,36 @@ export function ClickSignContratosClienteSection({ clienteId }: Props) {
   const openPreview = async (docId: string, nome: string) => {
     setLoadingDocId(docId);
     try {
-      const { data, error } = await supabase.functions.invoke("clicksign-api", {
-        body: { action: "download_document", documento_id: docId, empresa_id: empresa?.id },
+      const { data: auth } = await supabase.auth.getSession();
+      const accessToken = auth.session?.access_token;
+      if (!accessToken) throw new Error("Sessão expirada");
+
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/clicksign-api`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({ action: "download_document", documento_id: docId, empresa_id: empresa?.id }),
       });
-      if (error) throw error;
-      // supabase-js returns a Blob for binary responses
-      const blob = data instanceof Blob ? data : new Blob([data as ArrayBuffer], { type: "application/pdf" });
+
+      if (!response.ok) {
+        const contentType = response.headers.get("content-type") || "";
+        const message = contentType.includes("application/json")
+          ? (await response.json())?.error || "Não foi possível carregar o documento"
+          : await response.text();
+        throw new Error(message || "Não foi possível carregar o documento");
+      }
+
+      const blob = await response.blob();
+      if (!blob.size) throw new Error("Documento vazio");
+
       const url = URL.createObjectURL(blob);
-      setPreview({ url, nome });
+      setPreview((current) => {
+        if (current?.url?.startsWith("blob:")) URL.revokeObjectURL(current.url);
+        return { url, nome };
+      });
     } catch (e) {
       console.error("[clicksign preview]", e);
       const { toast } = await import("sonner");

@@ -1,4 +1,4 @@
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Download, ExternalLink, FileText } from "lucide-react";
 import { useMemo } from "react";
@@ -32,6 +32,9 @@ export function FilePreviewModal({ open, onOpenChange, url, nome, mime }: Props)
           <DialogTitle className="text-sm font-medium truncate pr-4">
             {nome || "Visualização"}
           </DialogTitle>
+          <DialogDescription className="sr-only">
+            Pré-visualização rápida do arquivo selecionado.
+          </DialogDescription>
           {url && (
             <div className="flex items-center gap-1 shrink-0">
               <Button variant="ghost" size="icon" className="h-8 w-8" asChild>
@@ -53,7 +56,9 @@ export function FilePreviewModal({ open, onOpenChange, url, nome, mime }: Props)
               Arquivo indisponível
             </div>
           ) : kind === "pdf" ? (
-            <iframe src={url} title={nome || "PDF"} className="w-full h-full border-0" />
+            <object data={url} type="application/pdf" className="w-full h-full" aria-label={nome || "PDF"}>
+              <iframe src={url} title={nome || "PDF"} className="w-full h-full border-0" />
+            </object>
           ) : kind === "image" ? (
             <div className="w-full h-full flex items-center justify-center p-4 overflow-auto">
               <img src={url} alt={nome || "Imagem"} className="max-w-full max-h-full object-contain" />
