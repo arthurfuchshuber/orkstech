@@ -141,8 +141,8 @@ serve(async (req) => {
 
     // Prioriza ativa/trial; fallback para mais recente
     const sub =
-      subscriptions.data.find((s) => ["active", "trialing"].includes(s.status)) ??
-      subscriptions.data.find((s) => ["past_due", "unpaid"].includes(s.status)) ??
+      subscriptions.data.find((s: Stripe.Subscription) => ["active", "trialing"].includes(s.status)) ??
+      subscriptions.data.find((s: Stripe.Subscription) => ["past_due", "unpaid"].includes(s.status)) ??
       subscriptions.data[0];
 
     if (!sub) {

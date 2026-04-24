@@ -46,7 +46,7 @@ serve(async (req) => {
 
     // Faturas (últimas 12)
     const invoicesResp = await stripe.invoices.list({ customer: customerId, limit: 12 });
-    const invoices = invoicesResp.data.map((inv) => ({
+    const invoices = invoicesResp.data.map((inv: Stripe.Invoice) => ({
       id: inv.id,
       number: inv.number,
       status: inv.status,
