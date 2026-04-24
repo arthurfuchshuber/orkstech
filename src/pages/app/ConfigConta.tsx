@@ -26,6 +26,7 @@ import {
 } from "@/components/ui/table";
 import { useEmpresa } from "@/hooks/useEmpresa";
 import { useAuth } from "@/hooks/useAuth";
+import { usePermissions } from "@/hooks/usePermissions";
 import { supabase } from "@/integrations/supabase/client";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
