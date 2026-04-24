@@ -186,7 +186,7 @@ serve(async (req) => {
       const { data: { users } } = await supabaseAdmin.auth.admin.listUsers({ perPage: 1000 });
       const { data: subscribersAll } = await supabaseAdmin
         .from("subscribers")
-        .select("user_id, trial_end, is_manual_trial, status");
+        .select("user_id, trial_end, is_manual_trial, is_complimentary, status");
 
       const subByUser = new Map((subscribersAll ?? []).map((s) => [s.user_id, s]));
 
@@ -203,6 +203,7 @@ serve(async (req) => {
           owner_last_sign_in: owner?.last_sign_in_at ?? null,
           trial_end: sub?.trial_end ?? null,
           is_manual_trial: sub?.is_manual_trial ?? false,
+          is_complimentary: sub?.is_complimentary ?? false,
           subscription_status: sub?.status ?? null,
           stats: {
             payables: payCount ?? 0,
@@ -213,6 +214,50 @@ serve(async (req) => {
       }
 
       return new Response(JSON.stringify({ companies: result }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // ============= SET COMPLIMENTARY (admin libera "Sem cobranças" para uma empresa) =============
+    if (action === "set_complimentary") {
+      const { empresa_id, enabled } = body;
+      if (!empresa_id || typeof enabled !== "boolean") {
+        return new Response(JSON.stringify({ error: "Parâmetros inválidos" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const { data: empresa } = await supabaseAdmin
+        .from("empresas")
+        .select("id, user_id, razao_social, nome_fantasia")
+        .eq("id", empresa_id)
+        .single();
+      if (!empresa) {
+        return new Response(JSON.stringify({ error: "Empresa não encontrada" }), {
+          status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const { data: { user: ownerUser } } = await supabaseAdmin.auth.admin.getUserById(empresa.user_id);
+      const ownerEmail = ownerUser?.email ?? "";
+
+      await supabaseAdmin.from("subscribers").upsert(
+        {
+          user_id: empresa.user_id,
+          email: ownerEmail,
+          is_complimentary: enabled,
+          last_synced_at: new Date().toISOString(),
+        },
+        { onConflict: "user_id" }
+      );
+
+      await logAdminAction(
+        enabled ? "complimentary_set" : "complimentary_cleared",
+        `${enabled ? "Liberado" : "Removido"} acesso "Sem cobranças" para ${empresa.nome_fantasia || empresa.razao_social}`,
+        { empresa_id, owner_email: ownerEmail }
+      );
+
+      return new Response(JSON.stringify({ success: true }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
