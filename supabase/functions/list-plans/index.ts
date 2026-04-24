@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { createClient } from "npm:@supabase/supabase-js@2.57.2";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 
 const corsHeaders = {
@@ -80,20 +80,20 @@ serve(async (req) => {
       const meta = PLAN_META[productId];
       const override = overrideMap[productId];
       const productPrices = prices.data.filter(
-        (p) => (typeof p.product === "string" ? p.product : p.product?.id) === productId
+        (p: Stripe.Price) => (typeof p.product === "string" ? p.product : p.product?.id) === productId
       );
 
       const monthly = productPrices.find(
-        (p) => p.recurring?.interval === "month" && p.recurring?.interval_count === 1
+        (p: Stripe.Price) => p.recurring?.interval === "month" && p.recurring?.interval_count === 1
       );
       const semiannual = productPrices.find(
-        (p) => p.recurring?.interval === "month" && p.recurring?.interval_count === 6
+        (p: Stripe.Price) => p.recurring?.interval === "month" && p.recurring?.interval_count === 6
       );
       const annual = productPrices.find(
-        (p) => p.recurring?.interval === "year" && p.recurring?.interval_count === 1
+        (p: Stripe.Price) => p.recurring?.interval === "year" && p.recurring?.interval_count === 1
       );
 
-      const product = productPrices.find((p) => typeof p.product === "object")?.product as any;
+      const product = productPrices.find((p: Stripe.Price) => typeof p.product === "object")?.product as any;
 
       const priceTrial = monthly?.recurring?.trial_period_days
         ?? semiannual?.recurring?.trial_period_days

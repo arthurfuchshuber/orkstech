@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
-import { createClient } from "npm:@supabase/supabase-js@2.57.2";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -46,7 +46,7 @@ serve(async (req) => {
 
     // Faturas (últimas 12)
     const invoicesResp = await stripe.invoices.list({ customer: customerId, limit: 12 });
-    const invoices = invoicesResp.data.map((inv) => ({
+    const invoices = invoicesResp.data.map((inv: Stripe.Invoice) => ({
       id: inv.id,
       number: inv.number,
       status: inv.status,

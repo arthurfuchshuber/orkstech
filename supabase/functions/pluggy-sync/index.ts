@@ -253,7 +253,7 @@ Deno.serve(async (req) => {
                   .filter((tx: any) => tx.type === 'DEBIT' || tx.amount < 0)
                   .reduce((sum: number, tx: any) => sum + Math.abs(tx.amount), 0)
                 // Round to 2 decimals
-                openBillAmount = Math.round(openBillAmount * 100) / 100
+                openBillAmount = Math.round((openBillAmount ?? 0) * 100) / 100
                 console.log(`Open bill calculated: R$ ${openBillAmount} from ${txs.length} transactions since ${closeDateStr}`)
               }
             } catch (e) {

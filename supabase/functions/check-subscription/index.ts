@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
-import { createClient } from "npm:@supabase/supabase-js@2.57.2";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -141,8 +141,8 @@ serve(async (req) => {
 
     // Prioriza ativa/trial; fallback para mais recente
     const sub =
-      subscriptions.data.find((s) => ["active", "trialing"].includes(s.status)) ??
-      subscriptions.data.find((s) => ["past_due", "unpaid"].includes(s.status)) ??
+      subscriptions.data.find((s: Stripe.Subscription) => ["active", "trialing"].includes(s.status)) ??
+      subscriptions.data.find((s: Stripe.Subscription) => ["past_due", "unpaid"].includes(s.status)) ??
       subscriptions.data[0];
 
     if (!sub) {
