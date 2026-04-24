@@ -79,12 +79,34 @@ export function EmpresaProvider({ children }: { children: ReactNode }) {
         list = (data ?? []) as Empresa[];
       }
     } else {
-      const { data } = await supabase
+      // Empresas onde o usuário é DONO
+      const { data: ownedRaw } = await supabase
         .from("empresas")
         .select("*")
         .eq("user_id", targetUserId)
         .order("created_at", { ascending: true });
-      list = (data ?? []) as Empresa[];
+      const owned = (ownedRaw ?? []) as Empresa[];
+
+      // Empresa onde o usuário é MEMBRO (via profiles.empresa_id)
+      let memberEmpresa: Empresa | null = null;
+      try {
+        const { data: profileRow } = await supabase
+          .from("profiles")
+          .select("empresa_id")
+          .eq("user_id", targetUserId)
+          .maybeSingle();
+        const memberEmpresaId = profileRow?.empresa_id;
+        if (memberEmpresaId && !owned.some((e) => e.id === memberEmpresaId)) {
+          const { data: empRow } = await supabase
+            .from("empresas")
+            .select("*")
+            .eq("id", memberEmpresaId)
+            .maybeSingle();
+          if (empRow) memberEmpresa = empRow as Empresa;
+        }
+      } catch {}
+
+      list = memberEmpresa ? [...owned, memberEmpresa] : owned;
     }
 
     setEmpresas(list);
