@@ -40,6 +40,7 @@ interface Company {
   created_at: string;
   trial_end: string | null;
   is_manual_trial: boolean;
+  is_complimentary: boolean;
   subscription_status: string | null;
   inscricao_estadual?: string | null;
   inscricao_municipal?: string | null;
