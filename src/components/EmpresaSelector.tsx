@@ -11,8 +11,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 
-import { useNavigate } from "react-router-dom";
 import { UpgradeDialog } from "@/components/UpgradeDialog";
+import { NovaEmpresaModal } from "@/components/NovaEmpresaModal";
 
 const PLAN_LIMITS: Record<string, number> = {
   starter: 1,
