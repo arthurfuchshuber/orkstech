@@ -94,6 +94,7 @@ export function PermissionsModal({ userId, userEmail, isOwner, open, onOpenChang
       toast.success("Permissões atualizadas");
       qc.invalidateQueries({ queryKey: ["user-permissions"] });
       qc.invalidateQueries({ queryKey: ["user-permissions-edit"] });
+      qc.invalidateQueries({ queryKey: ["admin-perm-summary"] });
       onOpenChange(false);
     },
     onError: (e: Error) => toast.error(e.message),

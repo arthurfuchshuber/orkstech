@@ -66,6 +66,25 @@ export function AllUsersTab({ users, isLoading }: Props) {
     },
   });
 
+  // Resumo de permissões customizadas por usuário+empresa (para badge na linha)
+  const { data: permSummary = {} } = useQuery({
+    queryKey: ["admin-perm-summary"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("user_permissions")
+        .select("user_id, empresa_id, can_view, can_edit");
+      if (error) throw error;
+      const map: Record<string, { view: number; edit: number }> = {};
+      for (const p of data ?? []) {
+        const key = `${p.user_id}:${p.empresa_id}`;
+        if (!map[key]) map[key] = { view: 0, edit: 0 };
+        if (p.can_edit) map[key].edit++;
+        else if (p.can_view) map[key].view++;
+      }
+      return map;
+    },
+  });
+
   // Build company-first hierarchy
   const companies = useMemo(() => {
     const empresaMap = new Map<string, CompanyWithUsers>();
@@ -389,7 +408,26 @@ export function AllUsersTab({ users, isLoading }: Props) {
                             </div>
                           </TableCell>
                           <TableCell>
-                            <Badge variant="outline" className="text-[10px] font-normal">{u.nivel}</Badge>
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <Badge variant="outline" className="text-[10px] font-normal">{u.nivel}</Badge>
+                              {(() => {
+                                const summary = permSummary[`${u.id}:${c.empresa.id}`];
+                                if (isOwner) {
+                                  return <Badge variant="outline" className="text-[9px] font-normal text-success border-success/30">acesso total</Badge>;
+                                }
+                                if (summary && (summary.view + summary.edit) > 0) {
+                                  return (
+                                    <Badge variant="outline" className="text-[9px] font-normal gap-1">
+                                      <span className="text-success">{summary.edit}</span>
+                                      <span className="text-muted-foreground/60">/</span>
+                                      <span className="text-primary">{summary.view}</span>
+                                      <span className="text-muted-foreground">perm.</span>
+                                    </Badge>
+                                  );
+                                }
+                                return <Badge variant="outline" className="text-[9px] font-normal text-muted-foreground">sem perm.</Badge>;
+                              })()}
+                            </div>
                           </TableCell>
                           <TableCell className="text-center" onClick={(e) => e.stopPropagation()}>
                             <Switch checked={u.ativo} onCheckedChange={(v) => toggleMutation.mutate({ user_id: u.id, ativo: v })} disabled={isSelf} />
