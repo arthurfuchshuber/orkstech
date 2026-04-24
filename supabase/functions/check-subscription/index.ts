@@ -12,6 +12,13 @@ const log = (step: string, details?: any) => {
   console.log(`[CHECK-SUBSCRIPTION] ${step}${d}`);
 };
 
+function jsonResponse(payload: Record<string, unknown>, status = 200) {
+  return new Response(JSON.stringify(payload), {
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+    status,
+  });
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -40,37 +47,77 @@ serve(async (req) => {
     // Force refresh: consulta direta ao Stripe e atualiza cache
     const force = new URL(req.url).searchParams.get("force") === "true";
 
-    // 1) Tenta cache primeiro (rápido, sempre disponível)
-    const { data: cached } = await supabaseAdmin
-      .from("subscribers")
-      .select("*")
+    // ============ DETECTAR SE O CALLER É MEMBRO (não dono) ============
+    // Buscar o profile do caller para ver se está vinculado a uma empresa de outro dono
+    const { data: callerProfile } = await supabaseAdmin
+      .from("profiles")
+      .select("empresa_id")
       .eq("user_id", user.id)
       .maybeSingle();
 
+    let ownerUserId: string = user.id;
+    let isMember = false;
+    let ownerEmail: string = user.email;
+
+    if (callerProfile?.empresa_id) {
+      const { data: empresaRow } = await supabaseAdmin
+        .from("empresas")
+        .select("user_id")
+        .eq("id", callerProfile.empresa_id)
+        .maybeSingle();
+      if (empresaRow?.user_id && empresaRow.user_id !== user.id) {
+        // Caller é membro da empresa de outro dono
+        ownerUserId = empresaRow.user_id;
+        isMember = true;
+        const { data: ownerAuth } = await supabaseAdmin.auth.admin.getUserById(ownerUserId);
+        if (ownerAuth?.user?.email) ownerEmail = ownerAuth.user.email;
+      }
+    }
+
+    // 1) Tenta cache do DONO primeiro (rápido, sempre disponível)
+    const { data: cached } = await supabaseAdmin
+      .from("subscribers")
+      .select("*")
+      .eq("user_id", ownerUserId)
+      .maybeSingle();
+
+    // ============ COMPLIMENTARY (Sem cobranças, definido pelo SaaS admin) ============
+    // Tem prioridade absoluta — libera acesso sem precisar de Stripe
+    if (cached?.is_complimentary) {
+      log("Returning complimentary access");
+      return jsonResponse({
+        subscribed: true,
+        status: "complimentary",
+        product_id: null,
+        price_id: null,
+        subscription_end: null,
+        trial_end: null,
+        cancel_at_period_end: false,
+        is_member: isMember,
+      });
+    }
+
     // ============ TRIAL MANUAL (definido pelo admin) ============
-    // Se há um trial manual ativo, ele tem prioridade absoluta sobre o Stripe
     if (cached?.is_manual_trial && cached.trial_end) {
       const trialEndMs = new Date(cached.trial_end).getTime();
       if (trialEndMs > Date.now()) {
         log("Returning manual trial");
-        return new Response(
-          JSON.stringify({
-            subscribed: true,
-            status: "trialing",
-            product_id: cached.product_id,
-            price_id: cached.price_id,
-            subscription_end: cached.current_period_end,
-            trial_end: cached.trial_end,
-            cancel_at_period_end: false,
-          }),
-          { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
-        );
+        return jsonResponse({
+          subscribed: true,
+          status: "trialing",
+          product_id: cached.product_id,
+          price_id: cached.price_id,
+          subscription_end: cached.current_period_end,
+          trial_end: cached.trial_end,
+          cancel_at_period_end: false,
+          is_member: isMember,
+        });
       }
       // Trial manual expirado → limpa flag para que Stripe assuma novamente
       await supabaseAdmin
         .from("subscribers")
         .update({ is_manual_trial: false, status: null, last_synced_at: new Date().toISOString() })
-        .eq("user_id", user.id);
+        .eq("user_id", ownerUserId);
     }
 
     // Cache válido se foi sincronizado nos últimos 5 min E não é force
@@ -82,30 +129,28 @@ serve(async (req) => {
 
     if (cacheValid) {
       log("Returning cached data");
-      return new Response(
-        JSON.stringify({
-          subscribed: ["active", "trialing"].includes(cached.status ?? ""),
-          status: cached.status,
-          product_id: cached.product_id,
-          price_id: cached.price_id,
-          subscription_end: cached.current_period_end,
-          trial_end: cached.trial_end,
-          cancel_at_period_end: cached.cancel_at_period_end,
-        }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
-      );
+      return jsonResponse({
+        subscribed: ["active", "trialing"].includes(cached.status ?? ""),
+        status: cached.status,
+        product_id: cached.product_id,
+        price_id: cached.price_id,
+        subscription_end: cached.current_period_end,
+        trial_end: cached.trial_end,
+        cancel_at_period_end: cached.cancel_at_period_end,
+        is_member: isMember,
+      });
     }
 
-    // 2) Sincroniza com Stripe
+    // 2) Sincroniza com Stripe (sempre olhando o e-mail do DONO)
     const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
-    const customers = await stripe.customers.list({ email: user.email, limit: 1 });
+    const customers = await stripe.customers.list({ email: ownerEmail, limit: 1 });
 
     if (customers.data.length === 0) {
-      log("No Stripe customer");
+      log("No Stripe customer for owner");
       await supabaseAdmin.from("subscribers").upsert(
         {
-          user_id: user.id,
-          email: user.email,
+          user_id: ownerUserId,
+          email: ownerEmail,
           status: null,
           stripe_customer_id: null,
           stripe_subscription_id: null,
@@ -118,18 +163,16 @@ serve(async (req) => {
         },
         { onConflict: "user_id" }
       );
-      return new Response(
-        JSON.stringify({
-          subscribed: false,
-          status: null,
-          product_id: null,
-          price_id: null,
-          subscription_end: null,
-          trial_end: null,
-          cancel_at_period_end: false,
-        }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
-      );
+      return jsonResponse({
+        subscribed: false,
+        status: null,
+        product_id: null,
+        price_id: null,
+        subscription_end: null,
+        trial_end: null,
+        cancel_at_period_end: false,
+        is_member: isMember,
+      });
     }
 
     const customerId = customers.data[0].id;
@@ -148,8 +191,8 @@ serve(async (req) => {
     if (!sub) {
       await supabaseAdmin.from("subscribers").upsert(
         {
-          user_id: user.id,
-          email: user.email,
+          user_id: ownerUserId,
+          email: ownerEmail,
           stripe_customer_id: customerId,
           stripe_subscription_id: null,
           status: null,
@@ -162,18 +205,16 @@ serve(async (req) => {
         },
         { onConflict: "user_id" }
       );
-      return new Response(
-        JSON.stringify({
-          subscribed: false,
-          status: null,
-          product_id: null,
-          price_id: null,
-          subscription_end: null,
-          trial_end: null,
-          cancel_at_period_end: false,
-        }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
-      );
+      return jsonResponse({
+        subscribed: false,
+        status: null,
+        product_id: null,
+        price_id: null,
+        subscription_end: null,
+        trial_end: null,
+        cancel_at_period_end: false,
+        is_member: isMember,
+      });
     }
 
     const item = sub.items.data[0];
@@ -184,8 +225,8 @@ serve(async (req) => {
 
     await supabaseAdmin.from("subscribers").upsert(
       {
-        user_id: user.id,
-        email: user.email,
+        user_id: ownerUserId,
+        email: ownerEmail,
         stripe_customer_id: customerId,
         stripe_subscription_id: sub.id,
         status: sub.status,
@@ -201,18 +242,16 @@ serve(async (req) => {
 
     log("Synced from Stripe", { status: sub.status, subId: sub.id });
 
-    return new Response(
-      JSON.stringify({
-        subscribed: ["active", "trialing"].includes(sub.status),
-        status: sub.status,
-        product_id: productId,
-        price_id: item.price.id,
-        subscription_end: subEnd,
-        trial_end: trialEnd,
-        cancel_at_period_end: sub.cancel_at_period_end,
-      }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
-    );
+    return jsonResponse({
+      subscribed: ["active", "trialing"].includes(sub.status),
+      status: sub.status,
+      product_id: productId,
+      price_id: item.price.id,
+      subscription_end: subEnd,
+      trial_end: trialEnd,
+      cancel_at_period_end: sub.cancel_at_period_end,
+      is_member: isMember,
+    });
   } catch (error) {
     const msg = error instanceof Error ? error.message : String(error);
     log("ERROR", { message: msg });
