@@ -235,7 +235,7 @@ serve(async (req) => {
         email: z.string().email(),
         password: z.string().min(6),
         nome: z.string().min(1),
-        nivel_permissao_id: z.string().uuid(),
+        nivel_permissao_id: z.string().uuid().optional(),
       });
       const parsed = schema.safeParse(body);
       if (!parsed.success) {
@@ -250,7 +250,24 @@ serve(async (req) => {
         });
       }
 
-      if (!isSuperAdmin && parsed.data.nivel_permissao_id === superAdminLevel?.id) {
+      // Default level: Visualizador (when not provided by client)
+      let nivelPermissaoId = parsed.data.nivel_permissao_id;
+      if (!nivelPermissaoId) {
+        const { data: visualizador } = await supabaseAdmin
+          .from("niveis_permissao")
+          .select("id")
+          .eq("nome", "Visualizador")
+          .eq("is_system", true)
+          .maybeSingle();
+        nivelPermissaoId = visualizador?.id;
+        if (!nivelPermissaoId) {
+          return new Response(JSON.stringify({ error: "Nível de permissão padrão não encontrado" }), {
+            status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+      }
+
+      if (!isSuperAdmin && nivelPermissaoId === superAdminLevel?.id) {
         return new Response(JSON.stringify({ error: "Você não pode criar um Super Admin" }), {
           status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
@@ -276,7 +293,7 @@ serve(async (req) => {
         .from("profiles")
         .update({
           nome: parsed.data.nome,
-          nivel_permissao_id: parsed.data.nivel_permissao_id,
+          nivel_permissao_id: nivelPermissaoId,
           empresa_id: callerEmpresaId,
         })
         .eq("user_id", newUser.user.id);
