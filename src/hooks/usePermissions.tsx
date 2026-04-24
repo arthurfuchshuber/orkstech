@@ -31,6 +31,7 @@ export const PERMISSION_CATALOG = {
   system: [
     { key: "system:empresa", label: "Configurações › Empresa" },
     { key: "system:usuarios", label: "Configurações › Usuários & Permissões" },
+    { key: "system:alterar-senha-usuarios", label: "Configurações › Alterar senha de usuários" },
     { key: "system:assinatura", label: "Configurações › Assinatura" },
     { key: "system:integracoes", label: "Configurações › Integrações" },
     { key: "system:gerenciar-menu", label: "Configurações › Gerenciar Menu" },

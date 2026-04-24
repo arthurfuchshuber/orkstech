@@ -26,6 +26,7 @@ import {
 } from "@/components/ui/table";
 import { useEmpresa } from "@/hooks/useEmpresa";
 import { useAuth } from "@/hooks/useAuth";
+import { usePermissions } from "@/hooks/usePermissions";
 import { supabase } from "@/integrations/supabase/client";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -243,9 +244,11 @@ function EmpresaTab() {
 function UsuariosTab() {
   const { user } = useAuth();
   const { empresa } = useEmpresa();
+  const { canEdit, isOwner } = usePermissions();
   const qc = useQueryClient();
   const [editingUser, setEditingUser] = useState<UserRow | null>(null);
   const [editForm, setEditForm] = useState({ nome: "", cpf: "", telefone: "", data_nascimento: "" });
+  const [newPassword, setNewPassword] = useState("");
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [adminBlockMsg, setAdminBlockMsg] = useState<string | null>(null);
   const [createForm, setCreateForm] = useState({ email: "", password: "", nome: "" });
@@ -254,9 +257,12 @@ function UsuariosTab() {
   const users = data?.users ?? [];
   const niveis = data?.niveis ?? [];
 
+  const canChangePassword = isOwner || canEdit("system:alterar-senha-usuarios");
+
   const openEdit = (u: UserRow) => {
     setEditingUser(u);
     setEditForm({ nome: u.nome ?? "", cpf: u.cpf ?? "", telefone: u.telefone ?? "", data_nascimento: u.data_nascimento ?? "" });
+    setNewPassword("");
   };
 
   const createUser = useMutation({
@@ -278,7 +284,19 @@ function UsuariosTab() {
     onError: async (e: Error) => toast.error(await getFunctionErrorMessage(e, "Não foi possível criar o usuário")),
   });
 
-
+  const setPassword = useMutation({
+    mutationFn: async () => {
+      if (!editingUser) throw new Error("Usuário não selecionado");
+      const password = newPassword.trim();
+      if (password.length < 6) throw new Error("A nova senha precisa ter no mínimo 6 caracteres");
+      const { data, error } = await supabase.functions.invoke("manage-users", {
+        body: { action: "set_password", user_id: editingUser.id, password, empresa_id: empresa?.id },
+      });
+      if (error) throw error; if (data?.error) throw new Error(data.error);
+    },
+    onSuccess: () => { toast.success("Senha alterada com sucesso"); setNewPassword(""); },
+    onError: async (e: Error) => toast.error(await getFunctionErrorMessage(e, "Não foi possível alterar a senha")),
+  });
   const toggleActive = useMutation({
     mutationFn: async ({ user_id, ativo }: { user_id: string; ativo: boolean }) => {
       const { data, error } = await supabase.functions.invoke("manage-users", { body: { action: "toggle_active", user_id, ativo, empresa_id: empresa?.id } });
@@ -439,6 +457,40 @@ function UsuariosTab() {
             <div><DocumentInput type="cpf" value={editForm.cpf} onValueChange={(raw) => setEditForm({ ...editForm, cpf: raw })} label="CPF" /></div>
             <div><PhoneInput value={editForm.telefone} onValueChange={(raw) => setEditForm({ ...editForm, telefone: raw })} label="Telefone" /></div>
             <div><DateInput value={editForm.data_nascimento ? new Date(`${editForm.data_nascimento}T12:00:00`) : undefined} onValueChange={(date) => setEditForm({ ...editForm, data_nascimento: date ? date.toISOString().split("T")[0] : "" })} label="Data de Nascimento" /></div>
+
+            {canChangePassword && editingUser && editingUser.id !== user?.id && (
+              <div className="rounded-lg border border-border/50 bg-muted/20 p-3 space-y-2">
+                <div className="flex items-center gap-1.5">
+                  <ShieldCheck className="h-3.5 w-3.5 text-primary" />
+                  <p className="text-xs font-semibold text-foreground">Alterar senha</p>
+                </div>
+                <p className="text-[11px] text-muted-foreground">
+                  Defina uma nova senha para este usuário. Ele poderá usá-la imediatamente no próximo login.
+                </p>
+                <div className="flex gap-2">
+                  <Input
+                    type="password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    className="h-9 text-sm"
+                    placeholder="Mínimo 6 caracteres"
+                    autoComplete="new-password"
+                    maxLength={72}
+                  />
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={() => setPassword.mutate()}
+                    disabled={setPassword.isPending || newPassword.trim().length < 6}
+                  >
+                    {setPassword.isPending ? "Aplicando..." : "Aplicar"}
+                  </Button>
+                </div>
+                {newPassword.length > 0 && newPassword.length < 6 && (
+                  <p className="text-[10px] text-destructive">A senha precisa ter pelo menos 6 caracteres.</p>
+                )}
+              </div>
+            )}
           </div>
           <DialogFooter className="flex !justify-between">
             {editingUser && editingUser.id !== user?.id ? (

@@ -462,6 +462,72 @@ serve(async (req) => {
       });
     }
 
+    if (action === "set_password") {
+      const schema = z.object({
+        user_id: z.string().uuid(),
+        password: z.string().min(6).max(72),
+        empresa_id: z.string().uuid().optional(),
+      });
+      const parsed = schema.safeParse(body);
+      if (!parsed.success) {
+        return new Response(JSON.stringify({ error: "Dados inválidos. A senha precisa ter entre 6 e 72 caracteres." }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const targetEmpresaId = parsed.data.empresa_id ?? callerEmpresaId;
+
+      // Permission gate: Super Admin OR empresa owner OR explicit can_edit on system:alterar-senha-usuarios
+      let allowed = isSuperAdmin;
+      if (!allowed && targetEmpresaId) {
+        const { data: empresaRow } = await supabaseAdmin
+          .from("empresas")
+          .select("user_id")
+          .eq("id", targetEmpresaId)
+          .single();
+        if (empresaRow?.user_id === caller.id) allowed = true;
+      }
+      if (!allowed && targetEmpresaId) {
+        const { data: perm } = await supabaseAdmin
+          .from("user_permissions")
+          .select("can_edit")
+          .eq("user_id", caller.id)
+          .eq("empresa_id", targetEmpresaId)
+          .eq("action_key", "system:alterar-senha-usuarios")
+          .maybeSingle();
+        if (perm?.can_edit) allowed = true;
+      }
+
+      if (!allowed) {
+        return new Response(JSON.stringify({ error: "Você não tem permissão para alterar a senha de outros usuários" }), {
+          status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Block changing password of Super Admin (unless caller is Super Admin)
+      if (!isSuperAdmin) {
+        const { data: targetProfile } = await supabaseAdmin
+          .from("profiles")
+          .select("nivel_permissao_id")
+          .eq("user_id", parsed.data.user_id)
+          .single();
+        if (targetProfile?.nivel_permissao_id === superAdminLevel?.id) {
+          return new Response(JSON.stringify({ error: "Você não pode alterar a senha de um Super Admin" }), {
+            status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+      }
+
+      const { error } = await supabaseAdmin.auth.admin.updateUserById(parsed.data.user_id, {
+        password: parsed.data.password,
+      });
+      if (error) throw error;
+
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     return new Response(JSON.stringify({ error: "Ação inválida" }), {
       status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
