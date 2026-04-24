@@ -262,6 +262,7 @@ function UsuariosTab() {
   const openEdit = (u: UserRow) => {
     setEditingUser(u);
     setEditForm({ nome: u.nome ?? "", cpf: u.cpf ?? "", telefone: u.telefone ?? "", data_nascimento: u.data_nascimento ?? "" });
+    setNewPassword("");
   };
 
   const createUser = useMutation({
