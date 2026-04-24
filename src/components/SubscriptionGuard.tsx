@@ -14,26 +14,37 @@ const REASONS = {
     title: "Assinatura necessária",
     description: "Você ainda não possui um plano ativo. Escolha um plano para acessar o sistema.",
     cta: "Ver planos disponíveis",
+    showCta: true,
+  },
+  owner_no_subscription: {
+    title: "Acesso bloqueado",
+    description: "Sua empresa ainda não contratou um plano. Contate o dono do cadastro para regularizar e liberar o acesso aos colaboradores.",
+    cta: "Ver planos disponíveis",
+    showCta: false,
   },
   past_due: {
     title: "Pagamento pendente",
     description: "Identificamos uma falha na cobrança da sua assinatura. Atualize seu método de pagamento para restabelecer o acesso.",
     cta: "Atualizar pagamento",
+    showCta: true,
   },
   canceled: {
     title: "Assinatura cancelada",
     description: "Sua assinatura foi cancelada. Reative seu plano para continuar usando o sistema.",
     cta: "Reativar assinatura",
+    showCta: true,
   },
   trial_expired: {
     title: "Período de teste encerrado",
     description: "Seu período de teste terminou. Escolha um plano para continuar.",
     cta: "Escolher plano",
+    showCta: true,
   },
   incomplete: {
     title: "Assinatura incompleta",
     description: "Sua assinatura não foi finalizada. Conclua o processo de pagamento para liberar o acesso.",
     cta: "Concluir pagamento",
+    showCta: true,
   },
 };
 
