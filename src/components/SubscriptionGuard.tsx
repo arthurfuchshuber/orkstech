@@ -116,24 +116,26 @@ export function SubscriptionGuard({ children }: { children: ReactNode }) {
           </DialogHeader>
 
           <div className="space-y-3 py-2">
-            <Button
-              onClick={handleAction}
-              disabled={portalLoading}
-              className="w-full"
-            >
-              {portalLoading ? (
-                <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Abrindo...</>
-              ) : (
-                <>
-                  {blockReason === "past_due" || blockReason === "canceled" ? (
-                    <ExternalLink className="mr-2 h-4 w-4" />
-                  ) : (
-                    <CreditCard className="mr-2 h-4 w-4" />
-                  )}
-                  {reason?.cta}
-                </>
-              )}
-            </Button>
+            {reason?.showCta && (
+              <Button
+                onClick={handleAction}
+                disabled={portalLoading}
+                className="w-full"
+              >
+                {portalLoading ? (
+                  <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Abrindo...</>
+                ) : (
+                  <>
+                    {blockReason === "past_due" || blockReason === "canceled" ? (
+                      <ExternalLink className="mr-2 h-4 w-4" />
+                    ) : (
+                      <CreditCard className="mr-2 h-4 w-4" />
+                    )}
+                    {reason?.cta}
+                  </>
+                )}
+              </Button>
+            )}
 
             <Button
               variant="ghost"
