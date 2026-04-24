@@ -457,6 +457,40 @@ function UsuariosTab() {
             <div><DocumentInput type="cpf" value={editForm.cpf} onValueChange={(raw) => setEditForm({ ...editForm, cpf: raw })} label="CPF" /></div>
             <div><PhoneInput value={editForm.telefone} onValueChange={(raw) => setEditForm({ ...editForm, telefone: raw })} label="Telefone" /></div>
             <div><DateInput value={editForm.data_nascimento ? new Date(`${editForm.data_nascimento}T12:00:00`) : undefined} onValueChange={(date) => setEditForm({ ...editForm, data_nascimento: date ? date.toISOString().split("T")[0] : "" })} label="Data de Nascimento" /></div>
+
+            {canChangePassword && editingUser && editingUser.id !== user?.id && (
+              <div className="rounded-lg border border-border/50 bg-muted/20 p-3 space-y-2">
+                <div className="flex items-center gap-1.5">
+                  <ShieldCheck className="h-3.5 w-3.5 text-primary" />
+                  <p className="text-xs font-semibold text-foreground">Alterar senha</p>
+                </div>
+                <p className="text-[11px] text-muted-foreground">
+                  Defina uma nova senha para este usuário. Ele poderá usá-la imediatamente no próximo login.
+                </p>
+                <div className="flex gap-2">
+                  <Input
+                    type="password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    className="h-9 text-sm"
+                    placeholder="Mínimo 6 caracteres"
+                    autoComplete="new-password"
+                    maxLength={72}
+                  />
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={() => setPassword.mutate()}
+                    disabled={setPassword.isPending || newPassword.trim().length < 6}
+                  >
+                    {setPassword.isPending ? "Aplicando..." : "Aplicar"}
+                  </Button>
+                </div>
+                {newPassword.length > 0 && newPassword.length < 6 && (
+                  <p className="text-[10px] text-destructive">A senha precisa ter pelo menos 6 caracteres.</p>
+                )}
+              </div>
+            )}
           </div>
           <DialogFooter className="flex !justify-between">
             {editingUser && editingUser.id !== user?.id ? (
