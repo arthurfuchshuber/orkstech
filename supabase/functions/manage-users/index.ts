@@ -521,7 +521,20 @@ serve(async (req) => {
       const { error } = await supabaseAdmin.auth.admin.updateUserById(parsed.data.user_id, {
         password: parsed.data.password,
       });
-      if (error) throw error;
+      if (error) {
+        const raw = (error.message || "").toLowerCase();
+        if (raw.includes("weak") || raw.includes("pwned") || raw.includes("known to be")) {
+          return new Response(JSON.stringify({ error: "Esta senha é muito comum e foi encontrada em vazamentos públicos. Escolha uma senha mais forte (combine letras, números e símbolos)." }), {
+            status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        if (raw.includes("should be at least") || raw.includes("password")) {
+          return new Response(JSON.stringify({ error: "Senha inválida: " + error.message }), {
+            status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        throw error;
+      }
 
       return new Response(JSON.stringify({ success: true }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
