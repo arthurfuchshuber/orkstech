@@ -23,8 +23,8 @@ const PLAN_LIMITS: Record<string, number> = {
 export function EmpresaSelector({ collapsed }: { collapsed: boolean }) {
   const { empresa, empresas, selectEmpresa, isSuperAdminMode } = useEmpresa();
   const { currentPlan, hasAccess } = useSubscription();
-  const navigate = useNavigate();
   const [showUpgrade, setShowUpgrade] = useState(false);
+  const [showNewEmpresa, setShowNewEmpresa] = useState(false);
   const [search, setSearch] = useState("");
 
   const displayName = empresa
