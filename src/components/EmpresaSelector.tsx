@@ -61,7 +61,7 @@ export function EmpresaSelector({ collapsed }: { collapsed: boolean }) {
       setShowUpgrade(true);
       return;
     }
-    navigate("/app/onboarding?new=1");
+    setShowNewEmpresa(true);
   };
 
   const renderAddButton = () => {
