@@ -108,25 +108,28 @@ export function EmpresaSelector({ collapsed }: { collapsed: boolean }) {
                 <div className="px-2 py-3 text-center text-xs text-muted-foreground">Nenhuma empresa encontrada</div>
               )}
             </div>
-            {!isSuperAdminMode && (
-              <>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleNewEmpresa} className="text-primary">
-                  <Plus className="w-3.5 h-3.5 mr-2" />
-                  Nova Empresa
-                </DropdownMenuItem>
-              </>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem onClick={handleNewEmpresa} className="text-primary">
+            <Plus className="w-3.5 h-3.5 mr-2" />
+            Nova Empresa
+            {isSuperAdminMode ? (
+              <span className="ml-auto text-[10px] text-muted-foreground">Super Admin</span>
+            ) : !canAddMore ? (
+              <span className="ml-auto text-[10px] text-muted-foreground">Upgrade</span>
+            ) : (
+              <span className="ml-auto text-[10px] text-muted-foreground">{empresas.length}/{limit === 999 ? "∞" : limit}</span>
             )}
-          </DropdownMenuContent>
-        </DropdownMenu>
-        <UpgradeDialog
-          open={showUpgrade}
-          onOpenChange={setShowUpgrade}
-          description={`Seu plano (${currentPlan ?? "starter"}) permite até ${limit} empresa(s). Faça upgrade para adicionar mais.`}
-        />
-      </>
-    );
-  }
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+      <UpgradeDialog
+        open={showUpgrade}
+        onOpenChange={setShowUpgrade}
+        description={`Seu plano (${currentPlan ?? "starter"}) permite até ${limit} empresa(s). Faça upgrade para adicionar mais.`}
+      />
+    </>
+  );
+}
 
   return (
     <>
