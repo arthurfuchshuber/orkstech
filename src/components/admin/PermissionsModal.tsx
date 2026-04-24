@@ -132,7 +132,7 @@ export function PermissionsModal({ userId, userEmail, isOwner, open, onOpenChang
 
   const renderRow = (item: { key: string; label: string; alwaysOn?: boolean }) => {
     const current = state[item.key] ?? "none";
-    const locked = isOwner || item.alwaysOn;
+    const locked = isOwner;
 
     return (
       <div
