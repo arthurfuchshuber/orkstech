@@ -132,7 +132,7 @@ export function PermissionsModal({ userId, userEmail, isOwner, open, onOpenChang
 
   const renderRow = (item: { key: string; label: string; alwaysOn?: boolean }) => {
     const current = state[item.key] ?? "none";
-    const locked = isOwner || item.alwaysOn;
+    const locked = isOwner;
 
     return (
       <div
@@ -159,7 +159,8 @@ export function PermissionsModal({ userId, userEmail, isOwner, open, onOpenChang
           {LEVELS.map((lvl) => {
             const Icon = lvl.icon;
             const active = current === lvl.value;
-            const disabled = locked || (item.alwaysOn && lvl.value === "none");
+            // Owner: tudo bloqueado. AlwaysOn: só "Sem acesso" bloqueado (pode escolher ver/editar).
+            const disabled = isOwner || (item.alwaysOn && lvl.value === "none");
             return (
               <button
                 key={lvl.value}
@@ -304,8 +305,8 @@ export function PermissionsModal({ userId, userEmail, isOwner, open, onOpenChang
             Carregando permissões...
           </div>
         ) : (
-          <ScrollArea className="flex-1 px-6 py-4">
-            <div className="space-y-5">
+          <ScrollArea className="flex-1 min-h-0 px-6 py-4">
+            <div className="space-y-5 pb-2">
               {renderSection("Páginas do menu", LayoutGrid, PERMISSION_CATALOG.menu)}
               {renderSection("Áreas sistêmicas", Settings2, PERMISSION_CATALOG.system)}
             </div>
