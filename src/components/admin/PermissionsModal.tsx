@@ -305,8 +305,8 @@ export function PermissionsModal({ userId, userEmail, isOwner, open, onOpenChang
             Carregando permissões...
           </div>
         ) : (
-          <ScrollArea className="flex-1 px-6 py-4">
-            <div className="space-y-5">
+          <ScrollArea className="flex-1 min-h-0 px-6 py-4">
+            <div className="space-y-5 pb-2">
               {renderSection("Páginas do menu", LayoutGrid, PERMISSION_CATALOG.menu)}
               {renderSection("Áreas sistêmicas", Settings2, PERMISSION_CATALOG.system)}
             </div>
