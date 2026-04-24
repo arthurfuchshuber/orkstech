@@ -159,7 +159,8 @@ export function PermissionsModal({ userId, userEmail, isOwner, open, onOpenChang
           {LEVELS.map((lvl) => {
             const Icon = lvl.icon;
             const active = current === lvl.value;
-            const disabled = locked || (item.alwaysOn && lvl.value === "none");
+            // Owner: tudo bloqueado. AlwaysOn: só "Sem acesso" bloqueado (pode escolher ver/editar).
+            const disabled = isOwner || (item.alwaysOn && lvl.value === "none");
             return (
               <button
                 key={lvl.value}
