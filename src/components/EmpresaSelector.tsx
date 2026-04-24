@@ -22,7 +22,7 @@ const PLAN_LIMITS: Record<string, number> = {
 
 export function EmpresaSelector({ collapsed }: { collapsed: boolean }) {
   const { empresa, empresas, selectEmpresa, isSuperAdminMode } = useEmpresa();
-  const { currentPlan } = useSubscription();
+  const { currentPlan, hasAccess } = useSubscription();
   const navigate = useNavigate();
   const [showUpgrade, setShowUpgrade] = useState(false);
   const [search, setSearch] = useState("");
@@ -38,7 +38,10 @@ export function EmpresaSelector({ collapsed }: { collapsed: boolean }) {
     .toUpperCase();
 
   const limit = PLAN_LIMITS[currentPlan ?? "starter"] ?? 1;
-  const canAddMore = isSuperAdminMode || empresas.length < limit;
+  // Super Admin: criação livre. Outros: precisam de assinatura ativa e dentro do limite.
+  const canAddMore = isSuperAdminMode || (hasAccess && empresas.length < limit);
+  // Mostra botão se Super Admin OU se tem assinatura ativa
+  const showAddButton = isSuperAdminMode || hasAccess;
 
   const filteredEmpresas = useMemo(() => {
     if (!search) return empresas;
@@ -59,6 +62,28 @@ export function EmpresaSelector({ collapsed }: { collapsed: boolean }) {
       return;
     }
     navigate("/app/onboarding?new=1");
+  };
+
+  const renderAddButton = () => {
+    if (!showAddButton) return null;
+    return (
+      <>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={handleNewEmpresa} className="text-primary">
+          <Plus className="w-3.5 h-3.5 mr-2" />
+          Adicionar Nova Empresa
+          {isSuperAdminMode ? (
+            <span className="ml-auto text-[10px] text-muted-foreground">Super Admin</span>
+          ) : !canAddMore ? (
+            <span className="ml-auto text-[10px] text-muted-foreground">Upgrade</span>
+          ) : (
+            <span className="ml-auto text-[10px] text-muted-foreground">
+              {empresas.length}/{limit === 999 ? "∞" : limit}
+            </span>
+          )}
+        </DropdownMenuItem>
+      </>
+    );
   };
 
   if (collapsed) {
@@ -108,28 +133,17 @@ export function EmpresaSelector({ collapsed }: { collapsed: boolean }) {
                 <div className="px-2 py-3 text-center text-xs text-muted-foreground">Nenhuma empresa encontrada</div>
               )}
             </div>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={handleNewEmpresa} className="text-primary">
-            <Plus className="w-3.5 h-3.5 mr-2" />
-            Nova Empresa
-            {isSuperAdminMode ? (
-              <span className="ml-auto text-[10px] text-muted-foreground">Super Admin</span>
-            ) : !canAddMore ? (
-              <span className="ml-auto text-[10px] text-muted-foreground">Upgrade</span>
-            ) : (
-              <span className="ml-auto text-[10px] text-muted-foreground">{empresas.length}/{limit === 999 ? "∞" : limit}</span>
-            )}
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
-      <UpgradeDialog
-        open={showUpgrade}
-        onOpenChange={setShowUpgrade}
-        description={`Seu plano (${currentPlan ?? "starter"}) permite até ${limit} empresa(s). Faça upgrade para adicionar mais.`}
-      />
-    </>
-  );
-}
+            {renderAddButton()}
+          </DropdownMenuContent>
+        </DropdownMenu>
+        <UpgradeDialog
+          open={showUpgrade}
+          onOpenChange={setShowUpgrade}
+          description={`Seu plano (${currentPlan ?? "starter"}) permite até ${limit} empresa(s). Faça upgrade para adicionar mais.`}
+        />
+      </>
+    );
+  }
 
   return (
     <>
@@ -193,18 +207,7 @@ export function EmpresaSelector({ collapsed }: { collapsed: boolean }) {
               <div className="px-2 py-3 text-center text-xs text-muted-foreground">Nenhuma empresa encontrada</div>
             )}
           </div>
-          {!isSuperAdminMode && (
-            <>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={handleNewEmpresa} className="text-primary">
-                <Plus className="w-3.5 h-3.5 mr-2" />
-                Nova Empresa
-                {!canAddMore && (
-                  <span className="ml-auto text-[10px] text-muted-foreground">Upgrade</span>
-                )}
-              </DropdownMenuItem>
-            </>
-          )}
+          {renderAddButton()}
         </DropdownMenuContent>
       </DropdownMenu>
       <UpgradeDialog
