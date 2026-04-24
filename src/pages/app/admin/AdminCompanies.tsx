@@ -393,8 +393,8 @@ export default function AdminCompanies() {
               </span>
               <span className="block text-warning">
                 {toggleConfirm?.ativo
-                  ? "⚠ Todos os usuários vinculados a essa empresa também serão desativados e perderão acesso ao sistema."
-                  : "Todos os usuários vinculados a essa empresa serão reativados."}
+                  ? "⚠ Cascade automático: todos os usuários vinculados serão desativados, e TODAS as integrações (Asaas, ClickSign, Pluggy/Open Finance), automações, regras DRE e sincronizações automáticas serão desabilitadas para impedir cobranças, webhooks ou processamentos enquanto a empresa estiver inativa."
+                  : "Os usuários vinculados serão reativados e as credenciais de integrações religadas. Automações e regras DRE precisarão ser revisadas e ativadas manualmente por segurança."}
               </span>
             </AlertDialogDescription>
           </AlertDialogHeader>

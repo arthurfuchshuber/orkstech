@@ -33,10 +33,13 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     )
 
-    // Busca todas as conexões (independente de status) para tentar reativar
+    // Busca todas as conexões (independente de status) para tentar reativar.
+    // EXCETO as marcadas como `disabled` — significa que a empresa do dono foi
+    // inativada/excluída pelo admin e não deve mais sincronizar.
     const { data: connections, error } = await supabase
       .from('pluggy_connections')
       .select('id, pluggy_item_id, user_id, connector_name, status')
+      .neq('status', 'disabled')
 
     if (error) throw error
     if (!connections || connections.length === 0) {
