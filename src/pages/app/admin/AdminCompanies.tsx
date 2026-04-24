@@ -54,6 +54,14 @@ interface Company {
 }
 
 function SubscriptionBadge({ company }: { company: Company }) {
+  // Sem cobranças — definido pelo SaaS admin (prioridade máxima)
+  if (company.is_complimentary) {
+    return (
+      <Badge variant="outline" className="text-[10px] bg-info/10 text-info border-info/30 gap-1 whitespace-nowrap">
+        <Sparkles className="w-2.5 h-2.5" /> Sem cobranças
+      </Badge>
+    );
+  }
   // Active Stripe subscription
   if (company.subscription_status === "active") {
     return (
