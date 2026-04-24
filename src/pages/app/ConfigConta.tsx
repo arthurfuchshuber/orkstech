@@ -244,9 +244,11 @@ function EmpresaTab() {
 function UsuariosTab() {
   const { user } = useAuth();
   const { empresa } = useEmpresa();
+  const { canEdit, isOwner } = usePermissions();
   const qc = useQueryClient();
   const [editingUser, setEditingUser] = useState<UserRow | null>(null);
   const [editForm, setEditForm] = useState({ nome: "", cpf: "", telefone: "", data_nascimento: "" });
+  const [newPassword, setNewPassword] = useState("");
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [adminBlockMsg, setAdminBlockMsg] = useState<string | null>(null);
   const [createForm, setCreateForm] = useState({ email: "", password: "", nome: "" });
@@ -254,6 +256,8 @@ function UsuariosTab() {
   const { data, isLoading } = useUserManagementData();
   const users = data?.users ?? [];
   const niveis = data?.niveis ?? [];
+
+  const canChangePassword = isOwner || canEdit("system:alterar-senha-usuarios");
 
   const openEdit = (u: UserRow) => {
     setEditingUser(u);
