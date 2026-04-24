@@ -8,7 +8,6 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import {
@@ -243,7 +242,7 @@ export function PermissionsModal({ userId, userEmail, isOwner, open, onOpenChang
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[92vh] flex flex-col p-0 gap-0 overflow-hidden">
+      <DialogContent className="max-w-3xl h-[92vh] flex flex-col p-0 gap-0 overflow-hidden">
         <DialogHeader className="px-6 pt-6 pb-4 border-b border-border/50">
           <DialogTitle className="flex items-center gap-2 text-base">
             <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
@@ -305,12 +304,12 @@ export function PermissionsModal({ userId, userEmail, isOwner, open, onOpenChang
             Carregando permissões...
           </div>
         ) : (
-          <ScrollArea className="flex-1 min-h-0 px-6 py-4">
-            <div className="space-y-5 pb-2">
+          <div className="flex-1 min-h-0 overflow-y-auto px-6 py-4 overscroll-contain">
+            <div className="space-y-5 pb-2 pr-2">
               {renderSection("Páginas do menu", LayoutGrid, PERMISSION_CATALOG.menu)}
               {renderSection("Áreas sistêmicas", Settings2, PERMISSION_CATALOG.system)}
             </div>
-          </ScrollArea>
+          </div>
         )}
 
         <DialogFooter className="px-6 py-4 border-t border-border/50 bg-muted/10">
