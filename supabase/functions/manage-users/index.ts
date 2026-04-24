@@ -128,7 +128,20 @@ serve(async (req) => {
 
   const isAdmin = callerProfile?.nivel_permissao_id === adminLevel?.id;
   const isSuperAdmin = callerProfile?.nivel_permissao_id === superAdminLevel?.id;
-  const callerEmpresaId = callerProfile?.empresa_id;
+  let callerEmpresaId = callerProfile?.empresa_id ?? null;
+
+  // Fallback: if caller has no empresa_id on profile, check if they own an empresa
+  // (owners are linked via empresas.user_id and may not have empresa_id set on their profile)
+  if (!callerEmpresaId) {
+    const { data: ownedEmpresa } = await supabaseAdmin
+      .from("empresas")
+      .select("id")
+      .eq("user_id", caller.id)
+      .order("created_at", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+    if (ownedEmpresa?.id) callerEmpresaId = ownedEmpresa.id;
+  }
 
   try {
     const body = await req.json();
