@@ -304,7 +304,7 @@ export function PermissionsModal({ userId, userEmail, isOwner, open, onOpenChang
             Carregando permissões...
           </div>
         ) : (
-          <div className="flex-1 min-h-0 overflow-y-auto px-6 py-4 overscroll-contain">
+          <div className="flex-1 min-h-0 overflow-y-auto px-6 py-4 overscroll-contain custom-scrollbar">
             <div className="space-y-5 pb-2 pr-2">
               {renderSection("Páginas do menu", LayoutGrid, PERMISSION_CATALOG.menu)}
               {renderSection("Áreas sistêmicas", Settings2, PERMISSION_CATALOG.system)}
