@@ -48,6 +48,7 @@ export function getPlanByProductId(productId: string): PlanKey | null {
 export type SubscriptionStatus =
   | "active"
   | "trialing"
+  | "complimentary"
   | "past_due"
   | "canceled"
   | "unpaid"
@@ -64,6 +65,7 @@ interface SubscriptionData {
   subscription_end: string | null;
   trial_end: string | null;
   cancel_at_period_end: boolean;
+  is_member?: boolean;
 }
 
 export function useSubscription() {
@@ -82,9 +84,17 @@ export function useSubscription() {
 
   const currentPlan = data?.product_id ? getPlanByProductId(data.product_id) : null;
   const status = data?.status ?? null;
-  const hasAccess = status === "active" || status === "trialing";
+  const isMember = data?.is_member ?? false;
+  const hasAccess = status === "active" || status === "trialing" || status === "complimentary";
 
-  const blockReason: "no_subscription" | "past_due" | "canceled" | "trial_expired" | "incomplete" | null =
+  const blockReason:
+    | "no_subscription"
+    | "owner_no_subscription"
+    | "past_due"
+    | "canceled"
+    | "trial_expired"
+    | "incomplete"
+    | null =
     hasAccess
       ? null
       : status === "past_due" || status === "unpaid"
@@ -94,12 +104,14 @@ export function useSubscription() {
       : status === "incomplete" || status === "incomplete_expired"
       ? "incomplete"
       : !status
-      ? "no_subscription"
+      ? (isMember ? "owner_no_subscription" : "no_subscription")
       : "trial_expired";
 
   return {
     subscribed: data?.subscribed ?? false,
     status,
+    isMember,
+    isComplimentary: status === "complimentary",
     isTrialing: status === "trialing",
     hasAccess,
     blockReason,
