@@ -141,6 +141,7 @@ export function EmpresaSelector({ collapsed }: { collapsed: boolean }) {
           onOpenChange={setShowUpgrade}
           description={`Seu plano (${currentPlan ?? "starter"}) permite até ${limit} empresa(s). Faça upgrade para adicionar mais.`}
         />
+        <NovaEmpresaModal open={showNewEmpresa} onOpenChange={setShowNewEmpresa} />
       </>
     );
   }
