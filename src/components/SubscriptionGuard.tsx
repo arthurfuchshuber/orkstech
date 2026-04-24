@@ -56,17 +56,23 @@ export function SubscriptionGuard({ children }: { children: ReactNode }) {
   const location = useLocation();
   const [portalLoading, setPortalLoading] = useState(false);
 
-  // Não bloqueia: super admin, carregando, na própria página de planos/assinatura, ou no onboarding
+  // Páginas que NUNCA bloqueiam (próprio fluxo de regularização)
   const isOnPlansPage =
     location.pathname === "/app/config/planos" ||
     location.pathname === "/app/config/assinatura";
   const isOnOnboarding = location.pathname === "/app/onboarding";
+
+  // Super Admin do SaaS: continua bloqueado nas páginas operacionais (precisa ter plano OU
+  // marcar a própria empresa como "Sem cobranças"), mas mantém acesso livre ao painel /app/admin
+  // para conseguir gerenciar essa configuração.
+  const isOnAdminPanel = location.pathname.startsWith("/app/admin");
+
   const shouldBlock =
-    !isSuperAdmin &&
     !isLoading &&
     !hasAccess &&
     !isOnPlansPage &&
-    !isOnOnboarding;
+    !isOnOnboarding &&
+    !(isSuperAdmin && isOnAdminPanel);
 
   const reason = blockReason ? REASONS[blockReason] : null;
 
