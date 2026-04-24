@@ -30,6 +30,20 @@ import { supabase } from "@/integrations/supabase/client";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
+async function getFunctionErrorMessage(error: unknown, fallback: string) {
+  if (error instanceof Error && error.name === "FunctionsHttpError") {
+    try {
+      const response = (error as Error & { context?: Response }).context;
+      const payload = response ? await response.json() : null;
+      return payload?.error || fallback;
+    } catch {
+      return fallback;
+    }
+  }
+
+  return error instanceof Error ? error.message : fallback;
+}
+
 
 /* ─── Types ─── */
 interface UserRow {
@@ -247,11 +261,21 @@ function UsuariosTab() {
 
   const createUser = useMutation({
     mutationFn: async () => {
-      const { data, error } = await supabase.functions.invoke("manage-users", { body: { action: "create_user", ...createForm } });
+      const nome = createForm.nome.trim();
+      const email = createForm.email.trim().toLowerCase();
+      const password = createForm.password.trim();
+
+      if (password.length < 6) {
+        throw new Error("A senha temporária precisa ter no mínimo 6 caracteres");
+      }
+
+      const { data, error } = await supabase.functions.invoke("manage-users", {
+        body: { action: "create_user", nome, email, password, empresa_id: empresa?.id },
+      });
       if (error) throw error; if (data?.error) throw new Error(data.error);
     },
     onSuccess: () => { toast.success("Usuário criado! Configure as permissões em seguida."); setShowCreateModal(false); setCreateForm({ email: "", password: "", nome: "" }); qc.invalidateQueries({ queryKey: ["manage-users"] }); },
-    onError: (e: Error) => toast.error(e.message),
+    onError: async (e: Error) => toast.error(await getFunctionErrorMessage(e, "Não foi possível criar o usuário")),
   });
 
 
@@ -393,7 +417,7 @@ function UsuariosTab() {
           <div className="space-y-4">
             <div><label className="mb-1 block text-xs font-medium text-muted-foreground">Nome completo *</label><Input value={createForm.nome} onChange={(e) => setCreateForm({ ...createForm, nome: e.target.value })} className="h-9 text-sm" placeholder="Ex: João Silva" /></div>
             <div><label className="mb-1 block text-xs font-medium text-muted-foreground">E-mail *</label><Input type="email" value={createForm.email} onChange={(e) => setCreateForm({ ...createForm, email: e.target.value })} className="h-9 text-sm" placeholder="usuario@empresa.com" /></div>
-            <div><label className="mb-1 block text-xs font-medium text-muted-foreground">Senha temporária *</label><Input type="password" value={createForm.password} onChange={(e) => setCreateForm({ ...createForm, password: e.target.value })} className="h-9 text-sm" placeholder="Mínimo 6 caracteres" /><p className="mt-1 text-[10px] text-muted-foreground">O usuário poderá alterar a senha após o primeiro login.</p></div>
+            <div><label className="mb-1 block text-xs font-medium text-muted-foreground">Senha temporária *</label><Input type="password" minLength={6} value={createForm.password} onChange={(e) => setCreateForm({ ...createForm, password: e.target.value })} className="h-9 text-sm" placeholder="Mínimo 6 caracteres" /><p className="mt-1 text-[10px] text-muted-foreground">O usuário poderá alterar a senha após o primeiro login.</p>{createForm.password.length > 0 && createForm.password.length < 6 && <p className="mt-1 text-[10px] text-destructive">A senha precisa ter pelo menos 6 caracteres.</p>}</div>
             <div className="rounded-md border border-info/30 bg-info/5 p-2.5">
               <p className="text-[11px] text-muted-foreground">
                 <ShieldCheck className="w-3 h-3 inline mr-1 text-info" />
@@ -401,7 +425,7 @@ function UsuariosTab() {
               </p>
             </div>
           </div>
-          <DialogFooter><Button variant="outline" onClick={() => setShowCreateModal(false)}>Cancelar</Button><Button onClick={() => createUser.mutate()} disabled={createUser.isPending || !createForm.email || !createForm.password || !createForm.nome}>{createUser.isPending ? "Criando..." : "Criar Usuário"}</Button></DialogFooter>
+          <DialogFooter><Button variant="outline" onClick={() => setShowCreateModal(false)}>Cancelar</Button><Button onClick={() => createUser.mutate()} disabled={createUser.isPending || !createForm.email.trim() || !createForm.password.trim() || !createForm.nome.trim() || createForm.password.trim().length < 6}>{createUser.isPending ? "Criando..." : "Criar Usuário"}</Button></DialogFooter>
         </DialogContent>
       </Dialog>
 
