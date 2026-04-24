@@ -44,6 +44,7 @@ serve(async (req) => {
 
   // Helper to log admin actions with email
   async function logAdminAction(evento: string, descricao: string, contexto: any = {}) {
+    if (!caller) return;
     await supabaseAdmin.from("historico_sistema").insert({
       user_id: caller.id,
       evento,
@@ -294,8 +295,10 @@ serve(async (req) => {
 
       const companiesByUser: Record<string, typeof empresas> = {};
       for (const e of empresas ?? []) {
-        if (!companiesByUser[e.user_id]) companiesByUser[e.user_id] = [];
-        companiesByUser[e.user_id].push(e);
+        const ownerId = e.user_id;
+        if (!ownerId) continue;
+        if (!companiesByUser[ownerId]) companiesByUser[ownerId] = [];
+        companiesByUser[ownerId]!.push(e);
       }
 
       const result = validUsers.map((u) => {
@@ -401,7 +404,7 @@ serve(async (req) => {
       const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
       const subs = await stripe.subscriptions.list({ status: "all", limit: 100, expand: ["data.customer"] });
 
-      const result = subs.data.map((s) => {
+      const result = subs.data.map((s: Stripe.Subscription) => {
         const customer = typeof s.customer === "object" ? s.customer : null;
         const item = s.items.data[0];
         return {
