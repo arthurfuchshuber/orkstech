@@ -2564,6 +2564,7 @@ export type Database = {
           current_period_end: string | null
           email: string
           id: string
+          is_complimentary: boolean
           is_manual_trial: boolean
           last_synced_at: string
           price_id: string | null
@@ -2581,6 +2582,7 @@ export type Database = {
           current_period_end?: string | null
           email: string
           id?: string
+          is_complimentary?: boolean
           is_manual_trial?: boolean
           last_synced_at?: string
           price_id?: string | null
@@ -2598,6 +2600,7 @@ export type Database = {
           current_period_end?: string | null
           email?: string
           id?: string
+          is_complimentary?: boolean
           is_manual_trial?: boolean
           last_synced_at?: string
           price_id?: string | null

@@ -14,26 +14,37 @@ const REASONS = {
     title: "Assinatura necessária",
     description: "Você ainda não possui um plano ativo. Escolha um plano para acessar o sistema.",
     cta: "Ver planos disponíveis",
+    showCta: true,
+  },
+  owner_no_subscription: {
+    title: "Acesso bloqueado",
+    description: "Sua empresa ainda não contratou um plano. Contate o dono do cadastro para regularizar e liberar o acesso aos colaboradores.",
+    cta: "Ver planos disponíveis",
+    showCta: false,
   },
   past_due: {
     title: "Pagamento pendente",
     description: "Identificamos uma falha na cobrança da sua assinatura. Atualize seu método de pagamento para restabelecer o acesso.",
     cta: "Atualizar pagamento",
+    showCta: true,
   },
   canceled: {
     title: "Assinatura cancelada",
     description: "Sua assinatura foi cancelada. Reative seu plano para continuar usando o sistema.",
     cta: "Reativar assinatura",
+    showCta: true,
   },
   trial_expired: {
     title: "Período de teste encerrado",
     description: "Seu período de teste terminou. Escolha um plano para continuar.",
     cta: "Escolher plano",
+    showCta: true,
   },
   incomplete: {
     title: "Assinatura incompleta",
     description: "Sua assinatura não foi finalizada. Conclua o processo de pagamento para liberar o acesso.",
     cta: "Concluir pagamento",
+    showCta: true,
   },
 };
 
@@ -45,17 +56,23 @@ export function SubscriptionGuard({ children }: { children: ReactNode }) {
   const location = useLocation();
   const [portalLoading, setPortalLoading] = useState(false);
 
-  // Não bloqueia: super admin, carregando, na própria página de planos/assinatura, ou no onboarding
+  // Páginas que NUNCA bloqueiam (próprio fluxo de regularização)
   const isOnPlansPage =
     location.pathname === "/app/config/planos" ||
     location.pathname === "/app/config/assinatura";
   const isOnOnboarding = location.pathname === "/app/onboarding";
+
+  // Super Admin do SaaS: continua bloqueado nas páginas operacionais (precisa ter plano OU
+  // marcar a própria empresa como "Sem cobranças"), mas mantém acesso livre ao painel /app/admin
+  // para conseguir gerenciar essa configuração.
+  const isOnAdminPanel = location.pathname.startsWith("/app/admin");
+
   const shouldBlock =
-    !isSuperAdmin &&
     !isLoading &&
     !hasAccess &&
     !isOnPlansPage &&
-    !isOnOnboarding;
+    !isOnOnboarding &&
+    !(isSuperAdmin && isOnAdminPanel);
 
   const reason = blockReason ? REASONS[blockReason] : null;
 
@@ -105,24 +122,26 @@ export function SubscriptionGuard({ children }: { children: ReactNode }) {
           </DialogHeader>
 
           <div className="space-y-3 py-2">
-            <Button
-              onClick={handleAction}
-              disabled={portalLoading}
-              className="w-full"
-            >
-              {portalLoading ? (
-                <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Abrindo...</>
-              ) : (
-                <>
-                  {blockReason === "past_due" || blockReason === "canceled" ? (
-                    <ExternalLink className="mr-2 h-4 w-4" />
-                  ) : (
-                    <CreditCard className="mr-2 h-4 w-4" />
-                  )}
-                  {reason?.cta}
-                </>
-              )}
-            </Button>
+            {reason?.showCta && (
+              <Button
+                onClick={handleAction}
+                disabled={portalLoading}
+                className="w-full"
+              >
+                {portalLoading ? (
+                  <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Abrindo...</>
+                ) : (
+                  <>
+                    {blockReason === "past_due" || blockReason === "canceled" ? (
+                      <ExternalLink className="mr-2 h-4 w-4" />
+                    ) : (
+                      <CreditCard className="mr-2 h-4 w-4" />
+                    )}
+                    {reason?.cta}
+                  </>
+                )}
+              </Button>
+            )}
 
             <Button
               variant="ghost"
