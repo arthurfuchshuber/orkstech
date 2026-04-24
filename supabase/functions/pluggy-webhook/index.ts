@@ -31,7 +31,7 @@ function createServiceClient(): any {
 // Match por: valor absoluto igual + data próxima ao vencimento (±5 dias).
 // Se encontrar, marca a conta como paga e a transação como conciliada.
 async function tryReconcile(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
   tx: { id: string; amount: number; date: string; description: string },
   userId: string
 ) {
@@ -243,7 +243,7 @@ Deno.serve(async (req) => {
 
 // ─── Process item updated (accounts + transactions + reconciliation) ───
 async function processItemUpdated(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
   pluggyHeaders: Record<string, string>,
   itemId: string,
   userId: string,
@@ -351,7 +351,7 @@ async function processItemUpdated(
 
 // ─── Process transactions with auto-reconciliation ───
 async function processTransactionsOnly(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
   pluggyHeaders: Record<string, string>,
   itemId: string,
   userId: string
