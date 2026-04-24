@@ -66,6 +66,25 @@ export function AllUsersTab({ users, isLoading }: Props) {
     },
   });
 
+  // Resumo de permissões customizadas por usuário+empresa (para badge na linha)
+  const { data: permSummary = {} } = useQuery({
+    queryKey: ["admin-perm-summary"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("user_permissions")
+        .select("user_id, empresa_id, can_view, can_edit");
+      if (error) throw error;
+      const map: Record<string, { view: number; edit: number }> = {};
+      for (const p of data ?? []) {
+        const key = `${p.user_id}:${p.empresa_id}`;
+        if (!map[key]) map[key] = { view: 0, edit: 0 };
+        if (p.can_edit) map[key].edit++;
+        else if (p.can_view) map[key].view++;
+      }
+      return map;
+    },
+  });
+
   // Build company-first hierarchy
   const companies = useMemo(() => {
     const empresaMap = new Map<string, CompanyWithUsers>();
