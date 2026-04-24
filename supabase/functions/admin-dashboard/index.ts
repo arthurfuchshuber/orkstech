@@ -160,6 +160,13 @@ serve(async (req) => {
       for (const mt of manualTrials ?? []) {
         if (!stripeTrialUserIds.has(mt.user_id)) trialingSubscriptions++;
       }
+
+      // Empresas marcadas como "Sem cobranças" (acesso liberado pelo SaaS admin)
+      const { count: complimentaryCount } = await supabaseAdmin
+        .from("subscribers")
+        .select("user_id", { count: "exact", head: true })
+        .eq("is_complimentary", true);
+
       const churnRate = activeSubscriptions + canceledLast30d > 0
         ? (canceledLast30d / (activeSubscriptions + canceledLast30d)) * 100
         : 0;
@@ -170,6 +177,7 @@ serve(async (req) => {
         recentUsers: recentUsers ?? 0,
         activeSubscriptions,
         trialingSubscriptions,
+        complimentaryCount: complimentaryCount ?? 0,
         canceledLast30d,
         churnRate: Math.round(churnRate * 10) / 10,
         mrr,
