@@ -661,20 +661,61 @@ serve(async (req) => {
       if (empErr) throw empErr;
 
       // Cascade: ativar/inativar todos os perfis vinculados (membros e o próprio dono)
-      // Membros = profiles.empresa_id = empresa.id
       await supabaseAdmin.from("profiles").update({ ativo }).eq("empresa_id", empresa_id);
-      // Dono = profiles.user_id = empresa.user_id (caso ainda não tenha empresa_id setado)
       if (emp?.user_id) {
         await supabaseAdmin.from("profiles").update({ ativo }).eq("user_id", emp.user_id);
       }
 
+      // Cascade adicional: ao INATIVAR, desabilitar tudo que pode "continuar rodando"
+      // sozinho mesmo com a empresa inativa (integrações, automações, regras, etc.)
+      const cascadeStats: Record<string, number> = {};
+
+      if (!ativo) {
+        // Tabelas com flag `ativo` vinculadas por empresa_id que devem ser desligadas
+        const cascadeTables = [
+          "integracoes_credenciais", // Asaas, ClickSign, Pluggy creds (interrompe webhooks/cobranças)
+          "automacoes",              // motor de automações por gatilho
+          "dre_regras",              // regras automáticas de classificação
+          "automacao_gatilhos",
+          "automacao_acoes_tipo",
+        ];
+        for (const tbl of cascadeTables) {
+          const { count, error } = await supabaseAdmin
+            .from(tbl)
+            .update({ ativo: false }, { count: "exact" })
+            .eq("empresa_id", empresa_id)
+            .eq("ativo", true);
+          if (!error) cascadeStats[tbl] = count ?? 0;
+        }
+
+        // Pluggy: conexões bancárias rodam por user_id (não empresa_id).
+        // Marca como "disabled" para impedir auto-sync de continuar puxando dados.
+        if (emp?.user_id) {
+          const { count: pluggyCount } = await supabaseAdmin
+            .from("pluggy_connections")
+            .update({ status: "disabled" }, { count: "exact" })
+            .eq("user_id", emp.user_id)
+            .neq("status", "disabled");
+          cascadeStats["pluggy_connections"] = pluggyCount ?? 0;
+        }
+      } else {
+        // Ao REATIVAR: religar apenas integrações de credenciais (não reativa
+        // automações/regras automaticamente — o usuário precisa revisar antes)
+        const { count } = await supabaseAdmin
+          .from("integracoes_credenciais")
+          .update({ ativo: true }, { count: "exact" })
+          .eq("empresa_id", empresa_id)
+          .eq("ativo", false);
+        cascadeStats["integracoes_credenciais"] = count ?? 0;
+      }
+
       await logAdminAction(
         ativo ? "admin.empresa_ativada" : "admin.empresa_inativada",
-        `Empresa ${emp?.nome_fantasia || emp?.razao_social || empresa_id} ${ativo ? "reativada" : "inativada"} (cascade em usuários)`,
-        { empresa_id }
+        `Empresa ${emp?.nome_fantasia || emp?.razao_social || empresa_id} ${ativo ? "reativada" : "inativada"} (cascade em usuários, integrações e automações)`,
+        { empresa_id, cascade: cascadeStats }
       );
 
-      return new Response(JSON.stringify({ success: true }), {
+      return new Response(JSON.stringify({ success: true, cascade: cascadeStats }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
