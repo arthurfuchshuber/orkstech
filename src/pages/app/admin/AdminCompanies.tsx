@@ -227,6 +227,21 @@ export default function AdminCompanies() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const setComplimentary = useMutation({
+    mutationFn: async ({ empresa_id, enabled }: { empresa_id: string; enabled: boolean }) => {
+      const { error } = await supabase.functions.invoke("admin-dashboard", {
+        body: { action: "set_complimentary", empresa_id, enabled },
+      });
+      if (error) throw error;
+    },
+    onSuccess: (_, vars) => {
+      toast.success(vars.enabled ? "Empresa marcada como Sem cobranças" : "Acesso Sem cobranças removido");
+      qc.invalidateQueries({ queryKey: ["admin-companies"] });
+      qc.invalidateQueries({ queryKey: ["admin-overview"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const deleteCompany = useMutation({
     mutationFn: async (empresa_id: string) => {
       const { error } = await supabase.functions.invoke("admin-dashboard", {
@@ -337,9 +352,17 @@ export default function AdminCompanies() {
                               <MoreVertical className="h-3.5 w-3.5" />
                             </Button>
                           </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="w-44">
+                          <DropdownMenuContent align="end" className="w-52">
                             <DropdownMenuItem onClick={() => setTrialCompany(c)} className="text-xs gap-2">
                               <Clock className="w-3.5 h-3.5" /> Definir trial
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => setComplimentary.mutate({ empresa_id: c.id, enabled: !c.is_complimentary })}
+                              className="text-xs gap-2"
+                              disabled={setComplimentary.isPending}
+                            >
+                              <Sparkles className="w-3.5 h-3.5 text-info" />
+                              {c.is_complimentary ? "Remover Sem cobranças" : "Marcar como Sem cobranças"}
                             </DropdownMenuItem>
                             <DropdownMenuItem onClick={() => setToggleConfirm(c)} className="text-xs gap-2">
                               {c.ativo ? (

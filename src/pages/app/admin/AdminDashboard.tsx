@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Building2, Users, CreditCard, TrendingUp, UserPlus, BarChart3, Activity, AlertTriangle } from "lucide-react";
+import { Building2, Users, CreditCard, TrendingUp, UserPlus, BarChart3, Activity, AlertTriangle, Sparkles } from "lucide-react";
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
 
 export default function AdminDashboard() {
@@ -45,12 +45,20 @@ export default function AdminDashboard() {
         ))}
       </div>
 
-      {/* Trial + churn */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      {/* Trial + churn + complimentary */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card className="border-border/50">
           <CardContent className="p-4">
             <p className="text-xs text-muted-foreground">Em trial</p>
             <p className="text-2xl font-bold text-primary mt-1">{data?.trialingSubscriptions ?? "—"}</p>
+          </CardContent>
+        </Card>
+        <Card className="border-info/30 bg-info/5">
+          <CardContent className="p-4">
+            <p className="text-xs text-muted-foreground flex items-center gap-1">
+              <Sparkles className="w-3 h-3 text-info" /> Sem cobranças
+            </p>
+            <p className="text-2xl font-bold text-info mt-1">{data?.complimentaryCount ?? "—"}</p>
           </CardContent>
         </Card>
         <Card className="border-border/50">
