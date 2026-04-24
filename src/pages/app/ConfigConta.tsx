@@ -284,7 +284,19 @@ function UsuariosTab() {
     onError: async (e: Error) => toast.error(await getFunctionErrorMessage(e, "Não foi possível criar o usuário")),
   });
 
-
+  const setPassword = useMutation({
+    mutationFn: async () => {
+      if (!editingUser) throw new Error("Usuário não selecionado");
+      const password = newPassword.trim();
+      if (password.length < 6) throw new Error("A nova senha precisa ter no mínimo 6 caracteres");
+      const { data, error } = await supabase.functions.invoke("manage-users", {
+        body: { action: "set_password", user_id: editingUser.id, password, empresa_id: empresa?.id },
+      });
+      if (error) throw error; if (data?.error) throw new Error(data.error);
+    },
+    onSuccess: () => { toast.success("Senha alterada com sucesso"); setNewPassword(""); },
+    onError: async (e: Error) => toast.error(await getFunctionErrorMessage(e, "Não foi possível alterar a senha")),
+  });
   const toggleActive = useMutation({
     mutationFn: async ({ user_id, ativo }: { user_id: string; ativo: boolean }) => {
       const { data, error } = await supabase.functions.invoke("manage-users", { body: { action: "toggle_active", user_id, ativo, empresa_id: empresa?.id } });
