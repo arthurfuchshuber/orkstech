@@ -261,10 +261,20 @@ export function AppSidebar() {
   // 1. Hide "extrato-bancario" if no open finance connections
   // 2. Hide menus the user has no view permission for
   const filteredTree = useMemo(() => {
+    // Para o item "Configurações › Financeiro": além da permissão do menu em si,
+    // ele só faz sentido se o usuário puder visualizar pelo menos uma das seções internas.
+    const hasAnyFinanceConfigPermission =
+      canView("finance:plano-contas") ||
+      canView("finance:centros-custo") ||
+      canView("finance:contas-bancarias") ||
+      canView("finance:open-finance") ||
+      canView("finance:formas-pagamento");
+
     const filterItems = (items: MenuItem[]): MenuItem[] =>
       items
         .filter((item) => {
           if (item.slug === "extrato-bancario" && !hasOpenFinance) return false;
+          if (item.slug === "cadastros-financeiros" && !hasAnyFinanceConfigPermission) return false;
           const permissionKey = getMenuPermissionKey(item.slug);
           if (permissionKey) return canView(permissionKey);
           // Apenas filtra por permissão se o slug existir no catálogo de permissões.
