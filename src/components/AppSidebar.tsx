@@ -7,7 +7,7 @@ import { useMenus, type MenuItem } from "@/hooks/useMenus";
 import { useAuth } from "@/hooks/useAuth";
 import { useSuperAdmin } from "@/hooks/useSuperAdmin";
 import { useEmpresa } from "@/hooks/useEmpresa";
-import { usePermissions } from "@/hooks/usePermissions";
+import { usePermissions, ALL_PERMISSION_KEYS } from "@/hooks/usePermissions";
 import { supabase } from "@/integrations/supabase/client";
 import { ChevronRight, Zap } from "lucide-react";
 import { EmpresaSelector } from "@/components/EmpresaSelector";
