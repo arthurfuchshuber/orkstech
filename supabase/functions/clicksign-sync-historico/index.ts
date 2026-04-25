@@ -115,6 +115,25 @@ function signerNameMatchesDocument(signer: any, docName: string | null | undefin
   return words.slice(0, 2).every((w) => docNorm.includes(w));
 }
 
+// Detecta se o domínio do email do signatário contém parte do nome dele
+// (ex: alexandre@pereiradeandrade.com → "pereiradeandrade" bate com o sobrenome).
+// É um sinal forte de titularidade — geralmente quem usa email de domínio próprio
+// é o contratante principal, não um co-signatário/cônjuge.
+function emailDomainMatchesName(signer: any): boolean {
+  const email = String(signer?.email || "").toLowerCase();
+  const at = email.indexOf("@");
+  if (at < 0) return false;
+  const domain = email.slice(at + 1).split(".")[0] || "";
+  if (domain.length < 5) return false;
+  // Ignora domínios públicos comuns
+  const publicDomains = ["gmail", "hotmail", "outlook", "yahoo", "icloud", "live", "uol", "bol", "terra", "msn", "globo"];
+  if (publicDomains.includes(domain)) return false;
+  const nameNorm = normalize(signer?.name).replace(/\s+/g, "");
+  if (!nameNorm) return false;
+  // Se o domínio (≥5 chars) está contido no nome normalizado, é match.
+  return nameNorm.includes(domain);
+}
+
 function selectCustomerSigner(signers: any[], docName: string | null | undefined, internalSet: Set<string>): any | null {
   const eligible = (signers || []).filter(hasValidDocument);
   if (!eligible.length) return null;
@@ -132,6 +151,12 @@ function selectCustomerSigner(signers: any[], docName: string | null | undefined
 
   const external = eligible.filter((s) => !isLikelyInternalSigner(s, internalSet));
   if (external.length === 1) return external[0];
+
+  // Desempate por domínio próprio de email (sinal forte de titularidade)
+  if (external.length > 1) {
+    const byOwnDomain = external.filter(emailDomainMatchesName);
+    if (byOwnDomain.length === 1) return byOwnDomain[0];
+  }
 
   return null;
 }
