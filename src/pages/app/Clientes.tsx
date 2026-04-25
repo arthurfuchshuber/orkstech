@@ -514,6 +514,39 @@ export default function Clientes() {
                   <TableCell className="text-muted-foreground text-sm whitespace-nowrap">
                     {c.cidade ? `${c.cidade}${c.estado ? `/${c.estado}` : ""}` : "—"}
                   </TableCell>
+                  <TableCell onClick={(e) => e.stopPropagation()}>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <button
+                          type="button"
+                          className="inline-flex items-center gap-1 px-2 py-1 rounded-md border border-border/50 hover:border-primary/50 hover:bg-primary/5 transition-colors text-xs max-w-[170px]"
+                        >
+                          <Package className="w-3 h-3 text-muted-foreground shrink-0" />
+                          <span className="truncate">
+                            {produtosOptions.find((p) => p.value === (c as any).produto_segmento_id)?.label || "—"}
+                          </span>
+                          <ChevronDown className="w-3 h-3 ml-auto shrink-0 text-muted-foreground" />
+                        </button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="start" className="min-w-[180px] max-h-[300px] overflow-y-auto">
+                        <DropdownMenuItem
+                          onClick={() => updateProdutoMutation.mutate({ id: c.id, produto_segmento_id: null })}
+                          disabled={!(c as any).produto_segmento_id}
+                        >
+                          <span className="text-muted-foreground italic">— Nenhum —</span>
+                        </DropdownMenuItem>
+                        {produtosOptions.map((p) => (
+                          <DropdownMenuItem
+                            key={p.value}
+                            onClick={() => updateProdutoMutation.mutate({ id: c.id, produto_segmento_id: p.value })}
+                            disabled={(c as any).produto_segmento_id === p.value}
+                          >
+                            {p.label}
+                          </DropdownMenuItem>
+                        ))}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </TableCell>
                   <TableCell className="text-center" onClick={(e) => e.stopPropagation()}>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
