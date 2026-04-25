@@ -328,13 +328,14 @@ export function ClienteModal({ open, onOpenChange, editingId, onSaved, prefill }
         />
 
         <ManagedSelectInput
-          label="Produto"
+          label="Produto *"
           placeholder="Selecione o produto..."
           icon={<Package className="w-4 h-4" />}
           value={form.produto_segmento_id}
           onValueChange={(v) => update("produto_segmento_id", v)}
           options={produtosOptions}
           addLabel="Novo produto"
+          error={errors.produto_segmento_id}
           onAdd={produtosCRUD.onAdd}
           onEdit={produtosCRUD.onEdit}
           onDelete={produtosCRUD.onDelete}
