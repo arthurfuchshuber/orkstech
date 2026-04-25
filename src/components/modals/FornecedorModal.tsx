@@ -193,7 +193,7 @@ export function FornecedorModal({ open, onOpenChange, editingId, onSaved, prefil
         }
       }
 
-      const payload = {
+      const payload: any = {
         tipo: tipoDb,
         nome_completo: form.type === "pessoa" ? form.nome : null,
         cpf: form.type === "pessoa" ? docRaw || null : null,
@@ -207,6 +207,7 @@ export function FornecedorModal({ open, onOpenChange, editingId, onSaved, prefil
         estado: form.endereco.estado || null,
         cep: form.endereco.cep || null,
         observacoes: form.observacoes || null,
+        produto_segmento_id: form.produto_segmento_id || null,
       };
 
       if (editingId) {
