@@ -318,6 +318,20 @@ export function ClienteModal({ open, onOpenChange, editingId, onSaved, prefill }
           className={form.type === "empresa" ? "uppercase" : ""}
         />
 
+        <ManagedSelectInput
+          label="Produto"
+          placeholder="Selecione o produto..."
+          icon={<Package className="w-4 h-4" />}
+          value={form.produto_segmento_id}
+          onValueChange={(v) => update("produto_segmento_id", v)}
+          options={produtosOptions}
+          addLabel="Novo produto"
+          onAdd={produtosCRUD.onAdd}
+          onEdit={produtosCRUD.onEdit}
+          onDelete={produtosCRUD.onDelete}
+          onReorder={produtosCRUD.onReorder}
+        />
+
         <div className="flex items-center gap-3">
           <div className="h-px flex-1 bg-border/30" />
           <span className="text-[11px] uppercase tracking-widest text-muted-foreground/60 font-medium">Contato</span>
