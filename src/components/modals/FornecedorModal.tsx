@@ -12,8 +12,10 @@ import { DocumentInput } from "@/components/inputs/DocumentInput";
 import { PhoneInput } from "@/components/inputs/PhoneInput";
 import { CepInput } from "@/components/inputs/CepInput";
 import { useDocumentValidation } from "@/hooks/useDocumentValidation";
+import { ManagedSelectInput } from "@/components/inputs/ManagedSelectInput";
+import { useManagedSelect } from "@/hooks/useManagedSelect";
 import {
-  Building2, UserRound, Check, Loader2, Mail, MapPin, Home,
+  Building2, UserRound, Check, Loader2, Mail, MapPin, Home, Package,
 } from "lucide-react";
 
 export interface FornecedorPrefill {
@@ -40,6 +42,7 @@ interface FornecedorForm {
   telefone: string;
   email: string;
   observacoes: string;
+  produto_segmento_id: string;
   endereco: { cep: string; logradouro: string; bairro: string; cidade: string; estado: string };
 }
 
@@ -50,6 +53,7 @@ const initialForm: FornecedorForm = {
   telefone: "",
   email: "",
   observacoes: "",
+  produto_segmento_id: "",
   endereco: { cep: "", logradouro: "", bairro: "", cidade: "", estado: "" },
 };
 
