@@ -7,7 +7,7 @@ import { useMenus, type MenuItem } from "@/hooks/useMenus";
 import { useAuth } from "@/hooks/useAuth";
 import { useSuperAdmin } from "@/hooks/useSuperAdmin";
 import { useEmpresa } from "@/hooks/useEmpresa";
-import { usePermissions, ALL_PERMISSION_KEYS } from "@/hooks/usePermissions";
+import { usePermissions, getMenuPermissionKey } from "@/hooks/usePermissions";
 import { supabase } from "@/integrations/supabase/client";
 import { ChevronRight, Zap } from "lucide-react";
 import { EmpresaSelector } from "@/components/EmpresaSelector";
@@ -261,22 +261,14 @@ export function AppSidebar() {
   // 1. Hide "extrato-bancario" if no open finance connections
   // 2. Hide menus the user has no view permission for
   const filteredTree = useMemo(() => {
-    // Conjunto de slugs que possuem entrada explícita no catálogo de permissões.
-    // Itens-pai (grupos) que não estão no catálogo NÃO devem ser ocultados pelo
-    // canView — eles são liberados se ao menos um filho estiver visível.
-    const catalogedSlugs = new Set(
-      ALL_PERMISSION_KEYS.filter((k) => k.startsWith("menu:")).map((k) => k.replace("menu:", ""))
-    );
-
     const filterItems = (items: MenuItem[]): MenuItem[] =>
       items
         .filter((item) => {
           if (item.slug === "extrato-bancario" && !hasOpenFinance) return false;
+          const permissionKey = getMenuPermissionKey(item.slug);
+          if (permissionKey) return canView(permissionKey);
           // Apenas filtra por permissão se o slug existir no catálogo de permissões.
           // Grupos (sem rota / não catalogados) passam — serão removidos depois se ficarem sem filhos.
-          if (catalogedSlugs.has(item.slug)) {
-            return canView(`menu:${item.slug}`);
-          }
           return true;
         })
         .map((item) => ({
