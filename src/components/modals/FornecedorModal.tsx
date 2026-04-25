@@ -64,6 +64,22 @@ export function FornecedorModal({ open, onOpenChange, editingId, onSaved, prefil
   const [form, setForm] = useState<FornecedorForm>(initialForm);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const { validatingCnpj, cnpjError, cpfError, validateCpfField, validateCnpjField, clearErrors } = useDocumentValidation();
+  const produtosCRUD = useManagedSelect("cliente_produtos");
+
+  const { data: produtosOptions = [] } = useQuery({
+    queryKey: ["cliente-produtos", empresa?.id],
+    enabled: open,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("cliente_produtos" as any)
+        .select("id, nome")
+        .eq("ativo", true)
+        .order("ordem", { ascending: true })
+        .order("nome", { ascending: true });
+      if (error) throw error;
+      return ((data as any[]) || []).map((r) => ({ value: r.id, label: r.nome }));
+    },
+  });
 
   const { data: existing } = useQuery({
     queryKey: ["fornecedor_edit", editingId],
