@@ -307,15 +307,14 @@ export function AppSidebar() {
 
   useEffect(() => {
     const ids = findActiveIds(filteredTree, location.pathname);
-    if (ids.length > 0) {
-      setOpenMap((prev) => {
-        const next = { ...prev };
-        ids.forEach((id) => {
-          next[id] = true;
-        });
-        return next;
+    // Mantém aberto apenas o caminho ancestral da rota ativa; os demais grupos colapsam.
+    setOpenMap(() => {
+      const next: Record<string, boolean> = {};
+      ids.forEach((id) => {
+        next[id] = true;
       });
-    }
+      return next;
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeIdsKey, location.pathname]);
 
