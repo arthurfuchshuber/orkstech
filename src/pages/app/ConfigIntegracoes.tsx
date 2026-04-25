@@ -334,23 +334,32 @@ function IntegrationCard({
     }
   };
 
-  const syncClicksignHistory = async () => {
+  const syncClicksignHistory = async (createClients = false) => {
     if (provider !== "clicksign") return;
+    const toastId = "cs-sync";
     try {
-      toast.info("Sincronizando histórico do ClickSign…", { id: "cs-sync" });
+      toast.info(
+        createClients
+          ? "Importando contratantes retroativamente…"
+          : "Sincronizando histórico do ClickSign…",
+        { id: toastId }
+      );
       const { data, error } = await supabase.functions.invoke("clicksign-sync-historico", {
-        body: { empresa_id: empresaId },
+        body: { empresa_id: empresaId, create_clients: createClients },
       });
       if (error || data?.error) throw new Error(data?.error || error?.message);
       const ins = data?.inserted ?? 0;
       const upd = data?.updated ?? 0;
       const matched = data?.matched ?? 0;
-      toast.success(
-        `Histórico sincronizado: ${ins} novos, ${upd} atualizados, ${matched} vinculados a clientes`,
-        { id: "cs-sync" }
-      );
+      const created = data?.clients_created ?? 0;
+      const linked = data?.clients_linked_by_cpf_cnpj ?? 0;
+      const baseMsg = `Histórico: ${ins} novos, ${upd} atualizados, ${matched} vinculados`;
+      const extra = createClients
+        ? ` — ${created} clientes criados, ${linked} já existiam (vinculados)`
+        : "";
+      toast.success(baseMsg + extra, { id: toastId });
     } catch (e) {
-      toast.error(`Falha ao sincronizar ClickSign: ${(e as Error).message}`, { id: "cs-sync" });
+      toast.error(`Falha ao sincronizar ClickSign: ${(e as Error).message}`, { id: toastId });
     }
   };
 
