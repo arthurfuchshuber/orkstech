@@ -64,16 +64,24 @@ export function ClienteModal({ open, onOpenChange, editingId, onSaved, prefill }
   const [form, setForm] = useState<ClienteForm>(initialForm);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const { validatingCnpj, cnpjError, cpfError, validateCpfField, validateCnpjField, clearErrors } = useDocumentValidation();
-  const produtosCRUD = useManagedSelect("cliente_produtos");
+  const produtosCRUD = useManagedSelect("cliente_produtos", {
+    insertDefaults: { empresa_id: empresa?.id || null },
+  });
 
   const { data: produtosOptions = [] } = useQuery({
     queryKey: ["cliente-produtos", empresa?.id],
-    enabled: open,
+    enabled: open && !!user,
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from("cliente_produtos" as any)
         .select("id, nome")
-        .eq("ativo", true)
+        .eq("ativo", true);
+      if (empresa?.id) {
+        query = query.eq("empresa_id", empresa.id);
+      } else {
+        query = query.is("empresa_id", null);
+      }
+      const { data, error } = await query
         .order("ordem", { ascending: true })
         .order("nome", { ascending: true });
       if (error) throw error;
