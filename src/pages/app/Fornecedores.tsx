@@ -514,6 +514,20 @@ export default function Fornecedores() {
             <DocumentInput type={form.type === "empresa" ? "cnpj" : "cpf"} value={form.cpfCnpj} onValueChange={(raw) => update("cpfCnpj", raw)} onBlur={form.type === "empresa" ? handleCnpjBlur : undefined} error={errors.cpfCnpj} />
             <TextInput label="Nome" placeholder={form.type === "empresa" ? "Razão social do fornecedor" : "Nome do fornecedor"} value={form.nome} onChange={(e) => update("nome", e.target.value)} error={errors.nome} className={form.type === "empresa" ? "uppercase" : ""} />
             <SelectInput label="Categoria" placeholder="Selecione a categoria" value={form.categoria} onValueChange={(v) => update("categoria", v)} options={categoriaOptions} icon={<Tag className="w-4 h-4" />} />
+            <ManagedSelectInput
+              label="Produto *"
+              placeholder="Selecione o produto..."
+              icon={<Package className="w-4 h-4" />}
+              value={form.produtoSegmentoId}
+              onValueChange={(v) => update("produtoSegmentoId", v)}
+              options={produtosOptions}
+              addLabel="Novo produto"
+              error={errors.produtoSegmentoId}
+              onAdd={produtosCRUD.onAdd}
+              onEdit={produtosCRUD.onEdit}
+              onDelete={produtosCRUD.onDelete}
+              onReorder={produtosCRUD.onReorder}
+            />
             <TextInput label="Contato Responsável" placeholder="Nome do contato principal" value={form.contatoResponsavel} onChange={(e) => update("contatoResponsavel", e.target.value)} />
           </div>
 
