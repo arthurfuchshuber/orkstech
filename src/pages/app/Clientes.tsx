@@ -220,6 +220,19 @@ export default function Clientes() {
     onError: () => toast.error("Erro ao atualizar produto"),
   });
 
+  const bulkUpdateMutation = useMutation({
+    mutationFn: async ({ ids, patch }: { ids: string[]; patch: Record<string, any> }) => {
+      const { error } = await supabase.from("clientes").update(patch).in("id", ids);
+      if (error) throw error;
+    },
+    onSuccess: async (_, vars) => {
+      await refreshQueries(queryClient, [["clientes"]]);
+      toast.success(`${vars.ids.length} ${vars.ids.length === 1 ? "cliente atualizado" : "clientes atualizados"}`);
+      setSelectedIds([]);
+    },
+    onError: () => toast.error("Erro ao atualizar em massa"),
+  });
+
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
       const { count } = await supabase
