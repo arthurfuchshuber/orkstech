@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import {
   Users, Plus, Search, Building2, UserRound, Check, Loader2,
-  Mail, MapPin, Home, Filter, X, Pencil, Trash2, ChevronDown
+  Mail, MapPin, Home, Filter, X, Pencil, Trash2, ChevronDown, Package
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -21,6 +21,8 @@ import { validateClientForm, type ClientFormData, type FormErrors } from "@/lib/
 import { refreshQueries } from "@/lib/query-refresh";
 import { logClienteEvent } from "@/lib/cliente-history";
 import { ClienteEditModal } from "@/components/clientes/ClienteEditModal";
+import { ManagedSelectInput } from "@/components/inputs/ManagedSelectInput";
+import { useManagedSelect } from "@/hooks/useManagedSelect";
 import { useAuth } from "@/hooks/useAuth";
 import { useEmpresa } from "@/hooks/useEmpresa";
 import { supabase } from "@/integrations/supabase/client";
@@ -55,6 +57,7 @@ const initialForm: ClientFormData = {
   email: "",
   observacoes: "",
   dataNascimento: undefined,
+  produtoSegmentoId: "",
   endereco: { logradouro: "", bairro: "", cidade: "", estado: "", cep: "" },
 };
 
