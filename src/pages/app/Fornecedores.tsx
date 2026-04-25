@@ -7,7 +7,7 @@ import { refreshQueries } from "@/lib/query-refresh";
 import { toast } from "sonner";
 import {
   Truck, Plus, Building2, UserRound, Check, Mail, MapPin, Home,
-  Tag, Loader2, Pencil, Trash2, Power, Search, Phone, ChevronDown,
+  Tag, Loader2, Pencil, Trash2, Power, Search, Phone, ChevronDown, Package,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { StatCard } from "@/components/StatCard";
@@ -21,6 +21,8 @@ import { CepInput } from "@/components/inputs/CepInput";
 import { TextInput } from "@/components/inputs/TextInput";
 import { TextareaInput } from "@/components/inputs/TextareaInput";
 import { SelectInput } from "@/components/inputs/SelectInput";
+import { ManagedSelectInput } from "@/components/inputs/ManagedSelectInput";
+import { useManagedSelect } from "@/hooks/useManagedSelect";
 import { validateSupplierForm, type SupplierFormData, type FormErrors } from "@/lib/validators";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -58,6 +60,7 @@ const initialForm: SupplierFormData = {
   contatoResponsavel: "",
   categoria: "",
   observacoes: "",
+  produtoSegmentoId: "",
   endereco: { cep: "", logradouro: "", bairro: "", cidade: "", estado: "" },
 };
 
