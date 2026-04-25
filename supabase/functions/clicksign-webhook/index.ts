@@ -103,8 +103,11 @@ async function findClienteIdFromSigners(
   userId: string,
   empresaId: string | null,
   signers: any[],
+  docName?: string,
 ): Promise<string | null> {
   if (!signers?.length) return null;
+  const signer = pickContractee(signers, docName);
+  if (!signer) return null;
   let q = supabase
     .from("clientes")
     .select("id, nome_completo, nome_fantasia, razao_social, email, cpf, cnpj")
@@ -113,19 +116,17 @@ async function findClienteIdFromSigners(
   const { data: clientes } = await q;
   if (!clientes?.length) return null;
 
-  for (const signer of signers) {
-    const sName = normalize(signer?.name);
-    const sEmail = normalize(signer?.email);
-    const sDoc = getSignerDoc(signer);
+  const sName = normalize(signer?.name);
+  const sEmail = normalize(signer?.email);
+  const sDoc = getSignerDoc(signer);
 
-    for (const c of clientes) {
-      if (sDoc && (onlyDigits(c.cpf) === sDoc || onlyDigits(c.cnpj) === sDoc)) return c.id;
-      if (sEmail && c.email && normalize(c.email) === sEmail) return c.id;
-      if (sName && sName.split(" ").length >= 2) {
-        const names = [c.nome_completo, c.nome_fantasia, c.razao_social]
-          .filter(Boolean).map((n: string) => normalize(n));
-        if (names.some((n: string) => n === sName)) return c.id;
-      }
+  for (const c of clientes) {
+    if (sDoc && (onlyDigits(c.cpf) === sDoc || onlyDigits(c.cnpj) === sDoc)) return c.id;
+    if (sEmail && c.email && normalize(c.email) === sEmail) return c.id;
+    if (sName && sName.split(" ").length >= 2) {
+      const names = [c.nome_completo, c.nome_fantasia, c.razao_social]
+        .filter(Boolean).map((n: string) => normalize(n));
+      if (names.some((n: string) => n === sName)) return c.id;
     }
   }
   return null;
@@ -175,7 +176,7 @@ Deno.serve(async (req) => {
 
     if (!doc) {
       // Documento ainda não existe — cria e tenta auto-vincular cliente
-      clienteId = await findClienteIdFromSigners(supabase, cred.user_id, cred.empresa_id, signers);
+      clienteId = await findClienteIdFromSigners(supabase, cred.user_id, cred.empresa_id, signers, csDoc?.filename || csDoc?.path);
       const { data: inserted, error: insErr } = await supabase
         .from("clicksign_documentos")
         .insert({
@@ -197,7 +198,7 @@ Deno.serve(async (req) => {
       docId = inserted.id;
     } else {
       // Atualiza, preservando vínculo manual se houver
-      clienteId = doc.cliente_id || await findClienteIdFromSigners(supabase, cred.user_id, cred.empresa_id, signers);
+      clienteId = doc.cliente_id || await findClienteIdFromSigners(supabase, cred.user_id, cred.empresa_id, signers, csDoc?.filename || csDoc?.path || doc.nome);
       await supabase.from("clicksign_documentos")
         .update({
           status,
@@ -220,7 +221,7 @@ Deno.serve(async (req) => {
       let autoCreated = false;
       let autoLinked = false;
       if (!clienteId) {
-        const contractee = pickContractee(signers);
+        const contractee = pickContractee(signers, csDoc?.filename || csDoc?.path || doc?.nome);
         if (contractee) {
           // ANTI-DUPLICIDADE: antes de criar, verifica diretamente por CPF/CNPJ do contratante
           const contracteeDoc = onlyDigits(
