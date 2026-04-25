@@ -261,12 +261,23 @@ export function AppSidebar() {
   // 1. Hide "extrato-bancario" if no open finance connections
   // 2. Hide menus the user has no view permission for
   const filteredTree = useMemo(() => {
+    // Conjunto de slugs que possuem entrada explícita no catálogo de permissões.
+    // Itens-pai (grupos) que não estão no catálogo NÃO devem ser ocultados pelo
+    // canView — eles são liberados se ao menos um filho estiver visível.
+    const catalogedSlugs = new Set(
+      ALL_PERMISSION_KEYS.filter((k) => k.startsWith("menu:")).map((k) => k.replace("menu:", ""))
+    );
+
     const filterItems = (items: MenuItem[]): MenuItem[] =>
       items
         .filter((item) => {
           if (item.slug === "extrato-bancario" && !hasOpenFinance) return false;
-          // canView always returns true for owners/super admins; for sub-users it checks user_permissions
-          return canView(`menu:${item.slug}`);
+          // Apenas filtra por permissão se o slug existir no catálogo de permissões.
+          // Grupos (sem rota / não catalogados) passam — serão removidos depois se ficarem sem filhos.
+          if (catalogedSlugs.has(item.slug)) {
+            return canView(`menu:${item.slug}`);
+          }
+          return true;
         })
         .map((item) => ({
           ...item,
