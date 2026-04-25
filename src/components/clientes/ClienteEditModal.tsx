@@ -103,7 +103,9 @@ export function ClienteEditModal({ cliente, open, onOpenChange }: Props) {
         cep: cliente.cep || "",
         responsavel_interno: cliente.responsavel_interno || "",
         observacoes: cliente.observacoes || "",
+        produto_segmento_id: (cliente as any).produto_segmento_id || "",
       });
+      setProductError(undefined);
       clearErrors();
     }
   }, [open, cliente]);
