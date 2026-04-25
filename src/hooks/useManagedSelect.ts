@@ -132,8 +132,9 @@ export function useManagedSelect(
   const onReorder = useCallback(async (orderedIds: string[]): Promise<boolean> => {
     if (!config) return false;
     try {
+      const tablesWithOrder = ["categorias_financeiras", "cliente_produtos", "cliente_interacao_tipos", "automacao_acoes_tipo", "automacao_gatilhos", "bancos"];
       const updates = orderedIds.map((id, idx) => {
-        if (config.table === "categorias_financeiras") {
+        if (tablesWithOrder.includes(config.table as string)) {
           return supabase.from(config.table).update({ ordem: idx } as any).eq("id", id);
         }
         return null;
