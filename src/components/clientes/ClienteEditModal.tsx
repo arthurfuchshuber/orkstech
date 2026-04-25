@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Check, Loader2, Building2, UserRound, Mail, Home, MapPin } from "lucide-react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Check, Loader2, Building2, UserRound, Mail, Home, MapPin, Package } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { FormModal } from "@/components/FormModal";
 import { DocumentInput } from "@/components/inputs/DocumentInput";
@@ -8,6 +8,9 @@ import { PhoneInput } from "@/components/inputs/PhoneInput";
 import { CepInput } from "@/components/inputs/CepInput";
 import { TextInput } from "@/components/inputs/TextInput";
 import { TextareaInput } from "@/components/inputs/TextareaInput";
+import { ManagedSelectInput } from "@/components/inputs/ManagedSelectInput";
+import { useManagedSelect } from "@/hooks/useManagedSelect";
+import { useEmpresa } from "@/hooks/useEmpresa";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useDocumentValidation } from "@/hooks/useDocumentValidation";
