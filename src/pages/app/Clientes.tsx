@@ -95,6 +95,7 @@ export default function Clientes() {
   const [filterTipo, setFilterTipo] = useState<string[]>([]);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [editCliente, setEditCliente] = useState<Tables<"clientes"> | null>(null);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
   const produtosCRUD = useManagedSelect("cliente_produtos", {
     insertDefaults: { empresa_id: empresaId || null },
@@ -219,6 +220,19 @@ export default function Clientes() {
     onError: () => toast.error("Erro ao atualizar produto"),
   });
 
+  const bulkUpdateMutation = useMutation({
+    mutationFn: async ({ ids, patch }: { ids: string[]; patch: Record<string, any> }) => {
+      const { error } = await (supabase.from("clientes") as any).update(patch).in("id", ids);
+      if (error) throw error;
+    },
+    onSuccess: async (_, vars) => {
+      await refreshQueries(queryClient, [["clientes"]]);
+      toast.success(`${vars.ids.length} ${vars.ids.length === 1 ? "cliente atualizado" : "clientes atualizados"}`);
+      setSelectedIds([]);
+    },
+    onError: () => toast.error("Erro ao atualizar em massa"),
+  });
+
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
       const { count } = await supabase
@@ -336,6 +350,16 @@ export default function Clientes() {
   const totalAtivos = clientes.filter((c) => c.ativo).length;
   const totalPJ = clientes.filter((c) => c.tipo === "pj").length;
   const totalPF = clientes.filter((c) => c.tipo === "pf").length;
+
+  const filteredIds = useMemo(() => filtered.map((c) => c.id), [filtered]);
+  const allSelected = filteredIds.length > 0 && filteredIds.every((id) => selectedIds.includes(id));
+  const someSelected = selectedIds.length > 0 && !allSelected;
+  const toggleSelectAll = () => {
+    setSelectedIds(allSelected ? selectedIds.filter((id) => !filteredIds.includes(id)) : Array.from(new Set([...selectedIds, ...filteredIds])));
+  };
+  const toggleSelectOne = (id: string) => {
+    setSelectedIds((prev) => prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]);
+  };
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -455,6 +479,13 @@ export default function Clientes() {
         <Table className="w-full">
           <TableHeader>
             <TableRow className="hover:bg-transparent border-border/30">
+              <TableHead className="w-[40px]">
+                <Checkbox
+                  checked={allSelected ? true : someSelected ? "indeterminate" : false}
+                  onCheckedChange={toggleSelectAll}
+                  aria-label="Selecionar todos"
+                />
+              </TableHead>
               <TableHead className="text-xs font-semibold uppercase tracking-wider">Nome / Razão Social</TableHead>
               <TableHead className="text-xs font-semibold uppercase tracking-wider w-[60px]">Tipo</TableHead>
               <TableHead className="text-xs font-semibold uppercase tracking-wider">Documento</TableHead>
@@ -470,13 +501,13 @@ export default function Clientes() {
           <TableBody>
             {isLoading ? (
               <TableRow>
-                 <TableCell colSpan={10} className="text-center py-12">
+                 <TableCell colSpan={11} className="text-center py-12">
                   <Loader2 className="w-5 h-5 animate-spin mx-auto text-muted-foreground" />
                 </TableCell>
               </TableRow>
             ) : filtered.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={10} className="text-center py-12">
+                <TableCell colSpan={11} className="text-center py-12">
                   <div className="flex flex-col items-center gap-2">
                     <Users className="w-8 h-8 text-muted-foreground/30" />
                     <p className="text-sm text-muted-foreground">
@@ -489,9 +520,17 @@ export default function Clientes() {
               filtered.map((c) => (
                 <TableRow
                   key={c.id}
-                  className="cursor-pointer hover:bg-muted/50 transition-colors border-border/20"
+                  data-state={selectedIds.includes(c.id) ? "selected" : undefined}
+                  className="cursor-pointer hover:bg-muted/50 transition-colors border-border/20 data-[state=selected]:bg-primary/5"
                   onClick={() => navigate(`/app/clientes/${c.id}`)}
                 >
+                  <TableCell onClick={(e) => e.stopPropagation()}>
+                    <Checkbox
+                      checked={selectedIds.includes(c.id)}
+                      onCheckedChange={() => toggleSelectOne(c.id)}
+                      aria-label={`Selecionar ${c.nome_completo || c.razao_social || ""}`}
+                    />
+                  </TableCell>
                   <TableCell className="font-medium text-foreground">
                     <div className="flex items-center gap-2 min-w-0">
                       <span className="truncate block">{c.tipo === "pf" ? c.nome_completo : (c.nome_fantasia || c.razao_social) || "—"}</span>
@@ -595,6 +634,58 @@ export default function Clientes() {
           </TableBody>
         </Table>
       </Card>
+
+      {/* Bulk actions bar */}
+      {selectedIds.length > 0 && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 animate-fade-in">
+          <Card className="flex items-center gap-3 px-4 py-2.5 shadow-lg border-border/60 bg-card/95 backdrop-blur">
+            <span className="text-sm font-medium text-foreground">
+              {selectedIds.length} {selectedIds.length === 1 ? "selecionado" : "selecionados"}
+            </span>
+            <div className="h-5 w-px bg-border/60" />
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="gap-1.5 rounded-lg" disabled={bulkUpdateMutation.isPending}>
+                  <Package className="w-3.5 h-3.5" /> Produto <ChevronDown className="w-3 h-3" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="center" className="min-w-[200px] max-h-[320px] overflow-y-auto">
+                <DropdownMenuItem onClick={() => bulkUpdateMutation.mutate({ ids: selectedIds, patch: { produto_segmento_id: null } })}>
+                  <span className="text-muted-foreground italic">— Nenhum —</span>
+                </DropdownMenuItem>
+                {produtosOptions.map((p) => (
+                  <DropdownMenuItem key={p.value} onClick={() => bulkUpdateMutation.mutate({ ids: selectedIds, patch: { produto_segmento_id: p.value } })}>
+                    {p.label}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="gap-1.5 rounded-lg" disabled={bulkUpdateMutation.isPending}>
+                  Status <ChevronDown className="w-3 h-3" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="center" className="min-w-[140px]">
+                <DropdownMenuItem onClick={() => bulkUpdateMutation.mutate({ ids: selectedIds, patch: { ativo: true } })}>
+                  <Badge variant="default" className="text-xs mr-2">Ativo</Badge>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => bulkUpdateMutation.mutate({ ids: selectedIds, patch: { ativo: false } })}>
+                  <Badge variant="secondary" className="text-xs mr-2">Inativo</Badge>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            <div className="h-5 w-px bg-border/60" />
+            <Button variant="ghost" size="sm" className="gap-1.5 rounded-lg" onClick={() => setSelectedIds([])}>
+              <X className="w-3.5 h-3.5" /> Limpar
+            </Button>
+            {bulkUpdateMutation.isPending && <Loader2 className="w-4 h-4 animate-spin text-primary" />}
+          </Card>
+        </div>
+      )}
 
       {/* Delete confirmation */}
       <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
