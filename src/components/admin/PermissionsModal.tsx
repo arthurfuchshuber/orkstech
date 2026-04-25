@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import {
   ShieldCheck, Loader2, Lock, Search, EyeOff, Eye, Pencil,
-  LayoutGrid, Settings2, CheckCheck, XCircle,
+  LayoutGrid, Settings2, CheckCheck, XCircle, Wallet,
 } from "lucide-react";
 import { toast } from "sonner";
 
