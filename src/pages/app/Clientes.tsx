@@ -653,6 +653,26 @@ export default function Clientes() {
             </div>
           </div>
 
+          <div className="h-px bg-border/30" />
+
+          <div className="space-y-4">
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Segmento</p>
+            <ManagedSelectInput
+              label="Produto *"
+              placeholder="Selecione o produto..."
+              icon={<Package className="w-4 h-4" />}
+              value={form.produtoSegmentoId}
+              onValueChange={(v) => updateField("produtoSegmentoId", v)}
+              options={produtosOptions}
+              addLabel="Novo produto"
+              error={errors.produtoSegmentoId}
+              onAdd={produtosCRUD.onAdd}
+              onEdit={produtosCRUD.onEdit}
+              onDelete={produtosCRUD.onDelete}
+              onReorder={produtosCRUD.onReorder}
+            />
+          </div>
+
           <TextareaInput label="Observações" placeholder="Observações sobre o cliente..." value={form.observacoes} onChange={(e) => updateField("observacoes", e.target.value)} />
 
           <div className="h-px bg-border/30" />
