@@ -204,6 +204,21 @@ export default function Clientes() {
     },
   });
 
+  const updateProdutoMutation = useMutation({
+    mutationFn: async ({ id, produto_segmento_id }: { id: string; produto_segmento_id: string | null }) => {
+      const { error } = await supabase
+        .from("clientes")
+        .update({ produto_segmento_id })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: async () => {
+      await refreshQueries(queryClient, [["clientes"]]);
+      toast.success("Produto atualizado");
+    },
+    onError: () => toast.error("Erro ao atualizar produto"),
+  });
+
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
       const { count } = await supabase
@@ -446,6 +461,7 @@ export default function Clientes() {
               <TableHead className="text-xs font-semibold uppercase tracking-wider">Telefone</TableHead>
               <TableHead className="text-xs font-semibold uppercase tracking-wider">Email</TableHead>
               <TableHead className="text-xs font-semibold uppercase tracking-wider">Cidade</TableHead>
+              <TableHead className="text-xs font-semibold uppercase tracking-wider w-[180px]">Produto</TableHead>
               <TableHead className="text-xs font-semibold uppercase tracking-wider text-center w-[100px]">Status</TableHead>
               <TableHead className="text-xs font-semibold uppercase tracking-wider text-right">Criado em</TableHead>
               <TableHead className="w-[80px]"></TableHead>
@@ -454,13 +470,13 @@ export default function Clientes() {
           <TableBody>
             {isLoading ? (
               <TableRow>
-                 <TableCell colSpan={9} className="text-center py-12">
+                 <TableCell colSpan={10} className="text-center py-12">
                   <Loader2 className="w-5 h-5 animate-spin mx-auto text-muted-foreground" />
                 </TableCell>
               </TableRow>
             ) : filtered.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={9} className="text-center py-12">
+                <TableCell colSpan={10} className="text-center py-12">
                   <div className="flex flex-col items-center gap-2">
                     <Users className="w-8 h-8 text-muted-foreground/30" />
                     <p className="text-sm text-muted-foreground">
@@ -497,6 +513,39 @@ export default function Clientes() {
                   </TableCell>
                   <TableCell className="text-muted-foreground text-sm whitespace-nowrap">
                     {c.cidade ? `${c.cidade}${c.estado ? `/${c.estado}` : ""}` : "—"}
+                  </TableCell>
+                  <TableCell onClick={(e) => e.stopPropagation()}>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <button
+                          type="button"
+                          className="inline-flex items-center gap-1 px-2 py-1 rounded-md border border-border/50 hover:border-primary/50 hover:bg-primary/5 transition-colors text-xs max-w-[170px]"
+                        >
+                          <Package className="w-3 h-3 text-muted-foreground shrink-0" />
+                          <span className="truncate">
+                            {produtosOptions.find((p) => p.value === (c as any).produto_segmento_id)?.label || "—"}
+                          </span>
+                          <ChevronDown className="w-3 h-3 ml-auto shrink-0 text-muted-foreground" />
+                        </button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="start" className="min-w-[180px] max-h-[300px] overflow-y-auto">
+                        <DropdownMenuItem
+                          onClick={() => updateProdutoMutation.mutate({ id: c.id, produto_segmento_id: null })}
+                          disabled={!(c as any).produto_segmento_id}
+                        >
+                          <span className="text-muted-foreground italic">— Nenhum —</span>
+                        </DropdownMenuItem>
+                        {produtosOptions.map((p) => (
+                          <DropdownMenuItem
+                            key={p.value}
+                            onClick={() => updateProdutoMutation.mutate({ id: c.id, produto_segmento_id: p.value })}
+                            disabled={(c as any).produto_segmento_id === p.value}
+                          >
+                            {p.label}
+                          </DropdownMenuItem>
+                        ))}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </TableCell>
                   <TableCell className="text-center" onClick={(e) => e.stopPropagation()}>
                     <DropdownMenu>
