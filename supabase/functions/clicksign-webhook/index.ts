@@ -18,6 +18,66 @@ function onlyDigits(s: string | null | undefined): string {
   return (s || "").replace(/\D/g, "");
 }
 
+/** Picks the signer marked as "contractee" (CONTRATANTE), with fallback to the first signer. */
+function pickContractee(signers: any[]): any | null {
+  if (!signers?.length) return null;
+  const contractee = signers.find((s) => {
+    const role = String(s?.sign_as || s?.role || s?.signer_role || "").toLowerCase();
+    return role === "contractee" || role === "contratante";
+  });
+  return contractee || signers[0] || null;
+}
+
+/** Creates a cliente from a ClickSign signer. Returns the new cliente id, or null on failure. */
+async function createClienteFromSigner(
+  supabase: any,
+  userId: string,
+  empresaId: string | null,
+  signer: any,
+): Promise<string | null> {
+  try {
+    const docRaw = onlyDigits(signer?.documentation || signer?.cpf || signer?.cnpj);
+    const isCnpj = docRaw.length === 14;
+    const isCpf = docRaw.length === 11;
+    const tipo: "pj" | "pf" = isCnpj ? "pj" : "pf";
+    const rawName = (signer?.name || "").trim();
+    if (!rawName && !signer?.email && !docRaw) return null;
+
+    const payload: Record<string, any> = {
+      user_id: userId,
+      empresa_id: empresaId,
+      tipo,
+      email: signer?.email || null,
+      telefone: onlyDigits(signer?.phone_number || signer?.phone) || null,
+      ativo: true,
+      observacoes: "Cliente criado automaticamente via ClickSign",
+      // produto_segmento_id is intentionally null — ClickSign-created clients are exempt
+    };
+    if (tipo === "pj") {
+      payload.razao_social = rawName;
+      payload.nome_fantasia = rawName;
+      payload.cnpj = docRaw || null;
+    } else {
+      payload.nome_completo = rawName;
+      payload.cpf = docRaw || null;
+    }
+
+    const { data, error } = await supabase
+      .from("clientes")
+      .insert(payload)
+      .select("id")
+      .single();
+    if (error) {
+      console.error("[clicksign-webhook] failed to auto-create cliente:", error);
+      return null;
+    }
+    return data.id;
+  } catch (e) {
+    console.error("[clicksign-webhook] createClienteFromSigner error:", e);
+    return null;
+  }
+}
+
 async function findClienteIdFromSigners(
   supabase: any,
   userId: string,
@@ -136,7 +196,40 @@ Deno.serve(async (req) => {
     // Notifica quando finalizado
     const finishedEvents = ["auto_close", "close", "document_closed"];
     if (finishedEvents.includes(event?.event?.name)) {
+      // Auto-cria cliente a partir do CONTRATANTE se nenhum cliente foi vinculado
+      let autoCreated = false;
+      if (!clienteId) {
+        const contractee = pickContractee(signers);
+        if (contractee) {
+          const newClienteId = await createClienteFromSigner(
+            supabase,
+            cred.user_id,
+            cred.empresa_id,
+            contractee,
+          );
+          if (newClienteId) {
+            clienteId = newClienteId;
+            autoCreated = true;
+            // Vincula o documento ao cliente recém-criado para aparecer na aba Documentos
+            await supabase
+              .from("clicksign_documentos")
+              .update({ cliente_id: newClienteId })
+              .eq("id", docId);
+          }
+        }
+      }
+
       if (clienteId) {
+        if (autoCreated) {
+          await supabase.from("cliente_interacoes").insert({
+            user_id: cred.user_id,
+            empresa_id: cred.empresa_id,
+            cliente_id: clienteId,
+            tipo: "Sistema",
+            descricao: `Cliente cadastrado automaticamente via ClickSign após assinatura de "${csDoc?.filename || "documento"}"`,
+            usuario_nome: "ClickSign",
+          });
+        }
         await supabase.from("cliente_interacoes").insert({
           user_id: cred.user_id,
           empresa_id: cred.empresa_id,
@@ -150,8 +243,10 @@ Deno.serve(async (req) => {
       await supabase.from("notificacoes_sistema").insert({
         user_id: cred.user_id,
         empresa_id: cred.empresa_id,
-        titulo: "Documento assinado",
-        descricao: `${csDoc?.filename || "Documento"} foi totalmente assinado`,
+        titulo: autoCreated ? "Cliente criado e documento assinado" : "Documento assinado",
+        descricao: autoCreated
+          ? `${csDoc?.filename || "Documento"} foi assinado e um novo cliente foi cadastrado automaticamente`
+          : `${csDoc?.filename || "Documento"} foi totalmente assinado`,
         tipo: "sucesso",
         entidade_tipo: "clicksign_documento",
         entidade_id: docId,
