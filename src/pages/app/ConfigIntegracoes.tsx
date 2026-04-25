@@ -659,16 +659,16 @@ function IntegrationCard({
                 <div className="relative mt-1.5">
                   <Input
                     id={`apikey-${provider}`}
-                    type={showKey ? "text" : "password"}
+                    type="text"
                     value={apiKey}
                     onChange={(e) => setApiKey(e.target.value)}
                     placeholder={cred ? "Deixe em branco para manter a atual" : "Cole sua chave de API"}
-                    className="pr-9 h-8 text-xs"
-                    autoComplete="off"
+                    className={cn("pr-9 h-8 text-xs", !showKey && "[text-security:disc] [-webkit-text-security:disc]")}
+                    autoComplete="new-password"
                     autoCorrect="off"
                     autoCapitalize="off"
                     spellCheck={false}
-                    name={`integration-apikey-${provider}`}
+                    name={`external-token-${provider}`}
                     data-form-type="other"
                     data-lpignore="true"
                     data-1p-ignore="true"
