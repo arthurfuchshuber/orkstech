@@ -84,6 +84,7 @@ export function ClienteModal({ open, onOpenChange, editingId, onSaved, prefill }
         telefone: existing.telefone || "",
         email: existing.email || "",
         observacoes: existing.observacoes || "",
+        produto_segmento_id: (existing as any).produto_segmento_id || "",
         endereco: {
           cep: existing.cep || "",
           logradouro: existing.logradouro || "",
