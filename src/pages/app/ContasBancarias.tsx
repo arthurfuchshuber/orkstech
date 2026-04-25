@@ -38,7 +38,15 @@ interface ContaBancaria {
   ativo: boolean;
 }
 
-export default function ContasBancarias({ embedded = false }: { embedded?: boolean }) {
+export default function ContasBancarias({
+  embedded = false,
+  readOnly = false,
+  hideOpenFinanceButton = false,
+}: {
+  embedded?: boolean;
+  readOnly?: boolean;
+  hideOpenFinanceButton?: boolean;
+}) {
   const { user } = useAuth();
   const { empresa } = useEmpresa();
   const empresaId = empresa?.id;
