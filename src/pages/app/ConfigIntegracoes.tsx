@@ -203,6 +203,12 @@ export default function ConfigIntegracoes() {
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Buscar integração…"
             className="pl-9 h-9"
+            type="search"
+            name="integration-search"
+            autoComplete="off"
+            data-form-type="other"
+            data-lpignore="true"
+            data-1p-ignore="true"
           />
         </div>
       </div>
