@@ -96,6 +96,28 @@ export default function Clientes() {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [editCliente, setEditCliente] = useState<Tables<"clientes"> | null>(null);
 
+  const produtosCRUD = useManagedSelect("cliente_produtos", {
+    insertDefaults: { empresa_id: empresaId || null },
+  });
+
+  const { data: produtosOptions = [] } = useQuery({
+    queryKey: ["cliente-produtos", empresaId],
+    enabled: !!user,
+    queryFn: async () => {
+      let query = supabase
+        .from("cliente_produtos" as any)
+        .select("id, nome")
+        .eq("ativo", true);
+      if (empresaId) query = query.eq("empresa_id", empresaId);
+      else query = query.is("empresa_id", null);
+      const { data, error } = await query
+        .order("ordem", { ascending: true })
+        .order("nome", { ascending: true });
+      if (error) throw error;
+      return ((data as any[]) || []).map((r) => ({ value: r.id, label: r.nome }));
+    },
+  });
+
   const { data: clientes = [], isLoading } = useQuery({
     queryKey: ["clientes", empresaId],
     queryFn: async () => {
@@ -287,6 +309,7 @@ export default function Clientes() {
       estado: form.endereco.estado || undefined,
       cep: form.endereco.cep || undefined,
       observacoes: form.observacoes || undefined,
+      produto_segmento_id: form.produtoSegmentoId || null,
     });
   };
 
