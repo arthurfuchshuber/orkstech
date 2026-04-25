@@ -59,7 +59,7 @@ export function PermissionsModal({ userId, userEmail, isOwner, open, onOpenChang
   useEffect(() => {
     if (!existing) return;
     const initial: PermissionState = {};
-    [...PERMISSION_CATALOG.menu, ...PERMISSION_CATALOG.system].forEach((p) => {
+    [...PERMISSION_CATALOG.menu, ...PERMISSION_CATALOG.system, ...PERMISSION_CATALOG.finance].forEach((p) => {
       const found = existing.find((e) => e.action_key === p.key);
       if (isOwner) {
         initial[p.key] = "edit";
