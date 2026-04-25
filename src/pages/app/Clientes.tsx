@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import {
   Users, Plus, Search, Building2, UserRound, Check, Loader2,
-  Mail, MapPin, Home, Filter, X, Pencil, Trash2, ChevronDown
+  Mail, MapPin, Home, Filter, X, Pencil, Trash2, ChevronDown, Package
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -21,6 +21,8 @@ import { validateClientForm, type ClientFormData, type FormErrors } from "@/lib/
 import { refreshQueries } from "@/lib/query-refresh";
 import { logClienteEvent } from "@/lib/cliente-history";
 import { ClienteEditModal } from "@/components/clientes/ClienteEditModal";
+import { ManagedSelectInput } from "@/components/inputs/ManagedSelectInput";
+import { useManagedSelect } from "@/hooks/useManagedSelect";
 import { useAuth } from "@/hooks/useAuth";
 import { useEmpresa } from "@/hooks/useEmpresa";
 import { supabase } from "@/integrations/supabase/client";
@@ -55,6 +57,7 @@ const initialForm: ClientFormData = {
   email: "",
   observacoes: "",
   dataNascimento: undefined,
+  produtoSegmentoId: "",
   endereco: { logradouro: "", bairro: "", cidade: "", estado: "", cep: "" },
 };
 
@@ -92,6 +95,28 @@ export default function Clientes() {
   const [filterTipo, setFilterTipo] = useState<string[]>([]);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [editCliente, setEditCliente] = useState<Tables<"clientes"> | null>(null);
+
+  const produtosCRUD = useManagedSelect("cliente_produtos", {
+    insertDefaults: { empresa_id: empresaId || null },
+  });
+
+  const { data: produtosOptions = [] } = useQuery({
+    queryKey: ["cliente-produtos", empresaId],
+    enabled: !!user,
+    queryFn: async () => {
+      let query = supabase
+        .from("cliente_produtos" as any)
+        .select("id, nome")
+        .eq("ativo", true);
+      if (empresaId) query = query.eq("empresa_id", empresaId);
+      else query = query.is("empresa_id", null);
+      const { data, error } = await query
+        .order("ordem", { ascending: true })
+        .order("nome", { ascending: true });
+      if (error) throw error;
+      return ((data as any[]) || []).map((r) => ({ value: r.id, label: r.nome }));
+    },
+  });
 
   const { data: clientes = [], isLoading } = useQuery({
     queryKey: ["clientes", empresaId],
@@ -284,6 +309,7 @@ export default function Clientes() {
       estado: form.endereco.estado || undefined,
       cep: form.endereco.cep || undefined,
       observacoes: form.observacoes || undefined,
+      produto_segmento_id: form.produtoSegmentoId || null,
     });
   };
 
@@ -625,6 +651,26 @@ export default function Clientes() {
               <TextInput label="Cidade" placeholder="Cidade" value={form.endereco.cidade} onChange={(e) => updateAddress("cidade", e.target.value)} icon={<MapPin className="w-4 h-4" />} />
               <TextInput label="Estado" placeholder="UF" value={form.endereco.estado} onChange={(e) => updateAddress("estado", e.target.value)} />
             </div>
+          </div>
+
+          <div className="h-px bg-border/30" />
+
+          <div className="space-y-4">
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Segmento</p>
+            <ManagedSelectInput
+              label="Produto *"
+              placeholder="Selecione o produto..."
+              icon={<Package className="w-4 h-4" />}
+              value={form.produtoSegmentoId}
+              onValueChange={(v) => updateField("produtoSegmentoId", v)}
+              options={produtosOptions}
+              addLabel="Novo produto"
+              error={errors.produtoSegmentoId}
+              onAdd={produtosCRUD.onAdd}
+              onEdit={produtosCRUD.onEdit}
+              onDelete={produtosCRUD.onDelete}
+              onReorder={produtosCRUD.onReorder}
+            />
           </div>
 
           <TextareaInput label="Observações" placeholder="Observações sobre o cliente..." value={form.observacoes} onChange={(e) => updateField("observacoes", e.target.value)} />

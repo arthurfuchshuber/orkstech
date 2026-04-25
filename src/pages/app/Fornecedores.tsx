@@ -7,7 +7,7 @@ import { refreshQueries } from "@/lib/query-refresh";
 import { toast } from "sonner";
 import {
   Truck, Plus, Building2, UserRound, Check, Mail, MapPin, Home,
-  Tag, Loader2, Pencil, Trash2, Power, Search, Phone, ChevronDown,
+  Tag, Loader2, Pencil, Trash2, Power, Search, Phone, ChevronDown, Package,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { StatCard } from "@/components/StatCard";
@@ -21,6 +21,8 @@ import { CepInput } from "@/components/inputs/CepInput";
 import { TextInput } from "@/components/inputs/TextInput";
 import { TextareaInput } from "@/components/inputs/TextareaInput";
 import { SelectInput } from "@/components/inputs/SelectInput";
+import { ManagedSelectInput } from "@/components/inputs/ManagedSelectInput";
+import { useManagedSelect } from "@/hooks/useManagedSelect";
 import { validateSupplierForm, type SupplierFormData, type FormErrors } from "@/lib/validators";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -47,6 +49,7 @@ interface Fornecedor {
   ativo: boolean;
   created_at: string;
   categoria_id: string | null;
+  produto_segmento_id: string | null;
 }
 
 const initialForm: SupplierFormData = {
@@ -58,6 +61,7 @@ const initialForm: SupplierFormData = {
   contatoResponsavel: "",
   categoria: "",
   observacoes: "",
+  produtoSegmentoId: "",
   endereco: { cep: "", logradouro: "", bairro: "", cidade: "", estado: "" },
 };
 
@@ -94,6 +98,28 @@ export default function Fornecedores() {
   const [cnpjMessage, setCnpjMessage] = useState("");
 
   // ---- Queries ----
+  const produtosCRUD = useManagedSelect("cliente_produtos", {
+    insertDefaults: { empresa_id: empresaId || null },
+  });
+
+  const { data: produtosOptions = [] } = useQuery({
+    queryKey: ["cliente-produtos", empresaId],
+    enabled: !!user,
+    queryFn: async () => {
+      let query = supabase
+        .from("cliente_produtos" as any)
+        .select("id, nome")
+        .eq("ativo", true);
+      if (empresaId) query = query.eq("empresa_id", empresaId);
+      else query = query.is("empresa_id", null);
+      const { data, error } = await query
+        .order("ordem", { ascending: true })
+        .order("nome", { ascending: true });
+      if (error) throw error;
+      return ((data as any[]) || []).map((r) => ({ value: r.id, label: r.nome }));
+    },
+  });
+
   const { data: fornecedores = [], isLoading } = useQuery({
     queryKey: ["fornecedores", empresaId],
     queryFn: async () => {
@@ -164,6 +190,7 @@ export default function Fornecedores() {
         cep: form.endereco.cep || null,
         observacoes: form.observacoes || null,
         categoria_id: form.categoria || null,
+        produto_segmento_id: form.produtoSegmentoId || null,
       };
 
       if (editingId) {
@@ -247,6 +274,7 @@ export default function Fornecedores() {
       contatoResponsavel: "",
       categoria: f.categoria_id || "",
       observacoes: f.observacoes || "",
+      produtoSegmentoId: f.produto_segmento_id || "",
       endereco: {
         cep: f.cep || "",
         logradouro: f.logradouro || "",
@@ -486,6 +514,20 @@ export default function Fornecedores() {
             <DocumentInput type={form.type === "empresa" ? "cnpj" : "cpf"} value={form.cpfCnpj} onValueChange={(raw) => update("cpfCnpj", raw)} onBlur={form.type === "empresa" ? handleCnpjBlur : undefined} error={errors.cpfCnpj} />
             <TextInput label="Nome" placeholder={form.type === "empresa" ? "Razão social do fornecedor" : "Nome do fornecedor"} value={form.nome} onChange={(e) => update("nome", e.target.value)} error={errors.nome} className={form.type === "empresa" ? "uppercase" : ""} />
             <SelectInput label="Categoria" placeholder="Selecione a categoria" value={form.categoria} onValueChange={(v) => update("categoria", v)} options={categoriaOptions} icon={<Tag className="w-4 h-4" />} />
+            <ManagedSelectInput
+              label="Produto *"
+              placeholder="Selecione o produto..."
+              icon={<Package className="w-4 h-4" />}
+              value={form.produtoSegmentoId}
+              onValueChange={(v) => update("produtoSegmentoId", v)}
+              options={produtosOptions}
+              addLabel="Novo produto"
+              error={errors.produtoSegmentoId}
+              onAdd={produtosCRUD.onAdd}
+              onEdit={produtosCRUD.onEdit}
+              onDelete={produtosCRUD.onDelete}
+              onReorder={produtosCRUD.onReorder}
+            />
             <TextInput label="Contato Responsável" placeholder="Nome do contato principal" value={form.contatoResponsavel} onChange={(e) => update("contatoResponsavel", e.target.value)} />
           </div>
 
