@@ -520,9 +520,17 @@ export default function Clientes() {
               filtered.map((c) => (
                 <TableRow
                   key={c.id}
-                  className="cursor-pointer hover:bg-muted/50 transition-colors border-border/20"
+                  data-state={selectedIds.includes(c.id) ? "selected" : undefined}
+                  className="cursor-pointer hover:bg-muted/50 transition-colors border-border/20 data-[state=selected]:bg-primary/5"
                   onClick={() => navigate(`/app/clientes/${c.id}`)}
                 >
+                  <TableCell onClick={(e) => e.stopPropagation()}>
+                    <Checkbox
+                      checked={selectedIds.includes(c.id)}
+                      onCheckedChange={() => toggleSelectOne(c.id)}
+                      aria-label={`Selecionar ${c.nome_completo || c.razao_social || ""}`}
+                    />
+                  </TableCell>
                   <TableCell className="font-medium text-foreground">
                     <div className="flex items-center gap-2 min-w-0">
                       <span className="truncate block">{c.tipo === "pf" ? c.nome_completo : (c.nome_fantasia || c.razao_social) || "—"}</span>
