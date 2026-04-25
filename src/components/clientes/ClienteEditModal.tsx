@@ -112,6 +112,12 @@ export function ClienteEditModal({ cliente, open, onOpenChange }: Props) {
 
   const mutation = useMutation({
     mutationFn: async () => {
+      // Required: produto
+      if (!form.produto_segmento_id) {
+        setProductError("Produto obrigatório");
+        throw new Error("Selecione o produto antes de salvar");
+      }
+
       // Validate documents before saving
       if (tipo === "pf") {
         const rawCpf = form.cpf.replace(/\D/g, "");
@@ -142,6 +148,7 @@ export function ClienteEditModal({ cliente, open, onOpenChange }: Props) {
         cep: form.cep || null,
         responsavel_interno: form.responsavel_interno || null,
         observacoes: form.observacoes || null,
+        produto_segmento_id: form.produto_segmento_id || null,
       };
       if (tipo === "pf") {
         update.nome_completo = form.nome_completo || null;
