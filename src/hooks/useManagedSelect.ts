@@ -5,7 +5,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useEmpresa } from "@/hooks/useEmpresa";
 import type { ManagedOption } from "@/components/inputs/ManagedSelectInput";
 
-type TableName = "categorias_financeiras" | "centros_custo" | "contas_bancarias" | "formas_pagamento" | "cliente_interacao_tipos";
+type TableName = "categorias_financeiras" | "centros_custo" | "contas_bancarias" | "formas_pagamento" | "cliente_interacao_tipos" | "cliente_produtos";
 
 interface TableConfig {
   table: TableName;
@@ -52,6 +52,11 @@ const configs: Record<string, TableConfig> = {
   "cliente_interacao_tipos": {
     table: "cliente_interacao_tipos" as any,
     queryKey: "cliente-interacao-tipos",
+    labelField: "nome",
+  },
+  "cliente_produtos": {
+    table: "cliente_produtos" as any,
+    queryKey: "cliente-produtos",
     labelField: "nome",
   },
 };
@@ -127,8 +132,9 @@ export function useManagedSelect(
   const onReorder = useCallback(async (orderedIds: string[]): Promise<boolean> => {
     if (!config) return false;
     try {
+      const tablesWithOrder = ["categorias_financeiras", "cliente_produtos", "cliente_interacao_tipos", "automacao_acoes_tipo", "automacao_gatilhos", "bancos"];
       const updates = orderedIds.map((id, idx) => {
-        if (config.table === "categorias_financeiras") {
+        if (tablesWithOrder.includes(config.table as string)) {
           return supabase.from(config.table).update({ ordem: idx } as any).eq("id", id);
         }
         return null;

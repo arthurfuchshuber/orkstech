@@ -12,8 +12,10 @@ import { DocumentInput } from "@/components/inputs/DocumentInput";
 import { PhoneInput } from "@/components/inputs/PhoneInput";
 import { CepInput } from "@/components/inputs/CepInput";
 import { useDocumentValidation } from "@/hooks/useDocumentValidation";
+import { ManagedSelectInput } from "@/components/inputs/ManagedSelectInput";
+import { useManagedSelect } from "@/hooks/useManagedSelect";
 import {
-  Building2, UserRound, Check, Loader2, Mail, MapPin, Home,
+  Building2, UserRound, Check, Loader2, Mail, MapPin, Home, Package,
 } from "lucide-react";
 
 export interface FornecedorPrefill {
@@ -40,6 +42,7 @@ interface FornecedorForm {
   telefone: string;
   email: string;
   observacoes: string;
+  produto_segmento_id: string;
   endereco: { cep: string; logradouro: string; bairro: string; cidade: string; estado: string };
 }
 
@@ -50,6 +53,7 @@ const initialForm: FornecedorForm = {
   telefone: "",
   email: "",
   observacoes: "",
+  produto_segmento_id: "",
   endereco: { cep: "", logradouro: "", bairro: "", cidade: "", estado: "" },
 };
 
@@ -60,6 +64,22 @@ export function FornecedorModal({ open, onOpenChange, editingId, onSaved, prefil
   const [form, setForm] = useState<FornecedorForm>(initialForm);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const { validatingCnpj, cnpjError, cpfError, validateCpfField, validateCnpjField, clearErrors } = useDocumentValidation();
+  const produtosCRUD = useManagedSelect("cliente_produtos");
+
+  const { data: produtosOptions = [] } = useQuery({
+    queryKey: ["cliente-produtos", empresa?.id],
+    enabled: open,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("cliente_produtos" as any)
+        .select("id, nome")
+        .eq("ativo", true)
+        .order("ordem", { ascending: true })
+        .order("nome", { ascending: true });
+      if (error) throw error;
+      return ((data as any[]) || []).map((r) => ({ value: r.id, label: r.nome }));
+    },
+  });
 
   const { data: existing } = useQuery({
     queryKey: ["fornecedor_edit", editingId],
@@ -80,6 +100,7 @@ export function FornecedorModal({ open, onOpenChange, editingId, onSaved, prefil
         telefone: existing.telefone || "",
         email: existing.email || "",
         observacoes: existing.observacoes || "",
+        produto_segmento_id: (existing as any).produto_segmento_id || "",
         endereco: {
           cep: existing.cep || "",
           logradouro: existing.logradouro || "",
@@ -172,7 +193,7 @@ export function FornecedorModal({ open, onOpenChange, editingId, onSaved, prefil
         }
       }
 
-      const payload = {
+      const payload: any = {
         tipo: tipoDb,
         nome_completo: form.type === "pessoa" ? form.nome : null,
         cpf: form.type === "pessoa" ? docRaw || null : null,
@@ -186,6 +207,7 @@ export function FornecedorModal({ open, onOpenChange, editingId, onSaved, prefil
         estado: form.endereco.estado || null,
         cep: form.endereco.cep || null,
         observacoes: form.observacoes || null,
+        produto_segmento_id: form.produto_segmento_id || null,
       };
 
       if (editingId) {
@@ -270,6 +292,20 @@ export function FornecedorModal({ open, onOpenChange, editingId, onSaved, prefil
           value={form.nome}
           onChange={(e) => update("nome", e.target.value)}
           error={errors.nome}
+        />
+
+        <ManagedSelectInput
+          label="Produto"
+          placeholder="Selecione o produto..."
+          icon={<Package className="w-4 h-4" />}
+          value={form.produto_segmento_id}
+          onValueChange={(v) => update("produto_segmento_id", v)}
+          options={produtosOptions}
+          addLabel="Novo produto"
+          onAdd={produtosCRUD.onAdd}
+          onEdit={produtosCRUD.onEdit}
+          onDelete={produtosCRUD.onDelete}
+          onReorder={produtosCRUD.onReorder}
         />
 
         <div className="flex items-center gap-3">

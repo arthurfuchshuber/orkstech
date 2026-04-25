@@ -1160,6 +1160,39 @@ export type Database = {
           },
         ]
       }
+      cliente_produtos: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          empresa_id: string | null
+          id: string
+          nome: string
+          ordem: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          empresa_id?: string | null
+          id?: string
+          nome: string
+          ordem?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          empresa_id?: string | null
+          id?: string
+          nome?: string
+          ordem?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       clientes: {
         Row: {
           ativo: boolean
@@ -1182,6 +1215,7 @@ export type Database = {
           nome_fantasia: string | null
           numero: string | null
           observacoes: string | null
+          produto_segmento_id: string | null
           razao_social: string | null
           responsavel_interno: string | null
           tags: string[] | null
@@ -1212,6 +1246,7 @@ export type Database = {
           nome_fantasia?: string | null
           numero?: string | null
           observacoes?: string | null
+          produto_segmento_id?: string | null
           razao_social?: string | null
           responsavel_interno?: string | null
           tags?: string[] | null
@@ -1242,6 +1277,7 @@ export type Database = {
           nome_fantasia?: string | null
           numero?: string | null
           observacoes?: string | null
+          produto_segmento_id?: string | null
           razao_social?: string | null
           responsavel_interno?: string | null
           tags?: string[] | null
@@ -1592,6 +1628,7 @@ export type Database = {
           nome_completo: string | null
           nome_fantasia: string | null
           observacoes: string | null
+          produto_segmento_id: string | null
           razao_social: string | null
           telefone: string | null
           tipo: Database["public"]["Enums"]["pessoa_tipo"]
@@ -1617,6 +1654,7 @@ export type Database = {
           nome_completo?: string | null
           nome_fantasia?: string | null
           observacoes?: string | null
+          produto_segmento_id?: string | null
           razao_social?: string | null
           telefone?: string | null
           tipo?: Database["public"]["Enums"]["pessoa_tipo"]
@@ -1642,6 +1680,7 @@ export type Database = {
           nome_completo?: string | null
           nome_fantasia?: string | null
           observacoes?: string | null
+          produto_segmento_id?: string | null
           razao_social?: string | null
           telefone?: string | null
           tipo?: Database["public"]["Enums"]["pessoa_tipo"]
