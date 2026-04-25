@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useEmpresa } from "@/hooks/useEmpresa";
-import { usePermissions } from "@/hooks/usePermissions";
+import { getMenuPermissionKey, usePermissions } from "@/hooks/usePermissions";
 import { useMenus, type MenuItem } from "@/hooks/useMenus";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -85,7 +85,8 @@ export default function DashboardPrincipal() {
     return flattenMenus(tree)
       .filter((m) => {
         if (m.slug === "dashboard-principal") return false;
-        if (!canView(`menu:${m.slug}`)) return false;
+        const permissionKey = getMenuPermissionKey(m.slug);
+        if (permissionKey && !canView(permissionKey)) return false;
         return true;
       })
       .slice(0, 8);

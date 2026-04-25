@@ -43,6 +43,28 @@ export const ALL_PERMISSION_KEYS = [
   ...PERMISSION_CATALOG.system.map((p) => p.key),
 ];
 
+const MENU_PERMISSION_ALIASES: Record<string, string> = {
+  "dashboard-financeiro": "menu:dashboard",
+};
+
+const SYSTEM_MENU_PERMISSION_KEYS: Record<string, string> = {
+  empresa: "system:empresa",
+  usuarios: "system:usuarios",
+  assinatura: "system:assinatura",
+  integracoes: "system:integracoes",
+  "gerenciar-menu": "system:gerenciar-menu",
+};
+
+export function getMenuPermissionKey(slug: string): string | null {
+  const aliased = MENU_PERMISSION_ALIASES[slug];
+  if (aliased) return aliased;
+
+  const menuKey = `menu:${slug}`;
+  if (ALL_PERMISSION_KEYS.includes(menuKey as any)) return menuKey;
+
+  return SYSTEM_MENU_PERMISSION_KEYS[slug] ?? null;
+}
+
 export function usePermissions() {
   const { user } = useAuth();
   const { empresa } = useEmpresa();
