@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Check, Loader2, Building2, UserRound, Mail, Home, MapPin } from "lucide-react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Check, Loader2, Building2, UserRound, Mail, Home, MapPin, Package } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { FormModal } from "@/components/FormModal";
 import { DocumentInput } from "@/components/inputs/DocumentInput";
@@ -8,6 +8,9 @@ import { PhoneInput } from "@/components/inputs/PhoneInput";
 import { CepInput } from "@/components/inputs/CepInput";
 import { TextInput } from "@/components/inputs/TextInput";
 import { TextareaInput } from "@/components/inputs/TextareaInput";
+import { ManagedSelectInput } from "@/components/inputs/ManagedSelectInput";
+import { useManagedSelect } from "@/hooks/useManagedSelect";
+import { useEmpresa } from "@/hooks/useEmpresa";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useDocumentValidation } from "@/hooks/useDocumentValidation";
@@ -24,7 +27,34 @@ interface Props {
 export function ClienteEditModal({ cliente, open, onOpenChange }: Props) {
   const queryClient = useQueryClient();
   const { user } = useAuth();
+  const { empresa } = useEmpresa();
   const { validatingCnpj, cnpjError, cpfError, validateCpfField, validateCnpjField, clearErrors } = useDocumentValidation();
+  const [productError, setProductError] = useState<string | undefined>();
+
+  const produtosCRUD = useManagedSelect("cliente_produtos", {
+    insertDefaults: { empresa_id: empresa?.id || null },
+  });
+
+  const { data: produtosOptions = [] } = useQuery({
+    queryKey: ["cliente-produtos", empresa?.id],
+    enabled: open && !!user,
+    queryFn: async () => {
+      let query = supabase
+        .from("cliente_produtos" as any)
+        .select("id, nome")
+        .eq("ativo", true);
+      if (empresa?.id) {
+        query = query.eq("empresa_id", empresa.id);
+      } else {
+        query = query.is("empresa_id", null);
+      }
+      const { data, error } = await query
+        .order("ordem", { ascending: true })
+        .order("nome", { ascending: true });
+      if (error) throw error;
+      return ((data as any[]) || []).map((r) => ({ value: r.id, label: r.nome }));
+    },
+  });
 
   const [tipo, setTipo] = useState<"pf" | "pj">(cliente.tipo);
   const [form, setForm] = useState({
@@ -47,6 +77,7 @@ export function ClienteEditModal({ cliente, open, onOpenChange }: Props) {
     cep: cliente.cep || "",
     responsavel_interno: cliente.responsavel_interno || "",
     observacoes: cliente.observacoes || "",
+    produto_segmento_id: (cliente as any).produto_segmento_id || "",
   });
 
   useEffect(() => {
@@ -72,13 +103,21 @@ export function ClienteEditModal({ cliente, open, onOpenChange }: Props) {
         cep: cliente.cep || "",
         responsavel_interno: cliente.responsavel_interno || "",
         observacoes: cliente.observacoes || "",
+        produto_segmento_id: (cliente as any).produto_segmento_id || "",
       });
+      setProductError(undefined);
       clearErrors();
     }
   }, [open, cliente]);
 
   const mutation = useMutation({
     mutationFn: async () => {
+      // Required: produto
+      if (!form.produto_segmento_id) {
+        setProductError("Produto obrigatório");
+        throw new Error("Selecione o produto antes de salvar");
+      }
+
       // Validate documents before saving
       if (tipo === "pf") {
         const rawCpf = form.cpf.replace(/\D/g, "");
@@ -109,6 +148,7 @@ export function ClienteEditModal({ cliente, open, onOpenChange }: Props) {
         cep: form.cep || null,
         responsavel_interno: form.responsavel_interno || null,
         observacoes: form.observacoes || null,
+        produto_segmento_id: form.produto_segmento_id || null,
       };
       if (tipo === "pf") {
         update.nome_completo = form.nome_completo || null;
@@ -264,6 +304,20 @@ export function ClienteEditModal({ cliente, open, onOpenChange }: Props) {
 
         <div className="space-y-4">
           <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Informações internas</p>
+          <ManagedSelectInput
+            label="Produto *"
+            placeholder="Selecione o produto..."
+            icon={<Package className="w-4 h-4" />}
+            value={form.produto_segmento_id}
+            onValueChange={(v) => { setForm((p) => ({ ...p, produto_segmento_id: v })); setProductError(undefined); }}
+            options={produtosOptions}
+            addLabel="Novo produto"
+            error={productError}
+            onAdd={produtosCRUD.onAdd}
+            onEdit={produtosCRUD.onEdit}
+            onDelete={produtosCRUD.onDelete}
+            onReorder={produtosCRUD.onReorder}
+          />
           <TextInput label="Responsável interno" value={form.responsavel_interno} onChange={(e) => setForm((p) => ({ ...p, responsavel_interno: e.target.value }))} />
           <TextareaInput label="Observações" value={form.observacoes} onChange={(e) => setForm((p) => ({ ...p, observacoes: e.target.value }))} />
         </div>

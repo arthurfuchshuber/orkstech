@@ -64,16 +64,24 @@ export function ClienteModal({ open, onOpenChange, editingId, onSaved, prefill }
   const [form, setForm] = useState<ClienteForm>(initialForm);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const { validatingCnpj, cnpjError, cpfError, validateCpfField, validateCnpjField, clearErrors } = useDocumentValidation();
-  const produtosCRUD = useManagedSelect("cliente_produtos");
+  const produtosCRUD = useManagedSelect("cliente_produtos", {
+    insertDefaults: { empresa_id: empresa?.id || null },
+  });
 
   const { data: produtosOptions = [] } = useQuery({
     queryKey: ["cliente-produtos", empresa?.id],
-    enabled: open,
+    enabled: open && !!user,
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from("cliente_produtos" as any)
         .select("id, nome")
-        .eq("ativo", true)
+        .eq("ativo", true);
+      if (empresa?.id) {
+        query = query.eq("empresa_id", empresa.id);
+      } else {
+        query = query.is("empresa_id", null);
+      }
+      const { data, error } = await query
         .order("ordem", { ascending: true })
         .order("nome", { ascending: true });
       if (error) throw error;
@@ -258,6 +266,7 @@ export function ClienteModal({ open, onOpenChange, editingId, onSaved, prefill }
   const validate = () => {
     const errs: Record<string, string> = {};
     if (!form.nome.trim()) errs.nome = "Nome obrigatório";
+    if (!form.produto_segmento_id) errs.produto_segmento_id = "Produto obrigatório";
     setErrors(errs);
     return Object.keys(errs).length === 0;
   };
@@ -319,13 +328,14 @@ export function ClienteModal({ open, onOpenChange, editingId, onSaved, prefill }
         />
 
         <ManagedSelectInput
-          label="Produto"
+          label="Produto *"
           placeholder="Selecione o produto..."
           icon={<Package className="w-4 h-4" />}
           value={form.produto_segmento_id}
           onValueChange={(v) => update("produto_segmento_id", v)}
           options={produtosOptions}
           addLabel="Novo produto"
+          error={errors.produto_segmento_id}
           onAdd={produtosCRUD.onAdd}
           onEdit={produtosCRUD.onEdit}
           onDelete={produtosCRUD.onDelete}
