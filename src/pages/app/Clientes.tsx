@@ -204,6 +204,21 @@ export default function Clientes() {
     },
   });
 
+  const updateProdutoMutation = useMutation({
+    mutationFn: async ({ id, produto_segmento_id }: { id: string; produto_segmento_id: string | null }) => {
+      const { error } = await supabase
+        .from("clientes")
+        .update({ produto_segmento_id })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: async () => {
+      await refreshQueries(queryClient, [["clientes"]]);
+      toast.success("Produto atualizado");
+    },
+    onError: () => toast.error("Erro ao atualizar produto"),
+  });
+
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
       const { count } = await supabase
