@@ -527,9 +527,35 @@ function IntegrationCard({
                 </div>
                 <div className="flex items-center gap-1">
                   {provider === "clicksign" && cred.ativo && (
-                    <Button variant="ghost" size="sm" className="h-7 px-2 text-xs gap-1" onClick={syncClicksignHistory}>
-                      <Loader2 className="w-3 h-3" /> Sincronizar
-                    </Button>
+                    <>
+                      <Button variant="ghost" size="sm" className="h-7 px-2 text-xs gap-1" onClick={() => syncClicksignHistory(false)}>
+                        <Loader2 className="w-3 h-3" /> Sincronizar
+                      </Button>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button variant="ghost" size="sm" className="h-7 px-2 text-xs gap-1">
+                            <Loader2 className="w-3 h-3" /> Importar contratantes
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Importar contratantes retroativamente?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Esta ação irá criar automaticamente clientes no SaaS para todos os contratos finalizados
+                              do ClickSign que ainda não possuem cliente cadastrado, usando os dados do signatário
+                              CONTRATANTE (nome, CPF/CNPJ, email, telefone). Clientes já existentes (mesmo CPF/CNPJ)
+                              serão apenas vinculados, sem duplicidade. Essa operação pode levar alguns minutos.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => syncClicksignHistory(true)}>
+                              Importar agora
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </>
                   )}
                   {provider === "asaas" && cred.ativo && (
                     <Button variant="ghost" size="sm" className="h-7 px-2 text-xs gap-1" onClick={syncAsaasHistory}>
