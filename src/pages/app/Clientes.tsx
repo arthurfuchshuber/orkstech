@@ -635,6 +635,58 @@ export default function Clientes() {
         </Table>
       </Card>
 
+      {/* Bulk actions bar */}
+      {selectedIds.length > 0 && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 animate-fade-in">
+          <Card className="flex items-center gap-3 px-4 py-2.5 shadow-lg border-border/60 bg-card/95 backdrop-blur">
+            <span className="text-sm font-medium text-foreground">
+              {selectedIds.length} {selectedIds.length === 1 ? "selecionado" : "selecionados"}
+            </span>
+            <div className="h-5 w-px bg-border/60" />
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="gap-1.5 rounded-lg" disabled={bulkUpdateMutation.isPending}>
+                  <Package className="w-3.5 h-3.5" /> Produto <ChevronDown className="w-3 h-3" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="center" className="min-w-[200px] max-h-[320px] overflow-y-auto">
+                <DropdownMenuItem onClick={() => bulkUpdateMutation.mutate({ ids: selectedIds, patch: { produto_segmento_id: null } })}>
+                  <span className="text-muted-foreground italic">— Nenhum —</span>
+                </DropdownMenuItem>
+                {produtosOptions.map((p) => (
+                  <DropdownMenuItem key={p.value} onClick={() => bulkUpdateMutation.mutate({ ids: selectedIds, patch: { produto_segmento_id: p.value } })}>
+                    {p.label}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="gap-1.5 rounded-lg" disabled={bulkUpdateMutation.isPending}>
+                  Status <ChevronDown className="w-3 h-3" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="center" className="min-w-[140px]">
+                <DropdownMenuItem onClick={() => bulkUpdateMutation.mutate({ ids: selectedIds, patch: { ativo: true } })}>
+                  <Badge variant="default" className="text-xs mr-2">Ativo</Badge>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => bulkUpdateMutation.mutate({ ids: selectedIds, patch: { ativo: false } })}>
+                  <Badge variant="secondary" className="text-xs mr-2">Inativo</Badge>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            <div className="h-5 w-px bg-border/60" />
+            <Button variant="ghost" size="sm" className="gap-1.5 rounded-lg" onClick={() => setSelectedIds([])}>
+              <X className="w-3.5 h-3.5" /> Limpar
+            </Button>
+            {bulkUpdateMutation.isPending && <Loader2 className="w-4 h-4 animate-spin text-primary" />}
+          </Card>
+        </div>
+      )}
+
       {/* Delete confirmation */}
       <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
         <AlertDialogContent>
