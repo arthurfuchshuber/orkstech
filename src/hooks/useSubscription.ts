@@ -75,6 +75,21 @@ export function useSubscription() {
     queryKey: ["subscription", user?.id],
     enabled: !!user,
     refetchInterval: 60_000,
+    // Mantém o último estado válido enquanto refaz — evita "tela branca" em soluços do Edge Runtime
+    placeholderData: (prev) => prev,
+    staleTime: 30_000,
+    // Tenta novamente até 3x quando o erro é transitório (5xx / runtime indisponível)
+    retry: (failureCount, error: any) => {
+      const msg = String(error?.message ?? error ?? "");
+      const isTransient =
+        msg.includes("503") ||
+        msg.includes("temporarily unavailable") ||
+        msg.includes("SUPABASE_EDGE_RUNTIME_ERROR") ||
+        msg.includes("Failed to fetch") ||
+        msg.includes("NetworkError");
+      return isTransient && failureCount < 3;
+    },
+    retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 8000),
     queryFn: async (): Promise<SubscriptionData> => {
       const { data, error } = await supabase.functions.invoke("check-subscription");
       if (error) throw error;
