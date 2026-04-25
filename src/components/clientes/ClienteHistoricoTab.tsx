@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
-  Clock, Sparkles, Plus, Loader2, User, FileText, MessageSquare, DollarSign, Edit, Eye
+  Clock, Sparkles, Plus, Loader2, User, FileText, MessageSquare, DollarSign, Edit, Eye, Zap, Link2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
