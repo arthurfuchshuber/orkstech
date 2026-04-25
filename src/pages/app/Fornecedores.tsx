@@ -49,6 +49,7 @@ interface Fornecedor {
   ativo: boolean;
   created_at: string;
   categoria_id: string | null;
+  produto_segmento_id: string | null;
 }
 
 const initialForm: SupplierFormData = {
@@ -97,6 +98,28 @@ export default function Fornecedores() {
   const [cnpjMessage, setCnpjMessage] = useState("");
 
   // ---- Queries ----
+  const produtosCRUD = useManagedSelect("cliente_produtos", {
+    insertDefaults: { empresa_id: empresaId || null },
+  });
+
+  const { data: produtosOptions = [] } = useQuery({
+    queryKey: ["cliente-produtos", empresaId],
+    enabled: !!user,
+    queryFn: async () => {
+      let query = supabase
+        .from("cliente_produtos" as any)
+        .select("id, nome")
+        .eq("ativo", true);
+      if (empresaId) query = query.eq("empresa_id", empresaId);
+      else query = query.is("empresa_id", null);
+      const { data, error } = await query
+        .order("ordem", { ascending: true })
+        .order("nome", { ascending: true });
+      if (error) throw error;
+      return ((data as any[]) || []).map((r) => ({ value: r.id, label: r.nome }));
+    },
+  });
+
   const { data: fornecedores = [], isLoading } = useQuery({
     queryKey: ["fornecedores", empresaId],
     queryFn: async () => {
