@@ -479,6 +479,13 @@ export default function Clientes() {
         <Table className="w-full">
           <TableHeader>
             <TableRow className="hover:bg-transparent border-border/30">
+              <TableHead className="w-[40px]">
+                <Checkbox
+                  checked={allSelected ? true : someSelected ? "indeterminate" : false}
+                  onCheckedChange={toggleSelectAll}
+                  aria-label="Selecionar todos"
+                />
+              </TableHead>
               <TableHead className="text-xs font-semibold uppercase tracking-wider">Nome / Razão Social</TableHead>
               <TableHead className="text-xs font-semibold uppercase tracking-wider w-[60px]">Tipo</TableHead>
               <TableHead className="text-xs font-semibold uppercase tracking-wider">Documento</TableHead>
@@ -494,13 +501,13 @@ export default function Clientes() {
           <TableBody>
             {isLoading ? (
               <TableRow>
-                 <TableCell colSpan={10} className="text-center py-12">
+                 <TableCell colSpan={11} className="text-center py-12">
                   <Loader2 className="w-5 h-5 animate-spin mx-auto text-muted-foreground" />
                 </TableCell>
               </TableRow>
             ) : filtered.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={10} className="text-center py-12">
+                <TableCell colSpan={11} className="text-center py-12">
                   <div className="flex flex-col items-center gap-2">
                     <Users className="w-8 h-8 text-muted-foreground/30" />
                     <p className="text-sm text-muted-foreground">
