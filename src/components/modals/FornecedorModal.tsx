@@ -234,6 +234,7 @@ export function FornecedorModal({ open, onOpenChange, editingId, onSaved, prefil
   const validate = () => {
     const errs: Record<string, string> = {};
     if (!form.nome.trim()) errs.nome = "Nome obrigatório";
+    if (!form.produto_segmento_id) errs.produto_segmento_id = "Produto obrigatório";
     setErrors(errs);
     return Object.keys(errs).length === 0;
   };
