@@ -32,6 +32,7 @@ export interface ClientFormData {
   email: string;
   observacoes: string;
   dataNascimento?: Date;
+  produtoSegmentoId: string;
   endereco: {
     cep: string;
     logradouro: string;
@@ -68,6 +69,10 @@ export function validateClientForm(form: ClientFormData): FormErrors {
     errors.email = "Email inválido";
   }
 
+  if (!form.produtoSegmentoId) {
+    errors.produtoSegmentoId = "Produto é obrigatório";
+  }
+
   return errors;
 }
 
@@ -80,6 +85,7 @@ export interface SupplierFormData {
   contatoResponsavel: string;
   categoria: string;
   observacoes: string;
+  produtoSegmentoId: string;
   endereco: {
     cep: string;
     logradouro: string;
@@ -111,6 +117,10 @@ export function validateSupplierForm(form: SupplierFormData): FormErrors {
 
   if (form.email && !validateEmail(form.email)) {
     errors.email = "Email inválido";
+  }
+
+  if (!form.produtoSegmentoId) {
+    errors.produtoSegmentoId = "Produto é obrigatório";
   }
 
   return errors;
