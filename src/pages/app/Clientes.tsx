@@ -95,6 +95,7 @@ export default function Clientes() {
   const [filterTipo, setFilterTipo] = useState<string[]>([]);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [editCliente, setEditCliente] = useState<Tables<"clientes"> | null>(null);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
   const produtosCRUD = useManagedSelect("cliente_produtos", {
     insertDefaults: { empresa_id: empresaId || null },
