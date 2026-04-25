@@ -541,12 +541,38 @@ function IntegrationCard({
             </div>
           ) : cred && !editing ? (
             <>
-              <div className="flex items-center justify-between rounded-lg bg-muted/40 px-3 py-2">
-                <div className="flex items-center gap-2 min-w-0">
+              <div className="rounded-lg bg-muted/40 px-3 py-2 space-y-2">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2 min-w-0">
                   <Switch checked={cred.ativo} onCheckedChange={toggleAtivo} />
                   <span className="text-xs text-foreground">{cred.ativo ? "Ativa" : "Pausada"}</span>
+                  </div>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={() => setEditing(true)}>
+                      Editar
+                    </Button>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive">
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Remover integração?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            A chave de API será excluída. Cobranças/documentos já gerados continuam preservados.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                          <AlertDialogAction onClick={remove}>Remover</AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </div>
                 </div>
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-1.5 flex-wrap">
                   {provider === "clicksign" && cred.ativo && (
                     <>
                       <Button variant="ghost" size="sm" className="h-7 px-2 text-xs gap-1" onClick={() => syncClicksignHistory(false)}>
@@ -583,28 +609,6 @@ function IntegrationCard({
                       <Loader2 className="w-3 h-3" /> Sincronizar
                     </Button>
                   )}
-                  <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={() => setEditing(true)}>
-                    Editar
-                  </Button>
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive">
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Remover integração?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          A chave de API será excluída. Cobranças/documentos já gerados continuam preservados.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                        <AlertDialogAction onClick={remove}>Remover</AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
                 </div>
               </div>
 

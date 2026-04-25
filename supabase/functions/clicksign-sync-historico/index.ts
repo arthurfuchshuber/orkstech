@@ -1,11 +1,6 @@
 // ClickSign — sincronização inicial do histórico de documentos
-// Busca todos os documentos ativos da conta ClickSign e tenta vincular ao cliente
-// cadastrado via match por nome, email ou CPF/CNPJ dos signatários.
-//
-// Modo extra: quando body.create_clients = true, para documentos finalizados
-// (closed/auto_closed) sem cliente correspondente, cria automaticamente o cliente
-// a partir do signatário CONTRATANTE — usando a mesma lógica do webhook
-// (anti-duplicidade por CPF/CNPJ).
+// Busca documentos ativos/finalizados da conta ClickSign, vincula ao cliente correto
+// e, quando solicitado, cria retroativamente apenas o CONTRATANTE real.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 
 const corsHeaders = {
@@ -16,9 +11,7 @@ const corsHeaders = {
 const CS_BASE = "https://app.clicksign.com";
 const CS_SANDBOX = "https://sandbox.clicksign.com";
 
-// Status considerados "ativos" no ClickSign
 const ACTIVE_STATUSES = ["running", "closed", "auto_closed", "pending", "waiting"];
-// Status considerados "finalizados" — só esses geram criação de cliente
 const FINISHED_STATUSES = ["closed", "auto_closed"];
 
 interface CredRow {
@@ -39,12 +32,19 @@ interface ClienteRow {
   cnpj: string | null;
 }
 
+interface SyncedDoc {
+  csDoc: any;
+  signers: any[];
+  status: string;
+}
+
 function normalize(s: string | null | undefined): string {
   return (s || "")
     .toLowerCase()
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-z0-9@. ]/g, "")
+    .replace(/[^a-z0-9@. ]/g, " ")
+    .replace(/\s+/g, " ")
     .trim();
 }
 
@@ -52,14 +52,88 @@ function onlyDigits(s: string | null | undefined): string {
   return (s || "").replace(/\D/g, "");
 }
 
-/** Picks the signer marked as "contractee" (CONTRATANTE), with fallback to the first signer. */
-function pickContractee(signers: any[]): any | null {
-  if (!signers?.length) return null;
-  const contractee = signers.find((s) => {
+function getSignerDoc(signer: any): string {
+  return onlyDigits(signer?.documentation || signer?.cpf || signer?.cnpj);
+}
+
+function hasValidDocument(signer: any): boolean {
+  const doc = getSignerDoc(signer);
+  return doc.length === 11 || doc.length === 14;
+}
+
+function signerFingerprints(signer: any): string[] {
+  const doc = getSignerDoc(signer);
+  const email = normalize(signer?.email);
+  const name = normalize(signer?.name);
+  return [doc ? `doc:${doc}` : "", email ? `email:${email}` : "", name ? `name:${name}` : ""].filter(Boolean);
+}
+
+function primarySignerFingerprint(signer: any): string | null {
+  const doc = getSignerDoc(signer);
+  if (doc) return `doc:${doc}`;
+  const email = normalize(signer?.email);
+  if (email) return `email:${email}`;
+  const name = normalize(signer?.name);
+  return name ? `name:${name}` : null;
+}
+
+function buildLikelyInternalSignerSet(docs: SyncedDoc[]): Set<string> {
+  const counts = new Map<string, number>();
+  for (const doc of docs) {
+    const seen = new Set<string>();
+    for (const signer of doc.signers || []) {
+      const fp = primarySignerFingerprint(signer);
+      if (fp) seen.add(fp);
+    }
+    for (const fp of seen) counts.set(fp, (counts.get(fp) || 0) + 1);
+  }
+
+  const threshold = docs.length <= 2 ? 2 : Math.max(3, Math.ceil(docs.length * 0.35));
+  const internal = new Set<string>();
+  for (const doc of docs) {
+    for (const signer of doc.signers || []) {
+      const fp = primarySignerFingerprint(signer);
+      if (fp && (counts.get(fp) || 0) >= threshold) {
+        for (const alias of signerFingerprints(signer)) internal.add(alias);
+      }
+    }
+  }
+  return internal;
+}
+
+function isLikelyInternalSigner(signer: any, internalSet: Set<string>): boolean {
+  return signerFingerprints(signer).some((fp) => internalSet.has(fp));
+}
+
+function signerNameMatchesDocument(signer: any, docName: string | null | undefined): boolean {
+  const docNorm = normalize(docName || "");
+  const name = normalize(signer?.name);
+  if (!docNorm || !name) return false;
+  if (docNorm.includes(name)) return true;
+  const words = name.split(" ").filter((w) => w.length > 2);
+  if (words.length === 1) return docNorm.includes(words[0]);
+  return words.slice(0, 2).every((w) => docNorm.includes(w));
+}
+
+function selectCustomerSigner(signers: any[], docName: string | null | undefined, internalSet: Set<string>): any | null {
+  const eligible = (signers || []).filter(hasValidDocument);
+  if (!eligible.length) return null;
+
+  const byRole = eligible.filter((s) => {
     const role = String(s?.sign_as || s?.role || s?.signer_role || "").toLowerCase();
-    return role === "contractee" || role === "contratante";
-  });
-  return contractee || signers[0] || null;
+    return ["contractee", "contratante", "customer", "client", "cliente"].includes(role);
+  }).filter((s) => !isLikelyInternalSigner(s, internalSet));
+  if (byRole.length === 1) return byRole[0];
+
+  const byFilename = eligible.filter((s) => signerNameMatchesDocument(s, docName));
+  const externalByFilename = byFilename.filter((s) => !isLikelyInternalSigner(s, internalSet));
+  if (externalByFilename.length === 1) return externalByFilename[0];
+  if (byFilename.length === 1) return byFilename[0];
+
+  const external = eligible.filter((s) => !isLikelyInternalSigner(s, internalSet));
+  if (external.length === 1) return external[0];
+
+  return null;
 }
 
 async function csFetch(cred: CredRow, path: string): Promise<any> {
@@ -75,36 +149,25 @@ async function csFetch(cred: CredRow, path: string): Promise<any> {
   return data;
 }
 
-function matchClienteFromSigners(signers: any[], clientes: ClienteRow[]): string | null {
-  if (!signers?.length || !clientes?.length) return null;
+function matchClienteFromSigner(signer: any | null, clientes: ClienteRow[]): string | null {
+  if (!signer || !clientes?.length) return null;
+  const sName = normalize(signer?.name);
+  const sEmail = normalize(signer?.email);
+  const sDoc = getSignerDoc(signer);
 
-  for (const signer of signers) {
-    const sName = normalize(signer?.name);
-    const sEmail = normalize(signer?.email);
-    const sDoc = onlyDigits(signer?.documentation || signer?.cpf || signer?.cnpj);
-
-    for (const c of clientes) {
-      // Match por documento (mais confiável)
-      if (sDoc && (onlyDigits(c.cpf) === sDoc || onlyDigits(c.cnpj) === sDoc)) {
-        return c.id;
-      }
-      // Match por email
-      if (sEmail && c.email && normalize(c.email) === sEmail) {
-        return c.id;
-      }
-      // Match por nome (exige nome completo, pelo menos 2 palavras)
-      if (sName && sName.split(" ").length >= 2) {
-        const cNames = [c.nome_completo, c.nome_fantasia, c.razao_social]
-          .filter(Boolean)
-          .map(n => normalize(n));
-        if (cNames.some(n => n === sName)) return c.id;
-      }
+  for (const c of clientes) {
+    if (sDoc && (onlyDigits(c.cpf) === sDoc || onlyDigits(c.cnpj) === sDoc)) return c.id;
+    if (sEmail && c.email && normalize(c.email) === sEmail) return c.id;
+    if (sName && sName.split(" ").length >= 2) {
+      const cNames = [c.nome_completo, c.nome_fantasia, c.razao_social]
+        .filter(Boolean)
+        .map((n) => normalize(n));
+      if (cNames.some((n) => n === sName)) return c.id;
     }
   }
   return null;
 }
 
-/** Cria cliente a partir de signatário ClickSign (mesma lógica do webhook). */
 async function createClienteFromSigner(
   supabase: any,
   userId: string,
@@ -112,11 +175,14 @@ async function createClienteFromSigner(
   signer: any,
 ): Promise<string | null> {
   try {
-    const docRaw = onlyDigits(signer?.documentation || signer?.cpf || signer?.cnpj);
+    const docRaw = getSignerDoc(signer);
     const isCnpj = docRaw.length === 14;
+    const isCpf = docRaw.length === 11;
+    if (!isCnpj && !isCpf) return null;
+
     const tipo: "pj" | "pf" = isCnpj ? "pj" : "pf";
     const rawName = (signer?.name || "").trim();
-    if (!rawName && !signer?.email && !docRaw) return null;
+    if (!rawName && !signer?.email) return null;
 
     const payload: Record<string, any> = {
       user_id: userId,
@@ -130,10 +196,10 @@ async function createClienteFromSigner(
     if (tipo === "pj") {
       payload.razao_social = rawName;
       payload.nome_fantasia = rawName;
-      payload.cnpj = docRaw || null;
+      payload.cnpj = docRaw;
     } else {
       payload.nome_completo = rawName;
-      payload.cpf = docRaw || null;
+      payload.cpf = docRaw;
     }
 
     const { data, error } = await supabase
@@ -181,7 +247,6 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
 
-    // Carrega credencial ClickSign
     let credQuery = serviceClient
       .from("integracoes_credenciais")
       .select("id, user_id, api_key, ambiente, empresa_id")
@@ -193,7 +258,6 @@ Deno.serve(async (req) => {
     if (credErr) throw credErr;
     if (!cred) throw new Error("ClickSign não configurado para esta empresa");
 
-    // Carrega clientes da empresa para fazer match
     let clientesQuery = serviceClient
       .from("clientes")
       .select("id, nome_completo, nome_fantasia, razao_social, email, cpf, cnpj")
@@ -203,16 +267,11 @@ Deno.serve(async (req) => {
     if (cliErr) throw cliErr;
     const clientesList: ClienteRow[] = (clientes || []) as ClienteRow[];
 
-    // Busca todos os documentos da conta ClickSign (paginado)
-    let inserted = 0;
-    let updated = 0;
-    let matched = 0;
     let totalProcessed = 0;
-    let clientsCreated = 0;
-    let clientsLinkedByCpfCnpj = 0;
     let page = 1;
     const perPage = 50;
-    const maxPages = 20; // safety cap (1000 docs)
+    const maxPages = 20;
+    const docsToProcess: SyncedDoc[] = [];
 
     while (page <= maxPages) {
       let res: any;
@@ -233,7 +292,6 @@ Deno.serve(async (req) => {
         const summaryStatus = csDocSummary?.status || "unknown";
         if (!ACTIVE_STATUSES.includes(summaryStatus)) continue;
 
-        // O endpoint /documents lista NÃO traz signers — buscar detalhe individual
         let csDoc: any = csDocSummary;
         let signers: any[] = csDocSummary?.signers || csDocSummary?.list?.signers || [];
         try {
@@ -250,153 +308,168 @@ Deno.serve(async (req) => {
           console.warn("[clicksign-sync] detail fetch failed for", csDocSummary.key, String(e).slice(0, 200));
         }
 
-        const status = csDoc?.status || summaryStatus;
-        let matchedClienteId = matchClienteFromSigners(signers, clientesList);
-        if (matchedClienteId) matched++;
-
-        // === CRIAÇÃO RETROATIVA DE CLIENTES ===
-        // Apenas para contratos finalizados, sem cliente vinculado, e quando solicitado
-        let autoCreatedClienteId: string | null = null;
-        let autoLinkedClienteId: string | null = null;
-        if (createClients && !matchedClienteId && FINISHED_STATUSES.includes(status)) {
-          const contractee = pickContractee(signers);
-          if (contractee) {
-            const contracteeDoc = onlyDigits(
-              contractee?.documentation || contractee?.cpf || contractee?.cnpj
-            );
-            // Anti-duplicidade estrita por CPF/CNPJ (mesma lógica do webhook)
-            if (contracteeDoc && (contracteeDoc.length === 11 || contracteeDoc.length === 14)) {
-              const docField = contracteeDoc.length === 14 ? "cnpj" : "cpf";
-              let q = serviceClient
-                .from("clientes")
-                .select("id, nome_completo, nome_fantasia, razao_social, email, cpf, cnpj")
-                .eq("user_id", cred.user_id)
-                .eq(docField, contracteeDoc)
-                .limit(1);
-              if (cred.empresa_id) q = q.eq("empresa_id", cred.empresa_id);
-              const { data: existing } = await q.maybeSingle();
-              if (existing?.id) {
-                autoLinkedClienteId = existing.id;
-                matchedClienteId = existing.id;
-                clientsLinkedByCpfCnpj++;
-                // Garante que apareça no cache local para próximos docs
-                if (!clientesList.some(c => c.id === existing.id)) {
-                  clientesList.push(existing as ClienteRow);
-                }
-              }
-            }
-            if (!matchedClienteId) {
-              const newId = await createClienteFromSigner(
-                serviceClient,
-                cred.user_id,
-                cred.empresa_id,
-                contractee,
-              );
-              if (newId) {
-                autoCreatedClienteId = newId;
-                matchedClienteId = newId;
-                clientsCreated++;
-                // Adiciona ao cache para evitar recriação no mesmo run
-                clientesList.push({
-                  id: newId,
-                  nome_completo: contractee?.name || null,
-                  nome_fantasia: contractee?.name || null,
-                  razao_social: contractee?.name || null,
-                  email: contractee?.email || null,
-                  cpf: contracteeDoc.length === 11 ? contracteeDoc : null,
-                  cnpj: contracteeDoc.length === 14 ? contracteeDoc : null,
-                });
-              }
-            }
-          }
-        }
-
-        const downloadUrl = csDoc?.downloads?.signed_file_url || csDoc?.downloads?.original_file_url || null;
-        const originalUrl = csDoc?.downloads?.original_file_url || null;
-
-        const payload = {
-          user_id: userId,
-          empresa_id: cred.empresa_id,
-          clicksign_document_key: csDoc.key,
-          nome: csDoc?.filename || csDoc?.path || "Documento ClickSign",
-          status,
-          cliente_id: matchedClienteId,
-          signatarios: signers,
-          url_original: originalUrl,
-          url_assinado: downloadUrl,
-          finalizado_em: csDoc?.finished_at || null,
-          raw_data: csDoc,
-        };
-
-        const { data: existing } = await serviceClient
-          .from("clicksign_documentos")
-          .select("id, cliente_id")
-          .eq("clicksign_document_key", csDoc.key)
-          .maybeSingle();
-
-        let docRowId: string | null = null;
-
-        if (existing) {
-          // Preserva cliente_id manual se já houver vínculo, senão atualiza com o match
-          const updatePayload: any = { ...payload };
-          if (existing.cliente_id) updatePayload.cliente_id = existing.cliente_id;
-          delete updatePayload.user_id;
-          delete updatePayload.clicksign_document_key;
-          await serviceClient.from("clicksign_documentos")
-            .update(updatePayload).eq("id", existing.id);
-          docRowId = existing.id;
-          updated++;
-        } else {
-          const { data: ins } = await serviceClient
-            .from("clicksign_documentos")
-            .insert(payload)
-            .select("id")
-            .single();
-          docRowId = ins?.id || null;
-          inserted++;
-        }
-
-        // Registra eventos na timeline somente quando criamos/vinculamos via sync retroativo
-        if (matchedClienteId && (autoCreatedClienteId || autoLinkedClienteId)) {
-          if (autoCreatedClienteId) {
-            await serviceClient.from("cliente_interacoes").insert({
-              user_id: cred.user_id,
-              empresa_id: cred.empresa_id,
-              cliente_id: autoCreatedClienteId,
-              tipo: "clicksign_auto_create",
-              descricao: `Cliente criado retroativamente via sincronização ClickSign — contrato "${csDoc?.filename || "documento"}"`,
-              usuario_nome: "ClickSign",
-            });
-          } else if (autoLinkedClienteId) {
-            await serviceClient.from("cliente_interacoes").insert({
-              user_id: cred.user_id,
-              empresa_id: cred.empresa_id,
-              cliente_id: autoLinkedClienteId,
-              tipo: "clicksign_auto_link",
-              descricao: `Documento "${csDoc?.filename || "ClickSign"}" vinculado retroativamente — cliente já cadastrado (CPF/CNPJ correspondente)`,
-              usuario_nome: "ClickSign",
-            });
-          }
-          await serviceClient.from("cliente_interacoes").insert({
-            user_id: cred.user_id,
-            empresa_id: cred.empresa_id,
-            cliente_id: matchedClienteId,
-            tipo: "documento",
-            descricao: `Documento "${csDoc?.filename || "ClickSign"}" assinado`,
-            usuario_nome: "ClickSign",
-          });
-        }
+        docsToProcess.push({
+          csDoc,
+          signers,
+          status: csDoc?.status || summaryStatus,
+        });
       }
 
       if (docsArray.length < perPage) break;
       page++;
     }
 
+    const internalSigners = buildLikelyInternalSignerSet(
+      docsToProcess.filter((d) => FINISHED_STATUSES.includes(d.status))
+    );
+
+    let inserted = 0;
+    let updated = 0;
+    let matched = 0;
+    let clientsCreated = 0;
+    let clientsLinkedByCpfCnpj = 0;
+    let skippedWithoutContractee = 0;
+
+    for (const { csDoc, signers, status } of docsToProcess) {
+      const docName = csDoc?.filename || csDoc?.path || "Documento ClickSign";
+      const customerSigner = selectCustomerSigner(signers, docName, internalSigners);
+      let matchedClienteId = matchClienteFromSigner(customerSigner, clientesList);
+      if (matchedClienteId) matched++;
+
+      let autoCreatedClienteId: string | null = null;
+      let autoLinkedClienteId: string | null = null;
+      if (createClients && !matchedClienteId && FINISHED_STATUSES.includes(status)) {
+        if (!customerSigner) {
+          skippedWithoutContractee++;
+        } else {
+          const contracteeDoc = getSignerDoc(customerSigner);
+          if (contracteeDoc && (contracteeDoc.length === 11 || contracteeDoc.length === 14)) {
+            const docField = contracteeDoc.length === 14 ? "cnpj" : "cpf";
+            let q = serviceClient
+              .from("clientes")
+              .select("id, nome_completo, nome_fantasia, razao_social, email, cpf, cnpj")
+              .eq("user_id", cred.user_id)
+              .eq(docField, contracteeDoc)
+              .limit(1);
+            if (cred.empresa_id) q = q.eq("empresa_id", cred.empresa_id);
+            const { data: existing } = await q.maybeSingle();
+            if (existing?.id) {
+              autoLinkedClienteId = existing.id;
+              matchedClienteId = existing.id;
+              clientsLinkedByCpfCnpj++;
+              if (!clientesList.some((c) => c.id === existing.id)) clientesList.push(existing as ClienteRow);
+            }
+          }
+          if (!matchedClienteId) {
+            const newId = await createClienteFromSigner(
+              serviceClient,
+              cred.user_id,
+              cred.empresa_id,
+              customerSigner,
+            );
+            if (newId) {
+              const contracteeDoc = getSignerDoc(customerSigner);
+              autoCreatedClienteId = newId;
+              matchedClienteId = newId;
+              clientsCreated++;
+              clientesList.push({
+                id: newId,
+                nome_completo: customerSigner?.name || null,
+                nome_fantasia: customerSigner?.name || null,
+                razao_social: customerSigner?.name || null,
+                email: customerSigner?.email || null,
+                cpf: contracteeDoc.length === 11 ? contracteeDoc : null,
+                cnpj: contracteeDoc.length === 14 ? contracteeDoc : null,
+              });
+            }
+          }
+        }
+      }
+
+      const downloadUrl = csDoc?.downloads?.signed_file_url || csDoc?.downloads?.original_file_url || null;
+      const originalUrl = csDoc?.downloads?.original_file_url || null;
+
+      const payload = {
+        user_id: userId,
+        empresa_id: cred.empresa_id,
+        clicksign_document_key: csDoc.key,
+        nome: docName,
+        status,
+        cliente_id: matchedClienteId,
+        signatarios: signers,
+        url_original: originalUrl,
+        url_assinado: downloadUrl,
+        finalizado_em: csDoc?.finished_at || null,
+        raw_data: csDoc,
+      };
+
+      const { data: existing } = await serviceClient
+        .from("clicksign_documentos")
+        .select("id, cliente_id")
+        .eq("clicksign_document_key", csDoc.key)
+        .maybeSingle();
+
+      let docRowId: string | null = null;
+
+      if (existing) {
+        const updatePayload: any = { ...payload };
+        if (existing.cliente_id && !autoCreatedClienteId && !autoLinkedClienteId) updatePayload.cliente_id = existing.cliente_id;
+        delete updatePayload.user_id;
+        delete updatePayload.clicksign_document_key;
+        await serviceClient.from("clicksign_documentos")
+          .update(updatePayload).eq("id", existing.id);
+        docRowId = existing.id;
+        updated++;
+      } else {
+        const { data: ins } = await serviceClient
+          .from("clicksign_documentos")
+          .insert(payload)
+          .select("id")
+          .single();
+        docRowId = ins?.id || null;
+        inserted++;
+      }
+
+      if (matchedClienteId && (autoCreatedClienteId || autoLinkedClienteId)) {
+        if (autoCreatedClienteId) {
+          await serviceClient.from("cliente_interacoes").insert({
+            user_id: cred.user_id,
+            empresa_id: cred.empresa_id,
+            cliente_id: autoCreatedClienteId,
+            tipo: "clicksign_auto_create",
+            descricao: `Cliente criado retroativamente via sincronização ClickSign — contrato "${docName}"`,
+            usuario_nome: "ClickSign",
+          });
+        } else if (autoLinkedClienteId) {
+          await serviceClient.from("cliente_interacoes").insert({
+            user_id: cred.user_id,
+            empresa_id: cred.empresa_id,
+            cliente_id: autoLinkedClienteId,
+            tipo: "clicksign_auto_link",
+            descricao: `Documento "${docName}" vinculado retroativamente — cliente já cadastrado (CPF/CNPJ correspondente)`,
+            usuario_nome: "ClickSign",
+          });
+        }
+        await serviceClient.from("cliente_interacoes").insert({
+          user_id: cred.user_id,
+          empresa_id: cred.empresa_id,
+          cliente_id: matchedClienteId,
+          tipo: "documento",
+          descricao: `Documento "${docName}" assinado`,
+          usuario_nome: "ClickSign",
+        });
+      }
+    }
+
     return new Response(JSON.stringify({
       success: true,
-      inserted, updated, matched, totalProcessed,
+      inserted,
+      updated,
+      matched,
+      totalProcessed,
       clients_created: clientsCreated,
       clients_linked_by_cpf_cnpj: clientsLinkedByCpfCnpj,
+      skipped_without_contractee: skippedWithoutContractee,
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
