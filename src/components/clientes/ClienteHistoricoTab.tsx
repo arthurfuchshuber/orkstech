@@ -201,20 +201,6 @@ export function ClienteHistoricoTab({ clienteId }: Props) {
                     <span className="text-xs font-medium text-foreground">
                       {format(new Date(item.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
                     </span>
-                    <Badge variant="outline" className="text-xs">{tipoLabels[item.tipo] || item.tipo}</Badge>
-                  </div>
-                  <p className="text-sm text-muted-foreground">{item.descricao}</p>
-                  {item.usuario_nome && (
-                    <div className="flex items-center gap-1 mt-1 text-xs text-muted-foreground/70">
-                      <User className="w-3 h-3" /> {item.usuario_nome}
-                    </div>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
                     <Badge
                       variant="outline"
                       className={`text-xs ${tipoBadgeStyles[item.tipo] || ""}`}
