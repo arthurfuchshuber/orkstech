@@ -470,7 +470,7 @@ export default function Clientes() {
           <TableBody>
             {isLoading ? (
               <TableRow>
-                 <TableCell colSpan={9} className="text-center py-12">
+                 <TableCell colSpan={10} className="text-center py-12">
                   <Loader2 className="w-5 h-5 animate-spin mx-auto text-muted-foreground" />
                 </TableCell>
               </TableRow>
