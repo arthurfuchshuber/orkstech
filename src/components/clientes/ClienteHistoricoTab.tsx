@@ -26,6 +26,10 @@ const tipoIcons: Record<string, any> = {
   interacao: MessageSquare,
   evento_financeiro: DollarSign,
   observacao: Eye,
+  clicksign_auto_create: Zap,
+  clicksign_auto_link: Link2,
+  documento: FileText,
+  Sistema: Sparkles,
 };
 
 const tipoLabels: Record<string, string> = {
@@ -34,6 +38,17 @@ const tipoLabels: Record<string, string> = {
   interacao: "Interação",
   evento_financeiro: "Evento financeiro",
   observacao: "Observação interna",
+  clicksign_auto_create: "Criado via ClickSign",
+  clicksign_auto_link: "Vinculado via ClickSign",
+  documento: "Documento",
+  Sistema: "Sistema",
+};
+
+// Estilos diferenciados por tipo de evento — destaque visual para automações ClickSign
+const tipoBadgeStyles: Record<string, string> = {
+  clicksign_auto_create: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/20",
+  clicksign_auto_link: "bg-blue-500/15 text-blue-400 border-blue-500/30 hover:bg-blue-500/20",
+  documento: "bg-primary/10 text-primary border-primary/30",
 };
 
 export function ClienteHistoricoTab({ clienteId }: Props) {
