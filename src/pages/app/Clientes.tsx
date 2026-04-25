@@ -476,7 +476,7 @@ export default function Clientes() {
               </TableRow>
             ) : filtered.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={9} className="text-center py-12">
+                <TableCell colSpan={10} className="text-center py-12">
                   <div className="flex flex-col items-center gap-2">
                     <Users className="w-8 h-8 text-muted-foreground/30" />
                     <p className="text-sm text-muted-foreground">
