@@ -649,8 +649,16 @@ function IntegrationCard({
                     onChange={(e) => setApiKey(e.target.value)}
                     placeholder={cred ? "Deixe em branco para manter a atual" : "Cole sua chave de API"}
                     className="pr-9 h-8 text-xs"
+                    autoComplete="off"
+                    autoCorrect="off"
+                    autoCapitalize="off"
+                    spellCheck={false}
+                    name={`integration-apikey-${provider}`}
+                    data-form-type="other"
+                    data-lpignore="true"
+                    data-1p-ignore="true"
                   />
-                  <button
+                </div>
                     type="button"
                     onClick={() => setShowKey((v) => !v)}
                     className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
