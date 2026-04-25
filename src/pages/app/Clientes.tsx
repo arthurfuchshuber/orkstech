@@ -461,6 +461,7 @@ export default function Clientes() {
               <TableHead className="text-xs font-semibold uppercase tracking-wider">Telefone</TableHead>
               <TableHead className="text-xs font-semibold uppercase tracking-wider">Email</TableHead>
               <TableHead className="text-xs font-semibold uppercase tracking-wider">Cidade</TableHead>
+              <TableHead className="text-xs font-semibold uppercase tracking-wider w-[180px]">Produto</TableHead>
               <TableHead className="text-xs font-semibold uppercase tracking-wider text-center w-[100px]">Status</TableHead>
               <TableHead className="text-xs font-semibold uppercase tracking-wider text-right">Criado em</TableHead>
               <TableHead className="w-[80px]"></TableHead>
