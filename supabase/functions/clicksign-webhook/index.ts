@@ -18,14 +18,34 @@ function onlyDigits(s: string | null | undefined): string {
   return (s || "").replace(/\D/g, "");
 }
 
-/** Picks the signer marked as "contractee" (CONTRATANTE), with fallback to the first signer. */
-function pickContractee(signers: any[]): any | null {
-  if (!signers?.length) return null;
+function getSignerDoc(signer: any): string {
+  return onlyDigits(signer?.documentation || signer?.cpf || signer?.cnpj);
+}
+
+function signerNameMatchesDocument(signer: any, docName: string | null | undefined): boolean {
+  const docNorm = normalize(docName || "");
+  const name = normalize(signer?.name);
+  if (!docNorm || !name) return false;
+  if (docNorm.includes(name)) return true;
+  const words = name.split(" ").filter((w) => w.length > 2);
+  if (words.length === 1) return docNorm.includes(words[0]);
+  return words.slice(0, 2).every((w) => docNorm.includes(w));
+}
+
+/** Seleciona o cliente/contratante real; nunca usa o primeiro só por fallback. */
+function pickContractee(signers: any[], docName?: string): any | null {
+  const eligible = (signers || []).filter((s) => {
+    const doc = getSignerDoc(s);
+    return doc.length === 11 || doc.length === 14;
+  });
+  if (!eligible.length) return null;
   const contractee = signers.find((s) => {
     const role = String(s?.sign_as || s?.role || s?.signer_role || "").toLowerCase();
-    return role === "contractee" || role === "contratante";
+    return ["contractee", "contratante", "customer", "client", "cliente"].includes(role);
   });
-  return contractee || signers[0] || null;
+  if (contractee) return contractee;
+  const byFilename = eligible.filter((s) => signerNameMatchesDocument(s, docName));
+  return byFilename.length === 1 ? byFilename[0] : null;
 }
 
 /** Creates a cliente from a ClickSign signer. Returns the new cliente id, or null on failure. */
@@ -36,7 +56,7 @@ async function createClienteFromSigner(
   signer: any,
 ): Promise<string | null> {
   try {
-    const docRaw = onlyDigits(signer?.documentation || signer?.cpf || signer?.cnpj);
+    const docRaw = getSignerDoc(signer);
     const isCnpj = docRaw.length === 14;
     const isCpf = docRaw.length === 11;
     const tipo: "pj" | "pf" = isCnpj ? "pj" : "pf";
@@ -96,7 +116,7 @@ async function findClienteIdFromSigners(
   for (const signer of signers) {
     const sName = normalize(signer?.name);
     const sEmail = normalize(signer?.email);
-    const sDoc = onlyDigits(signer?.documentation || signer?.cpf || signer?.cnpj);
+    const sDoc = getSignerDoc(signer);
 
     for (const c of clientes) {
       if (sDoc && (onlyDigits(c.cpf) === sDoc || onlyDigits(c.cnpj) === sDoc)) return c.id;
