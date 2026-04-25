@@ -27,7 +27,34 @@ interface Props {
 export function ClienteEditModal({ cliente, open, onOpenChange }: Props) {
   const queryClient = useQueryClient();
   const { user } = useAuth();
+  const { empresa } = useEmpresa();
   const { validatingCnpj, cnpjError, cpfError, validateCpfField, validateCnpjField, clearErrors } = useDocumentValidation();
+  const [productError, setProductError] = useState<string | undefined>();
+
+  const produtosCRUD = useManagedSelect("cliente_produtos", {
+    insertDefaults: { empresa_id: empresa?.id || null },
+  });
+
+  const { data: produtosOptions = [] } = useQuery({
+    queryKey: ["cliente-produtos", empresa?.id],
+    enabled: open && !!user,
+    queryFn: async () => {
+      let query = supabase
+        .from("cliente_produtos" as any)
+        .select("id, nome")
+        .eq("ativo", true);
+      if (empresa?.id) {
+        query = query.eq("empresa_id", empresa.id);
+      } else {
+        query = query.is("empresa_id", null);
+      }
+      const { data, error } = await query
+        .order("ordem", { ascending: true })
+        .order("nome", { ascending: true });
+      if (error) throw error;
+      return ((data as any[]) || []).map((r) => ({ value: r.id, label: r.nome }));
+    },
+  });
 
   const [tipo, setTipo] = useState<"pf" | "pj">(cliente.tipo);
   const [form, setForm] = useState({
@@ -50,6 +77,7 @@ export function ClienteEditModal({ cliente, open, onOpenChange }: Props) {
     cep: cliente.cep || "",
     responsavel_interno: cliente.responsavel_interno || "",
     observacoes: cliente.observacoes || "",
+    produto_segmento_id: (cliente as any).produto_segmento_id || "",
   });
 
   useEffect(() => {
