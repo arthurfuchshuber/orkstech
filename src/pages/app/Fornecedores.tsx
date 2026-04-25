@@ -190,6 +190,7 @@ export default function Fornecedores() {
         cep: form.endereco.cep || null,
         observacoes: form.observacoes || null,
         categoria_id: form.categoria || null,
+        produto_segmento_id: form.produtoSegmentoId || null,
       };
 
       if (editingId) {
@@ -273,6 +274,7 @@ export default function Fornecedores() {
       contatoResponsavel: "",
       categoria: f.categoria_id || "",
       observacoes: f.observacoes || "",
+      produtoSegmentoId: f.produto_segmento_id || "",
       endereco: {
         cep: f.cep || "",
         logradouro: f.logradouro || "",
