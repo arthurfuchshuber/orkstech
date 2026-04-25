@@ -38,7 +38,15 @@ interface ContaBancaria {
   ativo: boolean;
 }
 
-export default function ContasBancarias({ embedded = false }: { embedded?: boolean }) {
+export default function ContasBancarias({
+  embedded = false,
+  readOnly = false,
+  hideOpenFinanceButton = false,
+}: {
+  embedded?: boolean;
+  readOnly?: boolean;
+  hideOpenFinanceButton?: boolean;
+}) {
   const { user } = useAuth();
   const { empresa } = useEmpresa();
   const empresaId = empresa?.id;
@@ -110,10 +118,12 @@ export default function ContasBancarias({ embedded = false }: { embedded?: boole
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <Button onClick={openNew} size="sm" variant="outline" className="h-7 text-xs gap-1.5 rounded-md">
-                <Plus className="w-3 h-3" /> Nova Conta Manual
-              </Button>
-              <PluggyConnectButton size="sm" />
+              {!readOnly && (
+                <Button onClick={openNew} size="sm" variant="outline" className="h-7 text-xs gap-1.5 rounded-md">
+                  <Plus className="w-3 h-3" /> Nova Conta Manual
+                </Button>
+              )}
+              {!hideOpenFinanceButton && !readOnly && <PluggyConnectButton size="sm" />}
             </div>
           </CardHeader>
 

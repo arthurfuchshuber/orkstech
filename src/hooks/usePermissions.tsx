@@ -36,11 +36,19 @@ export const PERMISSION_CATALOG = {
     { key: "system:integracoes", label: "Configurações › Integrações" },
     { key: "system:gerenciar-menu", label: "Configurações › Gerenciar Menu" },
   ],
+  finance: [
+    { key: "finance:plano-contas", label: "Financeiro › Plano de Contas" },
+    { key: "finance:centros-custo", label: "Financeiro › Centros de Custo" },
+    { key: "finance:contas-bancarias", label: "Financeiro › Contas Bancárias" },
+    { key: "finance:open-finance", label: "Financeiro › Conectar Open Finance" },
+    { key: "finance:formas-pagamento", label: "Financeiro › Formas de Pagamento" },
+  ],
 } as const;
 
 export const ALL_PERMISSION_KEYS = [
   ...PERMISSION_CATALOG.menu.map((p) => p.key),
   ...PERMISSION_CATALOG.system.map((p) => p.key),
+  ...PERMISSION_CATALOG.finance.map((p) => p.key),
 ];
 
 const MENU_PERMISSION_ALIASES: Record<string, string> = {

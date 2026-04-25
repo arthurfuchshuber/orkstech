@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import {
   ShieldCheck, Loader2, Lock, Search, EyeOff, Eye, Pencil,
-  LayoutGrid, Settings2, CheckCheck, XCircle,
+  LayoutGrid, Settings2, CheckCheck, XCircle, Wallet,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -59,7 +59,7 @@ export function PermissionsModal({ userId, userEmail, isOwner, open, onOpenChang
   useEffect(() => {
     if (!existing) return;
     const initial: PermissionState = {};
-    [...PERMISSION_CATALOG.menu, ...PERMISSION_CATALOG.system].forEach((p) => {
+    [...PERMISSION_CATALOG.menu, ...PERMISSION_CATALOG.system, ...PERMISSION_CATALOG.finance].forEach((p) => {
       const found = existing.find((e) => e.action_key === p.key);
       if (isOwner) {
         initial[p.key] = "edit";
@@ -307,6 +307,7 @@ export function PermissionsModal({ userId, userEmail, isOwner, open, onOpenChang
           <div className="flex-1 min-h-0 overflow-y-auto px-6 py-4 overscroll-contain custom-scrollbar">
             <div className="space-y-5 pb-2 pr-2">
               {renderSection("Páginas do menu", LayoutGrid, PERMISSION_CATALOG.menu)}
+              {renderSection("Configurações financeiras", Wallet, PERMISSION_CATALOG.finance)}
               {renderSection("Áreas sistêmicas", Settings2, PERMISSION_CATALOG.system)}
             </div>
           </div>
