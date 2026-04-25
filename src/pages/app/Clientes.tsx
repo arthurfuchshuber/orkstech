@@ -222,7 +222,7 @@ export default function Clientes() {
 
   const bulkUpdateMutation = useMutation({
     mutationFn: async ({ ids, patch }: { ids: string[]; patch: Record<string, any> }) => {
-      const { error } = await supabase.from("clientes").update(patch).in("id", ids);
+      const { error } = await (supabase.from("clientes") as any).update(patch).in("id", ids);
       if (error) throw error;
     },
     onSuccess: async (_, vars) => {
