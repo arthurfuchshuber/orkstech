@@ -351,6 +351,16 @@ export default function Clientes() {
   const totalPJ = clientes.filter((c) => c.tipo === "pj").length;
   const totalPF = clientes.filter((c) => c.tipo === "pf").length;
 
+  const filteredIds = useMemo(() => filtered.map((c) => c.id), [filtered]);
+  const allSelected = filteredIds.length > 0 && filteredIds.every((id) => selectedIds.includes(id));
+  const someSelected = selectedIds.length > 0 && !allSelected;
+  const toggleSelectAll = () => {
+    setSelectedIds(allSelected ? selectedIds.filter((id) => !filteredIds.includes(id)) : Array.from(new Set([...selectedIds, ...filteredIds])));
+  };
+  const toggleSelectOne = (id: string) => {
+    setSelectedIds((prev) => prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]);
+  };
+
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Header */}
