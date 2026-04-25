@@ -32,6 +32,19 @@ function signerNameMatchesDocument(signer: any, docName: string | null | undefin
   return words.slice(0, 2).every((w) => docNorm.includes(w));
 }
 
+function emailDomainMatchesName(signer: any): boolean {
+  const email = String(signer?.email || "").toLowerCase();
+  const at = email.indexOf("@");
+  if (at < 0) return false;
+  const domain = email.slice(at + 1).split(".")[0] || "";
+  if (domain.length < 5) return false;
+  const publicDomains = ["gmail", "hotmail", "outlook", "yahoo", "icloud", "live", "uol", "bol", "terra", "msn", "globo"];
+  if (publicDomains.includes(domain)) return false;
+  const nameNorm = normalize(signer?.name).replace(/\s+/g, "");
+  if (!nameNorm) return false;
+  return nameNorm.includes(domain);
+}
+
 /** Seleciona o cliente/contratante real; nunca usa o primeiro só por fallback. */
 function pickContractee(signers: any[], docName?: string): any | null {
   const eligible = (signers || []).filter((s) => {
@@ -45,7 +58,11 @@ function pickContractee(signers: any[], docName?: string): any | null {
   });
   if (contractee) return contractee;
   const byFilename = eligible.filter((s) => signerNameMatchesDocument(s, docName));
-  return byFilename.length === 1 ? byFilename[0] : null;
+  if (byFilename.length === 1) return byFilename[0];
+  // Desempate por domínio próprio de email (titular forte)
+  const byOwnDomain = eligible.filter(emailDomainMatchesName);
+  if (byOwnDomain.length === 1) return byOwnDomain[0];
+  return null;
 }
 
 /** Creates a cliente from a ClickSign signer. Returns the new cliente id, or null on failure. */
