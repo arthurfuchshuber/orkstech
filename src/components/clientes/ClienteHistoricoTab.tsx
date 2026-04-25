@@ -215,6 +215,25 @@ export function ClienteHistoricoTab({ clienteId }: Props) {
           })}
         </div>
       )}
+                    <Badge
+                      variant="outline"
+                      className={`text-xs ${tipoBadgeStyles[item.tipo] || ""}`}
+                    >
+                      {tipoLabels[item.tipo] || item.tipo}
+                    </Badge>
+                  </div>
+                  <p className="text-sm text-muted-foreground">{item.descricao}</p>
+                  {item.usuario_nome && (
+                    <div className="flex items-center gap-1 mt-1 text-xs text-muted-foreground/70">
+                      <User className="w-3 h-3" /> {item.usuario_nome}
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
