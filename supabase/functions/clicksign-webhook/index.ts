@@ -198,23 +198,51 @@ Deno.serve(async (req) => {
     if (finishedEvents.includes(event?.event?.name)) {
       // Auto-cria cliente a partir do CONTRATANTE se nenhum cliente foi vinculado
       let autoCreated = false;
+      let autoLinked = false;
       if (!clienteId) {
         const contractee = pickContractee(signers);
         if (contractee) {
-          const newClienteId = await createClienteFromSigner(
-            supabase,
-            cred.user_id,
-            cred.empresa_id,
-            contractee,
+          // ANTI-DUPLICIDADE: antes de criar, verifica diretamente por CPF/CNPJ do contratante
+          const contracteeDoc = onlyDigits(
+            contractee?.documentation || contractee?.cpf || contractee?.cnpj
           );
-          if (newClienteId) {
-            clienteId = newClienteId;
-            autoCreated = true;
-            // Vincula o documento ao cliente recém-criado para aparecer na aba Documentos
+          let existingId: string | null = null;
+          if (contracteeDoc && (contracteeDoc.length === 11 || contracteeDoc.length === 14)) {
+            const docField = contracteeDoc.length === 14 ? "cnpj" : "cpf";
+            let q = supabase
+              .from("clientes")
+              .select("id")
+              .eq("user_id", cred.user_id)
+              .eq(docField, contracteeDoc)
+              .limit(1);
+            if (cred.empresa_id) q = q.eq("empresa_id", cred.empresa_id);
+            const { data: existing } = await q.maybeSingle();
+            if (existing?.id) existingId = existing.id;
+          }
+
+          if (existingId) {
+            // Cliente já existe — apenas vincula o documento
+            clienteId = existingId;
+            autoLinked = true;
             await supabase
               .from("clicksign_documentos")
-              .update({ cliente_id: newClienteId })
+              .update({ cliente_id: existingId })
               .eq("id", docId);
+          } else {
+            const newClienteId = await createClienteFromSigner(
+              supabase,
+              cred.user_id,
+              cred.empresa_id,
+              contractee,
+            );
+            if (newClienteId) {
+              clienteId = newClienteId;
+              autoCreated = true;
+              await supabase
+                .from("clicksign_documentos")
+                .update({ cliente_id: newClienteId })
+                .eq("id", docId);
+            }
           }
         }
       }
@@ -225,8 +253,17 @@ Deno.serve(async (req) => {
             user_id: cred.user_id,
             empresa_id: cred.empresa_id,
             cliente_id: clienteId,
-            tipo: "Sistema",
+            tipo: "clicksign_auto_create",
             descricao: `Cliente cadastrado automaticamente via ClickSign após assinatura de "${csDoc?.filename || "documento"}"`,
+            usuario_nome: "ClickSign",
+          });
+        } else if (autoLinked) {
+          await supabase.from("cliente_interacoes").insert({
+            user_id: cred.user_id,
+            empresa_id: cred.empresa_id,
+            cliente_id: clienteId,
+            tipo: "clicksign_auto_link",
+            descricao: `Documento "${csDoc?.filename || "ClickSign"}" vinculado automaticamente — cliente já cadastrado (CPF/CNPJ correspondente)`,
             usuario_nome: "ClickSign",
           });
         }
