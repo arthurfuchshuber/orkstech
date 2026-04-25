@@ -304,6 +304,20 @@ export function ClienteEditModal({ cliente, open, onOpenChange }: Props) {
 
         <div className="space-y-4">
           <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Informações internas</p>
+          <ManagedSelectInput
+            label="Produto *"
+            placeholder="Selecione o produto..."
+            icon={<Package className="w-4 h-4" />}
+            value={form.produto_segmento_id}
+            onValueChange={(v) => { setForm((p) => ({ ...p, produto_segmento_id: v })); setProductError(undefined); }}
+            options={produtosOptions}
+            addLabel="Novo produto"
+            error={productError}
+            onAdd={produtosCRUD.onAdd}
+            onEdit={produtosCRUD.onEdit}
+            onDelete={produtosCRUD.onDelete}
+            onReorder={produtosCRUD.onReorder}
+          />
           <TextInput label="Responsável interno" value={form.responsavel_interno} onChange={(e) => setForm((p) => ({ ...p, responsavel_interno: e.target.value }))} />
           <TextareaInput label="Observações" value={form.observacoes} onChange={(e) => setForm((p) => ({ ...p, observacoes: e.target.value }))} />
         </div>
