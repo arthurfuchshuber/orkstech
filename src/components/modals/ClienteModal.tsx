@@ -181,6 +181,7 @@ export function ClienteModal({ open, onOpenChange, editingId, onSaved, prefill }
         estado: form.endereco.estado || null,
         cep: form.endereco.cep || null,
         observacoes: form.observacoes || null,
+        produto_segmento_id: form.produto_segmento_id || null,
       };
 
       if (editingId) {
