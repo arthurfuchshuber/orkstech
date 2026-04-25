@@ -18,6 +18,66 @@ function onlyDigits(s: string | null | undefined): string {
   return (s || "").replace(/\D/g, "");
 }
 
+/** Picks the signer marked as "contractee" (CONTRATANTE), with fallback to the first signer. */
+function pickContractee(signers: any[]): any | null {
+  if (!signers?.length) return null;
+  const contractee = signers.find((s) => {
+    const role = String(s?.sign_as || s?.role || s?.signer_role || "").toLowerCase();
+    return role === "contractee" || role === "contratante";
+  });
+  return contractee || signers[0] || null;
+}
+
+/** Creates a cliente from a ClickSign signer. Returns the new cliente id, or null on failure. */
+async function createClienteFromSigner(
+  supabase: any,
+  userId: string,
+  empresaId: string | null,
+  signer: any,
+): Promise<string | null> {
+  try {
+    const docRaw = onlyDigits(signer?.documentation || signer?.cpf || signer?.cnpj);
+    const isCnpj = docRaw.length === 14;
+    const isCpf = docRaw.length === 11;
+    const tipo: "pj" | "pf" = isCnpj ? "pj" : "pf";
+    const rawName = (signer?.name || "").trim();
+    if (!rawName && !signer?.email && !docRaw) return null;
+
+    const payload: Record<string, any> = {
+      user_id: userId,
+      empresa_id: empresaId,
+      tipo,
+      email: signer?.email || null,
+      telefone: onlyDigits(signer?.phone_number || signer?.phone) || null,
+      ativo: true,
+      observacoes: "Cliente criado automaticamente via ClickSign",
+      // produto_segmento_id is intentionally null — ClickSign-created clients are exempt
+    };
+    if (tipo === "pj") {
+      payload.razao_social = rawName;
+      payload.nome_fantasia = rawName;
+      payload.cnpj = docRaw || null;
+    } else {
+      payload.nome_completo = rawName;
+      payload.cpf = docRaw || null;
+    }
+
+    const { data, error } = await supabase
+      .from("clientes")
+      .insert(payload)
+      .select("id")
+      .single();
+    if (error) {
+      console.error("[clicksign-webhook] failed to auto-create cliente:", error);
+      return null;
+    }
+    return data.id;
+  } catch (e) {
+    console.error("[clicksign-webhook] createClienteFromSigner error:", e);
+    return null;
+  }
+}
+
 async function findClienteIdFromSigners(
   supabase: any,
   userId: string,
