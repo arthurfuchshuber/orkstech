@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
-  Clock, Sparkles, Plus, Loader2, User, FileText, MessageSquare, DollarSign, Edit, Eye
+  Clock, Sparkles, Plus, Loader2, User, FileText, MessageSquare, DollarSign, Edit, Eye, Zap, Link2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -26,6 +26,10 @@ const tipoIcons: Record<string, any> = {
   interacao: MessageSquare,
   evento_financeiro: DollarSign,
   observacao: Eye,
+  clicksign_auto_create: Zap,
+  clicksign_auto_link: Link2,
+  documento: FileText,
+  Sistema: Sparkles,
 };
 
 const tipoLabels: Record<string, string> = {
@@ -34,6 +38,17 @@ const tipoLabels: Record<string, string> = {
   interacao: "Interação",
   evento_financeiro: "Evento financeiro",
   observacao: "Observação interna",
+  clicksign_auto_create: "Criado via ClickSign",
+  clicksign_auto_link: "Vinculado via ClickSign",
+  documento: "Documento",
+  Sistema: "Sistema",
+};
+
+// Estilos diferenciados por tipo de evento — destaque visual para automações ClickSign
+const tipoBadgeStyles: Record<string, string> = {
+  clicksign_auto_create: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/20",
+  clicksign_auto_link: "bg-blue-500/15 text-blue-400 border-blue-500/30 hover:bg-blue-500/20",
+  documento: "bg-primary/10 text-primary border-primary/30",
 };
 
 export function ClienteHistoricoTab({ clienteId }: Props) {
@@ -186,7 +201,12 @@ export function ClienteHistoricoTab({ clienteId }: Props) {
                     <span className="text-xs font-medium text-foreground">
                       {format(new Date(item.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
                     </span>
-                    <Badge variant="outline" className="text-xs">{tipoLabels[item.tipo] || item.tipo}</Badge>
+                    <Badge
+                      variant="outline"
+                      className={`text-xs ${tipoBadgeStyles[item.tipo] || ""}`}
+                    >
+                      {tipoLabels[item.tipo] || item.tipo}
+                    </Badge>
                   </div>
                   <p className="text-sm text-muted-foreground">{item.descricao}</p>
                   {item.usuario_nome && (
