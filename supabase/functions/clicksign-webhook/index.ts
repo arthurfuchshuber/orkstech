@@ -196,7 +196,40 @@ Deno.serve(async (req) => {
     // Notifica quando finalizado
     const finishedEvents = ["auto_close", "close", "document_closed"];
     if (finishedEvents.includes(event?.event?.name)) {
+      // Auto-cria cliente a partir do CONTRATANTE se nenhum cliente foi vinculado
+      let autoCreated = false;
+      if (!clienteId) {
+        const contractee = pickContractee(signers);
+        if (contractee) {
+          const newClienteId = await createClienteFromSigner(
+            supabase,
+            cred.user_id,
+            cred.empresa_id,
+            contractee,
+          );
+          if (newClienteId) {
+            clienteId = newClienteId;
+            autoCreated = true;
+            // Vincula o documento ao cliente recém-criado para aparecer na aba Documentos
+            await supabase
+              .from("clicksign_documentos")
+              .update({ cliente_id: newClienteId })
+              .eq("id", docId);
+          }
+        }
+      }
+
       if (clienteId) {
+        if (autoCreated) {
+          await supabase.from("cliente_interacoes").insert({
+            user_id: cred.user_id,
+            empresa_id: cred.empresa_id,
+            cliente_id: clienteId,
+            tipo: "Sistema",
+            descricao: `Cliente cadastrado automaticamente via ClickSign após assinatura de "${csDoc?.filename || "documento"}"`,
+            usuario_nome: "ClickSign",
+          });
+        }
         await supabase.from("cliente_interacoes").insert({
           user_id: cred.user_id,
           empresa_id: cred.empresa_id,
@@ -210,8 +243,10 @@ Deno.serve(async (req) => {
       await supabase.from("notificacoes_sistema").insert({
         user_id: cred.user_id,
         empresa_id: cred.empresa_id,
-        titulo: "Documento assinado",
-        descricao: `${csDoc?.filename || "Documento"} foi totalmente assinado`,
+        titulo: autoCreated ? "Cliente criado e documento assinado" : "Documento assinado",
+        descricao: autoCreated
+          ? `${csDoc?.filename || "Documento"} foi assinado e um novo cliente foi cadastrado automaticamente`
+          : `${csDoc?.filename || "Documento"} foi totalmente assinado`,
         tipo: "sucesso",
         entidade_tipo: "clicksign_documento",
         entidade_id: docId,
