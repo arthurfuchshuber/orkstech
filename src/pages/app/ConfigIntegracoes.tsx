@@ -143,6 +143,21 @@ export default function ConfigIntegracoes() {
   const [filter, setFilter] = useState<FilterKey>("todas");
   const [search, setSearch] = useState("");
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const userEmail = user?.email?.trim().toLowerCase() || "";
+
+  const handleSearchChange = (value: string) => {
+    const normalized = value.trim().toLowerCase();
+    if (normalized.includes("@") || (userEmail && normalized === userEmail)) {
+      setSearch("");
+      return;
+    }
+    setSearch(value);
+  };
+
+  const toggleExpanded = (key: string) => {
+    if (search.includes("@")) setSearch("");
+    setExpandedId(expandedId === key ? null : key);
+  };
 
   const { data: credenciais = [], isLoading } = useQuery({
     queryKey: ["integracoes-credenciais", empresa?.id],
@@ -200,12 +215,12 @@ export default function ConfigIntegracoes() {
           <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
           <Input
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => handleSearchChange(e.target.value)}
             placeholder="Buscar integração…"
             className="pl-9 h-9"
-            type="search"
-            name="integration-search"
-            autoComplete="off"
+            type="text"
+            name="integration-filter"
+            autoComplete="new-password"
             data-form-type="other"
             data-lpignore="true"
             data-1p-ignore="true"
@@ -266,7 +281,7 @@ export default function ConfigIntegracoes() {
               cred={item.cred}
               statusKey={item.statusKey}
               expanded={expandedId === item.key}
-              onToggleExpand={() => setExpandedId(expandedId === item.key ? null : item.key)}
+              onToggleExpand={() => toggleExpanded(item.key)}
               empresaId={empresa.id}
               userId={user!.id}
               onChanged={() => qc.invalidateQueries({ queryKey: ["integracoes-credenciais", empresa.id] })}
