@@ -1,9 +1,14 @@
 import { useState, useEffect, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Sparkles, Plus, Loader2, Trash2, Paperclip, Pencil,
   AlertTriangle, TrendingUp, TrendingDown, Calendar, CheckCircle2, FileText,
+  Receipt, Zap, ChevronDown,
 } from "lucide-react";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator, DropdownMenuLabel,
+} from "@/components/ui/dropdown-menu";
 import { QuickListModal } from "@/components/financas/QuickListModal";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
