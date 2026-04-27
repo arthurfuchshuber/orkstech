@@ -23,6 +23,8 @@ interface QSAImportModalProps {
 export interface QsaItem {
   nome: string;
   documento: string;
+  documento_completo?: boolean;
+  documento_mascarado?: boolean;
   tipo_pessoa: "PF" | "PJ";
   qualificacao?: string;
   percentual_participacao?: number;
@@ -34,6 +36,7 @@ function fmtDoc(doc: string, tipo: "PF" | "PJ") {
   const d = doc.replace(/\D/g, "");
   if (tipo === "PF" && d.length === 11) return d.replace(/^(\d{3})(\d{3})(\d{3})(\d{2})$/, "$1.$2.$3-$4");
   if (tipo === "PJ" && d.length === 14) return d.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, "$1.$2.$3/$4-$5");
+  if (tipo === "PF" && d.length === 6) return `***.${d.slice(0, 3)}.${d.slice(3)}-** (parcial)`;
   return doc;
 }
 
