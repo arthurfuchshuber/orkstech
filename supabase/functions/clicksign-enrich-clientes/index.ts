@@ -79,21 +79,39 @@ async function extractFromPdf(
   }
 
   const base64 = bytesToBase64(pdfBytes);
-  const prompt = `Você está lendo um contrato em PDF. Extraia OS DADOS DO CONTRATANTE (também chamado de CLIENTE, LOCATÁRIO ou SACADO) cujo nome é "${cliente.nome}"${cliente.documento ? ` e CPF/CNPJ "${cliente.documento}"` : ""}.
+  const docFmt = cliente.documento
+    ? cliente.documento.length === 11
+      ? `${cliente.documento.slice(0,3)}.${cliente.documento.slice(3,6)}.${cliente.documento.slice(6,9)}-${cliente.documento.slice(9)}`
+      : `${cliente.documento.slice(0,2)}.${cliente.documento.slice(2,5)}.${cliente.documento.slice(5,8)}/${cliente.documento.slice(8,12)}-${cliente.documento.slice(12)}`
+    : "";
 
-Procure por trechos como "PARTE II – CONTRATANTE", "CONTRATANTE:", "LOCATÁRIO:", etc., associados ao nome acima.
+  const prompt = `Você está analisando um contrato em PDF. LEIA O DOCUMENTO INTEIRO, página por página.
 
-Extraia EXATAMENTE estes campos do CONTRATANTE (NUNCA do CONTRATADO/LOCADOR):
-- telefone (apenas dígitos, ex: 45999200738)
-- cep (apenas dígitos, 8 caracteres)
-- logradouro (rua/avenida + nome, sem número)
-- numero (número do endereço)
-- complemento (apto, sala, bloco; pode ser null)
+OBJETIVO: extrair dados de contato e endereço da pessoa identificada como CONTRATANTE / CLIENTE / LOCATÁRIO / SACADO / COMPRADOR / TOMADOR (nunca do CONTRATADO / LOCADOR / VENDEDOR / PRESTADOR).
+
+ÂNCORAS PARA LOCALIZAR ESTA PESSOA (use a que encontrar primeiro):
+1. CPF/CNPJ: "${docFmt}" ou "${cliente.documento}" (ignore pontuação ao comparar)
+2. Nome: "${cliente.nome}" (ignore acentos, maiúsculas, ordem de sobrenomes; aceite variações)
+
+Procure em TODAS as seções: "PARTE II", "QUALIFICAÇÃO DAS PARTES", "DADOS DO CONTRATANTE", "CONTRATANTE:", "LOCATÁRIO:", "Identificação", anexos, rodapés. Os dados podem estar em parágrafos corridos (ex: "residente à Rua X, nº 123, bairro Y, Cidade/UF, CEP 12345-678, telefone (45) 99999-9999").
+
+EXTRAIA estes campos (retorne null APENAS se realmente não encontrar):
+- telefone: apenas dígitos com DDD (ex: "45999200738"). Aceite celular OU fixo. Pode aparecer como "Tel:", "Telefone:", "Cel:", "Contato:", "WhatsApp:", "Fone:".
+- cep: 8 dígitos sem traço
+- logradouro: nome da rua/avenida SEM número (ex: "Rua das Flores")
+- numero: número do imóvel (ex: "123")
+- complemento: apto/sala/bloco, ou null
 - bairro
-- cidade
-- estado (sigla UF, 2 letras)
+- cidade: apenas o nome (ex: "Curitiba", sem "/PR")
+- estado: sigla UF de 2 letras maiúsculas
 
-Se um campo não estiver no documento, retorne null. Responda APENAS com JSON válido, sem markdown.`;
+REGRAS CRÍTICAS:
+- NÃO invente dados. Se o campo não aparece no PDF, use null.
+- Se houver MÚLTIPLOS contratantes no documento, escolha aquele que bate com o CPF/Nome acima.
+- Se o endereço aparecer só uma vez perto do nome do contratante, use-o mesmo se não houver rótulo "Endereço:".
+
+Responda APENAS com JSON válido (sem markdown, sem comentários) no formato:
+{"telefone":"...","cep":"...","logradouro":"...","numero":"...","complemento":"...","bairro":"...","cidade":"...","estado":"..."}`;
 
   try {
     const res = await fetch(LOVABLE_AI_URL, {
@@ -103,7 +121,7 @@ Se um campo não estiver no documento, retorne null. Responda APENAS com JSON v�
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
+        model: "google/gemini-2.5-pro",
         messages: [
           {
             role: "user",
