@@ -384,6 +384,24 @@ function IntegrationCard({
     }
   };
 
+  const enrichClicksignClientes = async () => {
+    if (provider !== "clicksign") return;
+    const toastId = "cs-enrich";
+    try {
+      toast.info("Lendo contratos assinados com IA para extrair telefone e endereço…", { id: toastId });
+      const { data, error } = await supabase.functions.invoke("clicksign-enrich-clientes", {
+        body: { empresa_id: empresaId, only_missing: true },
+      });
+      if (error || data?.error) throw new Error(data?.error || error?.message);
+      const en = data?.enriched ?? 0;
+      const sk = data?.skipped ?? 0;
+      const fl = data?.failed ?? 0;
+      toast.success(`${en} clientes enriquecidos · ${sk} sem dados a atualizar · ${fl} falhas`, { id: toastId });
+    } catch (e) {
+      toast.error(`Falha ao enriquecer dados: ${(e as Error).message}`, { id: toastId });
+    }
+  };
+
   const purgeAsaasHistory = async () => {
     if (provider !== "asaas") return;
     try {
