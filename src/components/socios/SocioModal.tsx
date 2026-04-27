@@ -208,12 +208,41 @@ export function SocioModal({ open, onOpenChange, socioId, onSaved }: SocioModalP
               <Input value={form.nome_completo} maxLength={60} onChange={(e) => set("nome_completo", e.target.value)} className="h-9 text-sm" />
             </div>
             <div>
-              <DocumentInput
-                type={form.tipo_pessoa === "PJ" ? "cnpj" : "cpf"}
-                value={form.documento}
-                onValueChange={(v) => set("documento", v)}
-                label={form.tipo_pessoa === "PJ" ? "CNPJ" : "CPF"}
-              />
+              {(() => {
+                const digits = (form.documento || "").replace(/\D/g, "");
+                const isMaskedFromReceita =
+                  form.origem === "receita_federal" &&
+                  form.tipo_pessoa === "PF" &&
+                  digits.length === 6;
+                if (isMaskedFromReceita) {
+                  const display = `***.${digits.slice(0, 3)}.${digits.slice(3)}-**`;
+                  return (
+                    <>
+                      <FieldLabel>CPF</FieldLabel>
+                      <Input
+                        value={display}
+                        readOnly
+                        onFocus={(e) => {
+                          // Ao focar, libera para edição manual (limpa para o usuário digitar o CPF completo)
+                          set("documento", "");
+                          e.currentTarget.blur();
+                          setTimeout(() => e.currentTarget.focus(), 0);
+                        }}
+                        className="h-9 text-sm font-mono cursor-text"
+                        title="Clique para complementar o CPF (a Receita oculta dígitos por LGPD)"
+                      />
+                    </>
+                  );
+                }
+                return (
+                  <DocumentInput
+                    type={form.tipo_pessoa === "PJ" ? "cnpj" : "cpf"}
+                    value={form.documento}
+                    onValueChange={(v) => set("documento", v)}
+                    label={form.tipo_pessoa === "PJ" ? "CNPJ" : "CPF"}
+                  />
+                );
+              })()}
             </div>
             {form.tipo_pessoa === "PF" ? (
               <div>
