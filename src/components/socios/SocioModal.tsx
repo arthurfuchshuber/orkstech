@@ -341,10 +341,18 @@ export function SocioModal({ open, onOpenChange, socioId, onSaved }: SocioModalP
           {/* Dados Bancários */}
           <SectionTitle icon={Landmark} label="Dados Bancários" />
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <FieldLabel>Banco</FieldLabel>
-              <Input value={form.banco} maxLength={60} onChange={(e) => set("banco", e.target.value)} className="h-9 text-sm" />
-            </div>
+            <ManagedSelectInput
+              label="Banco"
+              value={form.banco}
+              onValueChange={(v) => set("banco", v)}
+              options={bancoOptions}
+              placeholder="Selecione o banco..."
+              onAddModal={() => { setBancoEditingId(null); setBancoModalOpen(true); }}
+              onEditModal={(id) => { setBancoEditingId(id); setBancoModalOpen(true); }}
+              onDelete={bancosCrud.onDelete}
+              onReorder={bancosCrud.onReorder}
+              addLabel="Novo banco"
+            />
             <div>
               <FieldLabel>Tipo de Conta</FieldLabel>
               <Select value={form.tipo_conta || undefined} onValueChange={(v) => set("tipo_conta", v)}>
