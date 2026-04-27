@@ -296,7 +296,7 @@ export function NovaContaReceberModal({
         triggerAsaasForRecords(newIds, billingChosen);
       }
     },
-    onError: () => toast.error("Erro ao salvar conta"),
+    onError: (e: any) => toast.error(`Erro ao salvar conta: ${e?.message || "desconhecido"}`),
   });
 
   const handleSubmit = () => {
@@ -320,7 +320,6 @@ export function NovaContaReceberModal({
       empresa_id: empresaId || undefined,
       description: form.description,
       cliente_id: cliente.id,
-      supplier_id: null,
       supplier_name: payerName || null,
       document_number: form.document_number || null,
       amount: totalAmount,
