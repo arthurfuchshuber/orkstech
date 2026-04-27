@@ -470,15 +470,16 @@ Deno.serve(async (req) => {
                       .eq("id", cli.id)
                       .single();
                     const phoneFromAsaas = onlyDigits(cust?.mobilePhone || cust?.phone) || null;
+                    const cepAddress = await resolveAddressFromCep(cust?.postalCode);
                     const cityFromAsaas = await resolveCityFromAsaas(cred, cust);
                     const patch: Record<string, unknown> = {};
                     if (!full?.telefone && phoneFromAsaas) patch.telefone = phoneFromAsaas;
                     if (!full?.whatsapp && phoneFromAsaas) patch.whatsapp = phoneFromAsaas;
-                    if (!full?.cidade && cityFromAsaas) patch.cidade = cityFromAsaas;
-                    if (!full?.estado && cust?.state) patch.estado = cust.state;
+                    if (cityFromAsaas && isInvalidCityValue(full?.cidade)) patch.cidade = cityFromAsaas;
+                    if (!full?.estado && (cepAddress?.estado || cust?.state)) patch.estado = cepAddress?.estado || cust.state;
                     if (!full?.cep && cust?.postalCode) patch.cep = onlyDigits(cust.postalCode);
-                    if (!full?.logradouro && cust?.address) patch.logradouro = cust.address;
-                    if (!full?.bairro && cust?.province) patch.bairro = cust.province;
+                    if (!full?.logradouro && (cepAddress?.logradouro || cust?.address)) patch.logradouro = cepAddress?.logradouro || cust.address;
+                    if (!full?.bairro && (cepAddress?.bairro || cust?.province)) patch.bairro = cepAddress?.bairro || cust.province;
                     if (Object.keys(patch).length > 0) {
                       await serviceClient.from("clientes").update(patch).eq("id", cli.id);
                     }
@@ -487,6 +488,7 @@ Deno.serve(async (req) => {
                   }
                 } else {
                   // Auto-create cliente from Asaas data
+                  const cepAddress = await resolveAddressFromCep(cust?.postalCode);
                   const nome = (cust?.name || "Cliente Asaas").toString().trim().slice(0, 120);
                   const insertCliente: Record<string, unknown> = {
                     user_id: userId,
@@ -496,12 +498,12 @@ Deno.serve(async (req) => {
                     telefone: onlyDigits(cust?.mobilePhone || cust?.phone) || null,
                     whatsapp: onlyDigits(cust?.mobilePhone || cust?.phone) || null,
                     cep: onlyDigits(cust?.postalCode) || null,
-                    logradouro: cust?.address || null,
+                    logradouro: cepAddress?.logradouro || cust?.address || null,
                     numero: cust?.addressNumber || null,
                     complemento: cust?.complement || null,
-                    bairro: cust?.province || null,
+                    bairro: cepAddress?.bairro || cust?.province || null,
                     cidade: await resolveCityFromAsaas(cred, cust),
-                    estado: cust?.state || null,
+                    estado: cepAddress?.estado || cust?.state || null,
                     observacoes: "Importado automaticamente do Asaas",
                   };
                   if (isPF) {
