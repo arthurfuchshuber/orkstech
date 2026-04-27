@@ -1,0 +1,292 @@
+// ClickSign — enriquece clientes com telefone/endereço extraído do PDF assinado
+// Usa Lovable AI Gateway (Gemini) para ler o PDF do contrato e identificar
+// os dados de contato/endereço do CONTRATANTE (cliente).
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
+
+const CS_BASE = "https://app.clicksign.com";
+const CS_SANDBOX = "https://sandbox.clicksign.com";
+const LOVABLE_AI_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
+
+interface CredRow {
+  id: string;
+  user_id: string;
+  api_key: string;
+  ambiente: string;
+  empresa_id: string | null;
+}
+
+function onlyDigits(s: string | null | undefined): string {
+  return (s || "").replace(/\D/g, "");
+}
+
+async function csFetch(cred: CredRow, path: string) {
+  const base = cred.ambiente === "sandbox" ? CS_SANDBOX : CS_BASE;
+  const sep = path.includes("?") ? "&" : "?";
+  const res = await fetch(`${base}${path}${sep}access_token=${encodeURIComponent(cred.api_key)}`, {
+    headers: { "Accept": "application/json" },
+  });
+  if (!res.ok) throw new Error(`ClickSign ${res.status}`);
+  return res.json();
+}
+
+async function fetchSignedPdf(cred: CredRow, key: string): Promise<Uint8Array | null> {
+  try {
+    const data = await csFetch(cred, `/api/v1/documents/${key}`);
+    const csDoc = data?.document || data;
+    const url = csDoc?.downloads?.signed_file_url || csDoc?.downloads?.original_file_url;
+    if (!url) return null;
+    const res = await fetch(url);
+    if (!res.ok) return null;
+    return new Uint8Array(await res.arrayBuffer());
+  } catch {
+    return null;
+  }
+}
+
+function bytesToBase64(bytes: Uint8Array): string {
+  let binary = "";
+  const chunk = 0x8000;
+  for (let i = 0; i < bytes.length; i += chunk) {
+    binary += String.fromCharCode.apply(null, Array.from(bytes.subarray(i, i + chunk)) as any);
+  }
+  return btoa(binary);
+}
+
+interface ExtractedClienteData {
+  telefone: string | null;
+  cep: string | null;
+  logradouro: string | null;
+  numero: string | null;
+  complemento: string | null;
+  bairro: string | null;
+  cidade: string | null;
+  estado: string | null;
+}
+
+async function extractFromPdf(
+  pdfBytes: Uint8Array,
+  cliente: { nome: string; documento: string }
+): Promise<ExtractedClienteData | null> {
+  const apiKey = Deno.env.get("LOVABLE_API_KEY");
+  if (!apiKey) {
+    console.error("[enrich] LOVABLE_API_KEY ausente");
+    return null;
+  }
+
+  const base64 = bytesToBase64(pdfBytes);
+  const prompt = `Você está lendo um contrato em PDF. Extraia OS DADOS DO CONTRATANTE (também chamado de CLIENTE, LOCATÁRIO ou SACADO) cujo nome é "${cliente.nome}"${cliente.documento ? ` e CPF/CNPJ "${cliente.documento}"` : ""}.
+
+Procure por trechos como "PARTE II – CONTRATANTE", "CONTRATANTE:", "LOCATÁRIO:", etc., associados ao nome acima.
+
+Extraia EXATAMENTE estes campos do CONTRATANTE (NUNCA do CONTRATADO/LOCADOR):
+- telefone (apenas dígitos, ex: 45999200738)
+- cep (apenas dígitos, 8 caracteres)
+- logradouro (rua/avenida + nome, sem número)
+- numero (número do endereço)
+- complemento (apto, sala, bloco; pode ser null)
+- bairro
+- cidade
+- estado (sigla UF, 2 letras)
+
+Se um campo não estiver no documento, retorne null. Responda APENAS com JSON válido, sem markdown.`;
+
+  try {
+    const res = await fetch(LOVABLE_AI_URL, {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "google/gemini-2.5-flash",
+        messages: [
+          {
+            role: "user",
+            content: [
+              { type: "text", text: prompt },
+              {
+                type: "image_url",
+                image_url: { url: `data:application/pdf;base64,${base64}` },
+              },
+            ],
+          },
+        ],
+        response_format: { type: "json_object" },
+      }),
+    });
+
+    if (!res.ok) {
+      console.error("[enrich] AI Gateway error:", res.status, await res.text());
+      return null;
+    }
+
+    const data = await res.json();
+    const content = data?.choices?.[0]?.message?.content;
+    if (!content) return null;
+    const parsed = JSON.parse(content);
+    return {
+      telefone: parsed.telefone ? onlyDigits(parsed.telefone) : null,
+      cep: parsed.cep ? onlyDigits(parsed.cep) : null,
+      logradouro: parsed.logradouro || null,
+      numero: parsed.numero ? String(parsed.numero) : null,
+      complemento: parsed.complemento || null,
+      bairro: parsed.bairro || null,
+      cidade: parsed.cidade || null,
+      estado: parsed.estado ? String(parsed.estado).toUpperCase().slice(0, 2) : null,
+    };
+  } catch (e) {
+    console.error("[enrich] extract error:", e);
+    return null;
+  }
+}
+
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+
+  try {
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const supabase = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_ANON_KEY")!,
+      { global: { headers: { Authorization: authHeader } } }
+    );
+    const token = authHeader.replace("Bearer ", "");
+    const { data: claims } = await supabase.auth.getClaims(token);
+    if (!claims?.claims) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const userId = claims.claims.sub as string;
+    const { empresa_id, cliente_id, only_missing = true } = await req.json();
+
+    const service = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+    );
+
+    let credQ = service
+      .from("integracoes_credenciais")
+      .select("id, user_id, api_key, ambiente, empresa_id")
+      .eq("user_id", userId)
+      .eq("provider", "clicksign")
+      .eq("ativo", true);
+    if (empresa_id) credQ = credQ.eq("empresa_id", empresa_id);
+    const { data: cred } = await credQ.limit(1).maybeSingle();
+    if (!cred) throw new Error("ClickSign não configurado");
+
+    // Seleciona clientes a enriquecer
+    let cliQ = service
+      .from("clientes")
+      .select("id, nome_completo, razao_social, nome_fantasia, cpf, cnpj, telefone, cep, logradouro, cidade, estado")
+      .eq("user_id", userId);
+    if (empresa_id) cliQ = cliQ.eq("empresa_id", empresa_id);
+    if (cliente_id) cliQ = cliQ.eq("id", cliente_id);
+    const { data: clientes } = await cliQ;
+    if (!clientes?.length) {
+      return new Response(JSON.stringify({ enriched: 0, skipped: 0, failed: 0 }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    let enriched = 0;
+    let skipped = 0;
+    let failed = 0;
+
+    for (const c of clientes) {
+      const needsTel = !c.telefone;
+      const needsAddr = !c.cep || !c.cidade || !c.logradouro;
+      if (only_missing && !needsTel && !needsAddr) {
+        skipped++;
+        continue;
+      }
+
+      // Busca documento ClickSign vinculado a este cliente (mais recente, finalizado)
+      const { data: docs } = await service
+        .from("clicksign_documentos")
+        .select("clicksign_document_key, status")
+        .eq("user_id", userId)
+        .eq("cliente_id", c.id)
+        .in("status", ["closed", "auto_closed", "running"])
+        .order("created_at", { ascending: false })
+        .limit(1);
+      const doc = docs?.[0];
+      if (!doc?.clicksign_document_key) {
+        skipped++;
+        continue;
+      }
+
+      const pdf = await fetchSignedPdf(cred as CredRow, doc.clicksign_document_key);
+      if (!pdf) {
+        failed++;
+        continue;
+      }
+
+      const nome = c.nome_completo || c.razao_social || c.nome_fantasia || "";
+      const documento = onlyDigits(c.cpf || c.cnpj);
+      const data = await extractFromPdf(pdf, { nome, documento });
+      if (!data) {
+        failed++;
+        continue;
+      }
+
+      const patch: Record<string, any> = {};
+      if (needsTel && data.telefone) patch.telefone = data.telefone;
+      if (!c.cep && data.cep) patch.cep = data.cep;
+      if (!c.logradouro && data.logradouro) patch.logradouro = data.logradouro;
+      if (data.numero) patch.numero = data.numero;
+      if (data.complemento) patch.complemento = data.complemento;
+      if (data.bairro) patch.bairro = data.bairro;
+      if (!c.cidade && data.cidade) patch.cidade = data.cidade;
+      if (!c.estado && data.estado) patch.estado = data.estado;
+
+      if (Object.keys(patch).length === 0) {
+        skipped++;
+        continue;
+      }
+
+      const { error: upErr } = await service.from("clientes").update(patch).eq("id", c.id);
+      if (upErr) {
+        console.error("[enrich] update error:", upErr);
+        failed++;
+        continue;
+      }
+
+      await service.from("cliente_interacoes").insert({
+        user_id: userId,
+        empresa_id: cred.empresa_id,
+        cliente_id: c.id,
+        tipo: "clicksign_enrich",
+        descricao: `Dados extraídos automaticamente do contrato assinado: ${Object.keys(patch).join(", ")}`,
+        usuario_nome: "ClickSign + IA",
+      });
+
+      enriched++;
+    }
+
+    return new Response(
+      JSON.stringify({ enriched, skipped, failed, total: clientes.length }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    console.error("[clicksign-enrich-clientes] error:", msg);
+    return new Response(JSON.stringify({ error: msg }), {
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+});
