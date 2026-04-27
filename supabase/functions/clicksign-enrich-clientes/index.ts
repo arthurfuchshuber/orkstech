@@ -114,6 +114,8 @@ Responda APENAS com JSON válido (sem markdown, sem comentários) no formato:
 {"telefone":"...","cep":"...","logradouro":"...","numero":"...","complemento":"...","bairro":"...","cidade":"...","estado":"..."}`;
 
   try {
+    const ctrl = new AbortController();
+    const tid = setTimeout(() => ctrl.abort(), 45000);
     const res = await fetch(LOVABLE_AI_URL, {
       method: "POST",
       headers: {
@@ -121,7 +123,7 @@ Responda APENAS com JSON válido (sem markdown, sem comentários) no formato:
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-pro",
+        model: "google/gemini-2.5-flash",
         messages: [
           {
             role: "user",
@@ -135,8 +137,10 @@ Responda APENAS com JSON válido (sem markdown, sem comentários) no formato:
           },
         ],
         response_format: { type: "json_object" },
+        max_tokens: 600,
       }),
-    });
+      signal: ctrl.signal,
+    }).finally(() => clearTimeout(tid));
 
     if (!res.ok) {
       console.error("[enrich] AI Gateway error:", res.status, await res.text());
