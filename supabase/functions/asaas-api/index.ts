@@ -438,26 +438,51 @@ Deno.serve(async (req) => {
           }
 
           if (!accountReceivableId) {
-            const description = payment.description || `Cobrança Asaas ${payment.id}`;
-            const { data: newRec } = await serviceClient
+            // Anti-duplicidade: procura receivable existente por document_number = payment.id
+            // (caso a integração tenha sido purgada e reativada, ou registro criado manualmente antes)
+            const { data: existingRec } = await serviceClient
               .from("accounts_receivable")
-              .insert({
-                user_id: userId,
-                empresa_id: empresaIdLocal,
-                cliente_id: clienteIdLocal,
-                supplier_name: payerName,
-                description,
-                amount: Number(payment.value) || 0,
-                due_date: payment.dueDate,
-                payment_date: localPaymentDate,
-                status: localStatus,
-                document_number: payment.id,
-                pessoa_tipo: payerPessoaTipo,
-                notes: `Importado do Asaas (${payment.billingType || "UNDEFINED"})`,
-              })
               .select("id")
-              .single();
-            if (newRec) accountReceivableId = newRec.id;
+              .eq("user_id", userId)
+              .eq("document_number", payment.id)
+              .maybeSingle();
+
+            if (existingRec) {
+              accountReceivableId = existingRec.id;
+              await serviceClient
+                .from("accounts_receivable")
+                .update({
+                  status: localStatus,
+                  payment_date: localPaymentDate,
+                  cliente_id: clienteIdLocal,
+                  supplier_name: payerName,
+                  pessoa_tipo: payerPessoaTipo,
+                  amount: Number(payment.value) || 0,
+                  due_date: payment.dueDate,
+                })
+                .eq("id", existingRec.id);
+            } else {
+              const description = payment.description || `Cobrança Asaas ${payment.id}`;
+              const { data: newRec } = await serviceClient
+                .from("accounts_receivable")
+                .insert({
+                  user_id: userId,
+                  empresa_id: empresaIdLocal,
+                  cliente_id: clienteIdLocal,
+                  supplier_name: payerName,
+                  description,
+                  amount: Number(payment.value) || 0,
+                  due_date: payment.dueDate,
+                  payment_date: localPaymentDate,
+                  status: localStatus,
+                  document_number: payment.id,
+                  pessoa_tipo: payerPessoaTipo,
+                  notes: `Importado do Asaas (${payment.billingType || "UNDEFINED"})`,
+                })
+                .select("id")
+                .single();
+              if (newRec) accountReceivableId = newRec.id;
+            }
           } else {
             await serviceClient
               .from("accounts_receivable")
