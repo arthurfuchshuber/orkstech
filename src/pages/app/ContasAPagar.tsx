@@ -502,7 +502,7 @@ export default function ContasAPagar() {
       description: form.description,
       supplier_id: form.supplier_id || null,
       supplier_name: form.supplier_name || null,
-      socio_id: form.socio_id || null,
+      ...(form.socio_id ? { socio_id: form.socio_id } : {}),
       document_number: form.document_number || null,
       amount: totalAmount,
       due_date: form.due_date!.toISOString().split("T")[0],
