@@ -302,7 +302,7 @@ Deno.serve(async (req) => {
     // Seleciona clientes a enriquecer
     let cliQ = service
       .from("clientes")
-      .select("id, nome_completo, razao_social, nome_fantasia, cpf, cnpj, telefone, cep, logradouro, cidade, estado")
+      .select("id, nome_completo, razao_social, nome_fantasia, cpf, cnpj, telefone, cep, logradouro, numero, complemento, bairro, cidade, estado")
       .eq("user_id", userId);
     if (empresa_id) cliQ = cliQ.eq("empresa_id", empresa_id);
     if (cliente_id) cliQ = cliQ.eq("id", cliente_id);
@@ -322,8 +322,8 @@ Deno.serve(async (req) => {
     // Processa um único cliente (extrair + atualizar). Retorna 'enriched' | 'skipped' | 'failed'
     const processCliente = async (c: any): Promise<"enriched" | "skipped" | "failed"> => {
       const nome = c.nome_completo || c.razao_social || c.nome_fantasia || "";
-      const needsTel = !c.telefone;
-      const needsAddr = !c.cep || !c.cidade || !c.logradouro;
+      const needsTel = !cleanPhone(c.telefone);
+      const needsAddr = hasMissing(c.cep) || hasMissing(c.cidade) || hasMissing(c.logradouro) || !cleanUf(c.estado);
       if (only_missing && !needsTel && !needsAddr) {
         console.log(`[enrich] skip(completo): ${nome}`);
         return "skipped";
@@ -331,7 +331,7 @@ Deno.serve(async (req) => {
 
       const { data: docs } = await service
         .from("clicksign_documentos")
-        .select("clicksign_document_key, status, created_at")
+        .select("clicksign_document_key, status, created_at, signatarios")
         .eq("user_id", userId)
         .eq("cliente_id", c.id)
         .in("status", ["closed", "auto_closed", "running"])
