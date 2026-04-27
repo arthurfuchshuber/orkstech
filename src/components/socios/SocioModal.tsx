@@ -195,6 +195,7 @@ export function SocioModal({ open, onOpenChange, socioId, onSaved }: SocioModalP
   };
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[88vh] overflow-y-auto">
         <DialogHeader>
