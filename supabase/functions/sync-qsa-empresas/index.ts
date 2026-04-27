@@ -20,11 +20,15 @@ function titleCase(s: string): string {
 function normalizeQsa(qsa: any[]): any[] {
   if (!Array.isArray(qsa)) return [];
   return qsa.map((s: any) => {
-    const doc = onlyDigits(s.cnpj_cpf_do_socio || s.cpf_cnpj_socio || "");
+    const rawDoc = String(s.cnpj_cpf_do_socio || s.cpf_cnpj_socio || "");
+    const doc = onlyDigits(rawDoc);
+    // Receita mascara CPF (***169339**) por LGPD — só 6 dígitos do meio são públicos
+    const isMasked = /\*/.test(rawDoc) || (doc.length > 0 && doc.length < 11);
     const tipo_pessoa = doc.length === 14 ? "PJ" : "PF";
     return {
       nome: titleCase(String(s.nome_socio || s.nome || "").trim()),
       documento: doc,
+      documento_completo: !isMasked && (doc.length === 11 || doc.length === 14),
       tipo_pessoa,
       qualificacao: String(s.qualificacao_socio || "").trim(),
       percentual_participacao: Number(s.percentual_capital_social ?? 0) || 0,
