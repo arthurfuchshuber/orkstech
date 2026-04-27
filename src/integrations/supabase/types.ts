@@ -2883,6 +2883,7 @@ export type Database = {
         Args: { p_user_id: string }
         Returns: undefined
       }
+      title_case_ptbr: { Args: { input: string }; Returns: string }
       unaccent: { Args: { "": string }; Returns: string }
     }
     Enums: {
