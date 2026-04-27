@@ -6,7 +6,7 @@ import {
   FileText, Search, CreditCard,
   Building2, Target, Landmark, FolderTree, Copy, Pencil, Trash2,
   Banknote, ChevronDown, ChevronRight, ScanLine, MoreHorizontal, BarChart3, Layers, Eye,
-  Calendar, CalendarDays,
+  Calendar, CalendarDays, Users,
 } from "lucide-react";
 import { DueStatCard } from "@/components/financas/DueStatCard";
 import { Button } from "@/components/ui/button";
@@ -1824,6 +1824,17 @@ export default function ContasAPagar() {
 
 
           <TextInput label="Nº Documento" placeholder="NF, boleto, recibo..." value={form.document_number} onChange={(e) => updateField("document_number", e.target.value)} icon={<FileText className="w-4 h-4" />} />
+
+          {/* Sócio beneficiário (opcional) — vem do Quadro Societário em Configurações > Empresa */}
+          <ManagedSelectInput
+            label="Sócio beneficiário (opcional)"
+            value={form.socio_id}
+            onValueChange={(v) => updateField("socio_id", v)}
+            options={socioOptions}
+            placeholder={socioOptions.length ? "Selecione um sócio..." : "Cadastre sócios em Configurações > Empresa"}
+            icon={<Users className="w-4 h-4" />}
+            allowClear
+          />
 
           {/* Valor */}
           <CurrencyInput label="Valor" value={form.amount} onValueChange={(v) => updateField("amount", v)} error={errors.amount} />
