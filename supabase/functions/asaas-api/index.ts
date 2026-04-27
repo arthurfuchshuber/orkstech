@@ -39,6 +39,34 @@ function onlyDigits(v?: string | null) {
   return (v || "").replace(/\D/g, "");
 }
 
+// Cache em memória do worker para códigos IBGE -> nome do município
+const ibgeCache = new Map<string, string | null>();
+
+async function resolveCityFromAsaas(cust: any): Promise<string | null> {
+  if (cust?.cityName && typeof cust.cityName === "string" && cust.cityName.trim()) return cust.cityName.trim();
+  const cityRaw = cust?.city;
+  if (cityRaw == null) return null;
+  const cityStr = String(cityRaw).trim();
+  if (!cityStr) return null;
+  // Se não é apenas dígitos, é o próprio nome da cidade
+  if (!/^\d+$/.test(cityStr)) return cityStr;
+  // É código IBGE: resolver via BrasilAPI com cache
+  if (ibgeCache.has(cityStr)) return ibgeCache.get(cityStr) || null;
+  try {
+    const res = await fetch(`https://brasilapi.com.br/api/ibge/municipios/v1/${cityStr}`);
+    if (res.ok) {
+      const data = await res.json();
+      const nome = data?.nome || null;
+      ibgeCache.set(cityStr, nome);
+      return nome;
+    }
+  } catch (e) {
+    console.warn("[asaas-api] IBGE lookup failed:", (e as Error).message);
+  }
+  ibgeCache.set(cityStr, null);
+  return null;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -382,7 +410,7 @@ Deno.serve(async (req) => {
                       .eq("id", cli.id)
                       .single();
                     const phoneFromAsaas = onlyDigits(cust?.mobilePhone || cust?.phone) || null;
-                    const cityFromAsaas = cust?.cityName || (typeof cust?.city === "string" && isNaN(Number(cust?.city)) ? cust?.city : null) || null;
+                    const cityFromAsaas = await resolveCityFromAsaas(cust);
                     const patch: Record<string, unknown> = {};
                     if (!full?.telefone && phoneFromAsaas) patch.telefone = phoneFromAsaas;
                     if (!full?.whatsapp && phoneFromAsaas) patch.whatsapp = phoneFromAsaas;
@@ -412,7 +440,7 @@ Deno.serve(async (req) => {
                     numero: cust?.addressNumber || null,
                     complemento: cust?.complement || null,
                     bairro: cust?.province || null,
-                    cidade: cust?.cityName || (typeof cust?.city === "string" && isNaN(Number(cust?.city)) ? cust?.city : null) || null,
+                    cidade: await resolveCityFromAsaas(cust),
                     estado: cust?.state || null,
                     observacoes: "Importado automaticamente do Asaas",
                   };
