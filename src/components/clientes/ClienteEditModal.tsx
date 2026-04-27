@@ -264,8 +264,8 @@ export function ClienteEditModal({ cliente, open, onOpenChange }: Props) {
             </p>
             <div className="grid grid-cols-2 gap-4">
               <DocumentInput type="cnpj" value={form.cnpj} onValueChange={(v) => setForm((p) => ({ ...p, cnpj: v }))} error={cnpjError} onBlur={handleCnpjBlur} />
-              <TextInput label="Razão Social" value={form.razao_social} onChange={(e) => setForm((p) => ({ ...p, razao_social: e.target.value }))} icon={<Building2 className="w-4 h-4" />} className="uppercase" />
-              <TextInput label="Nome Fantasia" value={form.nome_fantasia} onChange={(e) => setForm((p) => ({ ...p, nome_fantasia: e.target.value }))} className="uppercase" />
+              <TextInput label="Razão Social" value={form.razao_social} onChange={(e) => setForm((p) => ({ ...p, razao_social: e.target.value }))} icon={<Building2 className="w-4 h-4" />} />
+              <TextInput label="Nome Fantasia" value={form.nome_fantasia} onChange={(e) => setForm((p) => ({ ...p, nome_fantasia: e.target.value }))} />
               <TextInput label="Inscrição Estadual" value={form.inscricao_estadual} onChange={(e) => setForm((p) => ({ ...p, inscricao_estadual: e.target.value }))} />
               <TextInput label="Inscrição Municipal" value={form.inscricao_municipal} onChange={(e) => setForm((p) => ({ ...p, inscricao_municipal: e.target.value }))} />
             </div>
