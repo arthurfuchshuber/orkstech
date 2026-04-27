@@ -41,11 +41,47 @@ function onlyDigits(v?: string | null) {
 
 // Cache em memória do worker: chave = `${ambiente}:${id}`
 const cityCache = new Map<string, string | null>();
+const cepCache = new Map<string, { logradouro: string; bairro: string; cidade: string; estado: string } | null>();
+
+function isInvalidCityValue(value?: string | null) {
+  const city = String(value || "").trim();
+  return !city || /^\d+(?:\s*[-/]\s*[A-Z]{2})?$/i.test(city);
+}
+
+async function resolveAddressFromCep(postalCode?: string | null) {
+  const cep = onlyDigits(postalCode);
+  if (cep.length !== 8) return null;
+  if (cepCache.has(cep)) return cepCache.get(cep);
+
+  try {
+    const res = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
+    if (!res.ok) throw new Error(`ViaCEP ${res.status}`);
+    const data = await res.json();
+    if (data?.erro) {
+      cepCache.set(cep, null);
+      return null;
+    }
+    const address = {
+      logradouro: data?.logradouro || "",
+      bairro: data?.bairro || "",
+      cidade: data?.localidade || "",
+      estado: data?.uf || "",
+    };
+    cepCache.set(cep, address);
+    return address;
+  } catch (e) {
+    console.warn("[asaas-api] ViaCEP lookup failed:", (e as Error).message);
+    cepCache.set(cep, null);
+    return null;
+  }
+}
 
 // Resolve cidade a partir do customer Asaas.
-// O campo `city` pode ser: (a) nome textual, (b) código IBGE de 7 dígitos, (c) ID interno do Asaas.
-// Estratégia: prioriza cityName; se vier numérico tenta /cities/{id} no Asaas; se falhar, tenta BrasilAPI IBGE.
+// Estratégia: CEP primeiro (ViaCEP), depois cityName, /cities/{id} no Asaas e BrasilAPI IBGE.
 async function resolveCityFromAsaas(cred: CredRow, cust: any): Promise<string | null> {
+  const address = await resolveAddressFromCep(cust?.postalCode);
+  if (address?.cidade) return address.cidade;
+
   if (cust?.cityName && typeof cust.cityName === "string" && cust.cityName.trim()) return cust.cityName.trim();
   const cityRaw = cust?.city;
   if (cityRaw == null) return null;
@@ -62,10 +98,9 @@ async function resolveCityFromAsaas(cred: CredRow, cust: any): Promise<string | 
     const data = await asaasFetch(cred, `/cities/${cityStr}`);
     const nome = data?.name || null;
     const uf = data?.state || "";
-    const composed = nome ? (uf ? `${nome} - ${uf}` : nome) : null;
-    if (composed) {
-      cityCache.set(cacheKey, composed);
-      return composed;
+    if (nome) {
+      cityCache.set(cacheKey, nome);
+      return nome;
     }
   } catch (e) {
     console.warn(`[asaas-api] /cities/${cityStr} lookup failed:`, (e as Error).message);
