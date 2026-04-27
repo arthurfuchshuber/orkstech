@@ -120,7 +120,7 @@ export function SocioModal({ open, onOpenChange, socioId, onSaved }: SocioModalP
         savedId = data.id;
       }
       toast.success(socioId ? "Sócio atualizado" : "Sócio cadastrado");
-      await refreshQueries(["empresa_socios"]);
+      await refreshQueries(queryClient, [["empresa_socios"]]);
       onSaved?.(savedId);
       onOpenChange(false);
     } catch (e: any) {
