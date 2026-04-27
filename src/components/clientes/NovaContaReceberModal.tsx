@@ -296,7 +296,7 @@ export function NovaContaReceberModal({
         triggerAsaasForRecords(newIds, billingChosen);
       }
     },
-    onError: () => toast.error("Erro ao salvar conta"),
+    onError: (e: any) => toast.error(`Erro ao salvar conta: ${e?.message || "desconhecido"}`),
   });
 
   const handleSubmit = () => {
