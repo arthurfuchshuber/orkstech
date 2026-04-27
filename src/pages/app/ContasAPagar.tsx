@@ -59,6 +59,7 @@ interface PayableForm {
   description: string;
   supplier_id: string;
   supplier_name: string;
+  socio_id: string;
   document_number: string;
   amount: number;
   due_date?: Date;
@@ -83,6 +84,7 @@ const initialForm: PayableForm = {
   description: "",
   supplier_id: "",
   supplier_name: "",
+  socio_id: "",
   document_number: "",
   amount: 0,
   due_date: undefined,
