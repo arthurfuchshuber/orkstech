@@ -19,6 +19,7 @@ import { ManagedSelectInput, type ManagedOption } from "@/components/inputs/Mana
 import { MultiFileAttachment, type UploadedFile } from "@/components/inputs/MultiFileAttachment";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useEmpresa } from "@/hooks/useEmpresa";
 import { useManagedSelect } from "@/hooks/useManagedSelect";
 import { refreshQueries } from "@/lib/query-refresh";
 import { toast } from "sonner";
@@ -66,6 +67,8 @@ const parseInteracao = (descricao: string) => {
 
 export function ClienteVisaoGeralTab({ cliente, onEdit: _onEdit }: Props) {
   const { user } = useAuth();
+  const { empresa } = useEmpresa();
+  const empresaId = empresa?.id;
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [showForm, setShowForm] = useState(false);
@@ -81,6 +84,24 @@ export function ClienteVisaoGeralTab({ cliente, onEdit: _onEdit }: Props) {
   const [editFiles, setEditFiles] = useState<UploadedFile[]>([]);
   const [novaContaOpen, setNovaContaOpen] = useState(false);
   const [novaContaPreferAsaas, setNovaContaPreferAsaas] = useState(false);
+
+  // Asaas integration availability — controls visibility of "Via Asaas" option
+  const { data: asaasCred } = useQuery({
+    queryKey: ["asaas-cred-receber", empresaId],
+    queryFn: async () => {
+      if (!empresaId) return null;
+      const { data } = await supabase
+        .from("integracoes_credenciais")
+        .select("id, ativo")
+        .eq("empresa_id", empresaId)
+        .eq("provider", "asaas")
+        .eq("ativo", true)
+        .maybeSingle();
+      return data;
+    },
+    enabled: !!empresaId,
+  });
+  const asaasEnabled = !!asaasCred;
 
   // Fetch tipos from DB
   const { data: tipos = [], isLoading: tiposLoading } = useQuery({
@@ -737,19 +758,21 @@ export function ClienteVisaoGeralTab({ cliente, onEdit: _onEdit }: Props) {
                   <span className="text-[11px] text-muted-foreground">Lançamento interno simples</span>
                 </div>
               </DropdownMenuItem>
-              <DropdownMenuItem
-                className="gap-2 cursor-pointer"
-                onClick={() => {
-                  setNovaContaPreferAsaas(true);
-                  setNovaContaOpen(true);
-                }}
-              >
-                <Zap className="w-4 h-4 text-primary" />
-                <div className="flex flex-col">
-                  <span className="text-sm font-medium">Via Asaas (Boleto / PIX / Cartão)</span>
-                  <span className="text-[11px] text-muted-foreground">Gera cobrança e envia ao cliente</span>
-                </div>
-              </DropdownMenuItem>
+              {asaasEnabled && (
+                <DropdownMenuItem
+                  className="gap-2 cursor-pointer"
+                  onClick={() => {
+                    setNovaContaPreferAsaas(true);
+                    setNovaContaOpen(true);
+                  }}
+                >
+                  <Zap className="w-4 h-4 text-primary" />
+                  <div className="flex flex-col">
+                    <span className="text-sm font-medium">Via Asaas</span>
+                    <span className="text-[11px] text-muted-foreground">Gera cobrança e envia ao cliente</span>
+                  </div>
+                </DropdownMenuItem>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
