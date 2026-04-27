@@ -465,7 +465,6 @@ export default function ContasAPagar() {
           description: form.description,
           supplier_id: form.supplier_id || null,
           supplier_name: form.supplier_name || null,
-          socio_id: form.socio_id || null,
           document_number: form.document_number || null,
           amount: form.amount / 100,
           due_date: form.due_date!.toISOString().split("T")[0],
@@ -479,6 +478,7 @@ export default function ContasAPagar() {
           notes: form.notes || null,
           pessoa_tipo: form.pessoa_tipo,
           attachment_url: form.attachment_url,
+          ...(({ socio_id: form.socio_id || null }) as any),
         },
       });
       return;
