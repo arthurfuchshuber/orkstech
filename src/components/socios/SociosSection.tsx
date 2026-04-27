@@ -182,11 +182,6 @@ export function SociosSection() {
                     {(s.status_socio === "inativo" || s.ativo === false) && (
                       <Badge variant="outline" className="h-5 text-[10px]">Inativo</Badge>
                     )}
-                    {isDocPartial(s.documento || s.cpf, s.tipo_pessoa) && (
-                      <Badge variant="outline" className="h-5 text-[10px] border-amber-500/40 text-amber-500 bg-amber-500/5">
-                        {s.tipo_pessoa === "PJ" ? "CNPJ" : "CPF"} pendente
-                      </Badge>
-                    )}
                   </div>
                   <p className="text-xs text-muted-foreground truncate">
                     {s.cargo || s.qualificacao || "Sócio"} • {s.tipo_pessoa === "PJ" ? "CNPJ" : "CPF"} {formatDoc(s.documento || s.cpf, s.tipo_pessoa)} • {formatPhone(s.telefone)}
