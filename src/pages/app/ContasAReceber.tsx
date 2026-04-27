@@ -171,6 +171,30 @@ export default function ContasAReceber() {
   const [scopeDialogItem, setScopeDialogItem] = useState<any | null>(null);
   const [editScope, setEditScope] = useState<"single" | "group">("single");
 
+  // Open form pre-filled when navigated from Cliente Workspace (?new=1&cliente_id=...&asaas=1)
+  const [searchParams, setSearchParams] = useSearchParams();
+  useEffect(() => {
+    if (searchParams.get("new") !== "1") return;
+    const clienteId = searchParams.get("cliente_id") || "";
+    const wantAsaas = searchParams.get("asaas") === "1";
+    setEditingId(null);
+    setForm({
+      ...initialForm,
+      payer_kind: "cliente",
+      cliente_id: clienteId,
+    });
+    setGenerateAsaas(wantAsaas);
+    if (wantAsaas) setAsaasBillingType("BOLETO");
+    setShowForm(true);
+    // Clean URL so a refresh doesn't re-open the form
+    const next = new URLSearchParams(searchParams);
+    next.delete("new");
+    next.delete("cliente_id");
+    next.delete("asaas");
+    setSearchParams(next, { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const { data: receivables = [], isLoading } = useQuery({
     queryKey: ["accounts-receivable", empresaId],
     queryFn: async () => fetchAccountsReceivable(empresaId),
