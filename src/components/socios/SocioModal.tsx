@@ -100,6 +100,31 @@ export function SocioModal({ open, onOpenChange, socioId, onSaved }: SocioModalP
   const handleSave = async () => {
     if (!form.nome_completo.trim()) { toast.error("Nome do sócio é obrigatório"); return; }
     if (!empresa?.id || !user?.id) { toast.error("Empresa não selecionada"); return; }
+
+    // Validação: soma dos percentuais não pode passar de 100%
+    const novoPercentual = Number(form.percentual_participacao) || 0;
+    if (novoPercentual < 0 || novoPercentual > 100) {
+      toast.error("Percentual deve estar entre 0% e 100%");
+      return;
+    }
+    if (novoPercentual > 0) {
+      const { data: outros } = await supabase
+        .from("empresa_socios")
+        .select("id, percentual_participacao, status_socio, ativo")
+        .eq("empresa_id", empresa.id);
+      const somaOutros = (outros ?? [])
+        .filter((s: any) => s.id !== socioId && s.status_socio !== "inativo" && s.ativo !== false)
+        .reduce((acc: number, s: any) => acc + (Number(s.percentual_participacao) || 0), 0);
+      const total = somaOutros + novoPercentual;
+      if (total > 100.01) {
+        const disponivel = Math.max(0, 100 - somaOutros);
+        toast.error("Soma dos percentuais excede 100%", {
+          description: `Já existem ${somaOutros.toFixed(2)}% distribuídos. Máximo disponível para este sócio: ${disponivel.toFixed(2)}%.`,
+        });
+        return;
+      }
+    }
+
     setSaving(true);
     try {
       const docDigits = (form.documento || form.cpf || "").replace(/\D/g, "");
