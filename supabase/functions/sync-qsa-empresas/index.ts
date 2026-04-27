@@ -88,7 +88,8 @@ async function syncEmpresa(supabase: any, empresa: { id: string; cnpj: string; u
         user_id: empresa.user_id,
         nome_completo: s.nome,
         documento: s.documento,
-        cpf: s.tipo_pessoa === "PF" ? s.documento : null,
+        // Só preenche CPF/CNPJ completo; se mascarado, deixa null para usuário completar
+        cpf: s.tipo_pessoa === "PF" && s.documento_completo ? s.documento : null,
         tipo_pessoa: s.tipo_pessoa,
         qualificacao: s.qualificacao || null,
         cargo: s.qualificacao || null,
