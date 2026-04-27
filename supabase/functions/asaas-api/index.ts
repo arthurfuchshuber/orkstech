@@ -374,6 +374,29 @@ Deno.serve(async (req) => {
                 if (cli) {
                   clienteIdLocal = cli.id;
                   empresaIdLocal = cli.empresa_id || empresaIdLocal;
+                  // Backfill telefone/cidade se estiverem vazios no cadastro local
+                  try {
+                    const { data: full } = await serviceClient
+                      .from("clientes")
+                      .select("telefone, whatsapp, cidade, estado, cep, logradouro, bairro")
+                      .eq("id", cli.id)
+                      .single();
+                    const phoneFromAsaas = onlyDigits(cust?.mobilePhone || cust?.phone) || null;
+                    const cityFromAsaas = cust?.cityName || (typeof cust?.city === "string" && isNaN(Number(cust?.city)) ? cust?.city : null) || null;
+                    const patch: Record<string, unknown> = {};
+                    if (!full?.telefone && phoneFromAsaas) patch.telefone = phoneFromAsaas;
+                    if (!full?.whatsapp && phoneFromAsaas) patch.whatsapp = phoneFromAsaas;
+                    if (!full?.cidade && cityFromAsaas) patch.cidade = cityFromAsaas;
+                    if (!full?.estado && cust?.state) patch.estado = cust.state;
+                    if (!full?.cep && cust?.postalCode) patch.cep = onlyDigits(cust.postalCode);
+                    if (!full?.logradouro && cust?.address) patch.logradouro = cust.address;
+                    if (!full?.bairro && cust?.province) patch.bairro = cust.province;
+                    if (Object.keys(patch).length > 0) {
+                      await serviceClient.from("clientes").update(patch).eq("id", cli.id);
+                    }
+                  } catch (e) {
+                    console.warn("[asaas-api] backfill cliente failed:", (e as Error).message);
+                  }
                 } else {
                   // Auto-create cliente from Asaas data
                   const nome = (cust?.name || "Cliente Asaas").toString().trim().slice(0, 120);
