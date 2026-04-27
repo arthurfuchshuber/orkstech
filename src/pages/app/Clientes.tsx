@@ -715,10 +715,20 @@ export default function Clientes() {
             </DropdownMenu>
 
             <div className="h-5 w-px bg-border/60" />
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5 rounded-lg text-destructive hover:text-destructive border-destructive/30 hover:bg-destructive/10"
+              onClick={() => setBulkDeleteOpen(true)}
+              disabled={bulkUpdateMutation.isPending || bulkDeleteMutation.isPending}
+            >
+              <Trash2 className="w-3.5 h-3.5" /> Excluir
+            </Button>
+            <div className="h-5 w-px bg-border/60" />
             <Button variant="ghost" size="sm" className="gap-1.5 rounded-lg" onClick={() => setSelectedIds([])}>
               <X className="w-3.5 h-3.5" /> Limpar
             </Button>
-            {bulkUpdateMutation.isPending && <Loader2 className="w-4 h-4 animate-spin text-primary" />}
+            {(bulkUpdateMutation.isPending || bulkDeleteMutation.isPending) && <Loader2 className="w-4 h-4 animate-spin text-primary" />}
           </Card>
         </div>
       )}
