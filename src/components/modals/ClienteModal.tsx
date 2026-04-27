@@ -195,7 +195,7 @@ export function ClienteModal({ open, onOpenChange, editingId, onSaved, prefill }
         tipo: tipoDb,
         nome_completo: form.type === "pessoa" ? form.nome : null,
         cpf: form.type === "pessoa" ? docRaw || null : null,
-        razao_social: form.type === "empresa" ? (form.nome ? form.nome.toUpperCase() : null) : null,
+        razao_social: form.type === "empresa" ? (form.nome || null) : null,
         cnpj: form.type === "empresa" ? docRaw || null : null,
         telefone: form.telefone.replace(/\D/g, "") || null,
         email: form.email || null,
