@@ -348,12 +348,15 @@ Deno.serve(async (req) => {
       let usedDocKey: string | null = null;
 
       for (const doc of docs) {
+        const signerData = extractFromSigner(doc.signatarios, { nome, documento });
         if (!doc.clicksign_document_key) continue;
         const pdf = await fetchSignedPdf(cred as CredRow, doc.clicksign_document_key);
-        if (!pdf) continue;
-        const result = await extractFromPdf(pdf, { nome, documento });
-        if (result && (result.telefone || result.cep || result.logradouro || result.cidade)) {
-          extractedData = result;
+        const result = pdf ? await extractFromPdf(pdf, { nome, documento }) : null;
+        const cepBase = result?.cep || signerData.cep;
+        const viaCepData = cepBase ? await fetchAddressByCep(cepBase) : {};
+        const merged = { ...result, ...signerData, ...viaCepData } as ExtractedClienteData;
+        if (merged.telefone || merged.cep || merged.logradouro || merged.cidade || merged.estado) {
+          extractedData = merged;
           usedDocKey = doc.clicksign_document_key;
           break;
         }
@@ -366,13 +369,13 @@ Deno.serve(async (req) => {
 
       const patch: Record<string, any> = {};
       if (needsTel && extractedData.telefone) patch.telefone = extractedData.telefone;
-      if (!c.cep && extractedData.cep) patch.cep = extractedData.cep;
-      if (!c.logradouro && extractedData.logradouro) patch.logradouro = extractedData.logradouro;
-      if (extractedData.numero) patch.numero = extractedData.numero;
-      if (extractedData.complemento) patch.complemento = extractedData.complemento;
-      if (extractedData.bairro) patch.bairro = extractedData.bairro;
-      if (!c.cidade && extractedData.cidade) patch.cidade = extractedData.cidade;
-      if (!c.estado && extractedData.estado) patch.estado = extractedData.estado;
+      if (hasMissing(c.cep) && extractedData.cep) patch.cep = extractedData.cep;
+      if (hasMissing(c.logradouro) && extractedData.logradouro) patch.logradouro = extractedData.logradouro;
+      if (hasMissing(c.numero) && extractedData.numero) patch.numero = extractedData.numero;
+      if (hasMissing(c.complemento) && extractedData.complemento) patch.complemento = extractedData.complemento;
+      if (hasMissing(c.bairro) && extractedData.bairro) patch.bairro = extractedData.bairro;
+      if (hasMissing(c.cidade) && extractedData.cidade) patch.cidade = extractedData.cidade;
+      if (!cleanUf(c.estado) && extractedData.estado) patch.estado = extractedData.estado;
 
       if (Object.keys(patch).length === 0) return "skipped";
 
