@@ -12,11 +12,15 @@ function onlyDigits(v: any): string {
 function normalizeQsa(qsa: any[]): any[] {
   if (!Array.isArray(qsa)) return [];
   return qsa.map((s: any) => {
-    const doc = onlyDigits(s.cnpj_cpf_do_socio || s.cpf_cnpj_socio || "");
+    const rawDoc = String(s.cnpj_cpf_do_socio || s.cpf_cnpj_socio || "");
+    const doc = onlyDigits(rawDoc);
+    const isMasked = /\*/.test(rawDoc) || (doc.length > 0 && doc.length < 11);
     const tipo_pessoa = doc.length === 14 ? "PJ" : "PF";
     return {
       nome: String(s.nome_socio || s.nome || "").trim(),
       documento: doc,
+      documento_completo: !isMasked && (doc.length === 11 || doc.length === 14),
+      documento_mascarado: isMasked,
       tipo_pessoa,
       qualificacao: String(s.qualificacao_socio || s.codigo_qualificacao_socio || "").trim(),
       percentual_participacao: Number(s.percentual_capital_social ?? s.percentual_participacao ?? 0) || 0,
