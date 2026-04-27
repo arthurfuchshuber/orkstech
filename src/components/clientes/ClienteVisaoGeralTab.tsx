@@ -991,6 +991,22 @@ export function ClienteVisaoGeralTab({ cliente, onEdit: _onEdit }: Props) {
         description={quickList.description}
         items={quickList.items}
       />
+
+      {/* Nova Conta a Receber — opens in-place from this client workspace */}
+      <NovaContaReceberModal
+        open={novaContaOpen}
+        onOpenChange={setNovaContaOpen}
+        cliente={{
+          id: cliente.id,
+          tipo: cliente.tipo as "pj" | "pf",
+          nome_completo: cliente.nome_completo,
+          razao_social: cliente.razao_social,
+          nome_fantasia: cliente.nome_fantasia,
+          cnpj: cliente.cnpj,
+          cpf: cliente.cpf,
+        }}
+        preferAsaas={novaContaPreferAsaas}
+      />
     </div>
   );
 }
