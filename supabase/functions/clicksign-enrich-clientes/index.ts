@@ -241,14 +241,14 @@ Responda APENAS com JSON válido (sem markdown, sem comentários) no formato:
     if (!content) return null;
     const parsed = JSON.parse(content);
     return {
-      telefone: parsed.telefone ? onlyDigits(parsed.telefone) : null,
-      cep: parsed.cep ? onlyDigits(parsed.cep) : null,
-      logradouro: parsed.logradouro || null,
-      numero: parsed.numero ? String(parsed.numero) : null,
-      complemento: parsed.complemento || null,
-      bairro: parsed.bairro || null,
-      cidade: parsed.cidade || null,
-      estado: parsed.estado ? String(parsed.estado).toUpperCase().slice(0, 2) : null,
+      telefone: cleanPhone(parsed.telefone),
+      cep: cleanCep(parsed.cep),
+      logradouro: cleanText(parsed.logradouro),
+      numero: cleanText(parsed.numero),
+      complemento: cleanText(parsed.complemento),
+      bairro: cleanText(parsed.bairro),
+      cidade: cleanText(parsed.cidade),
+      estado: cleanUf(parsed.estado),
     };
   } catch (e) {
     console.error("[enrich] extract error:", e);
