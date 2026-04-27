@@ -14,6 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { refreshQueries } from "@/lib/query-refresh";
+import { QSAImportModal, type QsaItem } from "@/components/socios/QSAImportModal";
 
 interface EmpresaForm {
   razao_social: string;
@@ -66,6 +67,9 @@ export function NovaEmpresaModal({ open, onOpenChange, onCreated }: NovaEmpresaM
   const [cnpjStatus, setCnpjStatus] = useState<CnpjStatus>("idle");
   const [cnpjValidated, setCnpjValidated] = useState(false);
   const [step, setStep] = useState<Step>("form");
+  const [qsaList, setQsaList] = useState<QsaItem[]>([]);
+  const [qsaModalOpen, setQsaModalOpen] = useState(false);
+  const [createdEmpresaId, setCreatedEmpresaId] = useState<string | null>(null);
 
   const resetAll = () => {
     setForm(initialForm);
@@ -191,10 +195,14 @@ export function NovaEmpresaModal({ open, onOpenChange, onCreated }: NovaEmpresaM
         cep: data.cep || prev.cep,
       }));
 
+      setQsaList(Array.isArray(data?.qsa) ? data.qsa : []);
       setCnpjStatus("valid");
       setCnpjValidated(true);
+      const qsaCount = Array.isArray(data?.qsa) ? data.qsa.length : 0;
       toast.success("CNPJ ATIVO na Receita Federal", {
-        description: "Dados preenchidos automaticamente.",
+        description: qsaCount > 0
+          ? `Dados preenchidos. ${qsaCount} sócio(s) identificado(s) no QSA.`
+          : "Dados preenchidos automaticamente.",
       });
     } catch {
       setCnpjStatus("error");
@@ -280,7 +288,14 @@ export function NovaEmpresaModal({ open, onOpenChange, onCreated }: NovaEmpresaM
       toast.success("Empresa cadastrada com sucesso!", {
         description: "Já está selecionada e pronta para uso.",
       });
-      handleOpenChange(false);
+
+      // Se houver QSA, abre modal de importação ANTES de fechar; caso contrário, fecha direto
+      if (qsaList.length > 0 && data?.id) {
+        setCreatedEmpresaId(data.id);
+        setQsaModalOpen(true);
+      } else {
+        handleOpenChange(false);
+      }
     } catch (err: any) {
       toast.error(err?.message || "Erro ao cadastrar empresa");
     } finally {
