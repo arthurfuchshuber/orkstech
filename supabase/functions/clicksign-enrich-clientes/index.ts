@@ -79,21 +79,39 @@ async function extractFromPdf(
   }
 
   const base64 = bytesToBase64(pdfBytes);
-  const prompt = `Você está lendo um contrato em PDF. Extraia OS DADOS DO CONTRATANTE (também chamado de CLIENTE, LOCATÁRIO ou SACADO) cujo nome é "${cliente.nome}"${cliente.documento ? ` e CPF/CNPJ "${cliente.documento}"` : ""}.
+  const docFmt = cliente.documento
+    ? cliente.documento.length === 11
+      ? `${cliente.documento.slice(0,3)}.${cliente.documento.slice(3,6)}.${cliente.documento.slice(6,9)}-${cliente.documento.slice(9)}`
+      : `${cliente.documento.slice(0,2)}.${cliente.documento.slice(2,5)}.${cliente.documento.slice(5,8)}/${cliente.documento.slice(8,12)}-${cliente.documento.slice(12)}`
+    : "";
 
-Procure por trechos como "PARTE II – CONTRATANTE", "CONTRATANTE:", "LOCATÁRIO:", etc., associados ao nome acima.
+  const prompt = `Você está analisando um contrato em PDF. LEIA O DOCUMENTO INTEIRO, página por página.
 
-Extraia EXATAMENTE estes campos do CONTRATANTE (NUNCA do CONTRATADO/LOCADOR):
-- telefone (apenas dígitos, ex: 45999200738)
-- cep (apenas dígitos, 8 caracteres)
-- logradouro (rua/avenida + nome, sem número)
-- numero (número do endereço)
-- complemento (apto, sala, bloco; pode ser null)
+OBJETIVO: extrair dados de contato e endereço da pessoa identificada como CONTRATANTE / CLIENTE / LOCATÁRIO / SACADO / COMPRADOR / TOMADOR (nunca do CONTRATADO / LOCADOR / VENDEDOR / PRESTADOR).
+
+ÂNCORAS PARA LOCALIZAR ESTA PESSOA (use a que encontrar primeiro):
+1. CPF/CNPJ: "${docFmt}" ou "${cliente.documento}" (ignore pontuação ao comparar)
+2. Nome: "${cliente.nome}" (ignore acentos, maiúsculas, ordem de sobrenomes; aceite variações)
+
+Procure em TODAS as seções: "PARTE II", "QUALIFICAÇÃO DAS PARTES", "DADOS DO CONTRATANTE", "CONTRATANTE:", "LOCATÁRIO:", "Identificação", anexos, rodapés. Os dados podem estar em parágrafos corridos (ex: "residente à Rua X, nº 123, bairro Y, Cidade/UF, CEP 12345-678, telefone (45) 99999-9999").
+
+EXTRAIA estes campos (retorne null APENAS se realmente não encontrar):
+- telefone: apenas dígitos com DDD (ex: "45999200738"). Aceite celular OU fixo. Pode aparecer como "Tel:", "Telefone:", "Cel:", "Contato:", "WhatsApp:", "Fone:".
+- cep: 8 dígitos sem traço
+- logradouro: nome da rua/avenida SEM número (ex: "Rua das Flores")
+- numero: número do imóvel (ex: "123")
+- complemento: apto/sala/bloco, ou null
 - bairro
-- cidade
-- estado (sigla UF, 2 letras)
+- cidade: apenas o nome (ex: "Curitiba", sem "/PR")
+- estado: sigla UF de 2 letras maiúsculas
 
-Se um campo não estiver no documento, retorne null. Responda APENAS com JSON válido, sem markdown.`;
+REGRAS CRÍTICAS:
+- NÃO invente dados. Se o campo não aparece no PDF, use null.
+- Se houver MÚLTIPLOS contratantes no documento, escolha aquele que bate com o CPF/Nome acima.
+- Se o endereço aparecer só uma vez perto do nome do contratante, use-o mesmo se não houver rótulo "Endereço:".
+
+Responda APENAS com JSON válido (sem markdown, sem comentários) no formato:
+{"telefone":"...","cep":"...","logradouro":"...","numero":"...","complemento":"...","bairro":"...","cidade":"...","estado":"..."}`;
 
   try {
     const res = await fetch(LOVABLE_AI_URL, {
@@ -103,7 +121,7 @@ Se um campo não estiver no documento, retorne null. Responda APENAS com JSON v�
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
+        model: "google/gemini-2.5-pro",
         messages: [
           {
             role: "user",
@@ -206,61 +224,79 @@ Deno.serve(async (req) => {
     let skipped = 0;
     let failed = 0;
 
+    console.log(`[enrich] iniciando — ${clientes.length} cliente(s) | only_missing=${only_missing}`);
+
     for (const c of clientes) {
+      const nome = c.nome_completo || c.razao_social || c.nome_fantasia || "";
       const needsTel = !c.telefone;
       const needsAddr = !c.cep || !c.cidade || !c.logradouro;
       if (only_missing && !needsTel && !needsAddr) {
+        console.log(`[enrich] skip(completo): ${nome}`);
         skipped++;
         continue;
       }
 
-      // Busca documento ClickSign vinculado a este cliente (mais recente, finalizado)
+      // Busca TODOS os documentos ClickSign vinculados (tenta o mais recente primeiro)
       const { data: docs } = await service
         .from("clicksign_documentos")
-        .select("clicksign_document_key, status")
+        .select("clicksign_document_key, status, created_at")
         .eq("user_id", userId)
         .eq("cliente_id", c.id)
         .in("status", ["closed", "auto_closed", "running"])
-        .order("created_at", { ascending: false })
-        .limit(1);
-      const doc = docs?.[0];
-      if (!doc?.clicksign_document_key) {
+        .order("created_at", { ascending: false });
+
+      if (!docs?.length) {
+        console.log(`[enrich] skip(sem doc): ${nome}`);
         skipped++;
         continue;
       }
 
-      const pdf = await fetchSignedPdf(cred as CredRow, doc.clicksign_document_key);
-      if (!pdf) {
-        failed++;
-        continue;
+      const documento = onlyDigits(c.cpf || c.cnpj);
+      let extractedData: ExtractedClienteData | null = null;
+      let usedDocKey: string | null = null;
+
+      // Tenta cada documento até obter dados úteis
+      for (const doc of docs) {
+        if (!doc.clicksign_document_key) continue;
+        const pdf = await fetchSignedPdf(cred as CredRow, doc.clicksign_document_key);
+        if (!pdf) {
+          console.log(`[enrich] pdf indisponível ${doc.clicksign_document_key} (${nome})`);
+          continue;
+        }
+        const result = await extractFromPdf(pdf, { nome, documento });
+        if (result && (result.telefone || result.cep || result.logradouro || result.cidade)) {
+          extractedData = result;
+          usedDocKey = doc.clicksign_document_key;
+          break;
+        }
+        console.log(`[enrich] doc sem dados úteis ${doc.clicksign_document_key} (${nome})`);
       }
 
-      const nome = c.nome_completo || c.razao_social || c.nome_fantasia || "";
-      const documento = onlyDigits(c.cpf || c.cnpj);
-      const data = await extractFromPdf(pdf, { nome, documento });
-      if (!data) {
+      if (!extractedData) {
+        console.log(`[enrich] FAIL: ${nome} (${documento}) — IA não retornou dados em ${docs.length} doc(s)`);
         failed++;
         continue;
       }
 
       const patch: Record<string, any> = {};
-      if (needsTel && data.telefone) patch.telefone = data.telefone;
-      if (!c.cep && data.cep) patch.cep = data.cep;
-      if (!c.logradouro && data.logradouro) patch.logradouro = data.logradouro;
-      if (data.numero) patch.numero = data.numero;
-      if (data.complemento) patch.complemento = data.complemento;
-      if (data.bairro) patch.bairro = data.bairro;
-      if (!c.cidade && data.cidade) patch.cidade = data.cidade;
-      if (!c.estado && data.estado) patch.estado = data.estado;
+      if (needsTel && extractedData.telefone) patch.telefone = extractedData.telefone;
+      if (!c.cep && extractedData.cep) patch.cep = extractedData.cep;
+      if (!c.logradouro && extractedData.logradouro) patch.logradouro = extractedData.logradouro;
+      if (extractedData.numero) patch.numero = extractedData.numero;
+      if (extractedData.complemento) patch.complemento = extractedData.complemento;
+      if (extractedData.bairro) patch.bairro = extractedData.bairro;
+      if (!c.cidade && extractedData.cidade) patch.cidade = extractedData.cidade;
+      if (!c.estado && extractedData.estado) patch.estado = extractedData.estado;
 
       if (Object.keys(patch).length === 0) {
+        console.log(`[enrich] skip(sem patch): ${nome} — IA retornou só dados já existentes`);
         skipped++;
         continue;
       }
 
       const { error: upErr } = await service.from("clientes").update(patch).eq("id", c.id);
       if (upErr) {
-        console.error("[enrich] update error:", upErr);
+        console.error(`[enrich] update error ${nome}:`, upErr);
         failed++;
         continue;
       }
@@ -270,13 +306,15 @@ Deno.serve(async (req) => {
         empresa_id: cred.empresa_id,
         cliente_id: c.id,
         tipo: "clicksign_enrich",
-        descricao: `Dados extraídos automaticamente do contrato assinado: ${Object.keys(patch).join(", ")}`,
+        descricao: `Dados extraídos automaticamente do contrato assinado (${usedDocKey?.slice(0,8)}): ${Object.keys(patch).join(", ")}`,
         usuario_nome: "ClickSign + IA",
       });
 
+      console.log(`[enrich] OK ${nome}: ${Object.keys(patch).join(", ")}`);
       enriched++;
     }
 
+    console.log(`[enrich] fim — enriched=${enriched} skipped=${skipped} failed=${failed}`);
     return new Response(
       JSON.stringify({ enriched, skipped, failed, total: clientes.length }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
