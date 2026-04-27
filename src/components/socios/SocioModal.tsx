@@ -411,5 +411,20 @@ export function SocioModal({ open, onOpenChange, socioId, onSaved }: SocioModalP
         </DialogFooter>
       </DialogContent>
     </Dialog>
+
+    <BancoModal
+      open={bancoModalOpen}
+      onOpenChange={setBancoModalOpen}
+      editingId={bancoEditingId}
+      onSaved={async (id) => {
+        const { data } = await supabase.from("bancos").select("codigo, nome").eq("id", id).maybeSingle();
+        if (data) {
+          const label = data.codigo ? `${data.codigo} - ${data.nome}` : data.nome;
+          set("banco", label);
+        }
+        queryClient.invalidateQueries({ queryKey: ["bancos"] });
+      }}
+    />
+    </>
   );
 }
