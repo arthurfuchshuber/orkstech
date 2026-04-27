@@ -5,6 +5,26 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+function onlyDigits(v: any): string {
+  return String(v ?? "").replace(/\D/g, "");
+}
+
+function normalizeQsa(qsa: any[]): any[] {
+  if (!Array.isArray(qsa)) return [];
+  return qsa.map((s: any) => {
+    const doc = onlyDigits(s.cnpj_cpf_do_socio || s.cpf_cnpj_socio || "");
+    const tipo_pessoa = doc.length === 14 ? "PJ" : "PF";
+    return {
+      nome: String(s.nome_socio || s.nome || "").trim(),
+      documento: doc,
+      tipo_pessoa,
+      qualificacao: String(s.qualificacao_socio || s.codigo_qualificacao_socio || "").trim(),
+      percentual_participacao: Number(s.percentual_capital_social ?? s.percentual_participacao ?? 0) || 0,
+      data_entrada: s.data_entrada_sociedade || null,
+    };
+  }).filter((s) => s.nome && s.documento);
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -12,7 +32,7 @@ serve(async (req) => {
 
   try {
     const { cnpj } = await req.json();
-    const cleanCnpj = cnpj?.replace(/\D/g, "");
+    const cleanCnpj = onlyDigits(cnpj);
 
     if (!cleanCnpj || cleanCnpj.length !== 14) {
       return new Response(
@@ -21,7 +41,6 @@ serve(async (req) => {
       );
     }
 
-    // Query BrasilAPI for CNPJ data
     const response = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${cleanCnpj}`);
 
     if (!response.ok) {
@@ -33,7 +52,6 @@ serve(async (req) => {
 
     const data = await response.json();
 
-    // Check if company is active
     const situacao = (data.descricao_situacao_cadastral || "").toUpperCase();
     if (situacao !== "ATIVA") {
       return new Response(
@@ -45,7 +63,8 @@ serve(async (req) => {
       );
     }
 
-    // Return normalized company data
+    const qsa = normalizeQsa(data.qsa || data.socios || []);
+
     return new Response(
       JSON.stringify({
         razao_social: data.razao_social || "",
@@ -62,6 +81,7 @@ serve(async (req) => {
         estado: data.uf || "",
         cep: (data.cep || "").replace(/\D/g, ""),
         situacao: data.descricao_situacao_cadastral,
+        qsa,
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
