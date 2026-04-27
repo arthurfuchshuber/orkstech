@@ -384,11 +384,10 @@ function IntegrationCard({
     }
   };
 
-  const enrichClicksignClientes = async () => {
-    if (provider !== "clicksign") return;
-    const toastId = "cs-enrich";
+  const enrichClicksignClientes = async (toastId = "cs-enrich", silent = false) => {
+    if (provider !== "clicksign") return { enriched: 0, skipped: 0, failed: 0 };
     try {
-      toast.info("Lendo contratos assinados com IA para extrair telefone e endereço…", { id: toastId });
+      if (!silent) toast.info("Lendo contratos assinados com IA para extrair telefone e endereço…", { id: toastId });
       const { data, error } = await supabase.functions.invoke("clicksign-enrich-clientes", {
         body: { empresa_id: empresaId, only_missing: true },
       });
@@ -396,9 +395,37 @@ function IntegrationCard({
       const en = data?.enriched ?? 0;
       const sk = data?.skipped ?? 0;
       const fl = data?.failed ?? 0;
-      toast.success(`${en} clientes enriquecidos · ${sk} sem dados a atualizar · ${fl} falhas`, { id: toastId });
+      if (!silent) toast.success(`${en} clientes enriquecidos · ${sk} sem dados a atualizar · ${fl} falhas`, { id: toastId });
+      return { enriched: en, skipped: sk, failed: fl };
     } catch (e) {
-      toast.error(`Falha ao enriquecer dados: ${(e as Error).message}`, { id: toastId });
+      if (!silent) toast.error(`Falha ao enriquecer dados: ${(e as Error).message}`, { id: toastId });
+      throw e;
+    }
+  };
+
+  const importContratantesAndEnrich = async () => {
+    if (provider !== "clicksign") return;
+    const toastId = "cs-import-full";
+    try {
+      // Etapa 1: importar contratantes
+      toast.info("Etapa 1/2 · Importando contratantes do ClickSign…", { id: toastId });
+      const { data, error } = await supabase.functions.invoke("clicksign-sync-historico", {
+        body: { empresa_id: empresaId, create_clients: true },
+      });
+      if (error || data?.error) throw new Error(data?.error || error?.message);
+      const created = data?.clients_created ?? 0;
+      const linked = data?.clients_linked_by_cpf_cnpj ?? 0;
+
+      // Etapa 2: enriquecer com IA
+      toast.info(`Etapa 2/2 · ${created} criados, ${linked} vinculados. Lendo contratos com IA…`, { id: toastId });
+      const enrichRes = await enrichClicksignClientes(toastId, true);
+
+      toast.success(
+        `${created} clientes criados · ${linked} vinculados · ${enrichRes.enriched} enriquecidos com telefone/endereço`,
+        { id: toastId, duration: 6000 }
+      );
+    } catch (e) {
+      toast.error(`Falha na importação: ${(e as Error).message}`, { id: toastId });
     }
   };
 
