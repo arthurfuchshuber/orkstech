@@ -440,7 +440,7 @@ Deno.serve(async (req) => {
                     numero: cust?.addressNumber || null,
                     complemento: cust?.complement || null,
                     bairro: cust?.province || null,
-                    cidade: cust?.cityName || (typeof cust?.city === "string" && isNaN(Number(cust?.city)) ? cust?.city : null) || null,
+                    cidade: await resolveCityFromAsaas(cust),
                     estado: cust?.state || null,
                     observacoes: "Importado automaticamente do Asaas",
                   };
