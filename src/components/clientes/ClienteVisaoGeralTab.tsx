@@ -19,6 +19,7 @@ import { ManagedSelectInput, type ManagedOption } from "@/components/inputs/Mana
 import { MultiFileAttachment, type UploadedFile } from "@/components/inputs/MultiFileAttachment";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useEmpresa } from "@/hooks/useEmpresa";
 import { useManagedSelect } from "@/hooks/useManagedSelect";
 import { refreshQueries } from "@/lib/query-refresh";
 import { toast } from "sonner";
@@ -66,6 +67,8 @@ const parseInteracao = (descricao: string) => {
 
 export function ClienteVisaoGeralTab({ cliente, onEdit: _onEdit }: Props) {
   const { user } = useAuth();
+  const { empresa } = useEmpresa();
+  const empresaId = empresa?.id;
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [showForm, setShowForm] = useState(false);
