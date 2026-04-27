@@ -94,6 +94,7 @@ export default function Clientes() {
   const [filterStatus, setFilterStatus] = useState<string[]>([]);
   const [filterTipo, setFilterTipo] = useState<string[]>([]);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
   const [editCliente, setEditCliente] = useState<Tables<"clientes"> | null>(null);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
@@ -255,6 +256,41 @@ export default function Clientes() {
       } else {
         toast.error("Erro ao excluir cliente");
       }
+    },
+  });
+
+  // Bulk delete with link safety check
+  const bulkDeleteMutation = useMutation({
+    mutationFn: async (ids: string[]) => {
+      const { data: linked, error: linkErr } = await supabase
+        .from("accounts_payable")
+        .select("cliente_id")
+        .in("cliente_id", ids);
+      if (linkErr) throw linkErr;
+      const blockedIds = new Set((linked || []).map((r: any) => r.cliente_id).filter(Boolean));
+      const deletable = ids.filter((id) => !blockedIds.has(id));
+      if (deletable.length === 0) throw new Error("ALL_LINKED");
+      const { error } = await supabase.from("clientes").delete().in("id", deletable);
+      if (error) throw error;
+      return { deleted: deletable.length, blocked: blockedIds.size };
+    },
+    onSuccess: async ({ deleted, blocked }) => {
+      await refreshQueries(queryClient, [["clientes"]]);
+      setSelectedIds([]);
+      setBulkDeleteOpen(false);
+      if (blocked > 0) {
+        toast.success(`${deleted} excluído(s). ${blocked} mantido(s) por possuir registros financeiros vinculados.`);
+      } else {
+        toast.success(`${deleted} ${deleted === 1 ? "cliente excluído" : "clientes excluídos"}`);
+      }
+    },
+    onError: (err: any) => {
+      if (err?.message === "ALL_LINKED") {
+        toast.error("Os clientes selecionados possuem registros financeiros vinculados e não podem ser excluídos.");
+      } else {
+        toast.error("Erro ao excluir clientes");
+      }
+      setBulkDeleteOpen(false);
     },
   });
 
@@ -679,10 +715,20 @@ export default function Clientes() {
             </DropdownMenu>
 
             <div className="h-5 w-px bg-border/60" />
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5 rounded-lg text-destructive hover:text-destructive border-destructive/30 hover:bg-destructive/10"
+              onClick={() => setBulkDeleteOpen(true)}
+              disabled={bulkUpdateMutation.isPending || bulkDeleteMutation.isPending}
+            >
+              <Trash2 className="w-3.5 h-3.5" /> Excluir
+            </Button>
+            <div className="h-5 w-px bg-border/60" />
             <Button variant="ghost" size="sm" className="gap-1.5 rounded-lg" onClick={() => setSelectedIds([])}>
               <X className="w-3.5 h-3.5" /> Limpar
             </Button>
-            {bulkUpdateMutation.isPending && <Loader2 className="w-4 h-4 animate-spin text-primary" />}
+            {(bulkUpdateMutation.isPending || bulkDeleteMutation.isPending) && <Loader2 className="w-4 h-4 animate-spin text-primary" />}
           </Card>
         </div>
       )}
@@ -701,6 +747,28 @@ export default function Clientes() {
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Bulk delete confirmation */}
+      <AlertDialog open={bulkDeleteOpen} onOpenChange={setBulkDeleteOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir {selectedIds.length} {selectedIds.length === 1 ? "cliente" : "clientes"}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação é permanente. Clientes com registros financeiros vinculados serão mantidos automaticamente.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={bulkDeleteMutation.isPending}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => { e.preventDefault(); bulkDeleteMutation.mutate(selectedIds); }}
+              disabled={bulkDeleteMutation.isPending}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {bulkDeleteMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Excluir"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
