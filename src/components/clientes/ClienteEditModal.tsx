@@ -154,8 +154,8 @@ export function ClienteEditModal({ cliente, open, onOpenChange }: Props) {
         update.nome_completo = form.nome_completo || null;
         update.cpf = form.cpf.replace(/\D/g, "") || null;
       } else {
-        update.razao_social = form.razao_social ? form.razao_social.toUpperCase() : null;
-        update.nome_fantasia = form.nome_fantasia ? form.nome_fantasia.toUpperCase() : null;
+        update.razao_social = form.razao_social || null;
+        update.nome_fantasia = form.nome_fantasia || null;
         update.cnpj = form.cnpj.replace(/\D/g, "") || null;
         update.inscricao_estadual = form.inscricao_estadual || null;
         update.inscricao_municipal = form.inscricao_municipal || null;
