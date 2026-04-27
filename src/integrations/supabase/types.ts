@@ -1517,6 +1517,7 @@ export type Database = {
           created_at: string
           data_entrada: string | null
           data_nascimento: string | null
+          documento: string | null
           email: string | null
           empresa_id: string
           estado: string | null
@@ -1525,12 +1526,16 @@ export type Database = {
           nome_completo: string
           notas: string | null
           numero: string | null
+          origem: string
           percentual_participacao: number | null
           pix_chave: string | null
           pix_tipo: string | null
+          qualificacao: string | null
           rg: string | null
+          status_socio: string
           telefone: string | null
           tipo_conta: string | null
+          tipo_pessoa: string
           updated_at: string
           user_id: string
         }
@@ -1549,6 +1554,7 @@ export type Database = {
           created_at?: string
           data_entrada?: string | null
           data_nascimento?: string | null
+          documento?: string | null
           email?: string | null
           empresa_id: string
           estado?: string | null
@@ -1557,12 +1563,16 @@ export type Database = {
           nome_completo: string
           notas?: string | null
           numero?: string | null
+          origem?: string
           percentual_participacao?: number | null
           pix_chave?: string | null
           pix_tipo?: string | null
+          qualificacao?: string | null
           rg?: string | null
+          status_socio?: string
           telefone?: string | null
           tipo_conta?: string | null
+          tipo_pessoa?: string
           updated_at?: string
           user_id: string
         }
@@ -1581,6 +1591,7 @@ export type Database = {
           created_at?: string
           data_entrada?: string | null
           data_nascimento?: string | null
+          documento?: string | null
           email?: string | null
           empresa_id?: string
           estado?: string | null
@@ -1589,12 +1600,16 @@ export type Database = {
           nome_completo?: string
           notas?: string | null
           numero?: string | null
+          origem?: string
           percentual_participacao?: number | null
           pix_chave?: string | null
           pix_tipo?: string | null
+          qualificacao?: string | null
           rg?: string | null
+          status_socio?: string
           telefone?: string | null
           tipo_conta?: string | null
+          tipo_pessoa?: string
           updated_at?: string
           user_id?: string
         }
@@ -1621,6 +1636,7 @@ export type Database = {
           id: string
           inscricao_estadual: string | null
           inscricao_municipal: string | null
+          last_qsa_sync_at: string | null
           logradouro: string | null
           nome_fantasia: string | null
           observacoes: string | null
@@ -1641,6 +1657,7 @@ export type Database = {
           id?: string
           inscricao_estadual?: string | null
           inscricao_municipal?: string | null
+          last_qsa_sync_at?: string | null
           logradouro?: string | null
           nome_fantasia?: string | null
           observacoes?: string | null
@@ -1661,6 +1678,7 @@ export type Database = {
           id?: string
           inscricao_estadual?: string | null
           inscricao_municipal?: string | null
+          last_qsa_sync_at?: string | null
           logradouro?: string | null
           nome_fantasia?: string | null
           observacoes?: string | null
