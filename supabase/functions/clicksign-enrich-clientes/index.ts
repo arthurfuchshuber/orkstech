@@ -24,6 +24,96 @@ function onlyDigits(s: string | null | undefined): string {
   return (s || "").replace(/\D/g, "");
 }
 
+function normalize(s: string | null | undefined): string {
+  return (s || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9 ]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function cleanText(value: unknown): string | null {
+  const text = String(value ?? "").trim();
+  if (!text) return null;
+  const n = normalize(text);
+  if (["null", "undefined", "na", "n a", "nu", "nil", "none", "sem", "s n", "sn", "nao informado"].includes(n)) return null;
+  return text;
+}
+
+function cleanUf(value: unknown): string | null {
+  const text = cleanText(value)?.toUpperCase().replace(/[^A-Z]/g, "") || "";
+  const valid = new Set(["AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO", "MA", "MT", "MS", "MG", "PA", "PB", "PR", "PE", "PI", "RJ", "RN", "RS", "RO", "RR", "SC", "SP", "SE", "TO"]);
+  return valid.has(text) ? text : null;
+}
+
+function hasMissing(value: unknown): boolean {
+  return !cleanText(value);
+}
+
+function cleanPhone(value: unknown): string | null {
+  const digits = onlyDigits(String(value ?? ""));
+  return digits.length >= 10 && digits.length <= 11 ? digits : null;
+}
+
+function cleanCep(value: unknown): string | null {
+  const digits = onlyDigits(String(value ?? ""));
+  return digits.length === 8 ? digits : null;
+}
+
+function getNested(obj: any, paths: string[]): any {
+  for (const path of paths) {
+    const value = path.split(".").reduce((acc, key) => acc?.[key], obj);
+    if (value !== undefined && value !== null && value !== "") return value;
+  }
+  return null;
+}
+
+function signerMatchesCliente(signer: any, cliente: { nome: string; documento: string }): boolean {
+  const signerDoc = onlyDigits(signer?.documentation || signer?.cpf || signer?.cnpj || signer?.document || signer?.document_number);
+  if (cliente.documento && signerDoc === cliente.documento) return true;
+  const signerName = normalize(signer?.name || signer?.nome);
+  const clienteName = normalize(cliente.nome);
+  if (!signerName || !clienteName) return false;
+  if (signerName === clienteName) return true;
+  const words = clienteName.split(" ").filter((w) => w.length > 2);
+  return words.length >= 2 && words.slice(0, 2).every((w) => signerName.includes(w));
+}
+
+function extractFromSigner(signers: any[] | null | undefined, cliente: { nome: string; documento: string }): Partial<ExtractedClienteData> {
+  const signer = (signers || []).find((s) => signerMatchesCliente(s, cliente));
+  if (!signer) return {};
+  return {
+    telefone: cleanPhone(getNested(signer, ["phone_number", "phone", "phoneNumber", "cellphone", "mobile", "whatsapp", "contact.phone_number", "contact.phone"])),
+    cep: cleanCep(getNested(signer, ["address.zipcode", "address.zip_code", "address.postal_code", "cep", "zipcode", "zip_code"])),
+    logradouro: cleanText(getNested(signer, ["address.street", "address.address", "address.logradouro", "logradouro", "street"])),
+    numero: cleanText(getNested(signer, ["address.number", "numero", "number"])),
+    complemento: cleanText(getNested(signer, ["address.complement", "address.complemento", "complemento", "complement"])),
+    bairro: cleanText(getNested(signer, ["address.neighborhood", "address.bairro", "bairro", "neighborhood"])),
+    cidade: cleanText(getNested(signer, ["address.city", "address.cidade", "cidade", "city"])),
+    estado: cleanUf(getNested(signer, ["address.state", "address.estado", "estado", "state"])),
+  };
+}
+
+async function fetchAddressByCep(cep: string): Promise<Partial<ExtractedClienteData>> {
+  try {
+    const res = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
+    if (!res.ok) return {};
+    const data = await res.json();
+    if (data?.erro) return {};
+    return {
+      cep,
+      logradouro: cleanText(data.logradouro),
+      bairro: cleanText(data.bairro),
+      cidade: cleanText(data.localidade),
+      estado: cleanUf(data.uf),
+    };
+  } catch {
+    return {};
+  }
+}
+
 async function csFetch(cred: CredRow, path: string) {
   const base = cred.ambiente === "sandbox" ? CS_SANDBOX : CS_BASE;
   const sep = path.includes("?") ? "&" : "?";
@@ -152,14 +242,14 @@ Responda APENAS com JSON válido (sem markdown, sem comentários) no formato:
     if (!content) return null;
     const parsed = JSON.parse(content);
     return {
-      telefone: parsed.telefone ? onlyDigits(parsed.telefone) : null,
-      cep: parsed.cep ? onlyDigits(parsed.cep) : null,
-      logradouro: parsed.logradouro || null,
-      numero: parsed.numero ? String(parsed.numero) : null,
-      complemento: parsed.complemento || null,
-      bairro: parsed.bairro || null,
-      cidade: parsed.cidade || null,
-      estado: parsed.estado ? String(parsed.estado).toUpperCase().slice(0, 2) : null,
+      telefone: cleanPhone(parsed.telefone),
+      cep: cleanCep(parsed.cep),
+      logradouro: cleanText(parsed.logradouro),
+      numero: cleanText(parsed.numero),
+      complemento: cleanText(parsed.complemento),
+      bairro: cleanText(parsed.bairro),
+      cidade: cleanText(parsed.cidade),
+      estado: cleanUf(parsed.estado),
     };
   } catch (e) {
     console.error("[enrich] extract error:", e);
@@ -213,7 +303,7 @@ Deno.serve(async (req) => {
     // Seleciona clientes a enriquecer
     let cliQ = service
       .from("clientes")
-      .select("id, nome_completo, razao_social, nome_fantasia, cpf, cnpj, telefone, cep, logradouro, cidade, estado")
+      .select("id, nome_completo, razao_social, nome_fantasia, cpf, cnpj, telefone, cep, logradouro, numero, complemento, bairro, cidade, estado")
       .eq("user_id", userId);
     if (empresa_id) cliQ = cliQ.eq("empresa_id", empresa_id);
     if (cliente_id) cliQ = cliQ.eq("id", cliente_id);
@@ -233,8 +323,8 @@ Deno.serve(async (req) => {
     // Processa um único cliente (extrair + atualizar). Retorna 'enriched' | 'skipped' | 'failed'
     const processCliente = async (c: any): Promise<"enriched" | "skipped" | "failed"> => {
       const nome = c.nome_completo || c.razao_social || c.nome_fantasia || "";
-      const needsTel = !c.telefone;
-      const needsAddr = !c.cep || !c.cidade || !c.logradouro;
+      const needsTel = !cleanPhone(c.telefone);
+      const needsAddr = hasMissing(c.cep) || hasMissing(c.cidade) || hasMissing(c.logradouro) || !cleanUf(c.estado);
       if (only_missing && !needsTel && !needsAddr) {
         console.log(`[enrich] skip(completo): ${nome}`);
         return "skipped";
@@ -242,7 +332,7 @@ Deno.serve(async (req) => {
 
       const { data: docs } = await service
         .from("clicksign_documentos")
-        .select("clicksign_document_key, status, created_at")
+        .select("clicksign_document_key, status, created_at, signatarios")
         .eq("user_id", userId)
         .eq("cliente_id", c.id)
         .in("status", ["closed", "auto_closed", "running"])
@@ -259,12 +349,24 @@ Deno.serve(async (req) => {
       let usedDocKey: string | null = null;
 
       for (const doc of docs) {
+        const signerData = extractFromSigner(doc.signatarios, { nome, documento });
         if (!doc.clicksign_document_key) continue;
         const pdf = await fetchSignedPdf(cred as CredRow, doc.clicksign_document_key);
-        if (!pdf) continue;
-        const result = await extractFromPdf(pdf, { nome, documento });
-        if (result && (result.telefone || result.cep || result.logradouro || result.cidade)) {
-          extractedData = result;
+        const result = pdf ? await extractFromPdf(pdf, { nome, documento }) : null;
+        const cepBase = result?.cep || signerData.cep;
+        const viaCepData = cepBase ? await fetchAddressByCep(cepBase) : {};
+        const merged: ExtractedClienteData = {
+          telefone: signerData.telefone || result?.telefone || null,
+          cep: signerData.cep || result?.cep || viaCepData.cep || null,
+          logradouro: viaCepData.logradouro || signerData.logradouro || result?.logradouro || null,
+          numero: signerData.numero || result?.numero || null,
+          complemento: signerData.complemento || result?.complemento || null,
+          bairro: viaCepData.bairro || signerData.bairro || result?.bairro || null,
+          cidade: viaCepData.cidade || signerData.cidade || result?.cidade || null,
+          estado: viaCepData.estado || signerData.estado || result?.estado || null,
+        };
+        if (merged.telefone || merged.cep || merged.logradouro || merged.cidade || merged.estado) {
+          extractedData = merged;
           usedDocKey = doc.clicksign_document_key;
           break;
         }
@@ -277,13 +379,13 @@ Deno.serve(async (req) => {
 
       const patch: Record<string, any> = {};
       if (needsTel && extractedData.telefone) patch.telefone = extractedData.telefone;
-      if (!c.cep && extractedData.cep) patch.cep = extractedData.cep;
-      if (!c.logradouro && extractedData.logradouro) patch.logradouro = extractedData.logradouro;
-      if (extractedData.numero) patch.numero = extractedData.numero;
-      if (extractedData.complemento) patch.complemento = extractedData.complemento;
-      if (extractedData.bairro) patch.bairro = extractedData.bairro;
-      if (!c.cidade && extractedData.cidade) patch.cidade = extractedData.cidade;
-      if (!c.estado && extractedData.estado) patch.estado = extractedData.estado;
+      if (hasMissing(c.cep) && extractedData.cep) patch.cep = extractedData.cep;
+      if (hasMissing(c.logradouro) && extractedData.logradouro) patch.logradouro = extractedData.logradouro;
+      if (hasMissing(c.numero) && extractedData.numero) patch.numero = extractedData.numero;
+      if (hasMissing(c.complemento) && extractedData.complemento) patch.complemento = extractedData.complemento;
+      if (hasMissing(c.bairro) && extractedData.bairro) patch.bairro = extractedData.bairro;
+      if (hasMissing(c.cidade) && extractedData.cidade) patch.cidade = extractedData.cidade;
+      if (!cleanUf(c.estado) && extractedData.estado) patch.estado = extractedData.estado;
 
       if (Object.keys(patch).length === 0) return "skipped";
 
