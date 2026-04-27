@@ -8,12 +8,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { DocumentInput, PhoneInput, CepInput, DateInput, PercentInput } from "@/components/inputs";
+import { ManagedSelectInput } from "@/components/inputs/ManagedSelectInput";
+import { BancoModal } from "@/components/modals/BancoModal";
+import { useManagedSelect } from "@/hooks/useManagedSelect";
 import { useEmpresa } from "@/hooks/useEmpresa";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { refreshQueries } from "@/lib/query-refresh";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 interface SocioModalProps {
   open: boolean;
