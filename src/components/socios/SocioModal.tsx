@@ -8,12 +8,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { DocumentInput, PhoneInput, CepInput, DateInput, PercentInput } from "@/components/inputs";
+import { ManagedSelectInput } from "@/components/inputs/ManagedSelectInput";
+import { BancoModal } from "@/components/modals/BancoModal";
+import { useManagedSelect } from "@/hooks/useManagedSelect";
 import { useEmpresa } from "@/hooks/useEmpresa";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { refreshQueries } from "@/lib/query-refresh";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 interface SocioModalProps {
   open: boolean;
@@ -61,6 +64,31 @@ export function SocioModal({ open, onOpenChange, socioId, onSaved }: SocioModalP
   const queryClient = useQueryClient();
   const [form, setForm] = useState<SocioForm>(initial);
   const [saving, setSaving] = useState(false);
+  const [bancoModalOpen, setBancoModalOpen] = useState(false);
+  const [bancoEditingId, setBancoEditingId] = useState<string | null>(null);
+  const bancosCrud = useManagedSelect("bancos");
+
+  useEffect(() => {
+    if (user && open) {
+      supabase.rpc("seed_default_bancos", { p_user_id: user.id }).then(() => {
+        queryClient.invalidateQueries({ queryKey: ["bancos"] });
+      });
+    }
+  }, [user, open]);
+
+  const { data: bancos = [] } = useQuery({
+    queryKey: ["bancos"],
+    queryFn: async () => {
+      const { data } = await supabase.from("bancos").select("id, codigo, nome").eq("ativo", true).order("ordem");
+      return data ?? [];
+    },
+    enabled: !!user,
+  });
+
+  const bancoOptions = (bancos as any[]).map((b) => ({
+    value: b.codigo ? `${b.codigo} - ${b.nome}` : b.nome,
+    label: b.codigo ? `${b.codigo} - ${b.nome}` : b.nome,
+  }));
 
   const set = <K extends keyof SocioForm>(k: K, v: SocioForm[K]) => setForm((p) => ({ ...p, [k]: v }));
 
@@ -167,6 +195,7 @@ export function SocioModal({ open, onOpenChange, socioId, onSaved }: SocioModalP
   };
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[88vh] overflow-y-auto">
         <DialogHeader>
@@ -313,10 +342,18 @@ export function SocioModal({ open, onOpenChange, socioId, onSaved }: SocioModalP
           {/* Dados Bancários */}
           <SectionTitle icon={Landmark} label="Dados Bancários" />
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <FieldLabel>Banco</FieldLabel>
-              <Input value={form.banco} maxLength={60} onChange={(e) => set("banco", e.target.value)} className="h-9 text-sm" />
-            </div>
+            <ManagedSelectInput
+              label="Banco"
+              value={form.banco}
+              onValueChange={(v) => set("banco", v)}
+              options={bancoOptions}
+              placeholder="Selecione o banco..."
+              onAddModal={() => { setBancoEditingId(null); setBancoModalOpen(true); }}
+              onEditModal={(id) => { setBancoEditingId(id); setBancoModalOpen(true); }}
+              onDelete={bancosCrud.onDelete}
+              onReorder={bancosCrud.onReorder}
+              addLabel="Novo banco"
+            />
             <div>
               <FieldLabel>Tipo de Conta</FieldLabel>
               <Select value={form.tipo_conta || undefined} onValueChange={(v) => set("tipo_conta", v)}>
@@ -375,5 +412,20 @@ export function SocioModal({ open, onOpenChange, socioId, onSaved }: SocioModalP
         </DialogFooter>
       </DialogContent>
     </Dialog>
+
+    <BancoModal
+      open={bancoModalOpen}
+      onOpenChange={setBancoModalOpen}
+      editingId={bancoEditingId}
+      onSaved={async (id) => {
+        const { data } = await supabase.from("bancos").select("codigo, nome").eq("id", id).maybeSingle();
+        if (data) {
+          const label = data.codigo ? `${data.codigo} - ${data.nome}` : data.nome;
+          set("banco", label);
+        }
+        queryClient.invalidateQueries({ queryKey: ["bancos"] });
+      }}
+    />
+    </>
   );
 }
