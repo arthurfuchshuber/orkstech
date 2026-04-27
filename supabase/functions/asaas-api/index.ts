@@ -471,11 +471,11 @@ Deno.serve(async (req) => {
                   };
                   if (isPF) {
                     insertCliente.cpf = doc;
-                    insertCliente.nome_completo = nome.toUpperCase();
+                    insertCliente.nome_completo = nome;
                   } else {
                     insertCliente.cnpj = doc;
-                    insertCliente.razao_social = nome.toUpperCase();
-                    insertCliente.nome_fantasia = nome.toUpperCase();
+                    insertCliente.razao_social = nome;
+                    insertCliente.nome_fantasia = nome;
                   }
                   const { data: newCli, error: cliErr } = await serviceClient
                     .from("clientes")
