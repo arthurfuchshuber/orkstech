@@ -324,7 +324,6 @@ export function ClienteModal({ open, onOpenChange, editingId, onSaved, prefill }
           value={form.nome}
           onChange={(e) => update("nome", e.target.value)}
           error={errors.nome}
-          className={form.type === "empresa" ? "uppercase" : ""}
         />
 
         <ManagedSelectInput
