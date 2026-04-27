@@ -465,7 +465,7 @@ Deno.serve(async (req) => {
                     numero: cust?.addressNumber || null,
                     complemento: cust?.complement || null,
                     bairro: cust?.province || null,
-                    cidade: await resolveCityFromAsaas(cust),
+                    cidade: await resolveCityFromAsaas(cred, cust),
                     estado: cust?.state || null,
                     observacoes: "Importado automaticamente do Asaas",
                   };
