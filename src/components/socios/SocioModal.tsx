@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
-import { Users, User, MapPin, Landmark, Briefcase } from "lucide-react";
+import { Users, User, MapPin, Landmark, Briefcase, Building2, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
 import { DocumentInput, PhoneInput, CepInput, DateInput, PercentInput } from "@/components/inputs";
 import { useEmpresa } from "@/hooks/useEmpresa";
 import { useAuth } from "@/hooks/useAuth";
@@ -22,6 +23,7 @@ interface SocioModalProps {
 }
 
 interface SocioForm {
+  tipo_pessoa: "PF" | "PJ"; documento: string; origem: "manual" | "receita_federal"; qualificacao: string;
   nome_completo: string; cpf: string; rg: string; data_nascimento?: Date;
   email: string; telefone: string;
   cargo: string; percentual_participacao: number; data_entrada?: Date; administrador: boolean;
@@ -32,6 +34,7 @@ interface SocioForm {
 }
 
 const initial: SocioForm = {
+  tipo_pessoa: "PF", documento: "", origem: "manual", qualificacao: "",
   nome_completo: "", cpf: "", rg: "", data_nascimento: undefined,
   email: "", telefone: "",
   cargo: "", percentual_participacao: 0, data_entrada: undefined, administrador: false,
@@ -68,6 +71,10 @@ export function SocioModal({ open, onOpenChange, socioId, onSaved }: SocioModalP
       const { data, error } = await supabase.from("empresa_socios").select("*").eq("id", socioId).maybeSingle();
       if (error || !data) { toast.error("Não foi possível carregar o sócio"); return; }
       setForm({
+        tipo_pessoa: (data.tipo_pessoa as "PF" | "PJ") ?? "PF",
+        documento: data.documento ?? data.cpf ?? "",
+        origem: (data.origem as "manual" | "receita_federal") ?? "manual",
+        qualificacao: data.qualificacao ?? "",
         nome_completo: data.nome_completo ?? "", cpf: data.cpf ?? "", rg: data.rg ?? "",
         data_nascimento: data.data_nascimento ? new Date(data.data_nascimento + "T00:00:00") : undefined,
         email: data.email ?? "", telefone: data.telefone ?? "",
@@ -95,10 +102,16 @@ export function SocioModal({ open, onOpenChange, socioId, onSaved }: SocioModalP
     if (!empresa?.id || !user?.id) { toast.error("Empresa não selecionada"); return; }
     setSaving(true);
     try {
+      const docDigits = (form.documento || form.cpf || "").replace(/\D/g, "");
       const payload: any = {
         empresa_id: empresa.id, user_id: user.id,
+        tipo_pessoa: form.tipo_pessoa,
+        documento: docDigits || null,
+        qualificacao: form.qualificacao || null,
+        origem: form.origem,
         nome_completo: form.nome_completo.trim(),
-        cpf: form.cpf || null, rg: form.rg || null,
+        cpf: form.tipo_pessoa === "PF" ? (docDigits || form.cpf || null) : null,
+        rg: form.rg || null,
         data_nascimento: form.data_nascimento ? form.data_nascimento.toISOString().slice(0, 10) : null,
         email: form.email || null, telefone: form.telefone || null,
         cargo: form.cargo || null, percentual_participacao: form.percentual_participacao || 0,
@@ -133,25 +146,62 @@ export function SocioModal({ open, onOpenChange, socioId, onSaved }: SocioModalP
       <DialogContent className="max-w-2xl max-h-[88vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-lg">
-            <Users className="h-5 w-5 text-primary" />
+          <Users className="h-5 w-5 text-primary" />
             {socioId ? "Editar Sócio" : "Novo Sócio"}
+            {form.origem === "receita_federal" && (
+              <Badge variant="outline" className="gap-1 text-[10px] border-primary/30 text-primary bg-primary/5">
+                <ShieldCheck className="h-3 w-3" /> Receita Federal
+              </Badge>
+            )}
           </DialogTitle>
         </DialogHeader>
 
         <div className="space-y-5 py-2">
+          {/* Tipo de Pessoa */}
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={() => set("tipo_pessoa", "PF")}
+              className={`flex items-center justify-center gap-2 rounded-lg border px-4 py-2.5 text-sm transition-colors ${form.tipo_pessoa === "PF" ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground hover:bg-muted/30"}`}
+            >
+              <User className="h-4 w-4" /> Pessoa Física
+            </button>
+            <button
+              type="button"
+              onClick={() => set("tipo_pessoa", "PJ")}
+              className={`flex items-center justify-center gap-2 rounded-lg border px-4 py-2.5 text-sm transition-colors ${form.tipo_pessoa === "PJ" ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground hover:bg-muted/30"}`}
+            >
+              <Building2 className="h-4 w-4" /> Pessoa Jurídica
+            </button>
+          </div>
+
           {/* Dados Pessoais */}
-          <SectionTitle icon={User} label="Dados Pessoais" />
+          <SectionTitle icon={form.tipo_pessoa === "PJ" ? Building2 : User} label={form.tipo_pessoa === "PJ" ? "Dados da Empresa Sócia" : "Dados Pessoais"} />
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="md:col-span-2">
-              <FieldLabel>Nome completo *</FieldLabel>
+              <FieldLabel>{form.tipo_pessoa === "PJ" ? "Razão Social *" : "Nome completo *"}</FieldLabel>
               <Input value={form.nome_completo} maxLength={60} onChange={(e) => set("nome_completo", e.target.value)} className="h-9 text-sm" />
             </div>
-            <DocumentInput type="cpf" value={form.cpf} onValueChange={(v) => set("cpf", v)} label="CPF" />
-            <div>
-              <FieldLabel>RG</FieldLabel>
-              <Input value={form.rg} maxLength={20} onChange={(e) => set("rg", e.target.value)} className="h-9 text-sm" />
-            </div>
-            <DateInput label="Data de Nascimento" value={form.data_nascimento} onValueChange={(d) => set("data_nascimento", d)} />
+            <DocumentInput
+              type={form.tipo_pessoa === "PJ" ? "cnpj" : "cpf"}
+              value={form.documento}
+              onValueChange={(v) => set("documento", v)}
+              label={form.tipo_pessoa === "PJ" ? "CNPJ" : "CPF"}
+            />
+            {form.tipo_pessoa === "PF" ? (
+              <div>
+                <FieldLabel>RG</FieldLabel>
+                <Input value={form.rg} maxLength={20} onChange={(e) => set("rg", e.target.value)} className="h-9 text-sm" />
+              </div>
+            ) : (
+              <div>
+                <FieldLabel>Qualificação (Receita)</FieldLabel>
+                <Input value={form.qualificacao} maxLength={60} onChange={(e) => set("qualificacao", e.target.value)} className="h-9 text-sm" />
+              </div>
+            )}
+            {form.tipo_pessoa === "PF" && (
+              <DateInput label="Data de Nascimento" value={form.data_nascimento} onValueChange={(d) => set("data_nascimento", d)} />
+            )}
             <div>
               <FieldLabel>E-mail</FieldLabel>
               <Input type="email" value={form.email} maxLength={60} onChange={(e) => set("email", e.target.value)} className="h-9 text-sm" />

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Users, Plus, Pencil, Trash2, Crown } from "lucide-react";
+import { Users, Plus, Pencil, Trash2, Crown, RefreshCw, Loader2, ShieldCheck, Building2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -12,12 +12,15 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { SocioModal } from "./SocioModal";
+import { QSAImportModal } from "./QSAImportModal";
 
-function formatCpf(cpf?: string | null) {
-  if (!cpf) return "—";
-  const d = cpf.replace(/\D/g, "");
-  if (d.length !== 11) return cpf;
-  return d.replace(/^(\d{3})(\d{3})(\d{3})(\d{2})$/, "$1.$2.$3-$4");
+function formatDoc(doc?: string | null, tipo?: string | null) {
+  if (!doc) return "—";
+  const d = doc.replace(/\D/g, "");
+  if ((tipo === "PJ" || d.length === 14) && d.length === 14)
+    return d.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, "$1.$2.$3/$4-$5");
+  if (d.length === 11) return d.replace(/^(\d{3})(\d{3})(\d{3})(\d{2})$/, "$1.$2.$3-$4");
+  return doc;
 }
 
 function formatPhone(p?: string | null) {
@@ -34,6 +37,8 @@ export function SociosSection() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [qsaModalOpen, setQsaModalOpen] = useState(false);
+  const [syncing, setSyncing] = useState(false);
 
   const { data: socios = [], isLoading } = useQuery({
     queryKey: ["empresa_socios", empresa?.id],
@@ -50,13 +55,38 @@ export function SociosSection() {
     enabled: !!empresa?.id,
   });
 
-  const totalParticipacao = socios.reduce(
+  const sociosAtivos = socios.filter((s: any) => s.status_socio !== "inativo" && s.ativo !== false);
+  const totalParticipacao = sociosAtivos.reduce(
     (acc: number, s: any) => acc + (Number(s.percentual_participacao) || 0),
     0
   );
 
   const openNew = () => { setEditingId(null); setModalOpen(true); };
   const openEdit = (id: string) => { setEditingId(id); setModalOpen(true); };
+
+  const handleSyncReceita = async () => {
+    if (!empresa?.id) return;
+    setSyncing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("sync-qsa-empresas", {
+        body: { empresa_id: empresa.id },
+      });
+      if (error) throw error;
+      const r = data?.results?.[0];
+      if (r?.skipped) {
+        toast.error("Não foi possível sincronizar com a Receita Federal");
+      } else {
+        toast.success("Quadro Societário sincronizado", {
+          description: `${r?.created || 0} novo(s), ${r?.updated || 0} atualizado(s), ${r?.deactivated || 0} inativado(s).`,
+        });
+      }
+      await queryClient.invalidateQueries({ queryKey: ["empresa_socios"] });
+    } catch (e: any) {
+      toast.error(e?.message || "Falha na sincronização");
+    } finally {
+      setSyncing(false);
+    }
+  };
 
   const handleDelete = async () => {
     if (!deleteId) return;
@@ -82,12 +112,19 @@ export function SociosSection() {
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-3">
-            {socios.length > 0 && (
+          <div className="flex items-center gap-2 flex-wrap">
+            {sociosAtivos.length > 0 && (
               <Badge variant={Math.abs(totalParticipacao - 100) < 0.01 ? "default" : "outline"}>
                 Total: {totalParticipacao.toFixed(2)}%
               </Badge>
             )}
+            <Button size="sm" variant="outline" onClick={() => setQsaModalOpen(true)} className="gap-1.5">
+              <ShieldCheck className="h-3.5 w-3.5" /> Importar da Receita
+            </Button>
+            <Button size="sm" variant="ghost" onClick={handleSyncReceita} disabled={syncing} className="gap-1.5">
+              {syncing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
+              Sincronizar
+            </Button>
             <Button size="sm" onClick={openNew} className="gap-1.5">
               <Plus className="h-3.5 w-3.5" /> Novo Sócio
             </Button>
@@ -110,22 +147,36 @@ export function SociosSection() {
                 className="flex items-center gap-3 px-4 py-3 rounded-lg border bg-card/50 hover:bg-card transition-colors"
               >
                 <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                  <span className="text-sm font-semibold text-primary">
-                    {s.nome_completo?.charAt(0)?.toUpperCase() ?? "?"}
-                  </span>
+                  {s.tipo_pessoa === "PJ" ? (
+                    <Building2 className="h-4 w-4 text-primary" />
+                  ) : (
+                    <span className="text-sm font-semibold text-primary">
+                      {s.nome_completo?.charAt(0)?.toUpperCase() ?? "?"}
+                    </span>
+                  )}
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
                     <p className="text-sm font-medium truncate">{s.nome_completo}</p>
+                    {s.tipo_pessoa === "PJ" && (
+                      <Badge variant="outline" className="h-5 text-[10px]">PJ</Badge>
+                    )}
+                    {s.origem === "receita_federal" && (
+                      <Badge variant="outline" className="gap-1 h-5 text-[10px] border-primary/30 text-primary bg-primary/5">
+                        <ShieldCheck className="h-3 w-3" /> Receita
+                      </Badge>
+                    )}
                     {s.administrador && (
                       <Badge variant="secondary" className="gap-1 h-5 text-[10px]">
                         <Crown className="h-3 w-3" /> Administrador
                       </Badge>
                     )}
-                    {!s.ativo && <Badge variant="outline" className="h-5 text-[10px]">Inativo</Badge>}
+                    {(s.status_socio === "inativo" || s.ativo === false) && (
+                      <Badge variant="outline" className="h-5 text-[10px]">Inativo</Badge>
+                    )}
                   </div>
                   <p className="text-xs text-muted-foreground truncate">
-                    {s.cargo || "Sócio"} • CPF {formatCpf(s.cpf)} • {formatPhone(s.telefone)}
+                    {s.cargo || s.qualificacao || "Sócio"} • {s.tipo_pessoa === "PJ" ? "CNPJ" : "CPF"} {formatDoc(s.documento || s.cpf, s.tipo_pessoa)} • {formatPhone(s.telefone)}
                   </p>
                 </div>
                 <div className="text-right shrink-0">
@@ -157,6 +208,12 @@ export function SociosSection() {
         open={modalOpen}
         onOpenChange={setModalOpen}
         socioId={editingId}
+      />
+
+      <QSAImportModal
+        open={qsaModalOpen}
+        onOpenChange={setQsaModalOpen}
+        empresaId={empresa.id}
       />
 
       <AlertDialog open={!!deleteId} onOpenChange={(v) => !v && setDeleteId(null)}>
