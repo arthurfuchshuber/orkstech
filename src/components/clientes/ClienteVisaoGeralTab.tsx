@@ -85,6 +85,24 @@ export function ClienteVisaoGeralTab({ cliente, onEdit: _onEdit }: Props) {
   const [novaContaOpen, setNovaContaOpen] = useState(false);
   const [novaContaPreferAsaas, setNovaContaPreferAsaas] = useState(false);
 
+  // Asaas integration availability — controls visibility of "Via Asaas" option
+  const { data: asaasCred } = useQuery({
+    queryKey: ["asaas-cred-receber", empresaId],
+    queryFn: async () => {
+      if (!empresaId) return null;
+      const { data } = await supabase
+        .from("integracoes_credenciais")
+        .select("id, ativo")
+        .eq("empresa_id", empresaId)
+        .eq("provider", "asaas")
+        .eq("ativo", true)
+        .maybeSingle();
+      return data;
+    },
+    enabled: !!empresaId,
+  });
+  const asaasEnabled = !!asaasCred;
+
   // Fetch tipos from DB
   const { data: tipos = [], isLoading: tiposLoading } = useQuery({
     queryKey: ["cliente-interacao-tipos"],
@@ -740,19 +758,21 @@ export function ClienteVisaoGeralTab({ cliente, onEdit: _onEdit }: Props) {
                   <span className="text-[11px] text-muted-foreground">Lançamento interno simples</span>
                 </div>
               </DropdownMenuItem>
-              <DropdownMenuItem
-                className="gap-2 cursor-pointer"
-                onClick={() => {
-                  setNovaContaPreferAsaas(true);
-                  setNovaContaOpen(true);
-                }}
-              >
-                <Zap className="w-4 h-4 text-primary" />
-                <div className="flex flex-col">
-                  <span className="text-sm font-medium">Via Asaas (Boleto / PIX / Cartão)</span>
-                  <span className="text-[11px] text-muted-foreground">Gera cobrança e envia ao cliente</span>
-                </div>
-              </DropdownMenuItem>
+              {asaasEnabled && (
+                <DropdownMenuItem
+                  className="gap-2 cursor-pointer"
+                  onClick={() => {
+                    setNovaContaPreferAsaas(true);
+                    setNovaContaOpen(true);
+                  }}
+                >
+                  <Zap className="w-4 h-4 text-primary" />
+                  <div className="flex flex-col">
+                    <span className="text-sm font-medium">Via Asaas</span>
+                    <span className="text-[11px] text-muted-foreground">Gera cobrança e envia ao cliente</span>
+                  </div>
+                </DropdownMenuItem>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
