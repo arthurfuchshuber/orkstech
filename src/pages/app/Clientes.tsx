@@ -245,6 +245,18 @@ export default function Clientes() {
       const { error } = await supabase.from("clientes").delete().eq("id", id);
       if (error) throw error;
     },
+    onSuccess: async () => {
+      await refreshQueries(queryClient, [["clientes"]]);
+      toast.success("Cliente excluído");
+    },
+    onError: (err: any) => {
+      if (err?.message === "LINKED") {
+        toast.error("Este cliente possui registros financeiros vinculados e não pode ser excluído.");
+      } else {
+        toast.error("Erro ao excluir cliente");
+      }
+    },
+  });
 
   // Bulk delete with link safety check
   const bulkDeleteMutation = useMutation({
@@ -264,6 +276,7 @@ export default function Clientes() {
     onSuccess: async ({ deleted, blocked }) => {
       await refreshQueries(queryClient, [["clientes"]]);
       setSelectedIds([]);
+      setBulkDeleteOpen(false);
       if (blocked > 0) {
         toast.success(`${deleted} excluído(s). ${blocked} mantido(s) por possuir registros financeiros vinculados.`);
       } else {
@@ -276,18 +289,7 @@ export default function Clientes() {
       } else {
         toast.error("Erro ao excluir clientes");
       }
-    },
-  });
-    onSuccess: async () => {
-      await refreshQueries(queryClient, [["clientes"]]);
-      toast.success("Cliente excluído");
-    },
-    onError: (err: any) => {
-      if (err?.message === "LINKED") {
-        toast.error("Este cliente possui registros financeiros vinculados e não pode ser excluído.");
-      } else {
-        toast.error("Erro ao excluir cliente");
-      }
+      setBulkDeleteOpen(false);
     },
   });
 
