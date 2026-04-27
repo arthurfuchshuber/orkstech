@@ -39,31 +39,56 @@ function onlyDigits(v?: string | null) {
   return (v || "").replace(/\D/g, "");
 }
 
-// Cache em memória do worker para códigos IBGE -> nome do município
-const ibgeCache = new Map<string, string | null>();
+// Cache em memória do worker: chave = `${ambiente}:${id}`
+const cityCache = new Map<string, string | null>();
 
-async function resolveCityFromAsaas(cust: any): Promise<string | null> {
+// Resolve cidade a partir do customer Asaas.
+// O campo `city` pode ser: (a) nome textual, (b) código IBGE de 7 dígitos, (c) ID interno do Asaas.
+// Estratégia: prioriza cityName; se vier numérico tenta /cities/{id} no Asaas; se falhar, tenta BrasilAPI IBGE.
+async function resolveCityFromAsaas(cred: CredRow, cust: any): Promise<string | null> {
   if (cust?.cityName && typeof cust.cityName === "string" && cust.cityName.trim()) return cust.cityName.trim();
   const cityRaw = cust?.city;
   if (cityRaw == null) return null;
   const cityStr = String(cityRaw).trim();
   if (!cityStr) return null;
-  // Se não é apenas dígitos, é o próprio nome da cidade
+  // Texto puro
   if (!/^\d+$/.test(cityStr)) return cityStr;
-  // É código IBGE: resolver via BrasilAPI com cache
-  if (ibgeCache.has(cityStr)) return ibgeCache.get(cityStr) || null;
+
+  const cacheKey = `${cred.ambiente}:${cityStr}`;
+  if (cityCache.has(cacheKey)) return cityCache.get(cacheKey) || null;
+
+  // 1. Tenta endpoint do próprio Asaas /cities/{id}
   try {
-    const res = await fetch(`https://brasilapi.com.br/api/ibge/municipios/v1/${cityStr}`);
-    if (res.ok) {
-      const data = await res.json();
-      const nome = data?.nome || null;
-      ibgeCache.set(cityStr, nome);
-      return nome;
+    const data = await asaasFetch(cred, `/cities/${cityStr}`);
+    const nome = data?.name || null;
+    const uf = data?.state || "";
+    const composed = nome ? (uf ? `${nome} - ${uf}` : nome) : null;
+    if (composed) {
+      cityCache.set(cacheKey, composed);
+      return composed;
     }
   } catch (e) {
-    console.warn("[asaas-api] IBGE lookup failed:", (e as Error).message);
+    console.warn(`[asaas-api] /cities/${cityStr} lookup failed:`, (e as Error).message);
   }
-  ibgeCache.set(cityStr, null);
+
+  // 2. Fallback: BrasilAPI IBGE (caso o número seja realmente IBGE de 7 dígitos)
+  if (cityStr.length === 7) {
+    try {
+      const res = await fetch(`https://brasilapi.com.br/api/ibge/municipios/v1/${cityStr}`);
+      if (res.ok) {
+        const data = await res.json();
+        const nome = data?.nome || null;
+        if (nome) {
+          cityCache.set(cacheKey, nome);
+          return nome;
+        }
+      }
+    } catch (e) {
+      console.warn("[asaas-api] IBGE fallback failed:", (e as Error).message);
+    }
+  }
+
+  cityCache.set(cacheKey, null);
   return null;
 }
 
@@ -410,7 +435,7 @@ Deno.serve(async (req) => {
                       .eq("id", cli.id)
                       .single();
                     const phoneFromAsaas = onlyDigits(cust?.mobilePhone || cust?.phone) || null;
-                    const cityFromAsaas = await resolveCityFromAsaas(cust);
+                    const cityFromAsaas = await resolveCityFromAsaas(cred, cust);
                     const patch: Record<string, unknown> = {};
                     if (!full?.telefone && phoneFromAsaas) patch.telefone = phoneFromAsaas;
                     if (!full?.whatsapp && phoneFromAsaas) patch.whatsapp = phoneFromAsaas;
@@ -440,7 +465,7 @@ Deno.serve(async (req) => {
                     numero: cust?.addressNumber || null,
                     complemento: cust?.complement || null,
                     bairro: cust?.province || null,
-                    cidade: await resolveCityFromAsaas(cust),
+                    cidade: await resolveCityFromAsaas(cred, cust),
                     estado: cust?.state || null,
                     observacoes: "Importado automaticamente do Asaas",
                   };
