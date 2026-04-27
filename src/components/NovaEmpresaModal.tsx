@@ -392,11 +392,14 @@ export function NovaEmpresaModal({ open, onOpenChange, onCreated }: NovaEmpresaM
           </div>
         </div>
       </FormModal>
+      </>
     );
   }
 
   // -------- FORM STEP --------
   return (
+    <>
+    {qsaModal}
     <FormModal
       open={open}
       onOpenChange={handleOpenChange}
