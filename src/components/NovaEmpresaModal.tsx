@@ -536,6 +536,7 @@ export function NovaEmpresaModal({ open, onOpenChange, onCreated }: NovaEmpresaM
         </div>
       </div>
     </FormModal>
+    </>
   );
 }
 
