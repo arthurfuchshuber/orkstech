@@ -626,47 +626,31 @@ function IntegrationCard({
                       <AlertDialog>
                         <AlertDialogTrigger asChild>
                           <Button variant="ghost" size="sm" className="h-7 px-2 text-xs gap-1">
-                            <Loader2 className="w-3 h-3" /> Importar contratantes
+                            <Sparkles className="w-3 h-3" /> Importar contratantes
                           </Button>
                         </AlertDialogTrigger>
                         <AlertDialogContent>
                           <AlertDialogHeader>
-                            <AlertDialogTitle>Importar contratantes retroativamente?</AlertDialogTitle>
+                            <AlertDialogTitle>Importar contratantes com IA?</AlertDialogTitle>
                             <AlertDialogDescription>
-                              Esta ação irá criar automaticamente clientes no SaaS para todos os contratos finalizados
-                              do ClickSign que ainda não possuem cliente cadastrado, usando os dados do signatário
-                              CONTRATANTE (nome, CPF/CNPJ, email, telefone). Clientes já existentes (mesmo CPF/CNPJ)
-                              serão apenas vinculados, sem duplicidade. Essa operação pode levar alguns minutos.
+                              Esta ação executa duas etapas em sequência:
+                              <br /><br />
+                              <strong>1. Cadastro:</strong> cria clientes no SaaS para todos os contratos finalizados
+                              do ClickSign (nome, CPF/CNPJ, email). Clientes com mesmo CPF/CNPJ serão apenas
+                              vinculados, sem duplicidade.
+                              <br /><br />
+                              <strong>2. Enriquecimento via IA:</strong> a IA lê os PDFs assinados e preenche
+                              automaticamente <strong>telefone, CEP, logradouro, bairro, cidade e estado</strong>.
+                              Apenas dados ausentes são preenchidos — informações já cadastradas não serão
+                              sobrescritas.
+                              <br /><br />
+                              Pode levar alguns minutos dependendo do volume de contratos.
                             </AlertDialogDescription>
                           </AlertDialogHeader>
                           <AlertDialogFooter>
                             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                            <AlertDialogAction onClick={() => syncClicksignHistory(true)}>
+                            <AlertDialogAction onClick={importContratantesAndEnrich}>
                               Importar agora
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button variant="ghost" size="sm" className="h-7 px-2 text-xs gap-1">
-                            <Sparkles className="w-3 h-3" /> Enriquecer via IA
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Extrair telefone e endereço dos contratos?</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              A IA vai ler os PDFs assinados no ClickSign e preencher automaticamente
-                              <strong> telefone, CEP, logradouro, bairro, cidade e estado</strong> dos
-                              clientes que ainda estão com esses campos em branco. Apenas dados ausentes
-                              são preenchidos — informações já cadastradas não serão sobrescritas.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                            <AlertDialogAction onClick={enrichClicksignClientes}>
-                              Extrair agora
                             </AlertDialogAction>
                           </AlertDialogFooter>
                         </AlertDialogContent>
