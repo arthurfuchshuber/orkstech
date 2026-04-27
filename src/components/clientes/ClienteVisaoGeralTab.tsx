@@ -10,6 +10,7 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator, DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu";
 import { QuickListModal } from "@/components/financas/QuickListModal";
+import { NovaContaReceberModal } from "@/components/clientes/NovaContaReceberModal";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
@@ -78,6 +79,8 @@ export function ClienteVisaoGeralTab({ cliente, onEdit: _onEdit }: Props) {
   const [editTitulo, setEditTitulo] = useState("");
   const [editDescricao, setEditDescricao] = useState("");
   const [editFiles, setEditFiles] = useState<UploadedFile[]>([]);
+  const [novaContaOpen, setNovaContaOpen] = useState(false);
+  const [novaContaPreferAsaas, setNovaContaPreferAsaas] = useState(false);
 
   // Fetch tipos from DB
   const { data: tipos = [], isLoading: tiposLoading } = useQuery({
@@ -723,9 +726,10 @@ export function ClienteVisaoGeralTab({ cliente, onEdit: _onEdit }: Props) {
               <DropdownMenuSeparator />
               <DropdownMenuItem
                 className="gap-2 cursor-pointer"
-                onClick={() =>
-                  navigate(`/app/financas/receber?new=1&cliente_id=${cliente.id}`)
-                }
+                onClick={() => {
+                  setNovaContaPreferAsaas(false);
+                  setNovaContaOpen(true);
+                }}
               >
                 <Plus className="w-4 h-4 text-muted-foreground" />
                 <div className="flex flex-col">
@@ -735,9 +739,10 @@ export function ClienteVisaoGeralTab({ cliente, onEdit: _onEdit }: Props) {
               </DropdownMenuItem>
               <DropdownMenuItem
                 className="gap-2 cursor-pointer"
-                onClick={() =>
-                  navigate(`/app/financas/receber?new=1&cliente_id=${cliente.id}&asaas=1`)
-                }
+                onClick={() => {
+                  setNovaContaPreferAsaas(true);
+                  setNovaContaOpen(true);
+                }}
               >
                 <Zap className="w-4 h-4 text-primary" />
                 <div className="flex flex-col">
@@ -985,6 +990,22 @@ export function ClienteVisaoGeralTab({ cliente, onEdit: _onEdit }: Props) {
         title={quickList.title}
         description={quickList.description}
         items={quickList.items}
+      />
+
+      {/* Nova Conta a Receber — opens in-place from this client workspace */}
+      <NovaContaReceberModal
+        open={novaContaOpen}
+        onOpenChange={setNovaContaOpen}
+        cliente={{
+          id: cliente.id,
+          tipo: cliente.tipo as "pj" | "pf",
+          nome_completo: cliente.nome_completo,
+          razao_social: cliente.razao_social,
+          nome_fantasia: cliente.nome_fantasia,
+          cnpj: cliente.cnpj,
+          cpf: cliente.cpf,
+        }}
+        preferAsaas={novaContaPreferAsaas}
       />
     </div>
   );
