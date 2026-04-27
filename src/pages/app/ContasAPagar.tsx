@@ -208,6 +208,26 @@ export default function ContasAPagar() {
     label: f.tipo === "pj" ? (f.nome_fantasia || f.razao_social || "—") : (f.nome_completo || "—"),
   }));
 
+  const { data: socios = [] } = useQuery({
+    queryKey: ["empresa_socios", empresaId],
+    queryFn: async () => {
+      if (!empresaId) return [];
+      const { data } = await supabase
+        .from("empresa_socios")
+        .select("id, nome_completo, cargo, ativo")
+        .eq("empresa_id", empresaId)
+        .eq("ativo", true)
+        .order("nome_completo");
+      return data ?? [];
+    },
+    enabled: !!empresaId,
+  });
+
+  const socioOptions = socios.map((s: any) => ({
+    value: s.id,
+    label: s.cargo ? `${s.nome_completo} — ${s.cargo}` : s.nome_completo,
+  }));
+
   const { data: categories = [] } = useQuery({
     queryKey: ["categorias_cadastro", empresaId],
     queryFn: async () => {
