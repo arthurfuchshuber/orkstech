@@ -6,7 +6,7 @@ import {
   FileText, Search, CreditCard,
   Building2, Target, Landmark, FolderTree, Copy, Pencil, Trash2,
   Banknote, ChevronDown, ChevronRight, ScanLine, MoreHorizontal, BarChart3, Layers, Eye,
-  Calendar, CalendarDays,
+  Calendar, CalendarDays, Users,
 } from "lucide-react";
 import { DueStatCard } from "@/components/financas/DueStatCard";
 import { Button } from "@/components/ui/button";
@@ -59,6 +59,7 @@ interface PayableForm {
   description: string;
   supplier_id: string;
   supplier_name: string;
+  socio_id: string;
   document_number: string;
   amount: number;
   due_date?: Date;
@@ -83,6 +84,7 @@ const initialForm: PayableForm = {
   description: "",
   supplier_id: "",
   supplier_name: "",
+  socio_id: "",
   document_number: "",
   amount: 0,
   due_date: undefined,
@@ -204,6 +206,26 @@ export default function ContasAPagar() {
   const fornecedorOptions = fornecedores.map((f: any) => ({
     value: f.id,
     label: f.tipo === "pj" ? (f.nome_fantasia || f.razao_social || "—") : (f.nome_completo || "—"),
+  }));
+
+  const { data: socios = [] } = useQuery({
+    queryKey: ["empresa_socios", empresaId],
+    queryFn: async () => {
+      if (!empresaId) return [];
+      const { data } = await supabase
+        .from("empresa_socios")
+        .select("id, nome_completo, cargo, ativo")
+        .eq("empresa_id", empresaId)
+        .eq("ativo", true)
+        .order("nome_completo");
+      return data ?? [];
+    },
+    enabled: !!empresaId,
+  });
+
+  const socioOptions = socios.map((s: any) => ({
+    value: s.id,
+    label: s.cargo ? `${s.nome_completo} — ${s.cargo}` : s.nome_completo,
   }));
 
   const { data: categories = [] } = useQuery({
@@ -476,6 +498,7 @@ export default function ContasAPagar() {
           notes: form.notes || null,
           pessoa_tipo: form.pessoa_tipo,
           attachment_url: form.attachment_url,
+          ...(({ socio_id: form.socio_id || null }) as any),
         },
       });
       return;
@@ -499,6 +522,7 @@ export default function ContasAPagar() {
       description: form.description,
       supplier_id: form.supplier_id || null,
       supplier_name: form.supplier_name || null,
+      ...(form.socio_id ? { socio_id: form.socio_id } : {}),
       document_number: form.document_number || null,
       amount: totalAmount,
       due_date: form.due_date!.toISOString().split("T")[0],
@@ -567,6 +591,7 @@ export default function ContasAPagar() {
       description: item.description,
       supplier_id: item.supplier_id || "",
       supplier_name: item.supplier_name || "",
+      socio_id: item.socio_id || "",
       document_number: item.document_number || "",
       amount: Math.round(item.amount * 100),
       due_date: new Date(item.due_date),
@@ -731,6 +756,7 @@ export default function ContasAPagar() {
       description: item.description,
       supplier_id: item.supplier_id || "",
       supplier_name: item.supplier_name || "",
+      socio_id: item.socio_id || "",
       document_number: "",
       amount: Math.round(item.amount * 100),
       due_date: undefined,
@@ -1798,6 +1824,17 @@ export default function ContasAPagar() {
 
 
           <TextInput label="Nº Documento" placeholder="NF, boleto, recibo..." value={form.document_number} onChange={(e) => updateField("document_number", e.target.value)} icon={<FileText className="w-4 h-4" />} />
+
+          {/* Sócio beneficiário (opcional) — vem do Quadro Societário em Configurações > Empresa */}
+          <ManagedSelectInput
+            label="Sócio beneficiário (opcional)"
+            value={form.socio_id}
+            onValueChange={(v) => updateField("socio_id", v)}
+            options={socioOptions}
+            placeholder={socioOptions.length ? "Selecione um sócio..." : "Cadastre sócios em Configurações > Empresa"}
+            icon={<Users className="w-4 h-4" />}
+            
+          />
 
           {/* Valor */}
           <CurrencyInput label="Valor" value={form.amount} onValueChange={(v) => updateField("amount", v)} error={errors.amount} />

@@ -43,6 +43,7 @@ export type Database = {
           recurrence_interval:
             | Database["public"]["Enums"]["recurrence_interval"]
             | null
+          socio_id: string | null
           status: Database["public"]["Enums"]["payable_status"]
           supplier_id: string | null
           supplier_name: string | null
@@ -77,6 +78,7 @@ export type Database = {
           recurrence_interval?:
             | Database["public"]["Enums"]["recurrence_interval"]
             | null
+          socio_id?: string | null
           status?: Database["public"]["Enums"]["payable_status"]
           supplier_id?: string | null
           supplier_name?: string | null
@@ -111,6 +113,7 @@ export type Database = {
           recurrence_interval?:
             | Database["public"]["Enums"]["recurrence_interval"]
             | null
+          socio_id?: string | null
           status?: Database["public"]["Enums"]["payable_status"]
           supplier_id?: string | null
           supplier_name?: string | null
@@ -165,6 +168,13 @@ export type Database = {
             columns: ["payment_method_id"]
             isOneToOne: false
             referencedRelation: "formas_pagamento"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "accounts_payable_socio_id_fkey"
+            columns: ["socio_id"]
+            isOneToOne: false
+            referencedRelation: "empresa_socios"
             referencedColumns: ["id"]
           },
           {
@@ -1484,6 +1494,113 @@ export type Database = {
           },
           {
             foreignKeyName: "dre_regras_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      empresa_socios: {
+        Row: {
+          administrador: boolean
+          agencia: string | null
+          ativo: boolean
+          bairro: string | null
+          banco: string | null
+          cargo: string | null
+          cep: string | null
+          cidade: string | null
+          complemento: string | null
+          conta: string | null
+          cpf: string | null
+          created_at: string
+          data_entrada: string | null
+          data_nascimento: string | null
+          email: string | null
+          empresa_id: string
+          estado: string | null
+          id: string
+          logradouro: string | null
+          nome_completo: string
+          notas: string | null
+          numero: string | null
+          percentual_participacao: number | null
+          pix_chave: string | null
+          pix_tipo: string | null
+          rg: string | null
+          telefone: string | null
+          tipo_conta: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          administrador?: boolean
+          agencia?: string | null
+          ativo?: boolean
+          bairro?: string | null
+          banco?: string | null
+          cargo?: string | null
+          cep?: string | null
+          cidade?: string | null
+          complemento?: string | null
+          conta?: string | null
+          cpf?: string | null
+          created_at?: string
+          data_entrada?: string | null
+          data_nascimento?: string | null
+          email?: string | null
+          empresa_id: string
+          estado?: string | null
+          id?: string
+          logradouro?: string | null
+          nome_completo: string
+          notas?: string | null
+          numero?: string | null
+          percentual_participacao?: number | null
+          pix_chave?: string | null
+          pix_tipo?: string | null
+          rg?: string | null
+          telefone?: string | null
+          tipo_conta?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          administrador?: boolean
+          agencia?: string | null
+          ativo?: boolean
+          bairro?: string | null
+          banco?: string | null
+          cargo?: string | null
+          cep?: string | null
+          cidade?: string | null
+          complemento?: string | null
+          conta?: string | null
+          cpf?: string | null
+          created_at?: string
+          data_entrada?: string | null
+          data_nascimento?: string | null
+          email?: string | null
+          empresa_id?: string
+          estado?: string | null
+          id?: string
+          logradouro?: string | null
+          nome_completo?: string
+          notas?: string | null
+          numero?: string | null
+          percentual_participacao?: number | null
+          pix_chave?: string | null
+          pix_tipo?: string | null
+          rg?: string | null
+          telefone?: string | null
+          tipo_conta?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "empresa_socios_empresa_id_fkey"
             columns: ["empresa_id"]
             isOneToOne: false
             referencedRelation: "empresas"

@@ -5,6 +5,7 @@ import { DocumentInput } from "@/components/inputs/DocumentInput";
 import { PhoneInput } from "@/components/inputs/PhoneInput";
 import { DateInput } from "@/components/inputs/DateInput";
 import { CepInput } from "@/components/inputs/CepInput";
+import { SociosSection } from "@/components/socios/SociosSection";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -154,6 +155,9 @@ function EmpresaTab() {
           <Field label="Inscrição Estadual" value={empresa.inscricao_estadual ?? "—"} editing={false} />
           <Field label="Inscrição Municipal" value={empresa.inscricao_municipal ?? "—"} editing={false} />
         </div>
+
+        {/* Quadro Societário */}
+        <SociosSection />
       </div>
 
       {/* Edit Empresa Modal */}
