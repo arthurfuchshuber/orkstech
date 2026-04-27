@@ -354,7 +354,16 @@ Deno.serve(async (req) => {
         const result = pdf ? await extractFromPdf(pdf, { nome, documento }) : null;
         const cepBase = result?.cep || signerData.cep;
         const viaCepData = cepBase ? await fetchAddressByCep(cepBase) : {};
-        const merged = { ...result, ...signerData, ...viaCepData } as ExtractedClienteData;
+        const merged: ExtractedClienteData = {
+          telefone: signerData.telefone || result?.telefone || null,
+          cep: signerData.cep || result?.cep || viaCepData.cep || null,
+          logradouro: viaCepData.logradouro || signerData.logradouro || result?.logradouro || null,
+          numero: signerData.numero || result?.numero || null,
+          complemento: signerData.complemento || result?.complemento || null,
+          bairro: viaCepData.bairro || signerData.bairro || result?.bairro || null,
+          cidade: viaCepData.cidade || signerData.cidade || result?.cidade || null,
+          estado: viaCepData.estado || signerData.estado || result?.estado || null,
+        };
         if (merged.telefone || merged.cep || merged.logradouro || merged.cidade || merged.estado) {
           extractedData = merged;
           usedDocKey = doc.clicksign_document_key;
