@@ -64,6 +64,31 @@ export function SocioModal({ open, onOpenChange, socioId, onSaved }: SocioModalP
   const queryClient = useQueryClient();
   const [form, setForm] = useState<SocioForm>(initial);
   const [saving, setSaving] = useState(false);
+  const [bancoModalOpen, setBancoModalOpen] = useState(false);
+  const [bancoEditingId, setBancoEditingId] = useState<string | null>(null);
+  const bancosCrud = useManagedSelect("bancos");
+
+  useEffect(() => {
+    if (user && open) {
+      supabase.rpc("seed_default_bancos", { p_user_id: user.id }).then(() => {
+        queryClient.invalidateQueries({ queryKey: ["bancos"] });
+      });
+    }
+  }, [user, open]);
+
+  const { data: bancos = [] } = useQuery({
+    queryKey: ["bancos"],
+    queryFn: async () => {
+      const { data } = await supabase.from("bancos").select("id, codigo, nome").eq("ativo", true).order("ordem");
+      return data ?? [];
+    },
+    enabled: !!user,
+  });
+
+  const bancoOptions = (bancos as any[]).map((b) => ({
+    value: b.codigo ? `${b.codigo} - ${b.nome}` : b.nome,
+    label: b.codigo ? `${b.codigo} - ${b.nome}` : b.nome,
+  }));
 
   const set = <K extends keyof SocioForm>(k: K, v: SocioForm[K]) => setForm((p) => ({ ...p, [k]: v }));
 
