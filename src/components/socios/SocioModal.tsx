@@ -55,6 +55,7 @@ const FieldLabel = ({ children }: { children: React.ReactNode }) => (
 export function SocioModal({ open, onOpenChange, socioId, onSaved }: SocioModalProps) {
   const { empresa } = useEmpresa();
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const [form, setForm] = useState<SocioForm>(initial);
   const [saving, setSaving] = useState(false);
 
