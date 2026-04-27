@@ -1833,7 +1833,7 @@ export default function ContasAPagar() {
             options={socioOptions}
             placeholder={socioOptions.length ? "Selecione um sócio..." : "Cadastre sócios em Configurações > Empresa"}
             icon={<Users className="w-4 h-4" />}
-            allowClear
+            allowClear={true as any}
           />
 
           {/* Valor */}
