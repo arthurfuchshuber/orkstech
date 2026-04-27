@@ -620,6 +620,30 @@ function IntegrationCard({
                           </AlertDialogFooter>
                         </AlertDialogContent>
                       </AlertDialog>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button variant="ghost" size="sm" className="h-7 px-2 text-xs gap-1">
+                            <Sparkles className="w-3 h-3" /> Enriquecer via IA
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Extrair telefone e endereço dos contratos?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              A IA vai ler os PDFs assinados no ClickSign e preencher automaticamente
+                              <strong> telefone, CEP, logradouro, bairro, cidade e estado</strong> dos
+                              clientes que ainda estão com esses campos em branco. Apenas dados ausentes
+                              são preenchidos — informações já cadastradas não serão sobrescritas.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                            <AlertDialogAction onClick={enrichClicksignClientes}>
+                              Extrair agora
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
                     </>
                   )}
                   {provider === "asaas" && cred.ativo && (
