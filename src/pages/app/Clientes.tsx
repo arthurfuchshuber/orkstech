@@ -94,6 +94,7 @@ export default function Clientes() {
   const [filterStatus, setFilterStatus] = useState<string[]>([]);
   const [filterTipo, setFilterTipo] = useState<string[]>([]);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
   const [editCliente, setEditCliente] = useState<Tables<"clientes"> | null>(null);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
