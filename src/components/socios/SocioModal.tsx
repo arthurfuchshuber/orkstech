@@ -182,12 +182,21 @@ export function SocioModal({ open, onOpenChange, socioId, onSaved }: SocioModalP
               <FieldLabel>{form.tipo_pessoa === "PJ" ? "Razão Social *" : "Nome completo *"}</FieldLabel>
               <Input value={form.nome_completo} maxLength={60} onChange={(e) => set("nome_completo", e.target.value)} className="h-9 text-sm" />
             </div>
-            <DocumentInput
-              type={form.tipo_pessoa === "PJ" ? "cnpj" : "cpf"}
-              value={form.documento}
-              onValueChange={(v) => set("documento", v)}
-              label={form.tipo_pessoa === "PJ" ? "CNPJ" : "CPF"}
-            />
+            <div>
+              <DocumentInput
+                type={form.tipo_pessoa === "PJ" ? "cnpj" : "cpf"}
+                value={form.documento}
+                onValueChange={(v) => set("documento", v)}
+                label={form.tipo_pessoa === "PJ" ? "CNPJ" : "CPF"}
+              />
+              {form.origem === "receita_federal" &&
+                form.documento.replace(/\D/g, "").length > 0 &&
+                form.documento.replace(/\D/g, "").length < (form.tipo_pessoa === "PJ" ? 14 : 11) && (
+                  <p className="mt-1 text-[11px] text-amber-500">
+                    A Receita mascara {form.tipo_pessoa === "PJ" ? "o CNPJ" : "o CPF"} por LGPD. Complete os dígitos faltantes manualmente.
+                  </p>
+                )}
+            </div>
             {form.tipo_pessoa === "PF" ? (
               <div>
                 <FieldLabel>RG</FieldLabel>
