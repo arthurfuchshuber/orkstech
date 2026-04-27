@@ -223,6 +223,11 @@ export function QSAImportModal({
                         <p className="text-sm font-medium truncate">{q.nome}</p>
                         <Badge variant="outline" className="h-5 text-[10px]">{q.tipo_pessoa}</Badge>
                         {already && <Badge variant="secondary" className="h-5 text-[10px]">Já cadastrado</Badge>}
+                        {q.documento_mascarado && (
+                          <Badge variant="outline" className="h-5 text-[10px] border-amber-500/40 text-amber-500 bg-amber-500/5">
+                            CPF parcial — completar
+                          </Badge>
+                        )}
                       </div>
                       <p className="text-xs text-muted-foreground truncate">
                         {q.qualificacao || "Sócio"} • {fmtDoc(q.documento, q.tipo_pessoa)}
