@@ -384,11 +384,10 @@ function IntegrationCard({
     }
   };
 
-  const enrichClicksignClientes = async () => {
-    if (provider !== "clicksign") return;
-    const toastId = "cs-enrich";
+  const enrichClicksignClientes = async (toastId = "cs-enrich", silent = false) => {
+    if (provider !== "clicksign") return { enriched: 0, skipped: 0, failed: 0 };
     try {
-      toast.info("Lendo contratos assinados com IA para extrair telefone e endereço…", { id: toastId });
+      if (!silent) toast.info("Lendo contratos assinados com IA para extrair telefone e endereço…", { id: toastId });
       const { data, error } = await supabase.functions.invoke("clicksign-enrich-clientes", {
         body: { empresa_id: empresaId, only_missing: true },
       });
@@ -396,9 +395,37 @@ function IntegrationCard({
       const en = data?.enriched ?? 0;
       const sk = data?.skipped ?? 0;
       const fl = data?.failed ?? 0;
-      toast.success(`${en} clientes enriquecidos · ${sk} sem dados a atualizar · ${fl} falhas`, { id: toastId });
+      if (!silent) toast.success(`${en} clientes enriquecidos · ${sk} sem dados a atualizar · ${fl} falhas`, { id: toastId });
+      return { enriched: en, skipped: sk, failed: fl };
     } catch (e) {
-      toast.error(`Falha ao enriquecer dados: ${(e as Error).message}`, { id: toastId });
+      if (!silent) toast.error(`Falha ao enriquecer dados: ${(e as Error).message}`, { id: toastId });
+      throw e;
+    }
+  };
+
+  const importContratantesAndEnrich = async () => {
+    if (provider !== "clicksign") return;
+    const toastId = "cs-import-full";
+    try {
+      // Etapa 1: importar contratantes
+      toast.info("Etapa 1/2 · Importando contratantes do ClickSign…", { id: toastId });
+      const { data, error } = await supabase.functions.invoke("clicksign-sync-historico", {
+        body: { empresa_id: empresaId, create_clients: true },
+      });
+      if (error || data?.error) throw new Error(data?.error || error?.message);
+      const created = data?.clients_created ?? 0;
+      const linked = data?.clients_linked_by_cpf_cnpj ?? 0;
+
+      // Etapa 2: enriquecer com IA
+      toast.info(`Etapa 2/2 · ${created} criados, ${linked} vinculados. Lendo contratos com IA…`, { id: toastId });
+      const enrichRes = await enrichClicksignClientes(toastId, true);
+
+      toast.success(
+        `${created} clientes criados · ${linked} vinculados · ${enrichRes.enriched} enriquecidos com telefone/endereço`,
+        { id: toastId, duration: 6000 }
+      );
+    } catch (e) {
+      toast.error(`Falha na importação: ${(e as Error).message}`, { id: toastId });
     }
   };
 
@@ -599,47 +626,31 @@ function IntegrationCard({
                       <AlertDialog>
                         <AlertDialogTrigger asChild>
                           <Button variant="ghost" size="sm" className="h-7 px-2 text-xs gap-1">
-                            <Loader2 className="w-3 h-3" /> Importar contratantes
+                            <Sparkles className="w-3 h-3" /> Importar contratantes
                           </Button>
                         </AlertDialogTrigger>
                         <AlertDialogContent>
                           <AlertDialogHeader>
-                            <AlertDialogTitle>Importar contratantes retroativamente?</AlertDialogTitle>
+                            <AlertDialogTitle>Importar contratantes com IA?</AlertDialogTitle>
                             <AlertDialogDescription>
-                              Esta ação irá criar automaticamente clientes no SaaS para todos os contratos finalizados
-                              do ClickSign que ainda não possuem cliente cadastrado, usando os dados do signatário
-                              CONTRATANTE (nome, CPF/CNPJ, email, telefone). Clientes já existentes (mesmo CPF/CNPJ)
-                              serão apenas vinculados, sem duplicidade. Essa operação pode levar alguns minutos.
+                              Esta ação executa duas etapas em sequência:
+                              <br /><br />
+                              <strong>1. Cadastro:</strong> cria clientes no SaaS para todos os contratos finalizados
+                              do ClickSign (nome, CPF/CNPJ, email). Clientes com mesmo CPF/CNPJ serão apenas
+                              vinculados, sem duplicidade.
+                              <br /><br />
+                              <strong>2. Enriquecimento via IA:</strong> a IA lê os PDFs assinados e preenche
+                              automaticamente <strong>telefone, CEP, logradouro, bairro, cidade e estado</strong>.
+                              Apenas dados ausentes são preenchidos — informações já cadastradas não serão
+                              sobrescritas.
+                              <br /><br />
+                              Pode levar alguns minutos dependendo do volume de contratos.
                             </AlertDialogDescription>
                           </AlertDialogHeader>
                           <AlertDialogFooter>
                             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                            <AlertDialogAction onClick={() => syncClicksignHistory(true)}>
+                            <AlertDialogAction onClick={importContratantesAndEnrich}>
                               Importar agora
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button variant="ghost" size="sm" className="h-7 px-2 text-xs gap-1">
-                            <Sparkles className="w-3 h-3" /> Enriquecer via IA
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Extrair telefone e endereço dos contratos?</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              A IA vai ler os PDFs assinados no ClickSign e preencher automaticamente
-                              <strong> telefone, CEP, logradouro, bairro, cidade e estado</strong> dos
-                              clientes que ainda estão com esses campos em branco. Apenas dados ausentes
-                              são preenchidos — informações já cadastradas não serão sobrescritas.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                            <AlertDialogAction onClick={enrichClicksignClientes}>
-                              Extrair agora
                             </AlertDialogAction>
                           </AlertDialogFooter>
                         </AlertDialogContent>
