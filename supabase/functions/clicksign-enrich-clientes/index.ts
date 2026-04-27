@@ -44,7 +44,8 @@ function cleanText(value: unknown): string | null {
 
 function cleanUf(value: unknown): string | null {
   const text = cleanText(value)?.toUpperCase().replace(/[^A-Z]/g, "") || "";
-  return text.length === 2 ? text : null;
+  const valid = new Set(["AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO", "MA", "MT", "MS", "MG", "PA", "PB", "PR", "PE", "PI", "RJ", "RN", "RS", "RO", "RR", "SC", "SP", "SE", "TO"]);
+  return valid.has(text) ? text : null;
 }
 
 function hasMissing(value: unknown): boolean {
