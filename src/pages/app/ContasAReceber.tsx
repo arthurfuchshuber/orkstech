@@ -1004,45 +1004,6 @@ export default function ContasAReceber() {
 
         <TabsContent value="lista" className="space-y-6 mt-4">
 
-      <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
-        <DueStatCard
-          title="Contas Vencidas"
-          amount={overdueAmount}
-          count={overdueCount}
-          icon={AlertTriangle}
-          tone="red"
-          onClick={overdueCount > 0 ? () => setQuickListMode("overdue") : undefined}
-          disabled={overdueCount === 0}
-        />
-        <DueStatCard
-          title="A Vencer ~ 7 dias"
-          amount={nearDueAmount}
-          count={nearDue}
-          icon={Clock}
-          tone="amber"
-          onClick={nearDue > 0 ? () => setQuickListMode("nearDue") : undefined}
-          disabled={nearDue === 0}
-        />
-        <DueStatCard
-          title="A Vencer ~ Este Mês"
-          amount={thisMonthAmount}
-          count={thisMonthItems.length}
-          icon={Calendar}
-          tone="neutral"
-          onClick={thisMonthItems.length > 0 ? () => setQuickListMode("thisMonth") : undefined}
-          disabled={thisMonthItems.length === 0}
-        />
-        <DueStatCard
-          title="A Vencer ~ Mês Seguinte"
-          amount={nextMonthAmount}
-          count={nextMonthItems.length}
-          icon={CalendarDays}
-          tone="neutral"
-          onClick={nextMonthItems.length > 0 ? () => setQuickListMode("nextMonth") : undefined}
-          disabled={nextMonthItems.length === 0}
-        />
-      </div>
-
       <Card className="border-border/50 shadow-sm p-4">
         <div className="flex flex-wrap items-center gap-3">
           <div className="relative flex-1 min-w-[200px]">
