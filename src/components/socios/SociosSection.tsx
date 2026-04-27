@@ -20,7 +20,15 @@ function formatDoc(doc?: string | null, tipo?: string | null) {
   if ((tipo === "PJ" || d.length === 14) && d.length === 14)
     return d.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, "$1.$2.$3/$4-$5");
   if (d.length === 11) return d.replace(/^(\d{3})(\d{3})(\d{3})(\d{2})$/, "$1.$2.$3-$4");
+  if (d.length === 6) return `***.${d.slice(0, 3)}.${d.slice(3)}-**`;
   return doc;
+}
+
+function isDocPartial(doc?: string | null, tipo?: string | null): boolean {
+  if (!doc) return false;
+  const d = doc.replace(/\D/g, "");
+  if (tipo === "PJ") return d.length !== 14;
+  return d.length > 0 && d.length !== 11;
 }
 
 function formatPhone(p?: string | null) {
