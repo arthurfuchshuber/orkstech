@@ -55,33 +55,38 @@ async function syncEmpresa(supabase: any, empresa: { id: string; cnpj: string; u
   const qsa = await fetchQsa(cnpjClean);
   if (!qsa) return { empresa_id: empresa.id, skipped: true, reason: "fetch_failed" };
 
-  // Sócios já existentes
+  // Sócios já existentes (busca todos os campos pra comparar antes de sobrescrever)
   const { data: existing } = await supabase
     .from("empresa_socios")
-    .select("id, documento, status_socio")
+    .select("id, documento, nome_completo, qualificacao, percentual_participacao, tipo_pessoa, data_entrada")
     .eq("empresa_id", empresa.id);
   const byDoc = new Map<string, any>((existing ?? []).map((s: any) => [s.documento, s]));
 
-  let created = 0, updated = 0, deactivated = 0;
-  const docsFromReceita = new Set<string>();
+  let created = 0, updated = 0;
 
   for (const s of qsa) {
-    docsFromReceita.add(s.documento);
     const existingRow = byDoc.get(s.documento);
     if (existingRow) {
-      // Atualiza apenas campos provenientes da Receita; preserva dados manuais
-      const { error } = await supabase
-        .from("empresa_socios")
-        .update({
-          nome_completo: s.nome,
-          qualificacao: s.qualificacao || null,
-          percentual_participacao: s.percentual_participacao,
-          tipo_pessoa: s.tipo_pessoa,
-          status_socio: "ativo",
-          data_entrada: s.data_entrada || null,
-        })
-        .eq("id", existingRow.id);
-      if (!error) updated++;
+      // Política: NÃO sobrescrever dados manuais com valores vazios/zerados da Receita.
+      // Só atualiza um campo se a Receita trouxer valor válido E o campo atual estiver vazio,
+      // exceto tipo_pessoa que sempre reflete a natureza do documento.
+      const patch: Record<string, any> = {};
+      if (s.nome && !existingRow.nome_completo) patch.nome_completo = s.nome;
+      if (s.qualificacao && !existingRow.qualificacao) patch.qualificacao = s.qualificacao;
+      if (
+        s.percentual_participacao &&
+        s.percentual_participacao > 0 &&
+        (!existingRow.percentual_participacao || Number(existingRow.percentual_participacao) === 0)
+      ) {
+        patch.percentual_participacao = s.percentual_participacao;
+      }
+      if (s.data_entrada && !existingRow.data_entrada) patch.data_entrada = s.data_entrada;
+      if (s.tipo_pessoa && existingRow.tipo_pessoa !== s.tipo_pessoa) patch.tipo_pessoa = s.tipo_pessoa;
+
+      if (Object.keys(patch).length > 0) {
+        const { error } = await supabase.from("empresa_socios").update(patch).eq("id", existingRow.id);
+        if (!error) updated++;
+      }
     } else {
       const { error } = await supabase.from("empresa_socios").insert({
         empresa_id: empresa.id,
@@ -104,16 +109,9 @@ async function syncEmpresa(supabase: any, empresa: { id: string; cnpj: string; u
     }
   }
 
-  // Sócios que sumiram da Receita: marcar inativos (não excluir para preservar histórico)
-  for (const [doc, row] of byDoc.entries()) {
-    if (!docsFromReceita.has(doc) && row.status_socio !== "inativo") {
-      await supabase
-        .from("empresa_socios")
-        .update({ status_socio: "inativo", ativo: false })
-        .eq("id", row.id);
-      deactivated++;
-    }
-  }
+  // NÃO inativamos automaticamente sócios ausentes da Receita —
+  // preservamos integralmente os cadastros manuais e históricos do usuário.
+  const deactivated = 0;
 
   await supabase.from("empresas").update({ last_qsa_sync_at: new Date().toISOString() }).eq("id", empresa.id);
 
