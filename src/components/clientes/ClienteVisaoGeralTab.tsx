@@ -702,14 +702,52 @@ export function ClienteVisaoGeralTab({ cliente, onEdit: _onEdit }: Props) {
       {/* Timeline header */}
       <div className="flex items-center justify-between">
         <h3 className="text-base font-bold text-foreground">Linha do Tempo</h3>
-        <Button
-          size="sm"
-          variant="outline"
-          className="gap-2 rounded-lg"
-          onClick={() => setShowForm(!showForm)}
-        >
-          <Plus className="w-4 h-4" /> Adicionar Atividade
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            size="sm"
+            variant="outline"
+            className="gap-2 rounded-lg"
+            onClick={() => setShowForm(!showForm)}
+          >
+            <Plus className="w-4 h-4" /> Adicionar Atividade
+          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button size="sm" className="gap-2 rounded-lg shadow-sm">
+                <Receipt className="w-4 h-4" /> Gerar Conta a Receber
+                <ChevronDown className="w-3.5 h-3.5 opacity-70" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-60">
+              <DropdownMenuLabel className="text-xs">Como deseja gerar?</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                className="gap-2 cursor-pointer"
+                onClick={() =>
+                  navigate(`/app/financas/receber?new=1&cliente_id=${cliente.id}`)
+                }
+              >
+                <Plus className="w-4 h-4 text-muted-foreground" />
+                <div className="flex flex-col">
+                  <span className="text-sm font-medium">Manual</span>
+                  <span className="text-[11px] text-muted-foreground">Lançamento interno simples</span>
+                </div>
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                className="gap-2 cursor-pointer"
+                onClick={() =>
+                  navigate(`/app/financas/receber?new=1&cliente_id=${cliente.id}&asaas=1`)
+                }
+              >
+                <Zap className="w-4 h-4 text-primary" />
+                <div className="flex flex-col">
+                  <span className="text-sm font-medium">Via Asaas (Boleto / PIX / Cartão)</span>
+                  <span className="text-[11px] text-muted-foreground">Gera cobrança e envia ao cliente</span>
+                </div>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </div>
 
       {/* New activity form */}
