@@ -435,7 +435,7 @@ Deno.serve(async (req) => {
                       .eq("id", cli.id)
                       .single();
                     const phoneFromAsaas = onlyDigits(cust?.mobilePhone || cust?.phone) || null;
-                    const cityFromAsaas = await resolveCityFromAsaas(cust);
+                    const cityFromAsaas = await resolveCityFromAsaas(cred, cust);
                     const patch: Record<string, unknown> = {};
                     if (!full?.telefone && phoneFromAsaas) patch.telefone = phoneFromAsaas;
                     if (!full?.whatsapp && phoneFromAsaas) patch.whatsapp = phoneFromAsaas;
