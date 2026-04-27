@@ -306,9 +306,28 @@ export function NovaEmpresaModal({ open, onOpenChange, onCreated }: NovaEmpresaM
   const isFormDisabled = !cnpjValidated;
   const cleanCnpjLen = form.cnpj.replace(/\D/g, "").length;
 
+  const qsaModal = (
+    <QSAImportModal
+      open={qsaModalOpen}
+      onOpenChange={(v) => {
+        setQsaModalOpen(v);
+        if (!v) {
+          setCreatedEmpresaId(null);
+          handleOpenChange(false);
+        }
+      }}
+      empresaId={createdEmpresaId}
+      fetchFromBackend={false}
+      preloadedQsa={qsaList}
+      cnpj={form.cnpj.replace(/\D/g, "")}
+    />
+  );
+
   // -------- REVIEW STEP --------
   if (step === "review") {
     return (
+      <>
+      {qsaModal}
       <FormModal
         open={open}
         onOpenChange={handleOpenChange}
