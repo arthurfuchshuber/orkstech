@@ -13,9 +13,27 @@ interface DateInputProps {
   label?: string;
   error?: string;
   placeholder?: string;
+  /** Ano mínimo selecionável (default: 1900) */
+  fromYear?: number;
+  /** Ano máximo selecionável (default: ano atual + 10) */
+  toYear?: number;
 }
 
-export function DateInput({ value, onValueChange, label = "Data", error, placeholder = "Selecione uma data" }: DateInputProps) {
+export function DateInput({
+  value,
+  onValueChange,
+  label = "Data",
+  error,
+  placeholder = "Selecione uma data",
+  fromYear = 1900,
+  toYear = new Date().getFullYear() + 10,
+}: DateInputProps) {
+  const [month, setMonth] = React.useState<Date>(value ?? new Date());
+
+  React.useEffect(() => {
+    if (value) setMonth(value);
+  }, [value]);
+
   return (
     <div className="space-y-1.5">
       {label && <label className="text-sm font-medium text-foreground">{label}</label>}
@@ -38,6 +56,12 @@ export function DateInput({ value, onValueChange, label = "Data", error, placeho
             mode="single"
             selected={value}
             onSelect={onValueChange}
+            month={month}
+            onMonthChange={setMonth}
+            captionLayout="dropdown-buttons"
+            fromYear={fromYear}
+            toYear={toYear}
+            locale={ptBR}
             initialFocus
             className={cn("p-3 pointer-events-auto")}
           />
