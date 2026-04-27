@@ -126,7 +126,8 @@ export function QSAImportModal({
           user_id: emp.user_id,
           nome_completo: q.nome,
           documento: q.documento,
-          cpf: q.tipo_pessoa === "PF" ? q.documento : null,
+          // Só preenche CPF se vier completo da Receita; mascarado precisa de complemento manual
+          cpf: q.tipo_pessoa === "PF" && q.documento_completo ? q.documento : null,
           tipo_pessoa: q.tipo_pessoa,
           qualificacao: q.qualificacao || null,
           cargo: q.qualificacao || null,
