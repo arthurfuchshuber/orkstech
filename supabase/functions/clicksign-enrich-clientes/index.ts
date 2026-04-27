@@ -230,56 +230,49 @@ Deno.serve(async (req) => {
 
     console.log(`[enrich] iniciando — ${clientes.length} cliente(s) | only_missing=${only_missing}`);
 
-    for (const c of clientes) {
+    // Processa um único cliente (extrair + atualizar). Retorna 'enriched' | 'skipped' | 'failed'
+    const processCliente = async (c: any): Promise<"enriched" | "skipped" | "failed"> => {
       const nome = c.nome_completo || c.razao_social || c.nome_fantasia || "";
       const needsTel = !c.telefone;
       const needsAddr = !c.cep || !c.cidade || !c.logradouro;
       if (only_missing && !needsTel && !needsAddr) {
         console.log(`[enrich] skip(completo): ${nome}`);
-        skipped++;
-        continue;
+        return "skipped";
       }
 
-      // Busca TODOS os documentos ClickSign vinculados (tenta o mais recente primeiro)
       const { data: docs } = await service
         .from("clicksign_documentos")
         .select("clicksign_document_key, status, created_at")
         .eq("user_id", userId)
         .eq("cliente_id", c.id)
         .in("status", ["closed", "auto_closed", "running"])
-        .order("created_at", { ascending: false });
+        .order("created_at", { ascending: false })
+        .limit(3); // tenta no máximo 3 docs por cliente
 
       if (!docs?.length) {
         console.log(`[enrich] skip(sem doc): ${nome}`);
-        skipped++;
-        continue;
+        return "skipped";
       }
 
       const documento = onlyDigits(c.cpf || c.cnpj);
       let extractedData: ExtractedClienteData | null = null;
       let usedDocKey: string | null = null;
 
-      // Tenta cada documento até obter dados úteis
       for (const doc of docs) {
         if (!doc.clicksign_document_key) continue;
         const pdf = await fetchSignedPdf(cred as CredRow, doc.clicksign_document_key);
-        if (!pdf) {
-          console.log(`[enrich] pdf indisponível ${doc.clicksign_document_key} (${nome})`);
-          continue;
-        }
+        if (!pdf) continue;
         const result = await extractFromPdf(pdf, { nome, documento });
         if (result && (result.telefone || result.cep || result.logradouro || result.cidade)) {
           extractedData = result;
           usedDocKey = doc.clicksign_document_key;
           break;
         }
-        console.log(`[enrich] doc sem dados úteis ${doc.clicksign_document_key} (${nome})`);
       }
 
       if (!extractedData) {
-        console.log(`[enrich] FAIL: ${nome} (${documento}) — IA não retornou dados em ${docs.length} doc(s)`);
-        failed++;
-        continue;
+        console.log(`[enrich] FAIL: ${nome} (${documento})`);
+        return "failed";
       }
 
       const patch: Record<string, any> = {};
@@ -292,17 +285,12 @@ Deno.serve(async (req) => {
       if (!c.cidade && extractedData.cidade) patch.cidade = extractedData.cidade;
       if (!c.estado && extractedData.estado) patch.estado = extractedData.estado;
 
-      if (Object.keys(patch).length === 0) {
-        console.log(`[enrich] skip(sem patch): ${nome} — IA retornou só dados já existentes`);
-        skipped++;
-        continue;
-      }
+      if (Object.keys(patch).length === 0) return "skipped";
 
       const { error: upErr } = await service.from("clientes").update(patch).eq("id", c.id);
       if (upErr) {
         console.error(`[enrich] update error ${nome}:`, upErr);
-        failed++;
-        continue;
+        return "failed";
       }
 
       await service.from("cliente_interacoes").insert({
@@ -310,12 +298,27 @@ Deno.serve(async (req) => {
         empresa_id: cred.empresa_id,
         cliente_id: c.id,
         tipo: "clicksign_enrich",
-        descricao: `Dados extraídos automaticamente do contrato assinado (${usedDocKey?.slice(0,8)}): ${Object.keys(patch).join(", ")}`,
+        descricao: `Dados extraídos do contrato assinado (${usedDocKey?.slice(0,8)}): ${Object.keys(patch).join(", ")}`,
         usuario_nome: "ClickSign + IA",
       });
 
       console.log(`[enrich] OK ${nome}: ${Object.keys(patch).join(", ")}`);
-      enriched++;
+      return "enriched";
+    };
+
+    // Processa em batches paralelos de 4 (acelera ~4x sem estourar rate-limit)
+    const BATCH = 4;
+    for (let i = 0; i < clientes.length; i += BATCH) {
+      const slice = clientes.slice(i, i + BATCH);
+      const results = await Promise.all(slice.map((c) => processCliente(c).catch((e) => {
+        console.error(`[enrich] exception:`, e);
+        return "failed" as const;
+      })));
+      for (const r of results) {
+        if (r === "enriched") enriched++;
+        else if (r === "skipped") skipped++;
+        else failed++;
+      }
     }
 
     console.log(`[enrich] fim — enriched=${enriched} skipped=${skipped} failed=${failed}`);
