@@ -36,7 +36,7 @@ function fmtDoc(doc: string, tipo: "PF" | "PJ") {
   const d = doc.replace(/\D/g, "");
   if (tipo === "PF" && d.length === 11) return d.replace(/^(\d{3})(\d{3})(\d{3})(\d{2})$/, "$1.$2.$3-$4");
   if (tipo === "PJ" && d.length === 14) return d.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, "$1.$2.$3/$4-$5");
-  if (tipo === "PF" && d.length === 6) return `***.${d.slice(0, 3)}.${d.slice(3)}-** (parcial)`;
+  if (tipo === "PF" && d.length === 6) return `***.${d.slice(0, 3)}.${d.slice(3)}-**`;
   return doc;
 }
 
@@ -223,11 +223,6 @@ export function QSAImportModal({
                         <p className="text-sm font-medium truncate">{q.nome}</p>
                         <Badge variant="outline" className="h-5 text-[10px]">{q.tipo_pessoa}</Badge>
                         {already && <Badge variant="secondary" className="h-5 text-[10px]">Já cadastrado</Badge>}
-                        {q.documento_mascarado && (
-                          <Badge variant="outline" className="h-5 text-[10px] border-amber-500/40 text-amber-500 bg-amber-500/5">
-                            CPF parcial — completar
-                          </Badge>
-                        )}
                       </div>
                       <p className="text-xs text-muted-foreground truncate">
                         {q.qualificacao || "Sócio"} • {fmtDoc(q.documento, q.tipo_pessoa)}

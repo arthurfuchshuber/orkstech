@@ -189,13 +189,6 @@ export function SocioModal({ open, onOpenChange, socioId, onSaved }: SocioModalP
                 onValueChange={(v) => set("documento", v)}
                 label={form.tipo_pessoa === "PJ" ? "CNPJ" : "CPF"}
               />
-              {form.origem === "receita_federal" &&
-                form.documento.replace(/\D/g, "").length > 0 &&
-                form.documento.replace(/\D/g, "").length < (form.tipo_pessoa === "PJ" ? 14 : 11) && (
-                  <p className="mt-1 text-[11px] text-amber-500">
-                    A Receita mascara {form.tipo_pessoa === "PJ" ? "o CNPJ" : "o CPF"} por LGPD. Complete os dígitos faltantes manualmente.
-                  </p>
-                )}
             </div>
             {form.tipo_pessoa === "PF" ? (
               <div>
