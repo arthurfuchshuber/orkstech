@@ -65,6 +65,7 @@ const parseInteracao = (descricao: string) => {
 
 export function ClienteVisaoGeralTab({ cliente, onEdit: _onEdit }: Props) {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [showForm, setShowForm] = useState(false);
   const [tipoId, setTipoId] = useState("");
