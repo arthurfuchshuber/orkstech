@@ -565,6 +565,9 @@ export default function FinanceiroDashboard() {
           totalCreditAvailable={totalCreditAvailable}
           totalCreditBills={totalCreditBills}
           totalCreditLimit={totalCreditLimit}
+          totalOverdraftAvailable={totalOverdraftAvailable}
+          totalOverdraftLimit={totalOverdraftLimit}
+          totalOverdraftUsed={totalOverdraftUsed}
           balanceDeltaPct={balanceDeltaPct}
           lastSyncAt={latestSyncAt}
           syncStatus={aggregatedSyncStatus}
