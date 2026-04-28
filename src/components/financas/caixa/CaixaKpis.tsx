@@ -1,5 +1,5 @@
 import { Card, CardContent } from "@/components/ui/card";
-import { Landmark, CreditCard, PiggyBank, Receipt, TrendingUp, TrendingDown } from "lucide-react";
+import { Landmark, CreditCard, PiggyBank, Receipt, TrendingUp, TrendingDown, Wallet } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PluggyLastSyncBadge } from "@/components/PluggyLastSyncBadge";
 
@@ -12,6 +12,9 @@ interface KpiProps {
   totalCreditAvailable: number;
   totalCreditBills: number;
   totalCreditLimit: number;
+  totalOverdraftAvailable: number;
+  totalOverdraftLimit: number;
+  totalOverdraftUsed: number;
   balanceDeltaPct?: number | null;
   /** Última sincronização Open Finance (mais recente entre as conexões) */
   lastSyncAt?: string | null;
@@ -27,13 +30,16 @@ export function CaixaKpis({
   totalCreditAvailable,
   totalCreditBills,
   totalCreditLimit,
+  totalOverdraftAvailable,
+  totalOverdraftLimit,
+  totalOverdraftUsed,
   balanceDeltaPct,
   lastSyncAt,
   syncStatus,
   hasPluggy,
 }: KpiProps) {
-  const liquidez = totalBalance + totalInvestments;
   const utilizacao = totalCreditLimit > 0 ? ((totalCreditLimit - totalCreditAvailable) / totalCreditLimit) * 100 : 0;
+  const odUtilizacao = totalOverdraftLimit > 0 ? (totalOverdraftUsed / totalOverdraftLimit) * 100 : 0;
 
   const cards = [
     {
@@ -68,6 +74,16 @@ export function CaixaKpis({
       value: fmt(totalCreditBills),
       tone: "amber" as const,
     },
+    {
+      icon: Wallet,
+      label: "Cheque Especial",
+      flag: "Limite Disponível",
+      value: fmt(totalOverdraftAvailable),
+      sub: totalOverdraftLimit > 0
+        ? `${odUtilizacao.toFixed(0)}% utilizado de ${fmt(totalOverdraftLimit)}`
+        : "Nenhum limite contratado",
+      tone: "violet" as const,
+    },
   ];
 
   const toneStyles: Record<string, string> = {
@@ -75,6 +91,7 @@ export function CaixaKpis({
     emerald: "bg-emerald-500/10 text-emerald-400",
     blue: "bg-sky-500/10 text-sky-400",
     amber: "bg-amber-500/10 text-amber-400",
+    violet: "bg-violet-500/10 text-violet-400",
   };
 
   const flagStyles: Record<string, string> = {
@@ -82,6 +99,7 @@ export function CaixaKpis({
     emerald: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
     blue: "bg-sky-500/10 text-sky-400 border-sky-500/20",
     amber: "bg-amber-500/10 text-amber-400 border-amber-500/20",
+    violet: "bg-violet-500/10 text-violet-400 border-violet-500/20",
   };
 
   return (
@@ -91,7 +109,7 @@ export function CaixaKpis({
           <PluggyLastSyncBadge lastSyncAt={lastSyncAt} status={syncStatus} />
         </div>
       )}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
         {cards.map((c) => {
           const Icon = c.icon;
           return (
