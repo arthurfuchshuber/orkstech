@@ -207,6 +207,12 @@ export function CaixaCharts({ evolution, distribution, flow, onFlowBarClick }: C
                 <BarChart
                   data={flow}
                   margin={{ top: 5, right: 10, bottom: 0, left: 0 }}
+                  onMouseMove={(e: any) => {
+                    if (e?.isTooltipActive && e?.activeCoordinate) {
+                      setFlowCoord({ x: e.activeCoordinate.x, y: e.activeCoordinate.y });
+                    }
+                  }}
+                  onMouseLeave={() => setFlowCoord(null)}
                   onClick={(e: any) => {
                     if (onFlowBarClick && e?.activePayload?.[0]?.payload) {
                       onFlowBarClick(e.activePayload[0].payload);
@@ -220,26 +226,7 @@ export function CaixaCharts({ evolution, distribution, flow, onFlowBarClick }: C
                     content={<FlowTooltip />}
                     cursor={{ fill: "hsl(var(--muted) / 0.3)" }}
                     wrapperStyle={{ pointerEvents: "none", zIndex: 50 }}
-                    position={(() => {
-                      // Recharts chama com { coordinate } via prop dinâmica? Não — `position` aceita objeto fixo OU função (v2.10+).
-                      // Usamos função para calcular dinamicamente baseado no cursor.
-                      return undefined as any;
-                    })()}
-                    // @ts-ignore - Recharts aceita função em `position` mas a tipagem só permite objeto
-                    {...{
-                      position: (data: any) => {
-                        const cx = data?.coordinate?.x ?? 0;
-                        const cy = data?.coordinate?.y ?? 0;
-                        const chartW = flowChartWidth || 800;
-                        // Espaço à direita da barra
-                        const spaceRight = chartW - cx - BAR_HALF_WIDTH;
-                        // Coloca à direita se couber, senão à esquerda
-                        const x = spaceRight >= FLOW_TOOLTIP_WIDTH + 12
-                          ? cx + BAR_HALF_WIDTH + 8
-                          : cx - BAR_HALF_WIDTH - FLOW_TOOLTIP_WIDTH - 8;
-                        return { x, y: Math.max(0, cy - 30) };
-                      },
-                    }}
+                    position={tooltipPosition}
                   />
                   <Legend wrapperStyle={{ fontSize: 11 }} iconType="circle" formatter={(v) => v === "entradas" ? "Entradas" : "Saídas"} />
                   <Bar dataKey="entradas" fill="hsl(160 84% 39%)" radius={[6, 6, 0, 0]} style={{ cursor: onFlowBarClick ? "pointer" : "default" }} />
