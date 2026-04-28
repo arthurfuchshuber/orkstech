@@ -116,7 +116,7 @@ export default function FinanceiroDashboard() {
     queryFn: async () => {
       let q = supabase
         .from("contas_bancarias")
-        .select("id, nome, banco, banco_id, tipo, saldo_inicial, saldo_investimento, ativo")
+        .select("id, nome, banco, banco_id, tipo, saldo_inicial, saldo_investimento, saldo_sincronizado, saldo_ajuste_manual, investimento_sincronizado, investimento_ajuste_manual, fatura_aberto_sincronizada, fatura_aberto_ajuste_manual, limite_cheque_especial, origem, ativo")
         .eq("ativo", true);
       if (empresaId) q = q.eq("empresa_id", empresaId);
       else q = q.eq("user_id", targetUserId!);
@@ -233,10 +233,17 @@ export default function FinanceiroDashboard() {
   const totalPluggyInvestments = bankAccounts.reduce((sum, a) => sum + getStoredBalance(a), 0);
 
   // ── Derived data: Manual ──
-  // Saldo atual de cada conta manual = saldo_inicial + (entradas - saídas) de TODAS as cash_transactions
+  // Saldo atual de cada conta manual = saldo_inicial + saldo_sincronizado + saldo_ajuste_manual + (entradas - saídas)
   const manualBalanceByAccount = useMemo(() => {
     const map = new Map<string, number>();
-    manualAccounts.forEach((a) => map.set(a.id, Number(a.saldo_inicial || 0)));
+    manualAccounts.forEach((a) =>
+      map.set(
+        a.id,
+        Number(a.saldo_inicial || 0) +
+          Number(a.saldo_sincronizado || 0) +
+          Number(a.saldo_ajuste_manual || 0)
+      )
+    );
     manualTxAll.forEach((t) => {
       if (!t.bank_account_id) return;
       const cur = map.get(t.bank_account_id) ?? 0;
@@ -250,8 +257,32 @@ export default function FinanceiroDashboard() {
     () => manualAccounts.reduce((s, a) => s + (manualBalanceByAccount.get(a.id) ?? 0), 0),
     [manualAccounts, manualBalanceByAccount]
   );
+  // Investimento efetivo = sincronizado + ajuste_manual + saldo_investimento legado
   const totalManualInvestments = useMemo(
-    () => manualAccounts.reduce((s, a) => s + Number(a.saldo_investimento || 0), 0),
+    () => manualAccounts.reduce(
+      (s, a) =>
+        s +
+        Number(a.investimento_sincronizado || 0) +
+        Number(a.investimento_ajuste_manual || 0) +
+        Number(a.saldo_investimento || 0),
+      0
+    ),
+    [manualAccounts]
+  );
+  // Faturas em aberto manualmente registradas
+  const totalManualBills = useMemo(
+    () => manualAccounts.reduce(
+      (s, a) =>
+        s +
+        Number(a.fatura_aberto_sincronizada || 0) +
+        Number(a.fatura_aberto_ajuste_manual || 0),
+      0
+    ),
+    [manualAccounts]
+  );
+  // Limite cheque especial manual (soma dos contratados nas contas manuais)
+  const totalManualOverdraftLimit = useMemo(
+    () => manualAccounts.reduce((s, a) => s + Number(a.limite_cheque_especial || 0), 0),
     [manualAccounts]
   );
 
@@ -309,14 +340,14 @@ export default function FinanceiroDashboard() {
     return Math.abs(account.balance ?? 0);
   };
 
-  const totalCreditBills = creditCards.reduce((sum, c) => sum + getCreditBillAmount(c), 0);
+  const totalCreditBills = creditCards.reduce((sum, c) => sum + getCreditBillAmount(c), 0) + totalManualBills;
   const totalCreditLimit = creditCards.reduce((sum, c) => sum + getCreditLimit(c), 0);
 
-  // ── Cheque Especial (overdraft) — somente contas correntes ──
+  // ── Cheque Especial (overdraft) — Pluggy + ajustes manuais ──
   const totalOverdraftLimit = bankAccounts.reduce(
     (s, a) => s + Number(a.bank_data?.overdraftContractedLimit ?? 0),
     0
-  );
+  ) + totalManualOverdraftLimit;
   const totalOverdraftUsed = bankAccounts.reduce(
     (s, a) =>
       s +

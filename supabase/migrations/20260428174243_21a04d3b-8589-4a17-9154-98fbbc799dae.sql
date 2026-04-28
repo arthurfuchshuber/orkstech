@@ -1,0 +1,1 @@
+DROP VIEW IF EXISTS public.contas_bancarias_efetivas;
