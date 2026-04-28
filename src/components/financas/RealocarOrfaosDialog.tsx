@@ -231,89 +231,45 @@ export function RealocarOrfaosDialog({ open, onOpenChange }: Props) {
                 </Button>
               </div>
               {linhas.map((l, i) => (
-                <div key={i} className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <select
-                      className="flex-1 h-9 rounded-md border border-input bg-background px-3 text-sm"
-                      value={criandoLinhaIdx === i ? NEW_ACCOUNT_TOKEN : l.bank_account_id}
-                      onChange={(e) => handleSelectChange(i, e.target.value)}
-                    >
-                      <option value="">Selecione uma conta…</option>
-                      {contas.map((c: any) => (
+                <div key={i} className="flex items-center gap-2">
+                  <select
+                    className="flex-1 h-9 rounded-md border border-input bg-background px-3 text-sm"
+                    value={l.bank_account_id}
+                    onChange={(e) => handleSelectChange(i, e.target.value)}
+                  >
+                    <option value="">Selecione uma conta…</option>
+                    {contas.map((c: any) => {
+                      const tipoLabel = c.tipo === "cartao_credito"
+                        ? "Cartão"
+                        : c.tipo === "corrente" ? "Corrente"
+                        : c.tipo === "poupanca" ? "Poupança"
+                        : c.tipo === "caixa" ? "Caixa"
+                        : c.tipo === "carteira_digital" ? "Carteira" : c.tipo;
+                      return (
                         <option key={c.id} value={c.id}>
-                          {c.nome} {c.banco ? `· ${c.banco}` : ""}
+                          [{tipoLabel}] {c.nome} {c.banco ? `· ${c.banco}` : ""}
                         </option>
-                      ))}
-                      <option value={NEW_ACCOUNT_TOKEN}>+ Cadastrar nova conta…</option>
-                    </select>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      placeholder="0,00"
-                      value={l.valor || ""}
-                      onChange={(e) => updateLinha(i, { valor: Number(e.target.value) })}
-                      className="w-36"
-                    />
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => removeLinha(i)}
-                      disabled={linhas.length === 1}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-
-                  {/* Mini-form inline de criação de nova conta */}
-                  {criandoLinhaIdx === i && (
-                    <div className="flex items-center gap-2 pl-2 border-l-2 border-primary/40 ml-1 py-2">
-                      <Input
-                        autoFocus
-                        placeholder="Nome da conta"
-                        value={novaContaNome}
-                        maxLength={60}
-                        onChange={(e) => setNovaContaNome(e.target.value)}
-                        className="flex-1"
-                      />
-                      <select
-                        className="h-9 rounded-md border border-input bg-background px-2 text-sm"
-                        value={novaContaTipo}
-                        onChange={(e) => setNovaContaTipo(e.target.value as any)}
-                      >
-                        <option value="corrente">Corrente</option>
-                        <option value="poupanca">Poupança</option>
-                        <option value="caixa">Caixa</option>
-                        <option value="carteira_digital">Carteira</option>
-                      </select>
-                      <Button
-                        type="button"
-                        size="icon"
-                        variant="default"
-                        onClick={() => confirmarNovaConta(i)}
-                        disabled={criandoContaSalvando}
-                        title="Salvar"
-                      >
-                        {criandoContaSalvando ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <Check className="h-4 w-4" />
-                        )}
-                      </Button>
-                      <Button
-                        type="button"
-                        size="icon"
-                        variant="ghost"
-                        onClick={() => {
-                          setCriandoLinhaIdx(null);
-                          setNovaContaNome("");
-                        }}
-                        title="Cancelar"
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  )}
+                      );
+                    })}
+                    <option value={NEW_ACCOUNT_TOKEN}>+ Cadastrar nova conta / cartão…</option>
+                  </select>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    placeholder="0,00"
+                    value={l.valor || ""}
+                    onChange={(e) => updateLinha(i, { valor: Number(e.target.value) })}
+                    className="w-36"
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => removeLinha(i)}
+                    disabled={linhas.length === 1}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
                 </div>
               ))}
             </div>
