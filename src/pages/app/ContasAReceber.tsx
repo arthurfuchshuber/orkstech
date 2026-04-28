@@ -874,6 +874,8 @@ export default function ContasAReceber() {
       list = list.filter((p: any) => p.status === "pending" || p.status === "overdue");
     } else if (filterStatus === "upcoming") {
       list = list.filter((p: any) => p.status === "pending" && p.due_date >= todayStr);
+    } else if (filterStatus === "sem-conta") {
+      list = list.filter((p: any) => p.status === "paid" && !p.bank_account_id);
     } else if (filterStatus !== "all") {
       list = list.filter((p: any) => p.status === filterStatus);
     }
