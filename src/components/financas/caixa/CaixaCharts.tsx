@@ -8,6 +8,16 @@ const fmt = (v: number) =>
 const fmtFull = (v: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
 
+const FLOW_TOOLTIP_WIDTH = 320;
+const FLOW_CHART_HEIGHT = 240;
+
+const clamp = (value: number, min: number, max: number) => Math.min(Math.max(value, min), max);
+
+const getFlowTooltipHeight = (row: any) => {
+  const banks = (row?.byBank ?? []) as unknown[];
+  return 82 + banks.length * 44;
+};
+
 interface ChartsProps {
   evolution: { date: string; saldo: number }[];
   distribution: { name: string; value: number }[];
@@ -35,8 +45,9 @@ const FlowTooltip = ({ active, payload, label }: any) => {
         borderRadius: 8,
         fontSize: 12,
         padding: "10px 12px",
-        minWidth: 240,
-        maxWidth: 320,
+        width: FLOW_TOOLTIP_WIDTH,
+        maxWidth: FLOW_TOOLTIP_WIDTH,
+        boxSizing: "border-box",
         boxShadow: "0 4px 12px rgba(0,0,0,0.25)",
       }}
     >
@@ -86,17 +97,6 @@ const tooltipStyle = {
   borderRadius: 8,
   fontSize: 12,
   padding: "8px 12px",
-};
-
-// Largura aproximada do tooltip (precisa bater com o min/maxWidth do FlowTooltip)
-const FLOW_TOOLTIP_WIDTH = 280;
-const FLOW_CHART_HEIGHT = 240;
-
-const clamp = (value: number, min: number, max: number) => Math.min(Math.max(value, min), max);
-
-const getFlowTooltipHeight = (row: any) => {
-  const banks = (row?.byBank ?? []) as unknown[];
-  return 82 + banks.length * 44;
 };
 
 export function CaixaCharts({ evolution, distribution, flow, onFlowBarClick }: ChartsProps) {
