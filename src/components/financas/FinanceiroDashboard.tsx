@@ -660,6 +660,29 @@ export default function FinanceiroDashboard() {
 
       {/* ═══════════ ABA: Caixa da Empresa ═══════════ */}
       <TabsContent value="caixa" className="space-y-5">
+        {cardsSemVinculo.length > 0 && (
+          <button
+            type="button"
+            onClick={() => setVincularCard(cardsSemVinculo[0])}
+            className="w-full text-left flex flex-col md:flex-row md:items-center md:justify-between gap-3 rounded-lg border border-warning/40 bg-warning/5 hover:bg-warning/10 hover:border-warning/60 transition-colors px-4 py-3 cursor-pointer"
+          >
+            <div className="flex items-start gap-3 min-w-0">
+              <AlertTriangle className="w-5 h-5 text-warning shrink-0 mt-0.5" />
+              <div className="text-sm min-w-0">
+                <p className="font-semibold text-foreground">
+                  {cardsSemVinculo.length} card(s) com valor sem conta/cartão padrão vinculado
+                </p>
+                <p className="text-xs text-muted-foreground truncate">
+                  {cardsSemVinculo.map((c) => `${c.label}: ${fmt(c.total)}`).join(" · ")}. Clique para vincular em massa.
+                </p>
+              </div>
+            </div>
+            <span className="shrink-0 inline-flex items-center justify-center rounded-md bg-warning/15 hover:bg-warning/25 text-warning text-xs font-semibold px-3 py-1.5 transition-colors">
+              Vincular agora
+            </span>
+          </button>
+        )}
+
         {/* Banner de valores órfãos / vínculos faltando */}
         {orfaos?.temOrfaos && (() => {
           const handleClick = () => {
