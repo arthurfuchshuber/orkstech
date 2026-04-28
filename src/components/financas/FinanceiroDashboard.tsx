@@ -619,12 +619,29 @@ export default function FinanceiroDashboard() {
 
   const flowData = useMemo(() => {
     if (txHistory.length === 0 && manualTx.length === 0) return [];
-    const months = new Map<string, { entradas: number; saidas: number }>();
+    type MonthAgg = {
+      entradas: number;
+      saidas: number;
+      byBank: Map<string, { name: string; entradas: number; saidas: number }>;
+    };
+    const months = new Map<string, MonthAgg>();
     const today = new Date();
     for (let i = 5; i >= 0; i--) {
       const d = subMonths(today, i);
-      months.set(format(d, "yyyy-MM"), { entradas: 0, saidas: 0 });
+      months.set(format(d, "yyyy-MM"), { entradas: 0, saidas: 0, byBank: new Map() });
     }
+
+    const pluggyNameById = new Map<string, string>();
+    bankAccounts.forEach((a: any) => pluggyNameById.set(a.pluggy_account_id, a.name || "Conta"));
+    const manualNameById = new Map<string, string>();
+    manualAccounts.forEach((a: any) => manualNameById.set(a.id, a.nome || a.banco || "Conta"));
+
+    const bumpBank = (m: MonthAgg, key: string, name: string, valor: number, isEntrada: boolean) => {
+      const cur = m.byBank.get(key) ?? { name, entradas: 0, saidas: 0 };
+      if (isEntrada) cur.entradas += valor;
+      else cur.saidas += valor;
+      m.byBank.set(key, cur);
+    };
 
     // Pluggy (exclui transferências internas, investimentos, pagamento de fatura
     // e pares espelhados de Transfer/PIX entre contas próprias)
@@ -634,8 +651,11 @@ export default function FinanceiroDashboard() {
       if (!months.has(key)) return;
       const v = Math.abs(Number(t.amount));
       const m = months.get(key)!;
-      if (t.type === "CREDIT") m.entradas += v;
+      const isEntrada = t.type === "CREDIT";
+      if (isEntrada) m.entradas += v;
       else m.saidas += v;
+      const accId = t.pluggy_account_id;
+      if (accId) bumpBank(m, `p:${accId}`, pluggyNameById.get(accId) || "Conta", v, isEntrada);
     });
 
     // Manual — ignora transferências entre contas próprias
@@ -645,16 +665,22 @@ export default function FinanceiroDashboard() {
       if (!months.has(key)) return;
       const v = Math.abs(Number(t.amount || 0));
       const m = months.get(key)!;
-      if (t.type === "entrada") m.entradas += v;
+      const isEntrada = t.type === "entrada";
+      if (isEntrada) m.entradas += v;
       else m.saidas += v;
+      const accId = t.bank_account_id;
+      if (accId) bumpBank(m, `m:${accId}`, manualNameById.get(accId) || "Conta", v, isEntrada);
     });
 
     return Array.from(months.entries()).map(([key, v]) => ({
       month: format(new Date(key + "-01T12:00:00"), "MMM/yy", { locale: ptBR }),
       entradas: Math.round(v.entradas),
       saidas: Math.round(v.saidas),
+      byBank: Array.from(v.byBank.values())
+        .map((b) => ({ ...b, entradas: Math.round(b.entradas), saidas: Math.round(b.saidas) }))
+        .sort((a, b) => (b.entradas + b.saidas) - (a.entradas + a.saidas)),
     }));
-  }, [txHistory, manualTx, internalTransferIds]);
+  }, [txHistory, manualTx, internalTransferIds, bankAccounts, manualAccounts]);
 
   const pendentes = contasPagar?.filter((c) => c.status === "pending") ?? [];
   const vencidas = contasPagar?.filter((c) => c.status === "overdue") ?? [];
