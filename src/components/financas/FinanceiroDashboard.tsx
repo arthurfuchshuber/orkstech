@@ -25,6 +25,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { CaixaKpis } from "./caixa/CaixaKpis";
 import { CaixaCharts } from "./caixa/CaixaCharts";
+import { MonthFlowDetailModal, type MonthFlowItem } from "./caixa/MonthFlowDetailModal";
 import { useOrfaosFinanceiros } from "@/hooks/useOrfaosFinanceiros";
 import { RealocarOrfaosDialog } from "./RealocarOrfaosDialog";
 import { TransferenciaContasDialog } from "./TransferenciaContasDialog";
@@ -143,7 +144,7 @@ export default function FinanceiroDashboard() {
       const fromDate = format(startOfMonth(subMonths(new Date(), 5)), "yyyy-MM-dd");
       let q = supabase
         .from("cash_transactions")
-        .select("id, amount, type, transaction_date, bank_account_id, is_internal_transfer")
+        .select("id, amount, type, transaction_date, bank_account_id, is_internal_transfer, description, category")
         .gte("transaction_date", fromDate);
       if (empresaId) q = q.eq("empresa_id", empresaId);
       else q = q.eq("user_id", targetUserId!);
@@ -623,12 +624,13 @@ export default function FinanceiroDashboard() {
       entradas: number;
       saidas: number;
       byBank: Map<string, { name: string; entradas: number; saidas: number }>;
+      items: import("./caixa/MonthFlowDetailModal").MonthFlowItem[];
     };
     const months = new Map<string, MonthAgg>();
     const today = new Date();
     for (let i = 5; i >= 0; i--) {
       const d = subMonths(today, i);
-      months.set(format(d, "yyyy-MM"), { entradas: 0, saidas: 0, byBank: new Map() });
+      months.set(format(d, "yyyy-MM"), { entradas: 0, saidas: 0, byBank: new Map(), items: [] });
     }
 
     const pluggyNameById = new Map<string, string>();
@@ -655,7 +657,18 @@ export default function FinanceiroDashboard() {
       if (isEntrada) m.entradas += v;
       else m.saidas += v;
       const accId = t.pluggy_account_id;
-      if (accId) bumpBank(m, `p:${accId}`, pluggyNameById.get(accId) || "Conta", v, isEntrada);
+      const bankName = accId ? (pluggyNameById.get(accId) || "Conta") : "Conta";
+      if (accId) bumpBank(m, `p:${accId}`, bankName, v, isEntrada);
+      m.items.push({
+        id: String(t.id),
+        date: String(t.date).slice(0, 10),
+        description: t.description || "(sem descrição)",
+        category: t.category,
+        bankName,
+        amount: v,
+        isEntrada,
+        origem: "pluggy",
+      });
     });
 
     // Manual — ignora transferências entre contas próprias
@@ -669,16 +682,29 @@ export default function FinanceiroDashboard() {
       if (isEntrada) m.entradas += v;
       else m.saidas += v;
       const accId = t.bank_account_id;
-      if (accId) bumpBank(m, `m:${accId}`, manualNameById.get(accId) || "Conta", v, isEntrada);
+      const bankName = accId ? (manualNameById.get(accId) || "Conta") : "Conta manual";
+      if (accId) bumpBank(m, `m:${accId}`, bankName, v, isEntrada);
+      m.items.push({
+        id: String(t.id),
+        date: String(t.transaction_date).slice(0, 10),
+        description: (t as any).description || (t as any).descricao || "(sem descrição)",
+        category: (t as any).category ?? null,
+        bankName,
+        amount: v,
+        isEntrada,
+        origem: "manual",
+      });
     });
 
     return Array.from(months.entries()).map(([key, v]) => ({
       month: format(new Date(key + "-01T12:00:00"), "MMM/yy", { locale: ptBR }),
+      monthKey: key,
       entradas: Math.round(v.entradas),
       saidas: Math.round(v.saidas),
       byBank: Array.from(v.byBank.values())
         .map((b) => ({ ...b, entradas: Math.round(b.entradas), saidas: Math.round(b.saidas) }))
         .sort((a, b) => (b.entradas + b.saidas) - (a.entradas + a.saidas)),
+      items: v.items,
     }));
   }, [txHistory, manualTx, internalTransferIds, bankAccounts, manualAccounts]);
 
@@ -766,6 +792,7 @@ export default function FinanceiroDashboard() {
   const [showRealocar, setShowRealocar] = useState(false);
   const [showTransferencia, setShowTransferencia] = useState(false);
   const [vincularCard, setVincularCard] = useState<typeof cardsSemVinculo[number] | null>(null);
+  const [monthDetail, setMonthDetail] = useState<{ label: string; items: MonthFlowItem[] } | null>(null);
 
   // Popup automático na 1ª visita por sessão — só quando há valor a realocar
   useEffect(() => {
@@ -908,6 +935,12 @@ export default function FinanceiroDashboard() {
           evolution={evolutionData}
           distribution={distributionData}
           flow={flowData}
+          onFlowBarClick={(monthData) => {
+            const items = (monthData as any).items as MonthFlowItem[] | undefined;
+            if (items && items.length > 0) {
+              setMonthDetail({ label: monthData.month, items });
+            }
+          }}
         />
 
       </TabsContent>
@@ -1101,6 +1134,12 @@ export default function FinanceiroDashboard() {
     </Tabs>
     <RealocarOrfaosDialog open={showRealocar} onOpenChange={setShowRealocar} />
     <TransferenciaContasDialog open={showTransferencia} onOpenChange={setShowTransferencia} />
+    <MonthFlowDetailModal
+      open={!!monthDetail}
+      onOpenChange={(o) => !o && setMonthDetail(null)}
+      monthLabel={monthDetail?.label ?? ""}
+      items={monthDetail?.items ?? []}
+    />
     {vincularCard && (
       <VincularCardFinanceiroDialog
         open={!!vincularCard}

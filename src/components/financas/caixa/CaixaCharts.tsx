@@ -15,7 +15,9 @@ interface ChartsProps {
     entradas: number;
     saidas: number;
     byBank?: { name: string; entradas: number; saidas: number }[];
+    items?: any[];
   }[];
+  onFlowBarClick?: (monthData: any) => void;
 }
 
 const FlowTooltip = ({ active, payload, label }: any) => {
@@ -84,7 +86,7 @@ const tooltipStyle = {
   padding: "8px 12px",
 };
 
-export function CaixaCharts({ evolution, distribution, flow }: ChartsProps) {
+export function CaixaCharts({ evolution, distribution, flow, onFlowBarClick }: ChartsProps) {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
       {/* Evolução do saldo */}
@@ -171,14 +173,22 @@ export function CaixaCharts({ evolution, distribution, flow }: ChartsProps) {
             </div>
           ) : (
             <ResponsiveContainer width="100%" height={240}>
-              <BarChart data={flow} margin={{ top: 5, right: 10, bottom: 0, left: 0 }}>
+              <BarChart
+                data={flow}
+                margin={{ top: 5, right: 10, bottom: 0, left: 0 }}
+                onClick={(e: any) => {
+                  if (onFlowBarClick && e?.activePayload?.[0]?.payload) {
+                    onFlowBarClick(e.activePayload[0].payload);
+                  }
+                }}
+              >
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
                 <XAxis dataKey="month" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false} />
                 <YAxis tickFormatter={fmt} tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false} width={70} />
                 <Tooltip content={<FlowTooltip />} cursor={{ fill: "hsl(var(--muted) / 0.3)" }} />
                 <Legend wrapperStyle={{ fontSize: 11 }} iconType="circle" formatter={(v) => v === "entradas" ? "Entradas" : "Saídas"} />
-                <Bar dataKey="entradas" fill="hsl(160 84% 39%)" radius={[6, 6, 0, 0]} />
-                <Bar dataKey="saidas" fill="hsl(0 72% 51%)" radius={[6, 6, 0, 0]} />
+                <Bar dataKey="entradas" fill="hsl(160 84% 39%)" radius={[6, 6, 0, 0]} style={{ cursor: onFlowBarClick ? "pointer" : "default" }} />
+                <Bar dataKey="saidas" fill="hsl(0 72% 51%)" radius={[6, 6, 0, 0]} style={{ cursor: onFlowBarClick ? "pointer" : "default" }} />
               </BarChart>
             </ResponsiveContainer>
           )}
