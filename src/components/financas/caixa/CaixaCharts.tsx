@@ -8,6 +8,16 @@ const fmt = (v: number) =>
 const fmtFull = (v: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
 
+const FLOW_TOOLTIP_WIDTH = 320;
+const FLOW_CHART_HEIGHT = 240;
+
+const clamp = (value: number, min: number, max: number) => Math.min(Math.max(value, min), max);
+
+const getFlowTooltipHeight = (row: any) => {
+  const banks = (row?.byBank ?? []) as unknown[];
+  return 82 + banks.length * 44;
+};
+
 interface ChartsProps {
   evolution: { date: string; saldo: number }[];
   distribution: { name: string; value: number }[];
@@ -35,8 +45,9 @@ const FlowTooltip = ({ active, payload, label }: any) => {
         borderRadius: 8,
         fontSize: 12,
         padding: "10px 12px",
-        minWidth: 240,
-        maxWidth: 320,
+        width: FLOW_TOOLTIP_WIDTH,
+        maxWidth: FLOW_TOOLTIP_WIDTH,
+        boxSizing: "border-box",
         boxShadow: "0 4px 12px rgba(0,0,0,0.25)",
       }}
     >
@@ -88,24 +99,26 @@ const tooltipStyle = {
   padding: "8px 12px",
 };
 
-// Largura aproximada do tooltip (precisa bater com o min/maxWidth do FlowTooltip)
-const FLOW_TOOLTIP_WIDTH = 280;
-const BAR_HALF_WIDTH = 28; // metade da largura visual do par de barras
-
 export function CaixaCharts({ evolution, distribution, flow, onFlowBarClick }: ChartsProps) {
   const flowChartRef = useRef<HTMLDivElement | null>(null);
   const [flowChartWidth, setFlowChartWidth] = useState(0);
   const [flowCoord, setFlowCoord] = useState<{ x: number; y: number } | null>(null);
+  const [activeFlowRow, setActiveFlowRow] = useState<any | null>(null);
 
   const tooltipPosition = (() => {
     if (!flowCoord) return undefined;
     const chartW = flowChartWidth || 800;
-    const spaceRight = chartW - flowCoord.x - BAR_HALF_WIDTH;
+    const plotWidth = Math.max(chartW - 80, 320);
+    const monthBandWidth = flow.length ? plotWidth / flow.length : 120;
+    const barClusterHalfWidth = clamp(monthBandWidth * 0.43, 48, 92);
+    const tooltipHeight = getFlowTooltipHeight(activeFlowRow);
+    const y = clamp(flowCoord.y - tooltipHeight / 2, 0, Math.max(0, FLOW_CHART_HEIGHT - tooltipHeight));
+    const spaceRight = chartW - flowCoord.x - barClusterHalfWidth;
     const x =
-      spaceRight >= FLOW_TOOLTIP_WIDTH + 12
-        ? flowCoord.x + BAR_HALF_WIDTH + 8
-        : flowCoord.x - BAR_HALF_WIDTH - FLOW_TOOLTIP_WIDTH - 8;
-    return { x, y: Math.max(0, flowCoord.y - 30) };
+      spaceRight >= FLOW_TOOLTIP_WIDTH + 8
+        ? flowCoord.x + barClusterHalfWidth + 6
+        : flowCoord.x - barClusterHalfWidth - FLOW_TOOLTIP_WIDTH - 6;
+    return { x: clamp(x, 0, Math.max(0, chartW - FLOW_TOOLTIP_WIDTH)), y };
   })();
 
   return (
@@ -201,7 +214,7 @@ export function CaixaCharts({ evolution, distribution, flow, onFlowBarClick }: C
             >
               <ResponsiveContainer
                 width="100%"
-                height={240}
+                height={FLOW_CHART_HEIGHT}
                 onResize={(w) => setFlowChartWidth(w)}
               >
                 <BarChart
@@ -210,9 +223,13 @@ export function CaixaCharts({ evolution, distribution, flow, onFlowBarClick }: C
                   onMouseMove={(e: any) => {
                     if (e?.isTooltipActive && e?.activeCoordinate) {
                       setFlowCoord({ x: e.activeCoordinate.x, y: e.activeCoordinate.y });
+                      setActiveFlowRow(e.activePayload?.[0]?.payload ?? null);
                     }
                   }}
-                  onMouseLeave={() => setFlowCoord(null)}
+                  onMouseLeave={() => {
+                    setFlowCoord(null);
+                    setActiveFlowRow(null);
+                  }}
                   onClick={(e: any) => {
                     if (onFlowBarClick && e?.activePayload?.[0]?.payload) {
                       onFlowBarClick(e.activePayload[0].payload);
@@ -225,7 +242,7 @@ export function CaixaCharts({ evolution, distribution, flow, onFlowBarClick }: C
                   <Tooltip
                     content={<FlowTooltip />}
                     cursor={{ fill: "hsl(var(--muted) / 0.3)" }}
-                    wrapperStyle={{ pointerEvents: "none", zIndex: 50 }}
+                    wrapperStyle={{ pointerEvents: "none", zIndex: 50, maxHeight: FLOW_CHART_HEIGHT }}
                     position={tooltipPosition}
                   />
                   <Legend wrapperStyle={{ fontSize: 11 }} iconType="circle" formatter={(v) => v === "entradas" ? "Entradas" : "Saídas"} />
