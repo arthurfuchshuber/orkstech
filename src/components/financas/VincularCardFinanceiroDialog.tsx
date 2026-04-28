@@ -55,7 +55,9 @@ const shortName = (raw?: string | null) => {
 };
 
 const isCardField = (cardTipo: CardVinculoTipo) => cardTipo === "limite_credito" || cardTipo === "fatura";
-const isAccountOnlyField = (cardTipo: CardVinculoTipo) => ["saldo", "investimento", "limite_cheque_especial"].includes(cardTipo);
+// Contas a pagar/receber, saldo, investimento e cheque especial referem-se a caixa → apenas contas (sem cartões)
+const isAccountOnlyField = (cardTipo: CardVinculoTipo) =>
+  ["saldo", "investimento", "limite_cheque_especial", "contas_pagar", "contas_receber"].includes(cardTipo);
 
 export function VincularCardFinanceiroDialog({ open, onOpenChange, cardTipo, total, titulo }: Props) {
   const { user } = useAuth();
@@ -148,6 +150,8 @@ export function VincularCardFinanceiroDialog({ open, onOpenChange, cardTipo, tot
   };
 
   const precisaCartao = isCardField(cardTipo);
+  const entidadeLabel = precisaCartao ? "cartão" : "conta";
+  const entidadeLabelPlural = precisaCartao ? "cartões" : "contas";
 
   return (
     <>
@@ -156,7 +160,7 @@ export function VincularCardFinanceiroDialog({ open, onOpenChange, cardTipo, tot
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2"><Link2 className="h-5 w-5" /> Vincular {titulo || CARD_LABEL[cardTipo]}</DialogTitle>
             <DialogDescription>
-              Selecione a {precisaCartao ? "cartão" : "conta/cartão"} responsável por {fmt(Math.abs(total || 0))}. O vínculo será aplicado em massa nos registros retroativos sem vínculo e usado nos próximos lançamentos.
+              Selecione {precisaCartao ? "o cartão responsável" : "a conta responsável"} por {fmt(Math.abs(total || 0))}. O vínculo será aplicado em massa nos registros retroativos sem vínculo e usado nos próximos lançamentos.
             </DialogDescription>
           </DialogHeader>
 
@@ -173,10 +177,10 @@ export function VincularCardFinanceiroDialog({ open, onOpenChange, cardTipo, tot
               if (next === "uma") setLinhas([{ bank_account_id: linhas[0]?.bank_account_id || "", valor: Math.abs(total || 0) }]);
             }} className="grid grid-cols-2 gap-3">
               <Label className="flex items-center gap-2 rounded-lg border border-border p-3 cursor-pointer">
-                <RadioGroupItem value="uma" /> Uma única conta/cartão
+                <RadioGroupItem value="uma" /> Uma única {entidadeLabel}
               </Label>
               <Label className="flex items-center gap-2 rounded-lg border border-border p-3 cursor-pointer">
-                <RadioGroupItem value="varias" /> Mais de uma conta/cartão
+                <RadioGroupItem value="varias" /> Mais de {precisaCartao ? "um cartão" : "uma conta"}
               </Label>
             </RadioGroup>
 
@@ -191,9 +195,9 @@ export function VincularCardFinanceiroDialog({ open, onOpenChange, cardTipo, tot
                     value={linha.bank_account_id}
                     onValueChange={(value) => updateLinha(idx, { bank_account_id: value })}
                     options={options}
-                    placeholder={precisaCartao ? "Selecione um cartão…" : "Selecione uma conta/cartão…"}
+                    placeholder={precisaCartao ? "Selecione um cartão…" : "Selecione uma conta…"}
                     onAddModal={() => { setLinhaPendenteIdx(idx); setContaModalOpen(true); }}
-                    addLabel={precisaCartao ? "Cadastrar novo cartão" : "Cadastrar nova conta/cartão"}
+                    addLabel={precisaCartao ? "Cadastrar novo cartão" : "Cadastrar nova conta"}
                   />
                   <Input type="number" step="0.01" value={linha.valor || ""} onChange={(e) => updateLinha(idx, { valor: Number(e.target.value) })} disabled={modo === "uma"} />
                   <Button type="button" variant="ghost" size="icon" disabled={linhas.length === 1} onClick={() => removeLinha(idx)}>
@@ -209,7 +213,7 @@ export function VincularCardFinanceiroDialog({ open, onOpenChange, cardTipo, tot
             </div>
 
             <Badge variant="outline" className="border-border text-muted-foreground">
-              Com uma conta/cartão, o vínculo é aplicado nos registros sem vínculo; com múltiplos, a regra de distribuição fica registrada para uso operacional.
+              Com {precisaCartao ? "um único cartão" : "uma única conta"}, o vínculo é aplicado nos registros sem vínculo; com {entidadeLabelPlural === "cartões" ? "múltiplos cartões" : "múltiplas contas"}, a regra de distribuição fica registrada para uso operacional.
             </Badge>
           </div>
 
