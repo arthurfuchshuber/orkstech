@@ -168,7 +168,7 @@ export function VincularCardFinanceiroDialog({ open, onOpenChange, cardTipo, tot
                 <RadioGroupItem value="uma" /> Uma única {entidadeLabel}
               </Label>
               <Label className="flex items-center gap-2 rounded-lg border border-border p-3 cursor-pointer">
-                <RadioGroupItem value="varias" /> Mais de {precisaCartao ? "um cartão" : "uma conta"}
+                <RadioGroupItem value="varias" /> Mais de {precisaCartao ? "um cartão" : permiteCartaoEConta ? "uma conta/cartão" : "uma conta"}
               </Label>
             </RadioGroup>
 
@@ -201,7 +201,7 @@ export function VincularCardFinanceiroDialog({ open, onOpenChange, cardTipo, tot
             </div>
 
             <Badge variant="outline" className="border-border text-muted-foreground">
-              Com {precisaCartao ? "um único cartão" : "uma única conta"}, o vínculo é aplicado nos registros sem vínculo; com {entidadeLabelPlural === "cartões" ? "múltiplos cartões" : "múltiplas contas"}, a regra de distribuição fica registrada para uso operacional.
+              Com {precisaCartao ? "um único cartão" : permiteCartaoEConta ? "uma única conta/cartão" : "uma única conta"}, o vínculo é aplicado nos registros sem vínculo; com múltiplas {entidadeLabelPlural}, a regra de distribuição fica registrada para uso operacional.
             </Badge>
           </div>
 
