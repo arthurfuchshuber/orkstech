@@ -33,6 +33,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { GenericImporter } from "@/components/financas/importacoes/GenericImporter";
 import { ImportsHistoryTargeted } from "@/components/financas/importacoes/ImportsHistoryTargeted";
 import { ManualBankTransactionDialog } from "@/components/financas/extrato/ManualBankTransactionDialog";
+import { PluggyTransactionEditDialog } from "@/components/financas/extrato/PluggyTransactionEditDialog";
 import {
   ArrowDownLeft,
   ArrowUpRight,
@@ -180,6 +181,7 @@ export default function ExtratoBancario() {
   const [manualDialogOpen, setManualDialogOpen] = useState(false);
   const [editingManual, setEditingManual] = useState<any>(null);
   const [batchSelection, setBatchSelection] = useState<Set<string>>(new Set());
+  const [pluggyEditTx, setPluggyEditTx] = useState<{ id: string; description: string | null; amount: number; date: string } | null>(null);
 
   // Date range filter — default to current month
   const now = new Date();
@@ -1069,6 +1071,11 @@ export default function ExtratoBancario() {
                             </DropdownMenuItem>
                           )}
                           <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                            onClick={() => setPluggyEditTx({ id: tx.id, description: tx.description, amount: tx.amount, date: tx.date })}
+                          >
+                            Editar (centro, forma, notas)…
+                          </DropdownMenuItem>
                           <DropdownMenuItem onClick={() => setCfModalOpen(true)} className="text-primary">
                             <Plus className="w-3.5 h-3.5 mr-1.5" /> Nova subcategoria
                           </DropdownMenuItem>
