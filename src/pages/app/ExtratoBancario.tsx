@@ -912,13 +912,22 @@ export default function ExtratoBancario() {
                     <div className="flex justify-between gap-3">
                       <span>Transferências recebidas</span>
                       <span className="font-medium text-foreground">
-                        {formatCurrency(transfers.in)}
+                        {formatCurrency(internal.transfersIn)}
                       </span>
                     </div>
                     <div className="flex justify-between gap-3">
                       <span>Transferências enviadas</span>
                       <span className="font-medium text-foreground">
-                        {formatCurrency(transfers.out)}
+                        {formatCurrency(internal.transfersOut)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between gap-3">
+                      <span>Em Aplicação</span>
+                      <span
+                        className="font-medium text-foreground"
+                        title={`Aplicado: ${formatCurrency(internal.investOut)} · Resgatado: ${formatCurrency(internal.investIn)}`}
+                      >
+                        {formatCurrency(investNet)}
                       </span>
                     </div>
                   </div>
