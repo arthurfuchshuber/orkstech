@@ -1901,6 +1901,7 @@ export type Database = {
           created_at: string
           empresa_id: string | null
           id: string
+          last_error: string | null
           metadata: Json
           provider: string
           ultima_validacao: string | null
@@ -1915,6 +1916,7 @@ export type Database = {
           created_at?: string
           empresa_id?: string | null
           id?: string
+          last_error?: string | null
           metadata?: Json
           provider: string
           ultima_validacao?: string | null
@@ -1929,6 +1931,7 @@ export type Database = {
           created_at?: string
           empresa_id?: string | null
           id?: string
+          last_error?: string | null
           metadata?: Json
           provider?: string
           ultima_validacao?: string | null
