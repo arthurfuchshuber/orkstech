@@ -2676,14 +2676,17 @@ export type Database = {
           amount_original: number | null
           categoria_financeira_id: string | null
           category: string | null
+          cost_center_id: string | null
           created_at: string
           date: string
           description: string | null
           description_original: string | null
           id: string
           is_internal_transfer: boolean
+          notes: string | null
           origem: Database["public"]["Enums"]["origem_dado"]
           payment_data: Json | null
+          payment_method_id: string | null
           pluggy_account_id: string
           pluggy_transaction_id: string
           reconciled: boolean
@@ -2701,14 +2704,17 @@ export type Database = {
           amount_original?: number | null
           categoria_financeira_id?: string | null
           category?: string | null
+          cost_center_id?: string | null
           created_at?: string
           date: string
           description?: string | null
           description_original?: string | null
           id?: string
           is_internal_transfer?: boolean
+          notes?: string | null
           origem?: Database["public"]["Enums"]["origem_dado"]
           payment_data?: Json | null
+          payment_method_id?: string | null
           pluggy_account_id: string
           pluggy_transaction_id: string
           reconciled?: boolean
@@ -2726,14 +2732,17 @@ export type Database = {
           amount_original?: number | null
           categoria_financeira_id?: string | null
           category?: string | null
+          cost_center_id?: string | null
           created_at?: string
           date?: string
           description?: string | null
           description_original?: string | null
           id?: string
           is_internal_transfer?: boolean
+          notes?: string | null
           origem?: Database["public"]["Enums"]["origem_dado"]
           payment_data?: Json | null
+          payment_method_id?: string | null
           pluggy_account_id?: string
           pluggy_transaction_id?: string
           reconciled?: boolean
@@ -2749,6 +2758,13 @@ export type Database = {
             columns: ["categoria_financeira_id"]
             isOneToOne: false
             referencedRelation: "categorias_financeiras"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pluggy_transactions_cost_center_id_fkey"
+            columns: ["cost_center_id"]
+            isOneToOne: false
+            referencedRelation: "centros_custo"
             referencedColumns: ["id"]
           },
           {
