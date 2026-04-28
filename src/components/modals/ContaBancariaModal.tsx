@@ -15,7 +15,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Landmark, Link2 } from "lucide-react";
 import { PluggyConnectButton } from "@/components/PluggyConnectButton";
 
-type TipoConta = "corrente" | "poupanca" | "caixa" | "carteira_digital";
+type TipoConta = "corrente" | "poupanca" | "caixa" | "carteira_digital" | "cartao_credito";
 
 interface ContaBancariaModalProps {
   open: boolean;
@@ -34,6 +34,11 @@ export function ContaBancariaModal({ open, onOpenChange, editingId, onSaved }: C
     saldo_inicial: "0",
     saldo_investimento: "0",
     pessoa_tipo: "pj" as "pj" | "pf",
+    // Cartão de crédito
+    limite_credito_total: "0",
+    fatura_aberto: "0",
+    dia_fechamento_fatura: "",
+    dia_vencimento_fatura: "",
   });
   const [bancoModalOpen, setBancoModalOpen] = useState(false);
   const [bancoEditingId, setBancoEditingId] = useState<string | null>(null);
@@ -62,7 +67,10 @@ export function ContaBancariaModal({ open, onOpenChange, editingId, onSaved }: C
     { value: "poupanca", label: "Poupança" },
     { value: "caixa", label: "Caixa" },
     { value: "carteira_digital", label: "Carteira Digital" },
+    { value: "cartao_credito", label: "Cartão de Crédito" },
   ];
+
+  const ehCartao = form.tipo === "cartao_credito";
 
   const { data: existing } = useQuery({
     queryKey: ["contas_bancarias_edit", editingId],
@@ -83,9 +91,13 @@ export function ContaBancariaModal({ open, onOpenChange, editingId, onSaved }: C
         saldo_inicial: String(existing.saldo_inicial),
         saldo_investimento: String((existing as any).saldo_investimento ?? 0),
         pessoa_tipo: (existing as any).pessoa_tipo || "pj",
+        limite_credito_total: String((existing as any).limite_credito_total ?? 0),
+        fatura_aberto: String((existing as any).fatura_aberto_ajuste_manual ?? 0),
+        dia_fechamento_fatura: (existing as any).dia_fechamento_fatura ? String((existing as any).dia_fechamento_fatura) : "",
+        dia_vencimento_fatura: (existing as any).dia_vencimento_fatura ? String((existing as any).dia_vencimento_fatura) : "",
       });
     } else if (!editingId && open) {
-      setForm({ nome: "", banco_id: "", tipo: "corrente", saldo_inicial: "0", saldo_investimento: "0", pessoa_tipo: "pj" });
+      setForm({ nome: "", banco_id: "", tipo: "corrente", saldo_inicial: "0", saldo_investimento: "0", pessoa_tipo: "pj", limite_credito_total: "0", fatura_aberto: "0", dia_fechamento_fatura: "", dia_vencimento_fatura: "" });
     }
   }, [existing, editingId, open]);
 
@@ -94,14 +106,22 @@ export function ContaBancariaModal({ open, onOpenChange, editingId, onSaved }: C
       const selectedBanco = bancos.find((b: any) => b.id === form.banco_id);
       const bancoLabel = selectedBanco ? `${selectedBanco.codigo} - ${selectedBanco.nome}` : null;
 
+      const cartao = form.tipo === "cartao_credito";
       const payload: any = {
         nome: form.nome,
         banco: bancoLabel,
         banco_id: form.banco_id || null,
         tipo: form.tipo,
-        saldo_inicial: parseFloat(form.saldo_inicial) || 0,
-        saldo_investimento: parseFloat(form.saldo_investimento) || 0,
+        saldo_inicial: cartao ? 0 : (parseFloat(form.saldo_inicial) || 0),
+        saldo_investimento: cartao ? 0 : (parseFloat(form.saldo_investimento) || 0),
         pessoa_tipo: form.pessoa_tipo,
+        limite_credito_total: cartao ? (parseFloat(form.limite_credito_total) || 0) : 0,
+        fatura_aberto_ajuste_manual: cartao ? (parseFloat(form.fatura_aberto) || 0) : 0,
+        limite_credito_disponivel_ajuste_manual: cartao
+          ? Math.max(0, (parseFloat(form.limite_credito_total) || 0) - (parseFloat(form.fatura_aberto) || 0))
+          : 0,
+        dia_fechamento_fatura: cartao && form.dia_fechamento_fatura ? Math.min(31, Math.max(1, parseInt(form.dia_fechamento_fatura))) : null,
+        dia_vencimento_fatura: cartao && form.dia_vencimento_fatura ? Math.min(31, Math.max(1, parseInt(form.dia_vencimento_fatura))) : null,
       };
       if (editingId) {
         const { error } = await supabase.from("contas_bancarias").update(payload).eq("id", editingId);
@@ -178,15 +198,44 @@ export function ContaBancariaModal({ open, onOpenChange, editingId, onSaved }: C
               options={tipoContaOptions}
               placeholder="Selecione o tipo..."
             />
-            <div>
-              <label className="text-sm font-medium text-foreground mb-1.5 block">Saldo Inicial (R$)</label>
-              <Input type="number" step="0.01" value={form.saldo_inicial} onChange={(e) => setForm({ ...form, saldo_inicial: e.target.value })} />
-            </div>
-            <div>
-              <label className="text-sm font-medium text-foreground mb-1.5 block">Saldo de Investimento (R$)</label>
-              <Input type="number" step="0.01" value={form.saldo_investimento} onChange={(e) => setForm({ ...form, saldo_investimento: e.target.value })} placeholder="0,00" />
-              <p className="text-[11px] text-muted-foreground mt-1">Valor aplicado em investimentos vinculado a esta conta (CDB, Tesouro, Poupança, etc.)</p>
-            </div>
+            {!ehCartao && (
+              <>
+                <div>
+                  <label className="text-sm font-medium text-foreground mb-1.5 block">Saldo Inicial (R$)</label>
+                  <Input type="number" step="0.01" value={form.saldo_inicial} onChange={(e) => setForm({ ...form, saldo_inicial: e.target.value })} />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-foreground mb-1.5 block">Saldo de Investimento (R$)</label>
+                  <Input type="number" step="0.01" value={form.saldo_investimento} onChange={(e) => setForm({ ...form, saldo_investimento: e.target.value })} placeholder="0,00" />
+                  <p className="text-[11px] text-muted-foreground mt-1">Valor aplicado em investimentos vinculado a esta conta (CDB, Tesouro, Poupança, etc.)</p>
+                </div>
+              </>
+            )}
+
+            {ehCartao && (
+              <>
+                <div>
+                  <label className="text-sm font-medium text-foreground mb-1.5 block">Limite Total Contratado (R$)</label>
+                  <Input type="number" step="0.01" value={form.limite_credito_total} onChange={(e) => setForm({ ...form, limite_credito_total: e.target.value })} placeholder="0,00" />
+                  <p className="text-[11px] text-muted-foreground mt-1">Limite total que o banco disponibiliza neste cartão.</p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-foreground mb-1.5 block">Fatura em Aberto Atual (R$)</label>
+                  <Input type="number" step="0.01" value={form.fatura_aberto} onChange={(e) => setForm({ ...form, fatura_aberto: e.target.value })} placeholder="0,00" />
+                  <p className="text-[11px] text-muted-foreground mt-1">O limite disponível será calculado automaticamente: Total − Fatura.</p>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-sm font-medium text-foreground mb-1.5 block">Dia de Fechamento</label>
+                    <Input type="number" min="1" max="31" value={form.dia_fechamento_fatura} onChange={(e) => setForm({ ...form, dia_fechamento_fatura: e.target.value })} placeholder="Ex: 25" />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-foreground mb-1.5 block">Dia de Vencimento</label>
+                    <Input type="number" min="1" max="31" value={form.dia_vencimento_fatura} onChange={(e) => setForm({ ...form, dia_vencimento_fatura: e.target.value })} placeholder="Ex: 5" />
+                  </div>
+                </div>
+              </>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>

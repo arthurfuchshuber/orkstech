@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { AlertTriangle, Plus, Trash2, Loader2, Check, X } from "lucide-react";
+import { AlertTriangle, Plus, Trash2, Loader2 } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -19,6 +19,7 @@ import { useEmpresa } from "@/hooks/useEmpresa";
 import { toast } from "sonner";
 import { useOrfaosFinanceiros } from "@/hooks/useOrfaosFinanceiros";
 import { refreshQueries } from "@/lib/query-refresh";
+import { ContaBancariaModal } from "@/components/modals/ContaBancariaModal";
 
 interface Linha {
   bank_account_id: string;
@@ -62,11 +63,9 @@ export function RealocarOrfaosDialog({ open, onOpenChange }: Props) {
 
   const [linhas, setLinhas] = useState<Linha[]>([]);
   const [motivo, setMotivo] = useState("");
-  // Mini-form inline para "Nova conta" disparado pelo dropdown
-  const [criandoLinhaIdx, setCriandoLinhaIdx] = useState<number | null>(null);
-  const [novaContaNome, setNovaContaNome] = useState("");
-  const [novaContaTipo, setNovaContaTipo] = useState<"corrente" | "poupanca" | "caixa" | "carteira_digital">("corrente");
-  const [criandoContaSalvando, setCriandoContaSalvando] = useState(false);
+  // Modal original de Conta Bancária para criar/editar contas e cartões
+  const [contaModalOpen, setContaModalOpen] = useState(false);
+  const [linhaPendenteIdx, setLinhaPendenteIdx] = useState<number | null>(null);
   const [salvando, setSalvando] = useState(false);
 
   const totalOrfao = orfaos?.saldoLiquido ?? 0;
@@ -76,8 +75,7 @@ export function RealocarOrfaosDialog({ open, onOpenChange }: Props) {
     if (open) {
       setLinhas([{ bank_account_id: "", valor: 0 }]);
       setMotivo("");
-      setCriandoLinhaIdx(null);
-      setNovaContaNome("");
+      setLinhaPendenteIdx(null);
     }
   }, [open]);
 
@@ -97,45 +95,19 @@ export function RealocarOrfaosDialog({ open, onOpenChange }: Props) {
 
   function handleSelectChange(i: number, value: string) {
     if (value === NEW_ACCOUNT_TOKEN) {
-      setCriandoLinhaIdx(i);
-      setNovaContaNome("");
-      setNovaContaTipo("corrente");
-      // não atribui ainda; aguarda criação
+      // Abre o modal ORIGINAL de conta bancária
+      setLinhaPendenteIdx(i);
+      setContaModalOpen(true);
       return;
     }
-    setCriandoLinhaIdx(null);
     updateLinha(i, { bank_account_id: value });
   }
 
-  async function confirmarNovaConta(idx: number) {
-    if (!novaContaNome.trim()) {
-      toast.error("Informe o nome da conta");
-      return;
-    }
-    setCriandoContaSalvando(true);
-    try {
-      const { data, error } = await supabase
-        .from("contas_bancarias")
-        .insert({
-          user_id: targetUserId!,
-          empresa_id: empresaId ?? null,
-          nome: novaContaNome.trim(),
-          tipo: novaContaTipo,
-          ativo: true,
-          origem: "manual" as const,
-        })
-        .select("id")
-        .single();
-      if (error) throw error;
-      await refetchContas();
-      updateLinha(idx, { bank_account_id: data.id });
-      setCriandoLinhaIdx(null);
-      setNovaContaNome("");
-      toast.success("Conta criada");
-    } catch (e: any) {
-      toast.error(e.message || "Erro ao criar conta");
-    } finally {
-      setCriandoContaSalvando(false);
+  async function handleContaCriada(novaContaId: string) {
+    await refetchContas();
+    if (linhaPendenteIdx !== null) {
+      updateLinha(linhaPendenteIdx, { bank_account_id: novaContaId });
+      setLinhaPendenteIdx(null);
     }
   }
 
@@ -181,6 +153,7 @@ export function RealocarOrfaosDialog({ open, onOpenChange }: Props) {
     : [];
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
@@ -259,89 +232,45 @@ export function RealocarOrfaosDialog({ open, onOpenChange }: Props) {
                 </Button>
               </div>
               {linhas.map((l, i) => (
-                <div key={i} className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <select
-                      className="flex-1 h-9 rounded-md border border-input bg-background px-3 text-sm"
-                      value={criandoLinhaIdx === i ? NEW_ACCOUNT_TOKEN : l.bank_account_id}
-                      onChange={(e) => handleSelectChange(i, e.target.value)}
-                    >
-                      <option value="">Selecione uma conta…</option>
-                      {contas.map((c: any) => (
+                <div key={i} className="flex items-center gap-2">
+                  <select
+                    className="flex-1 h-9 rounded-md border border-input bg-background px-3 text-sm"
+                    value={l.bank_account_id}
+                    onChange={(e) => handleSelectChange(i, e.target.value)}
+                  >
+                    <option value="">Selecione uma conta…</option>
+                    {contas.map((c: any) => {
+                      const tipoLabel = c.tipo === "cartao_credito"
+                        ? "Cartão"
+                        : c.tipo === "corrente" ? "Corrente"
+                        : c.tipo === "poupanca" ? "Poupança"
+                        : c.tipo === "caixa" ? "Caixa"
+                        : c.tipo === "carteira_digital" ? "Carteira" : c.tipo;
+                      return (
                         <option key={c.id} value={c.id}>
-                          {c.nome} {c.banco ? `· ${c.banco}` : ""}
+                          [{tipoLabel}] {c.nome} {c.banco ? `· ${c.banco}` : ""}
                         </option>
-                      ))}
-                      <option value={NEW_ACCOUNT_TOKEN}>+ Cadastrar nova conta…</option>
-                    </select>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      placeholder="0,00"
-                      value={l.valor || ""}
-                      onChange={(e) => updateLinha(i, { valor: Number(e.target.value) })}
-                      className="w-36"
-                    />
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => removeLinha(i)}
-                      disabled={linhas.length === 1}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-
-                  {/* Mini-form inline de criação de nova conta */}
-                  {criandoLinhaIdx === i && (
-                    <div className="flex items-center gap-2 pl-2 border-l-2 border-primary/40 ml-1 py-2">
-                      <Input
-                        autoFocus
-                        placeholder="Nome da conta"
-                        value={novaContaNome}
-                        maxLength={60}
-                        onChange={(e) => setNovaContaNome(e.target.value)}
-                        className="flex-1"
-                      />
-                      <select
-                        className="h-9 rounded-md border border-input bg-background px-2 text-sm"
-                        value={novaContaTipo}
-                        onChange={(e) => setNovaContaTipo(e.target.value as any)}
-                      >
-                        <option value="corrente">Corrente</option>
-                        <option value="poupanca">Poupança</option>
-                        <option value="caixa">Caixa</option>
-                        <option value="carteira_digital">Carteira</option>
-                      </select>
-                      <Button
-                        type="button"
-                        size="icon"
-                        variant="default"
-                        onClick={() => confirmarNovaConta(i)}
-                        disabled={criandoContaSalvando}
-                        title="Salvar"
-                      >
-                        {criandoContaSalvando ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <Check className="h-4 w-4" />
-                        )}
-                      </Button>
-                      <Button
-                        type="button"
-                        size="icon"
-                        variant="ghost"
-                        onClick={() => {
-                          setCriandoLinhaIdx(null);
-                          setNovaContaNome("");
-                        }}
-                        title="Cancelar"
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  )}
+                      );
+                    })}
+                    <option value={NEW_ACCOUNT_TOKEN}>+ Cadastrar nova conta / cartão…</option>
+                  </select>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    placeholder="0,00"
+                    value={l.valor || ""}
+                    onChange={(e) => updateLinha(i, { valor: Number(e.target.value) })}
+                    className="w-36"
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => removeLinha(i)}
+                    disabled={linhas.length === 1}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
                 </div>
               ))}
             </div>
@@ -375,5 +304,16 @@ export function RealocarOrfaosDialog({ open, onOpenChange }: Props) {
         </DialogFooter>
       </DialogContent>
     </Dialog>
+
+    {/* Modal ORIGINAL de cadastro de conta/cartão */}
+    <ContaBancariaModal
+      open={contaModalOpen}
+      onOpenChange={(v) => {
+        setContaModalOpen(v);
+        if (!v) setLinhaPendenteIdx(null);
+      }}
+      onSaved={handleContaCriada}
+    />
+    </>
   );
 }

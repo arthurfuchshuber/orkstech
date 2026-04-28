@@ -1,13 +1,15 @@
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Settings2, Pencil, Plus, Link2, Lock } from "lucide-react";
+import { Settings2, Pencil, Plus, Link2, Lock, ArrowRightLeft } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useEmpresa } from "@/hooks/useEmpresa";
 import { useNavigate } from "react-router-dom";
 import { AjusteValorDialog, type AjusteCampo } from "./AjusteValorDialog";
 import { toast } from "sonner";
+import { ContaBancariaModal } from "@/components/modals/ContaBancariaModal";
+import { RealocarOrfaosDialog } from "./RealocarOrfaosDialog";
 
 interface Props {
   campo: AjusteCampo;
@@ -52,6 +54,8 @@ export function AjusteContaTrigger({ campo, iconOnly = true }: Props) {
   const empresaId = empresa?.id;
   const [openSeletor, setOpenSeletor] = useState(false);
   const [contaSelecionada, setContaSelecionada] = useState<any | null>(null);
+  const [openCadastro, setOpenCadastro] = useState(false);
+  const [openRealocar, setOpenRealocar] = useState(false);
 
   const { data: contas = [] } = useQuery({
     queryKey: ["contas-bancarias", empresaId, "para-ajuste", campo],
@@ -114,6 +118,34 @@ export function AjusteContaTrigger({ campo, iconOnly = true }: Props) {
             </DialogDescription>
           </DialogHeader>
 
+          {/* Ações sempre visíveis: realocar para múltiplas contas + cadastrar nova */}
+          <div className="flex flex-col sm:flex-row gap-2 pb-2 border-b">
+            <Button
+              variant="outline"
+              size="sm"
+              className="flex-1"
+              onClick={() => {
+                setOpenSeletor(false);
+                setOpenRealocar(true);
+              }}
+            >
+              <ArrowRightLeft className="h-3.5 w-3.5 mr-1.5" />
+              Realocar para múltiplas contas
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="flex-1"
+              onClick={() => {
+                setOpenSeletor(false);
+                setOpenCadastro(true);
+              }}
+            >
+              <Plus className="h-3.5 w-3.5 mr-1.5" />
+              Cadastrar nova
+            </Button>
+          </div>
+
           <div className="space-y-1 max-h-[60vh] overflow-y-auto py-2">
             {contas.length === 0 ? (
               <div className="space-y-4 py-4 text-center">
@@ -122,18 +154,6 @@ export function AjusteContaTrigger({ campo, iconOnly = true }: Props) {
                   <p className="text-xs text-muted-foreground px-2">{emptyDescricao}</p>
                 </div>
                 <div className="flex flex-col sm:flex-row gap-2 px-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="flex-1"
-                    onClick={() => {
-                      setOpenSeletor(false);
-                      navigate("/app/cadastros/contas-bancarias");
-                    }}
-                  >
-                    <Plus className="h-3.5 w-3.5 mr-1.5" />
-                    Cadastrar manualmente
-                  </Button>
                   <Button
                     size="sm"
                     className="flex-1"
@@ -177,6 +197,16 @@ export function AjusteContaTrigger({ campo, iconOnly = true }: Props) {
           </div>
         </DialogContent>
       </Dialog>
+
+      <ContaBancariaModal
+        open={openCadastro}
+        onOpenChange={setOpenCadastro}
+      />
+
+      <RealocarOrfaosDialog
+        open={openRealocar}
+        onOpenChange={setOpenRealocar}
+      />
 
       {contaSelecionada && (
         <AjusteValorDialog

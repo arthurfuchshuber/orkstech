@@ -123,6 +123,15 @@ export function useOrfaosFinanceiros() {
       //  (fatura e limites são informativos — não realocados como "saldo")
       const saldoLiquidoTotal = saldoLiquidoLancamentos + totalSaldoOrfao + totalInvestimentoOrfao;
 
+      // Total geral absoluto (para banner: inclui TUDO — saldo, invest, fatura, limites, cheque especial)
+      const totalGeralAbsoluto =
+        Math.abs(saldoLiquidoLancamentos) +
+        Math.abs(totalSaldoOrfao) +
+        Math.abs(totalInvestimentoOrfao) +
+        Math.abs(totalFaturaOrfa) +
+        Math.abs(totalLimiteCreditoOrfao) +
+        Math.abs(totalChequeEspecialOrfao);
+
       const totalCount =
         lancamentos.length +
         (payables?.length ?? 0) +
@@ -146,6 +155,7 @@ export function useOrfaosFinanceiros() {
         // Compatibilidade
         saldoLiquido: saldoLiquidoTotal,
         totalAbsoluto,
+        totalGeralAbsoluto,
         temOrfaos:
           lancamentos.length > 0 ||
           (payables?.length ?? 0) > 0 ||

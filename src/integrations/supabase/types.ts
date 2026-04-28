@@ -1458,6 +1458,8 @@ export type Database = {
           banco: string | null
           banco_id: string | null
           created_at: string
+          dia_fechamento_fatura: number | null
+          dia_vencimento_fatura: number | null
           empresa_id: string | null
           fatura_aberto_ajuste_manual: number
           fatura_aberto_sincronizada: number
@@ -1490,6 +1492,8 @@ export type Database = {
           banco?: string | null
           banco_id?: string | null
           created_at?: string
+          dia_fechamento_fatura?: number | null
+          dia_vencimento_fatura?: number | null
           empresa_id?: string | null
           fatura_aberto_ajuste_manual?: number
           fatura_aberto_sincronizada?: number
@@ -1522,6 +1526,8 @@ export type Database = {
           banco?: string | null
           banco_id?: string | null
           created_at?: string
+          dia_fechamento_fatura?: number | null
+          dia_vencimento_fatura?: number | null
           empresa_id?: string | null
           fatura_aberto_ajuste_manual?: number
           fatura_aberto_sincronizada?: number
@@ -3360,6 +3366,7 @@ export type Database = {
         | "poupanca"
         | "caixa"
         | "carteira_digital"
+        | "cartao_credito"
       tipo_financeiro:
         | "receita"
         | "despesa"
@@ -3543,6 +3550,7 @@ export const Constants = {
         "poupanca",
         "caixa",
         "carteira_digital",
+        "cartao_credito",
       ],
       tipo_financeiro: [
         "receita",
