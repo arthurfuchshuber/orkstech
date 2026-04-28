@@ -6,6 +6,11 @@ import { useEmpresa } from "@/hooks/useEmpresa";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -17,7 +22,7 @@ import { ManagedSelectInput } from "@/components/inputs/ManagedSelectInput";
 import { useManagedSelect } from "@/hooks/useManagedSelect";
 import { ContaBancariaModal } from "@/components/modals/ContaBancariaModal";
 import { CategoriaFinanceiraModal } from "@/components/modals/CategoriaFinanceiraModal";
-import { Loader2, ArrowDownLeft, ArrowUpRight, Landmark, FolderTree } from "lucide-react";
+import { Loader2, ArrowDownLeft, ArrowUpRight, Landmark, FolderTree, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 
 export interface ManualBankTx {
