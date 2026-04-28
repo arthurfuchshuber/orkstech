@@ -28,6 +28,7 @@ import { CaixaCharts } from "./caixa/CaixaCharts";
 import { useOrfaosFinanceiros } from "@/hooks/useOrfaosFinanceiros";
 import { RealocarOrfaosDialog } from "./RealocarOrfaosDialog";
 import { TransferenciaContasDialog } from "./TransferenciaContasDialog";
+import { VincularCardFinanceiroDialog, type CardVinculoTipo } from "./VincularCardFinanceiroDialog";
 import { Button } from "@/components/ui/button";
 import { ArrowRightLeft } from "lucide-react";
 
@@ -165,6 +166,22 @@ export default function FinanceiroDashboard() {
       const { data, error } = await q;
       if (error) throw error;
       return (data ?? []) as any[];
+    },
+  });
+
+  const { data: cardVinculos = [] } = useQuery({
+    queryKey: ["financeiro-card-vinculos", targetUserId, empresaId],
+    enabled: !!targetUserId,
+    queryFn: async () => {
+      let q = (supabase as any)
+        .from("financeiro_card_vinculos")
+        .select("card_tipo, bank_account_id")
+        .eq("ativo", true);
+      if (empresaId) q = q.eq("empresa_id", empresaId);
+      else q = q.eq("user_id", targetUserId!);
+      const { data, error } = await q;
+      if (error) throw error;
+      return (data ?? []) as { card_tipo: CardVinculoTipo; bank_account_id: string }[];
     },
   });
 
@@ -375,6 +392,17 @@ export default function FinanceiroDashboard() {
     0
   );
   const totalOverdraftAvailable = Math.max(totalOverdraftLimit - totalOverdraftUsed, 0);
+
+  const cardsSemVinculo = useMemo(() => {
+    const vinculado = new Set(cardVinculos.map((v) => v.card_tipo));
+    return [
+      { tipo: "saldo" as const, label: "Saldo em Contas", total: totalBankBalance },
+      { tipo: "investimento" as const, label: "Investimentos", total: totalInvestments },
+      { tipo: "limite_credito" as const, label: "Limite Disponível", total: totalCreditAvailable },
+      { tipo: "fatura" as const, label: "Faturas em Aberto", total: totalCreditBills },
+      { tipo: "limite_cheque_especial" as const, label: "Cheque Especial", total: totalOverdraftAvailable },
+    ].filter((c) => Math.abs(c.total || 0) > 0.01 && !vinculado.has(c.tipo));
+  }, [cardVinculos, totalBankBalance, totalInvestments, totalCreditAvailable, totalCreditBills, totalOverdraftAvailable]);
 
   // Helper: identifica transação de investimento (movimentação interna conta↔aplicação)
   const isInvestmentTx = (t: any) => {
@@ -603,15 +631,24 @@ export default function FinanceiroDashboard() {
   const { data: orfaos } = useOrfaosFinanceiros();
   const [showRealocar, setShowRealocar] = useState(false);
   const [showTransferencia, setShowTransferencia] = useState(false);
+  const [vincularCard, setVincularCard] = useState<typeof cardsSemVinculo[number] | null>(null);
 
   // Popup automático na 1ª visita por sessão — só quando há valor a realocar
   useEffect(() => {
-    if (!orfaos?.temValorRealocavel) return;
+    if (cardsSemVinculo.length === 0) return;
+    const flagKey = `card-vinculo-popup-shown:${targetUserId}:${empresaId ?? "no-emp"}`;
+    if (sessionStorage.getItem(flagKey)) return;
+    sessionStorage.setItem(flagKey, "1");
+    setVincularCard(cardsSemVinculo[0]);
+  }, [cardsSemVinculo, targetUserId, empresaId]);
+
+  useEffect(() => {
+    if (!orfaos?.temValorRealocavel || cardsSemVinculo.length > 0) return;
     const flagKey = `orfaos-popup-shown:${targetUserId}:${empresaId ?? "no-emp"}`;
     if (sessionStorage.getItem(flagKey)) return;
     sessionStorage.setItem(flagKey, "1");
     setShowRealocar(true);
-  }, [orfaos?.temValorRealocavel, targetUserId, empresaId]);
+  }, [orfaos?.temValorRealocavel, cardsSemVinculo.length, targetUserId, empresaId]);
 
   return (
     <>
