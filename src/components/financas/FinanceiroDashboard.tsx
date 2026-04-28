@@ -312,6 +312,20 @@ export default function FinanceiroDashboard() {
   const totalCreditBills = creditCards.reduce((sum, c) => sum + getCreditBillAmount(c), 0);
   const totalCreditLimit = creditCards.reduce((sum, c) => sum + getCreditLimit(c), 0);
 
+  // ── Cheque Especial (overdraft) — somente contas correntes ──
+  const totalOverdraftLimit = bankAccounts.reduce(
+    (s, a) => s + Number(a.bank_data?.overdraftContractedLimit ?? 0),
+    0
+  );
+  const totalOverdraftUsed = bankAccounts.reduce(
+    (s, a) =>
+      s +
+      Number(a.bank_data?.overdraftUsedLimit ?? 0) +
+      Number(a.bank_data?.unarrangedOverdraftAmount ?? 0),
+    0
+  );
+  const totalOverdraftAvailable = Math.max(totalOverdraftLimit - totalOverdraftUsed, 0);
+
   // Helper: identifica transação de investimento (movimentação interna conta↔aplicação)
   const isInvestmentTx = (t: any) => {
     const cat = (t.category || "").toLowerCase();
