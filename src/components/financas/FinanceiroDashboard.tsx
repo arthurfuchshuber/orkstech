@@ -468,6 +468,53 @@ export default function FinanceiroDashboard() {
     return /\b(aplica[cç][aã]o|resgate|cdb|lci|lca|tesouro|fundo|poupan[cç]a)\b/.test(desc);
   };
 
+  // Helper: identifica movimentações que NÃO são entrada/saída efetiva de caixa.
+  // Inclui:
+  //  - Flag `is_internal_transfer` do Pluggy/manual (transferências entre contas próprias)
+  //  - Aplicações/resgates em investimento (caixinhas, CDB, fundos…)
+  //  - Pagamento de fatura de cartão (categoria "Credit card payment") — é movimento
+  //    interno conta corrente → cartão, não saída real
+  //  - Categorias `Transfers` / `Transfer - PIX` em pares espelhados (mesmo valor
+  //    creditado e debitado em contas próprias no mesmo dia) — quando o Pluggy não
+  //    conseguiu marcar como `is_internal_transfer`
+  const isCashflowNeutral = (t: any) => {
+    if (t.is_internal_transfer) return true;
+    if (isInvestmentTx(t)) return true;
+    const cat = (t.category || "").toLowerCase();
+    if (cat.includes("credit card payment") || cat.includes("pagamento de cart")) return true;
+    return false;
+  };
+
+  // Pré-calcula pares espelhados de transferências entre contas próprias que o
+  // Pluggy não marcou (mesmo |amount| no mesmo dia, em contas diferentes do usuário,
+  // categoria começando com "Transfer"). Esses pares são neutros no fluxo.
+  const internalTransferIds = useMemo(() => {
+    const ids = new Set<string>();
+    const buckets = new Map<string, any[]>();
+    txHistory.forEach((t: any) => {
+      if (t.is_internal_transfer) return;
+      const cat = (t.category || "").toLowerCase();
+      if (!cat.startsWith("transfer")) return;
+      const key = `${t.date}|${Math.abs(Number(t.amount)).toFixed(2)}`;
+      const arr = buckets.get(key) ?? [];
+      arr.push(t);
+      buckets.set(key, arr);
+    });
+    buckets.forEach((arr) => {
+      const credits = arr.filter((x) => x.type === "CREDIT");
+      const debits = arr.filter((x) => x.type === "DEBIT");
+      const n = Math.min(credits.length, debits.length);
+      for (let i = 0; i < n; i++) {
+        if (credits[i].pluggy_account_id !== debits[i].pluggy_account_id) {
+          ids.add(credits[i].id);
+          ids.add(debits[i].id);
+        }
+      }
+    });
+    return ids;
+  }, [txHistory]);
+
+
   // ── Chart datasets ──
   // Patrimônio total = saldos liquidos (Pluggy + manual) + investimentos (Pluggy + manual)
   const totalNetWorth = totalBankBalance + totalInvestments;
