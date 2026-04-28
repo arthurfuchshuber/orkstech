@@ -937,8 +937,9 @@ export default function FinanceiroDashboard() {
           flow={flowData}
           onFlowBarClick={(monthData) => {
             const items = (monthData as any).items as MonthFlowItem[] | undefined;
-            if (items && items.length > 0) {
-              setMonthDetail({ label: monthData.month, items });
+            const monthKey = (monthData as any).monthKey as string | undefined;
+            if (monthKey) {
+              setMonthDetail({ label: monthData.month, monthKey, items: items ?? [] });
             }
           }}
         />
