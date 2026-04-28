@@ -3130,6 +3130,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      calcular_saldo_esperado_conta: {
+        Args: { p_conta_id: string }
+        Returns: number
+      }
       cashflow_check_duplicate: {
         Args: {
           p_amount: number
@@ -3199,7 +3203,19 @@ export type Database = {
         Returns: string
       }
       cashflow_normalize_text: { Args: { p_text: string }; Returns: string }
+      criar_lancamento_ajuste_saldo: {
+        Args: { p_conta_id: string; p_delta: number; p_motivo?: string }
+        Returns: string
+      }
       delete_import_cascade: { Args: { p_import_id: string }; Returns: Json }
+      get_or_create_ajuste_saldo_categoria: {
+        Args: {
+          p_empresa_id: string
+          p_tipo: Database["public"]["Enums"]["tipo_financeiro"]
+          p_user_id: string
+        }
+        Returns: string
+      }
       has_active_subscription: { Args: { p_user_id: string }; Returns: boolean }
       has_permission: {
         Args: {
