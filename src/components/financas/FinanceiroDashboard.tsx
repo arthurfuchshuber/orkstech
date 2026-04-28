@@ -1139,6 +1139,7 @@ export default function FinanceiroDashboard() {
       open={!!monthDetail}
       onOpenChange={(o) => !o && setMonthDetail(null)}
       monthLabel={monthDetail?.label ?? ""}
+      monthKey={monthDetail?.monthKey}
       items={monthDetail?.items ?? []}
     />
     {vincularCard && (
