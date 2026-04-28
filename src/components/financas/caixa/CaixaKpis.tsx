@@ -2,6 +2,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Landmark, CreditCard, PiggyBank, Receipt, TrendingUp, TrendingDown, Wallet } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PluggyLastSyncBadge } from "@/components/PluggyLastSyncBadge";
+import { AjusteContaTrigger } from "@/components/financas/AjusteContaTrigger";
+import type { AjusteCampo } from "@/components/financas/AjusteValorDialog";
 
 const fmt = (v: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
@@ -41,7 +43,11 @@ export function CaixaKpis({
   const utilizacao = totalCreditLimit > 0 ? ((totalCreditLimit - totalCreditAvailable) / totalCreditLimit) * 100 : 0;
   const odUtilizacao = totalOverdraftLimit > 0 ? (totalOverdraftUsed / totalOverdraftLimit) * 100 : 0;
 
-  const cards = [
+  const cards: Array<{
+    icon: any; label: string; flag: string; value: string;
+    sub?: string; subColor?: string; tone: "primary" | "emerald" | "blue" | "amber" | "violet";
+    trend?: "up" | "down" | null; ajusteCampo?: AjusteCampo;
+  }> = [
     {
       icon: Landmark,
       label: "Saldo em Contas",
@@ -49,15 +55,17 @@ export function CaixaKpis({
       value: fmt(totalBalance),
       sub: balanceDeltaPct != null ? `${balanceDeltaPct >= 0 ? "+" : ""}${balanceDeltaPct.toFixed(1)}% vs mês anterior` : undefined,
       subColor: balanceDeltaPct == null ? undefined : balanceDeltaPct >= 0 ? "text-success" : "text-destructive",
-      tone: "primary" as const,
+      tone: "primary",
       trend: balanceDeltaPct != null ? (balanceDeltaPct >= 0 ? "up" : "down") : null,
+      ajusteCampo: "saldo",
     },
     {
       icon: PiggyBank,
       label: "Investimentos",
       flag: "Aplicações",
       value: fmt(totalInvestments),
-      tone: "emerald" as const,
+      tone: "emerald",
+      ajusteCampo: "investimento",
     },
     {
       icon: CreditCard,
@@ -65,14 +73,15 @@ export function CaixaKpis({
       flag: "Cartões de Crédito",
       value: fmt(totalCreditAvailable),
       sub: totalCreditLimit > 0 ? `${utilizacao.toFixed(0)}% utilizado de ${fmt(totalCreditLimit)}` : "Nenhum cartão",
-      tone: "blue" as const,
+      tone: "blue",
     },
     {
       icon: Receipt,
       label: "Faturas em Aberto",
       flag: "Cartões de Crédito",
       value: fmt(totalCreditBills),
-      tone: "amber" as const,
+      tone: "amber",
+      ajusteCampo: "fatura",
     },
     {
       icon: Wallet,
@@ -82,7 +91,8 @@ export function CaixaKpis({
       sub: totalOverdraftLimit > 0
         ? `${odUtilizacao.toFixed(0)}% utilizado de ${fmt(totalOverdraftLimit)}`
         : "Nenhum limite contratado",
-      tone: "violet" as const,
+      tone: "violet",
+      ajusteCampo: "limite_cheque_especial",
     },
   ];
 
@@ -127,11 +137,14 @@ export function CaixaKpis({
                   <div className={cn("w-9 h-9 rounded-lg flex items-center justify-center", toneStyles[c.tone])}>
                     <Icon className="w-4 h-4" />
                   </div>
-                  {c.trend && (
-                    c.trend === "up"
-                      ? <TrendingUp className="w-3.5 h-3.5 text-success mt-5" />
-                      : <TrendingDown className="w-3.5 h-3.5 text-destructive mt-5" />
-                  )}
+                  <div className="flex items-center gap-1">
+                    {c.trend && (
+                      c.trend === "up"
+                        ? <TrendingUp className="w-3.5 h-3.5 text-success" />
+                        : <TrendingDown className="w-3.5 h-3.5 text-destructive" />
+                    )}
+                    {c.ajusteCampo && <AjusteContaTrigger campo={c.ajusteCampo} />}
+                  </div>
                 </div>
                 <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium">{c.label}</p>
                 <p className="text-2xl font-bold text-foreground mt-1 tabular-nums">{c.value}</p>
