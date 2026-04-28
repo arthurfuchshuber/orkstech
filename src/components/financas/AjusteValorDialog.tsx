@@ -23,6 +23,12 @@ interface Props {
   valorAtual: number;
   valorSincronizado?: number;
   origem?: string | null;
+  /** Cartão de crédito: limite total contratado (necessário para reconciliação fatura ↔ disponível) */
+  limiteCreditoTotal?: number;
+  /** Cartão de crédito: fatura em aberto atual */
+  faturaAtual?: number;
+  /** Cartão de crédito: limite disponível atual */
+  disponivelAtual?: number;
 }
 
 const TITULOS: Record<AjusteCampo, string> = {
@@ -51,6 +57,7 @@ type Estrategia = "criar_lancamento" | "manter_divergencia";
 
 export function AjusteValorDialog({
   open, onOpenChange, contaId, contaNome, campo, valorAtual, valorSincronizado, origem,
+  limiteCreditoTotal, faturaAtual, disponivelAtual,
 }: Props) {
   const queryClient = useQueryClient();
   const [valor, setValor] = useState<string>("");
@@ -59,6 +66,9 @@ export function AjusteValorDialog({
   const [valorEsperado, setValorEsperado] = useState<number | null>(null);
   const [estrategia, setEstrategia] = useState<Estrategia>("criar_lancamento");
   const [carregandoEsperado, setCarregandoEsperado] = useState(false);
+  const [limiteTotal, setLimiteTotal] = useState<string>("");
+
+  const ehCartao = campo === "limite_credito" || campo === "fatura";
 
   useEffect(() => {
     if (open) {
@@ -66,6 +76,11 @@ export function AjusteValorDialog({
       setMotivo("");
       setEstrategia("criar_lancamento");
       setValorEsperado(null);
+      // Inicializa limite total: usa o salvo, ou deduz por (disponivel + fatura)
+      const limiteInicial = limiteCreditoTotal && limiteCreditoTotal > 0
+        ? limiteCreditoTotal
+        : (disponivelAtual || 0) + (faturaAtual || 0);
+      setLimiteTotal(limiteInicial.toFixed(2).replace(".", ","));
 
       // Carrega valor esperado (calculado via lançamentos) para reconciliação
       if (TEM_RECONCILIACAO(campo)) {
@@ -76,10 +91,27 @@ export function AjusteValorDialog({
         });
       }
     }
-  }, [open, valorAtual, contaId, campo]);
+  }, [open, valorAtual, contaId, campo, limiteCreditoTotal, disponivelAtual, faturaAtual]);
 
   const numerico = Number(String(valor).replace(/\./g, "").replace(",", "."));
   const valorValido = !isNaN(numerico);
+  const limiteTotalNum = Number(String(limiteTotal).replace(/\./g, "").replace(",", "."));
+  const limiteTotalValido = !isNaN(limiteTotalNum) && limiteTotalNum >= 0;
+
+  // Prévia da reconciliação para cartão (limite_credito ↔ fatura)
+  const previaCartao = ehCartao && valorValido && limiteTotalValido ? (() => {
+    if (campo === "limite_credito") {
+      const novaFatura = limiteTotalNum - numerico;
+      const deltaFatura = novaFatura - (faturaAtual || 0);
+      return { novoDisponivel: numerico, novaFatura, deltaFatura, novoLimiteTotal: limiteTotalNum };
+    } else {
+      const novoDisponivel = limiteTotalNum - numerico;
+      const deltaFatura = numerico - (faturaAtual || 0);
+      return { novoDisponivel, novaFatura: numerico, deltaFatura, novoLimiteTotal: limiteTotalNum };
+    }
+  })() : null;
+
+  const cartaoExcedeLimite = ehCartao && valorValido && limiteTotalValido && numerico > limiteTotalNum;
 
   // Delta = quanto falta no extrato para chegar no valor informado
   const deltaReconciliacao = valorEsperado !== null && valorValido ? numerico - valorEsperado : 0;
