@@ -175,10 +175,7 @@ export function CaixaCharts({ evolution, distribution, flow }: ChartsProps) {
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
                 <XAxis dataKey="month" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false} />
                 <YAxis tickFormatter={fmt} tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false} width={70} />
-                <Tooltip
-                  contentStyle={tooltipStyle}
-                  formatter={(v: number, n) => [fmtFull(v), n === "entradas" ? "Entradas" : "Saídas"]}
-                />
+                <Tooltip content={<FlowTooltip />} cursor={{ fill: "hsl(var(--muted) / 0.3)" }} />
                 <Legend wrapperStyle={{ fontSize: 11 }} iconType="circle" formatter={(v) => v === "entradas" ? "Entradas" : "Saídas"} />
                 <Bar dataKey="entradas" fill="hsl(160 84% 39%)" radius={[6, 6, 0, 0]} />
                 <Bar dataKey="saidas" fill="hsl(0 72% 51%)" radius={[6, 6, 0, 0]} />
