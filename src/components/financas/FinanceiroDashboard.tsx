@@ -624,9 +624,10 @@ export default function FinanceiroDashboard() {
       months.set(format(d, "yyyy-MM"), { entradas: 0, saidas: 0 });
     }
 
-    // Pluggy (exclui transferências internas e investimentos da própria conta)
+    // Pluggy (exclui transferências internas, investimentos, pagamento de fatura
+    // e pares espelhados de Transfer/PIX entre contas próprias)
     txHistory.forEach((t: any) => {
-      if (t.is_internal_transfer || isInvestmentTx(t)) return;
+      if (isCashflowNeutral(t) || internalTransferIds.has(t.id)) return;
       const key = t.date.slice(0, 7);
       if (!months.has(key)) return;
       const v = Math.abs(Number(t.amount));
@@ -635,8 +636,9 @@ export default function FinanceiroDashboard() {
       else m.saidas += v;
     });
 
-    // Manual
+    // Manual — ignora transferências entre contas próprias
     manualTx.forEach((t: any) => {
+      if (t.is_internal_transfer) return;
       const key = (t.transaction_date || "").slice(0, 7);
       if (!months.has(key)) return;
       const v = Math.abs(Number(t.amount || 0));
@@ -650,7 +652,7 @@ export default function FinanceiroDashboard() {
       entradas: Math.round(v.entradas),
       saidas: Math.round(v.saidas),
     }));
-  }, [txHistory, manualTx]);
+  }, [txHistory, manualTx, internalTransferIds]);
 
   const pendentes = contasPagar?.filter((c) => c.status === "pending") ?? [];
   const vencidas = contasPagar?.filter((c) => c.status === "overdue") ?? [];
