@@ -825,7 +825,7 @@ export default function ExtratoBancario() {
                 income: 0,
                 expense: 0,
               };
-              const transfersOut = transfersByAccount[account.pluggy_account_id] ?? 0;
+              const transfers = transfersByAccount[account.pluggy_account_id] ?? { in: 0, out: 0 };
 
               return (
                 <Card key={account.id} className="space-y-2 p-3">
