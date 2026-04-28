@@ -137,8 +137,9 @@ export function VincularCardFinanceiroDialog({ open, onOpenChange, cardTipo, tot
   };
 
   const precisaCartao = isCardField(cardTipo);
-  const entidadeLabel = precisaCartao ? "cartão" : "conta";
-  const entidadeLabelPlural = precisaCartao ? "cartões" : "contas";
+  const permiteCartaoEConta = !precisaCartao && !isAccountOnlyField(cardTipo);
+  const entidadeLabel = precisaCartao ? "cartão" : permiteCartaoEConta ? "conta/cartão" : "conta";
+  const entidadeLabelPlural = precisaCartao ? "cartões" : permiteCartaoEConta ? "contas/cartões" : "contas";
 
   return (
     <>
@@ -147,7 +148,7 @@ export function VincularCardFinanceiroDialog({ open, onOpenChange, cardTipo, tot
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2"><Link2 className="h-5 w-5" /> Vincular {titulo || CARD_LABEL[cardTipo]}</DialogTitle>
             <DialogDescription>
-              Selecione {precisaCartao ? "o cartão responsável" : "a conta responsável"} por {fmt(Math.abs(total || 0))}. O vínculo será aplicado em massa nos registros retroativos sem vínculo e usado nos próximos lançamentos.
+              Selecione {precisaCartao ? "o cartão responsável" : permiteCartaoEConta ? "a conta ou cartão responsável" : "a conta responsável"} por {fmt(Math.abs(total || 0))}. O vínculo será aplicado em massa nos registros retroativos sem vínculo e usado nos próximos lançamentos.
             </DialogDescription>
           </DialogHeader>
 
@@ -182,7 +183,7 @@ export function VincularCardFinanceiroDialog({ open, onOpenChange, cardTipo, tot
                     value={linha.bank_account_id}
                     onValueChange={(value) => updateLinha(idx, { bank_account_id: value })}
                     options={options}
-                    placeholder={precisaCartao ? "Selecione um cartão…" : "Selecione uma conta…"}
+                    placeholder={precisaCartao ? "Selecione um cartão…" : permiteCartaoEConta ? "Selecione conta ou cartão…" : "Selecione uma conta…"}
                     onAddModal={() => { setLinhaPendenteIdx(idx); setContaModalOpen(true); }}
                     addLabel={precisaCartao ? "Cadastrar novo cartão" : "Cadastrar nova conta"}
                   />
@@ -218,6 +219,7 @@ export function VincularCardFinanceiroDialog({ open, onOpenChange, cardTipo, tot
         onOpenChange={(v) => { setContaModalOpen(v); if (!v) setLinhaPendenteIdx(null); }}
         onSaved={handleContaCriada}
         defaultTipo={precisaCartao ? "cartao_credito" : "corrente"}
+        allowedTipos={precisaCartao ? ["cartao_credito"] : isAccountOnlyField(cardTipo) ? ["corrente", "poupanca", "caixa", "carteira_digital"] : undefined}
       />
     </>
   );
