@@ -188,6 +188,15 @@ export function AjusteContaTrigger({ campo, iconOnly = true }: Props) {
           valorAtual={CAMPO_VALOR_KEY[campo](contaSelecionada)}
           valorSincronizado={CAMPO_SYNC_KEY[campo](contaSelecionada)}
           origem={contaSelecionada.origem}
+          limiteCreditoTotal={Number(contaSelecionada.limite_credito_total || 0)}
+          faturaAtual={
+            Number(contaSelecionada.fatura_aberto_sincronizada || 0) +
+            Number(contaSelecionada.fatura_aberto_ajuste_manual || 0)
+          }
+          disponivelAtual={
+            Number(contaSelecionada.limite_credito_disponivel_sincronizado || 0) +
+            Number(contaSelecionada.limite_credito_disponivel_ajuste_manual || 0)
+          }
         />
       )}
     </>
