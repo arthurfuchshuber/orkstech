@@ -40,7 +40,8 @@ const CAMPO_SYNC_KEY: Record<AjusteCampo, (c: any) => number> = {
  * mesmo com integração ativa. Os ajustes são preservados nos próximos syncs.
  */
 export function AjusteContaTrigger({ campo, iconOnly = true }: Props) {
-  const { empresaId } = useEmpresa();
+  const { empresa } = useEmpresa();
+  const empresaId = empresa?.id;
   const [openSeletor, setOpenSeletor] = useState(false);
   const [contaSelecionada, setContaSelecionada] = useState<any | null>(null);
 
