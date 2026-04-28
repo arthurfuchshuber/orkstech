@@ -16,6 +16,7 @@ export type Database = {
     Tables: {
       accounts_payable: {
         Row: {
+          ajustada_manualmente: boolean
           amount: number
           attachment_url: string | null
           bank_account_id: string | null
@@ -37,6 +38,7 @@ export type Database = {
           issue_date: string | null
           juros_multa: number
           notes: string | null
+          origem: Database["public"]["Enums"]["origem_dado"]
           payment_date: string | null
           payment_method_id: string | null
           pessoa_tipo: Database["public"]["Enums"]["pessoa_tipo"]
@@ -47,10 +49,12 @@ export type Database = {
           status: Database["public"]["Enums"]["payable_status"]
           supplier_id: string | null
           supplier_name: string | null
+          ultima_sync_at: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
+          ajustada_manualmente?: boolean
           amount?: number
           attachment_url?: string | null
           bank_account_id?: string | null
@@ -72,6 +76,7 @@ export type Database = {
           issue_date?: string | null
           juros_multa?: number
           notes?: string | null
+          origem?: Database["public"]["Enums"]["origem_dado"]
           payment_date?: string | null
           payment_method_id?: string | null
           pessoa_tipo?: Database["public"]["Enums"]["pessoa_tipo"]
@@ -82,10 +87,12 @@ export type Database = {
           status?: Database["public"]["Enums"]["payable_status"]
           supplier_id?: string | null
           supplier_name?: string | null
+          ultima_sync_at?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
+          ajustada_manualmente?: boolean
           amount?: number
           attachment_url?: string | null
           bank_account_id?: string | null
@@ -107,6 +114,7 @@ export type Database = {
           issue_date?: string | null
           juros_multa?: number
           notes?: string | null
+          origem?: Database["public"]["Enums"]["origem_dado"]
           payment_date?: string | null
           payment_method_id?: string | null
           pessoa_tipo?: Database["public"]["Enums"]["pessoa_tipo"]
@@ -117,6 +125,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["payable_status"]
           supplier_id?: string | null
           supplier_name?: string | null
+          ultima_sync_at?: string | null
           updated_at?: string
           user_id?: string
         }
@@ -126,6 +135,13 @@ export type Database = {
             columns: ["bank_account_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "accounts_payable_bank_account_id_fkey"
+            columns: ["bank_account_id"]
+            isOneToOne: false
+            referencedRelation: "contas_bancarias_efetivas"
             referencedColumns: ["id"]
           },
           {
@@ -188,6 +204,7 @@ export type Database = {
       }
       accounts_receivable: {
         Row: {
+          ajustada_manualmente: boolean
           amount: number
           attachment_url: string | null
           bank_account_id: string | null
@@ -208,16 +225,19 @@ export type Database = {
           is_recurring: boolean
           juros_multa: number
           notes: string | null
+          origem: Database["public"]["Enums"]["origem_dado"]
           payment_date: string | null
           payment_method_id: string | null
           pessoa_tipo: string
           recurrence_interval: string | null
           status: string
           supplier_name: string | null
+          ultima_sync_at: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
+          ajustada_manualmente?: boolean
           amount?: number
           attachment_url?: string | null
           bank_account_id?: string | null
@@ -238,16 +258,19 @@ export type Database = {
           is_recurring?: boolean
           juros_multa?: number
           notes?: string | null
+          origem?: Database["public"]["Enums"]["origem_dado"]
           payment_date?: string | null
           payment_method_id?: string | null
           pessoa_tipo?: string
           recurrence_interval?: string | null
           status?: string
           supplier_name?: string | null
+          ultima_sync_at?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
+          ajustada_manualmente?: boolean
           amount?: number
           attachment_url?: string | null
           bank_account_id?: string | null
@@ -268,12 +291,14 @@ export type Database = {
           is_recurring?: boolean
           juros_multa?: number
           notes?: string | null
+          origem?: Database["public"]["Enums"]["origem_dado"]
           payment_date?: string | null
           payment_method_id?: string | null
           pessoa_tipo?: string
           recurrence_interval?: string | null
           status?: string
           supplier_name?: string | null
+          ultima_sync_at?: string | null
           updated_at?: string
           user_id?: string
         }
@@ -283,6 +308,13 @@ export type Database = {
             columns: ["bank_account_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "accounts_receivable_bank_account_id_fkey"
+            columns: ["bank_account_id"]
+            isOneToOne: false
+            referencedRelation: "contas_bancarias_efetivas"
             referencedColumns: ["id"]
           },
           {
@@ -329,9 +361,51 @@ export type Database = {
           },
         ]
       }
+      ajustes_manuais_log: {
+        Row: {
+          campo: string
+          created_at: string
+          empresa_id: string | null
+          entidade_id: string
+          entidade_tipo: string
+          id: string
+          motivo: string | null
+          user_id: string
+          valor_anterior: number | null
+          valor_novo: number | null
+        }
+        Insert: {
+          campo: string
+          created_at?: string
+          empresa_id?: string | null
+          entidade_id: string
+          entidade_tipo: string
+          id?: string
+          motivo?: string | null
+          user_id: string
+          valor_anterior?: number | null
+          valor_novo?: number | null
+        }
+        Update: {
+          campo?: string
+          created_at?: string
+          empresa_id?: string | null
+          entidade_id?: string
+          entidade_tipo?: string
+          id?: string
+          motivo?: string | null
+          user_id?: string
+          valor_anterior?: number | null
+          valor_novo?: number | null
+        }
+        Relationships: []
+      }
       asaas_cobrancas: {
         Row: {
           account_receivable_id: string | null
+          ajustada_manualmente: boolean
+          ajuste_atualizado_em: string | null
+          ajuste_motivo: string | null
           asaas_customer_id: string | null
           asaas_payment_id: string
           bank_slip_url: string | null
@@ -343,17 +417,23 @@ export type Database = {
           id: string
           identification_field: string | null
           invoice_url: string | null
+          origem: Database["public"]["Enums"]["origem_dado"]
           payment_date: string | null
           pix_payload: string | null
           pix_qr_code: string | null
           raw_data: Json | null
           status: string
+          ultima_sync_at: string | null
           updated_at: string
           user_id: string
           value: number
+          value_original: number | null
         }
         Insert: {
           account_receivable_id?: string | null
+          ajustada_manualmente?: boolean
+          ajuste_atualizado_em?: string | null
+          ajuste_motivo?: string | null
           asaas_customer_id?: string | null
           asaas_payment_id: string
           bank_slip_url?: string | null
@@ -365,17 +445,23 @@ export type Database = {
           id?: string
           identification_field?: string | null
           invoice_url?: string | null
+          origem?: Database["public"]["Enums"]["origem_dado"]
           payment_date?: string | null
           pix_payload?: string | null
           pix_qr_code?: string | null
           raw_data?: Json | null
           status?: string
+          ultima_sync_at?: string | null
           updated_at?: string
           user_id: string
           value?: number
+          value_original?: number | null
         }
         Update: {
           account_receivable_id?: string | null
+          ajustada_manualmente?: boolean
+          ajuste_atualizado_em?: string | null
+          ajuste_motivo?: string | null
           asaas_customer_id?: string | null
           asaas_payment_id?: string
           bank_slip_url?: string | null
@@ -387,14 +473,17 @@ export type Database = {
           id?: string
           identification_field?: string | null
           invoice_url?: string | null
+          origem?: Database["public"]["Enums"]["origem_dado"]
           payment_date?: string | null
           pix_payload?: string | null
           pix_qr_code?: string | null
           raw_data?: Json | null
           status?: string
+          ultima_sync_at?: string | null
           updated_at?: string
           user_id?: string
           value?: number
+          value_original?: number | null
         }
         Relationships: [
           {
@@ -656,6 +745,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "cash_transactions_bank_account_id_fkey"
+            columns: ["bank_account_id"]
+            isOneToOne: false
+            referencedRelation: "contas_bancarias_efetivas"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "cash_transactions_categoria_financeira_id_fkey"
             columns: ["categoria_financeira_id"]
             isOneToOne: false
@@ -735,6 +831,13 @@ export type Database = {
             columns: ["bank_account_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cashflow_forecasts_bank_account_id_fkey"
+            columns: ["bank_account_id"]
+            isOneToOne: false
+            referencedRelation: "contas_bancarias_efetivas"
             referencedColumns: ["id"]
           },
           {
@@ -1371,47 +1474,86 @@ export type Database = {
       }
       contas_bancarias: {
         Row: {
+          ajuste_atualizado_em: string | null
+          ajuste_motivo: string | null
           ativo: boolean
           banco: string | null
           banco_id: string | null
           created_at: string
           empresa_id: string | null
+          fatura_aberto_ajuste_manual: number
+          fatura_aberto_sincronizada: number
           id: string
+          investimento_ajuste_manual: number
+          investimento_sincronizado: number
+          limite_cheque_especial: number
+          limite_cheque_especial_sincronizado: number
           nome: string
+          origem: Database["public"]["Enums"]["origem_dado"]
           pessoa_tipo: Database["public"]["Enums"]["pessoa_tipo"]
+          pluggy_account_id: string | null
+          saldo_ajuste_manual: number
           saldo_inicial: number
           saldo_investimento: number
+          saldo_sincronizado: number
           tipo: Database["public"]["Enums"]["tipo_conta_bancaria"]
+          ultima_sync_at: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
+          ajuste_atualizado_em?: string | null
+          ajuste_motivo?: string | null
           ativo?: boolean
           banco?: string | null
           banco_id?: string | null
           created_at?: string
           empresa_id?: string | null
+          fatura_aberto_ajuste_manual?: number
+          fatura_aberto_sincronizada?: number
           id?: string
+          investimento_ajuste_manual?: number
+          investimento_sincronizado?: number
+          limite_cheque_especial?: number
+          limite_cheque_especial_sincronizado?: number
           nome: string
+          origem?: Database["public"]["Enums"]["origem_dado"]
           pessoa_tipo?: Database["public"]["Enums"]["pessoa_tipo"]
+          pluggy_account_id?: string | null
+          saldo_ajuste_manual?: number
           saldo_inicial?: number
           saldo_investimento?: number
+          saldo_sincronizado?: number
           tipo?: Database["public"]["Enums"]["tipo_conta_bancaria"]
+          ultima_sync_at?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
+          ajuste_atualizado_em?: string | null
+          ajuste_motivo?: string | null
           ativo?: boolean
           banco?: string | null
           banco_id?: string | null
           created_at?: string
           empresa_id?: string | null
+          fatura_aberto_ajuste_manual?: number
+          fatura_aberto_sincronizada?: number
           id?: string
+          investimento_ajuste_manual?: number
+          investimento_sincronizado?: number
+          limite_cheque_especial?: number
+          limite_cheque_especial_sincronizado?: number
           nome?: string
+          origem?: Database["public"]["Enums"]["origem_dado"]
           pessoa_tipo?: Database["public"]["Enums"]["pessoa_tipo"]
+          pluggy_account_id?: string | null
+          saldo_ajuste_manual?: number
           saldo_inicial?: number
           saldo_investimento?: number
+          saldo_sincronizado?: number
           tipo?: Database["public"]["Enums"]["tipo_conta_bancaria"]
+          ultima_sync_at?: string | null
           updated_at?: string
           user_id?: string
         }
@@ -2060,6 +2202,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "manual_bank_transactions_bank_account_id_fkey"
+            columns: ["bank_account_id"]
+            isOneToOne: false
+            referencedRelation: "contas_bancarias_efetivas"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "manual_bank_transactions_categoria_financeira_id_fkey"
             columns: ["categoria_financeira_id"]
             isOneToOne: false
@@ -2305,59 +2454,80 @@ export type Database = {
       }
       pluggy_bank_accounts: {
         Row: {
+          ajuste_atualizado_em: string | null
+          ajuste_motivo: string | null
           balance: number
+          balance_ajuste_manual: number
           bank_data: Json | null
           connection_id: string | null
           created_at: string
           credit_available: number | null
+          credit_bill_ajuste_manual: number
           credit_bill_amount: number | null
           credit_bill_due_date: string | null
           credit_limit: number | null
+          credit_limit_ajuste_manual: number
           currency_code: string | null
           id: string
           name: string
+          origem: Database["public"]["Enums"]["origem_dado"]
           pluggy_account_id: string
           pluggy_item_id: string
           subtype: string | null
           type: string
+          ultima_sync_at: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
+          ajuste_atualizado_em?: string | null
+          ajuste_motivo?: string | null
           balance?: number
+          balance_ajuste_manual?: number
           bank_data?: Json | null
           connection_id?: string | null
           created_at?: string
           credit_available?: number | null
+          credit_bill_ajuste_manual?: number
           credit_bill_amount?: number | null
           credit_bill_due_date?: string | null
           credit_limit?: number | null
+          credit_limit_ajuste_manual?: number
           currency_code?: string | null
           id?: string
           name: string
+          origem?: Database["public"]["Enums"]["origem_dado"]
           pluggy_account_id: string
           pluggy_item_id: string
           subtype?: string | null
           type?: string
+          ultima_sync_at?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
+          ajuste_atualizado_em?: string | null
+          ajuste_motivo?: string | null
           balance?: number
+          balance_ajuste_manual?: number
           bank_data?: Json | null
           connection_id?: string | null
           created_at?: string
           credit_available?: number | null
+          credit_bill_ajuste_manual?: number
           credit_bill_amount?: number | null
           credit_bill_due_date?: string | null
           credit_limit?: number | null
+          credit_limit_ajuste_manual?: number
           currency_code?: string | null
           id?: string
           name?: string
+          origem?: Database["public"]["Enums"]["origem_dado"]
           pluggy_account_id?: string
           pluggy_item_id?: string
           subtype?: string | null
           type?: string
+          ultima_sync_at?: string | null
           updated_at?: string
           user_id?: string
         }
@@ -2406,6 +2576,9 @@ export type Database = {
       }
       pluggy_investments: {
         Row: {
+          ajuste_atualizado_em: string | null
+          ajuste_manual: number
+          ajuste_motivo: string | null
           amount_original: number | null
           amount_profit: number | null
           balance: number
@@ -2418,6 +2591,7 @@ export type Database = {
           investment_data: Json | null
           issuer: string | null
           name: string
+          origem: Database["public"]["Enums"]["origem_dado"]
           pluggy_investment_id: string
           pluggy_item_id: string
           rate: number | null
@@ -2425,10 +2599,14 @@ export type Database = {
           status: string | null
           subtype: string | null
           type: string | null
+          ultima_sync_at: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
+          ajuste_atualizado_em?: string | null
+          ajuste_manual?: number
+          ajuste_motivo?: string | null
           amount_original?: number | null
           amount_profit?: number | null
           balance?: number
@@ -2441,6 +2619,7 @@ export type Database = {
           investment_data?: Json | null
           issuer?: string | null
           name: string
+          origem?: Database["public"]["Enums"]["origem_dado"]
           pluggy_investment_id: string
           pluggy_item_id: string
           rate?: number | null
@@ -2448,10 +2627,14 @@ export type Database = {
           status?: string | null
           subtype?: string | null
           type?: string | null
+          ultima_sync_at?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
+          ajuste_atualizado_em?: string | null
+          ajuste_manual?: number
+          ajuste_motivo?: string | null
           amount_original?: number | null
           amount_profit?: number | null
           balance?: number
@@ -2464,6 +2647,7 @@ export type Database = {
           investment_data?: Json | null
           issuer?: string | null
           name?: string
+          origem?: Database["public"]["Enums"]["origem_dado"]
           pluggy_investment_id?: string
           pluggy_item_id?: string
           rate?: number | null
@@ -2471,6 +2655,7 @@ export type Database = {
           status?: string | null
           subtype?: string | null
           type?: string | null
+          ultima_sync_at?: string | null
           updated_at?: string
           user_id?: string
         }
@@ -2519,14 +2704,20 @@ export type Database = {
       }
       pluggy_transactions: {
         Row: {
+          ajustada_manualmente: boolean
+          ajuste_atualizado_em: string | null
+          ajuste_motivo: string | null
           amount: number
+          amount_original: number | null
           categoria_financeira_id: string | null
           category: string | null
           created_at: string
           date: string
           description: string | null
+          description_original: string | null
           id: string
           is_internal_transfer: boolean
+          origem: Database["public"]["Enums"]["origem_dado"]
           payment_data: Json | null
           pluggy_account_id: string
           pluggy_transaction_id: string
@@ -2538,14 +2729,20 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          ajustada_manualmente?: boolean
+          ajuste_atualizado_em?: string | null
+          ajuste_motivo?: string | null
           amount?: number
+          amount_original?: number | null
           categoria_financeira_id?: string | null
           category?: string | null
           created_at?: string
           date: string
           description?: string | null
+          description_original?: string | null
           id?: string
           is_internal_transfer?: boolean
+          origem?: Database["public"]["Enums"]["origem_dado"]
           payment_data?: Json | null
           pluggy_account_id: string
           pluggy_transaction_id: string
@@ -2557,14 +2754,20 @@ export type Database = {
           user_id: string
         }
         Update: {
+          ajustada_manualmente?: boolean
+          ajuste_atualizado_em?: string | null
+          ajuste_motivo?: string | null
           amount?: number
+          amount_original?: number | null
           categoria_financeira_id?: string | null
           category?: string | null
           created_at?: string
           date?: string
           description?: string | null
+          description_original?: string | null
           id?: string
           is_internal_transfer?: boolean
+          origem?: Database["public"]["Enums"]["origem_dado"]
           payment_data?: Json | null
           pluggy_account_id?: string
           pluggy_transaction_id?: string
@@ -2919,10 +3122,129 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      contas_bancarias_efetivas: {
+        Row: {
+          ajuste_atualizado_em: string | null
+          ajuste_motivo: string | null
+          ativo: boolean | null
+          banco: string | null
+          banco_id: string | null
+          created_at: string | null
+          empresa_id: string | null
+          fatura_aberto_ajuste_manual: number | null
+          fatura_aberto_sincronizada: number | null
+          fatura_efetiva: number | null
+          id: string | null
+          investimento_ajuste_manual: number | null
+          investimento_efetivo: number | null
+          investimento_sincronizado: number | null
+          limite_cheque_especial: number | null
+          limite_cheque_especial_sincronizado: number | null
+          nome: string | null
+          origem: Database["public"]["Enums"]["origem_dado"] | null
+          pessoa_tipo: Database["public"]["Enums"]["pessoa_tipo"] | null
+          pluggy_account_id: string | null
+          saldo_ajuste_manual: number | null
+          saldo_efetivo: number | null
+          saldo_inicial: number | null
+          saldo_investimento: number | null
+          saldo_sincronizado: number | null
+          tipo: Database["public"]["Enums"]["tipo_conta_bancaria"] | null
+          ultima_sync_at: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          ajuste_atualizado_em?: string | null
+          ajuste_motivo?: string | null
+          ativo?: boolean | null
+          banco?: string | null
+          banco_id?: string | null
+          created_at?: string | null
+          empresa_id?: string | null
+          fatura_aberto_ajuste_manual?: number | null
+          fatura_aberto_sincronizada?: number | null
+          fatura_efetiva?: never
+          id?: string | null
+          investimento_ajuste_manual?: number | null
+          investimento_efetivo?: never
+          investimento_sincronizado?: number | null
+          limite_cheque_especial?: number | null
+          limite_cheque_especial_sincronizado?: number | null
+          nome?: string | null
+          origem?: Database["public"]["Enums"]["origem_dado"] | null
+          pessoa_tipo?: Database["public"]["Enums"]["pessoa_tipo"] | null
+          pluggy_account_id?: string | null
+          saldo_ajuste_manual?: number | null
+          saldo_efetivo?: never
+          saldo_inicial?: number | null
+          saldo_investimento?: number | null
+          saldo_sincronizado?: number | null
+          tipo?: Database["public"]["Enums"]["tipo_conta_bancaria"] | null
+          ultima_sync_at?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          ajuste_atualizado_em?: string | null
+          ajuste_motivo?: string | null
+          ativo?: boolean | null
+          banco?: string | null
+          banco_id?: string | null
+          created_at?: string | null
+          empresa_id?: string | null
+          fatura_aberto_ajuste_manual?: number | null
+          fatura_aberto_sincronizada?: number | null
+          fatura_efetiva?: never
+          id?: string | null
+          investimento_ajuste_manual?: number | null
+          investimento_efetivo?: never
+          investimento_sincronizado?: number | null
+          limite_cheque_especial?: number | null
+          limite_cheque_especial_sincronizado?: number | null
+          nome?: string | null
+          origem?: Database["public"]["Enums"]["origem_dado"] | null
+          pessoa_tipo?: Database["public"]["Enums"]["pessoa_tipo"] | null
+          pluggy_account_id?: string | null
+          saldo_ajuste_manual?: number | null
+          saldo_efetivo?: never
+          saldo_inicial?: number | null
+          saldo_investimento?: number | null
+          saldo_sincronizado?: number | null
+          tipo?: Database["public"]["Enums"]["tipo_conta_bancaria"] | null
+          ultima_sync_at?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contas_bancarias_banco_id_fkey"
+            columns: ["banco_id"]
+            isOneToOne: false
+            referencedRelation: "bancos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contas_bancarias_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       _fmt_brl: { Args: { v: number }; Returns: string }
+      aplicar_ajuste_conta_bancaria: {
+        Args: {
+          p_campo: string
+          p_conta_id: string
+          p_motivo?: string
+          p_novo_valor: number
+        }
+        Returns: Json
+      }
       aplicar_regras_retroativo: { Args: { p_user_id: string }; Returns: Json }
       avaliar_regra_dre: {
         Args: {
@@ -3081,6 +3403,13 @@ export type Database = {
         | "financial_expenses"
         | "financial_revenue"
         | "taxes"
+      origem_dado:
+        | "manual"
+        | "pluggy"
+        | "asaas"
+        | "clicksign"
+        | "import"
+        | "hibrido"
       payable_status: "pending" | "paid" | "overdue" | "cancelled"
       pessoa_tipo: "pf" | "pj"
       recurrence_interval: "monthly" | "weekly" | "yearly"
@@ -3255,6 +3584,14 @@ export const Constants = {
         "financial_expenses",
         "financial_revenue",
         "taxes",
+      ],
+      origem_dado: [
+        "manual",
+        "pluggy",
+        "asaas",
+        "clicksign",
+        "import",
+        "hibrido",
       ],
       payable_status: ["pending", "paid", "overdue", "cancelled"],
       pessoa_tipo: ["pf", "pj"],
