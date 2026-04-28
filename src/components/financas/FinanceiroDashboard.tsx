@@ -425,9 +425,9 @@ export default function FinanceiroDashboard() {
       months.set(format(d, "yyyy-MM"), { entradas: 0, saidas: 0 });
     }
 
-    // Pluggy
+    // Pluggy (exclui transferências internas e investimentos da própria conta)
     txHistory.forEach((t: any) => {
-      if (isInvestmentTx(t)) return;
+      if (t.is_internal_transfer || isInvestmentTx(t)) return;
       const key = t.date.slice(0, 7);
       if (!months.has(key)) return;
       const v = Math.abs(Number(t.amount));
