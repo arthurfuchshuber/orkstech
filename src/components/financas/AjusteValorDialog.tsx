@@ -208,7 +208,11 @@ export function AjusteValorDialog({
 
         <div className="space-y-3 py-2">
           <div className="space-y-1.5">
-            <Label htmlFor="ajuste-valor">Saldo real informado por você (R$)</Label>
+            <Label htmlFor="ajuste-valor">
+              {campo === "limite_credito" && "Limite disponível atual (R$)"}
+              {campo === "fatura" && "Fatura em aberto atual (R$)"}
+              {campo !== "limite_credito" && campo !== "fatura" && "Saldo real informado por você (R$)"}
+            </Label>
             <Input
               id="ajuste-valor"
               value={valor}
@@ -217,6 +221,61 @@ export function AjusteValorDialog({
               inputMode="decimal"
             />
           </div>
+
+          {/* Cartão: limite total contratado + prévia da reconciliação */}
+          {ehCartao && (
+            <>
+              <div className="space-y-1.5">
+                <Label htmlFor="ajuste-limite-total">Limite total contratado (R$)</Label>
+                <Input
+                  id="ajuste-limite-total"
+                  value={limiteTotal}
+                  onChange={(e) => setLimiteTotal(e.target.value)}
+                  placeholder="0,00"
+                  inputMode="decimal"
+                />
+                <p className="text-[11px] text-muted-foreground">
+                  Limite contratado com o banco. O sistema usa este valor para recalcular automaticamente o outro card.
+                </p>
+              </div>
+
+              {cartaoExcedeLimite && (
+                <Alert variant="destructive" className="border-destructive/40">
+                  <AlertTriangle className="h-4 w-4" />
+                  <AlertDescription className="text-xs">
+                    O valor informado ({formatBRL(numerico)}) é maior que o limite total ({formatBRL(limiteTotalNum)}). Ajuste um dos dois.
+                  </AlertDescription>
+                </Alert>
+              )}
+
+              {previaCartao && !cartaoExcedeLimite && (
+                <div className="rounded-md border border-primary/20 bg-primary/5 p-3 space-y-2">
+                  <div className="text-xs font-semibold flex items-center gap-1.5">
+                    <Info className="h-3.5 w-3.5" /> Após o ajuste:
+                  </div>
+                  <div className="grid grid-cols-2 gap-1.5 text-xs">
+                    <span className="text-muted-foreground">Limite total:</span>
+                    <span className="text-right tabular-nums font-medium">{formatBRL(previaCartao.novoLimiteTotal)}</span>
+                    <span className="text-muted-foreground">Limite disponível:</span>
+                    <span className="text-right tabular-nums font-medium">{formatBRL(previaCartao.novoDisponivel)}</span>
+                    <span className="text-muted-foreground">Fatura em aberto:</span>
+                    <span className="text-right tabular-nums font-medium">{formatBRL(previaCartao.novaFatura)}</span>
+                    <span className="text-muted-foreground">% utilizado:</span>
+                    <span className="text-right tabular-nums font-medium">
+                      {previaCartao.novoLimiteTotal > 0
+                        ? ((previaCartao.novaFatura / previaCartao.novoLimiteTotal) * 100).toFixed(0)
+                        : 0}%
+                    </span>
+                  </div>
+                  {Math.abs(previaCartao.deltaFatura) >= 0.005 && (
+                    <p className="text-[11px] text-muted-foreground border-t border-primary/10 pt-2">
+                      Será criado um lançamento de <strong>{previaCartao.deltaFatura > 0 ? "Ajuste de Fatura (despesa)" : "Ajuste de Fatura (entrada)"}</strong> de {formatBRL(Math.abs(previaCartao.deltaFatura))} no extrato deste cartão para manter Dashboard, DRE e Fluxo de Caixa coerentes.
+                    </p>
+                  )}
+                </div>
+              )}
+            </>
+          )}
 
           {/* Reconciliação — apenas para o campo "saldo" */}
           {TEM_RECONCILIACAO(campo) && (
