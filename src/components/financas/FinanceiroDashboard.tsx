@@ -624,45 +624,62 @@ export default function FinanceiroDashboard() {
       {/* ═══════════ ABA: Caixa da Empresa ═══════════ */}
       <TabsContent value="caixa" className="space-y-5">
         {/* Banner de valores órfãos / vínculos faltando */}
-        {orfaos?.temOrfaos && (
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 rounded-lg border border-amber-500/40 bg-amber-500/5 px-4 py-3">
-            <div className="flex items-start gap-3">
-              <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
-              <div className="text-sm">
-                {orfaos.temValorRealocavel ? (
-                  <>
-                    <p className="font-semibold text-foreground">
-                      Existem {fmt(orfaos.totalGeralAbsoluto)} em valores sem conta vinculada
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      Inclui saldos, investimentos, faturas, limites e cheque especial órfãos
-                      ({orfaos.lancamentos.length} lançamento(s) + {orfaos.contasInativasComSnapshot?.length ?? 0} conta(s) excluída(s)).
-                      Realoque para manter o dashboard preciso.
-                    </p>
-                  </>
-                ) : (
-                  <>
-                    <p className="font-semibold text-foreground">
-                      {(orfaos.payablesOrfaos.length + orfaos.receivablesOrfaos.length)} pagamento(s) registrado(s) sem conta de origem
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      Não afeta saldos do dashboard, mas atrapalha o extrato e o DRE por conta. Vincule manualmente para manter o histórico completo.
-                    </p>
-                  </>
-                )}
+        {orfaos?.temOrfaos && (() => {
+          const handleClick = () => {
+            if (orfaos.temValorRealocavel) {
+              setShowRealocar(true);
+            } else if (orfaos.receivablesOrfaos.length > 0 && orfaos.payablesOrfaos.length === 0) {
+              navigate("/app/financas/receber?filtro=sem-conta");
+            } else if (orfaos.payablesOrfaos.length > 0 && orfaos.receivablesOrfaos.length === 0) {
+              navigate("/app/financas/pagar?filtro=sem-conta");
+            } else {
+              // Tem dos dois — leva para a página com mais itens
+              const dest =
+                orfaos.receivablesOrfaos.length >= orfaos.payablesOrfaos.length
+                  ? "/app/financas/receber?filtro=sem-conta"
+                  : "/app/financas/pagar?filtro=sem-conta";
+              navigate(dest);
+            }
+          };
+
+          return (
+            <button
+              type="button"
+              onClick={handleClick}
+              className="w-full text-left flex flex-col md:flex-row md:items-center md:justify-between gap-3 rounded-lg border border-amber-500/40 bg-amber-500/5 hover:bg-amber-500/10 hover:border-amber-500/60 transition-colors px-4 py-3 cursor-pointer"
+            >
+              <div className="flex items-start gap-3">
+                <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
+                <div className="text-sm">
+                  {orfaos.temValorRealocavel ? (
+                    <>
+                      <p className="font-semibold text-foreground">
+                        Existem {fmt(orfaos.totalGeralAbsoluto)} em valores sem conta vinculada
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Inclui saldos, investimentos, faturas, limites e cheque especial órfãos
+                        ({orfaos.lancamentos.length} lançamento(s) + {orfaos.contasInativasComSnapshot?.length ?? 0} conta(s) excluída(s)).
+                        Clique para realocar.
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <p className="font-semibold text-foreground">
+                        {(orfaos.payablesOrfaos.length + orfaos.receivablesOrfaos.length)} pagamento(s) registrado(s) sem conta de origem
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Não afeta os saldos, mas atrapalha o extrato e o DRE por conta. Clique para revisar e vincular.
+                      </p>
+                    </>
+                  )}
+                </div>
               </div>
-            </div>
-            {orfaos.temValorRealocavel && (
-              <Button
-                size="sm"
-                onClick={() => setShowRealocar(true)}
-                className="shrink-0"
-              >
-                Realocar agora
-              </Button>
-            )}
-          </div>
-        )}
+              <span className="shrink-0 inline-flex items-center justify-center rounded-md bg-amber-500/15 hover:bg-amber-500/25 text-amber-200 text-xs font-semibold px-3 py-1.5 transition-colors">
+                {orfaos.temValorRealocavel ? "Realocar agora" : "Revisar agora"}
+              </span>
+            </button>
+          );
+        })()}
 
         {/* Ação rápida: Transferir entre contas */}
         <div className="flex justify-end">
