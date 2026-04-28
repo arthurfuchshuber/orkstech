@@ -198,15 +198,44 @@ export function ContaBancariaModal({ open, onOpenChange, editingId, onSaved }: C
               options={tipoContaOptions}
               placeholder="Selecione o tipo..."
             />
-            <div>
-              <label className="text-sm font-medium text-foreground mb-1.5 block">Saldo Inicial (R$)</label>
-              <Input type="number" step="0.01" value={form.saldo_inicial} onChange={(e) => setForm({ ...form, saldo_inicial: e.target.value })} />
-            </div>
-            <div>
-              <label className="text-sm font-medium text-foreground mb-1.5 block">Saldo de Investimento (R$)</label>
-              <Input type="number" step="0.01" value={form.saldo_investimento} onChange={(e) => setForm({ ...form, saldo_investimento: e.target.value })} placeholder="0,00" />
-              <p className="text-[11px] text-muted-foreground mt-1">Valor aplicado em investimentos vinculado a esta conta (CDB, Tesouro, Poupança, etc.)</p>
-            </div>
+            {!ehCartao && (
+              <>
+                <div>
+                  <label className="text-sm font-medium text-foreground mb-1.5 block">Saldo Inicial (R$)</label>
+                  <Input type="number" step="0.01" value={form.saldo_inicial} onChange={(e) => setForm({ ...form, saldo_inicial: e.target.value })} />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-foreground mb-1.5 block">Saldo de Investimento (R$)</label>
+                  <Input type="number" step="0.01" value={form.saldo_investimento} onChange={(e) => setForm({ ...form, saldo_investimento: e.target.value })} placeholder="0,00" />
+                  <p className="text-[11px] text-muted-foreground mt-1">Valor aplicado em investimentos vinculado a esta conta (CDB, Tesouro, Poupança, etc.)</p>
+                </div>
+              </>
+            )}
+
+            {ehCartao && (
+              <>
+                <div>
+                  <label className="text-sm font-medium text-foreground mb-1.5 block">Limite Total Contratado (R$)</label>
+                  <Input type="number" step="0.01" value={form.limite_credito_total} onChange={(e) => setForm({ ...form, limite_credito_total: e.target.value })} placeholder="0,00" />
+                  <p className="text-[11px] text-muted-foreground mt-1">Limite total que o banco disponibiliza neste cartão.</p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-foreground mb-1.5 block">Fatura em Aberto Atual (R$)</label>
+                  <Input type="number" step="0.01" value={form.fatura_aberto} onChange={(e) => setForm({ ...form, fatura_aberto: e.target.value })} placeholder="0,00" />
+                  <p className="text-[11px] text-muted-foreground mt-1">O limite disponível será calculado automaticamente: Total − Fatura.</p>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-sm font-medium text-foreground mb-1.5 block">Dia de Fechamento</label>
+                    <Input type="number" min="1" max="31" value={form.dia_fechamento_fatura} onChange={(e) => setForm({ ...form, dia_fechamento_fatura: e.target.value })} placeholder="Ex: 25" />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-foreground mb-1.5 block">Dia de Vencimento</label>
+                    <Input type="number" min="1" max="31" value={form.dia_vencimento_fatura} onChange={(e) => setForm({ ...form, dia_vencimento_fatura: e.target.value })} placeholder="Ex: 5" />
+                  </div>
+                </div>
+              </>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
