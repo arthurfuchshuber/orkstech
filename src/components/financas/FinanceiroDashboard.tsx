@@ -340,14 +340,14 @@ export default function FinanceiroDashboard() {
     return Math.abs(account.balance ?? 0);
   };
 
-  const totalCreditBills = creditCards.reduce((sum, c) => sum + getCreditBillAmount(c), 0);
+  const totalCreditBills = creditCards.reduce((sum, c) => sum + getCreditBillAmount(c), 0) + totalManualBills;
   const totalCreditLimit = creditCards.reduce((sum, c) => sum + getCreditLimit(c), 0);
 
-  // ── Cheque Especial (overdraft) — somente contas correntes ──
+  // ── Cheque Especial (overdraft) — Pluggy + ajustes manuais ──
   const totalOverdraftLimit = bankAccounts.reduce(
     (s, a) => s + Number(a.bank_data?.overdraftContractedLimit ?? 0),
     0
-  );
+  ) + totalManualOverdraftLimit;
   const totalOverdraftUsed = bankAccounts.reduce(
     (s, a) =>
       s +
