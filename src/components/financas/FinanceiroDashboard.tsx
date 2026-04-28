@@ -557,7 +557,7 @@ export default function FinanceiroDashboard() {
       days.push({ date: dailyChanges[i].label, saldo: balances[i] });
     }
     return days.filter((_, idx) => idx % 3 === 0 || idx === days.length - 1);
-  }, [txHistory, manualTx, totalNetWorth]);
+  }, [txHistory, manualTx, totalNetWorth, internalTransferIds]);
 
   const balanceDeltaPct = useMemo(() => {
     if (evolutionData.length < 2) return null;
