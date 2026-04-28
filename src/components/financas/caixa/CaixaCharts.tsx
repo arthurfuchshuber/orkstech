@@ -90,11 +90,23 @@ const tooltipStyle = {
 
 // Largura aproximada do tooltip (precisa bater com o min/maxWidth do FlowTooltip)
 const FLOW_TOOLTIP_WIDTH = 280;
-const BAR_HALF_WIDTH = 28; // metade da largura visual do par de barras (entrada+saída)
+const BAR_HALF_WIDTH = 28; // metade da largura visual do par de barras
 
 export function CaixaCharts({ evolution, distribution, flow, onFlowBarClick }: ChartsProps) {
-  const flowChartRef = useRef<HTMLDivElement>(null);
+  const flowChartRef = useRef<HTMLDivElement | null>(null);
   const [flowChartWidth, setFlowChartWidth] = useState(0);
+  const [flowCoord, setFlowCoord] = useState<{ x: number; y: number } | null>(null);
+
+  const tooltipPosition = (() => {
+    if (!flowCoord) return undefined;
+    const chartW = flowChartWidth || 800;
+    const spaceRight = chartW - flowCoord.x - BAR_HALF_WIDTH;
+    const x =
+      spaceRight >= FLOW_TOOLTIP_WIDTH + 12
+        ? flowCoord.x + BAR_HALF_WIDTH + 8
+        : flowCoord.x - BAR_HALF_WIDTH - FLOW_TOOLTIP_WIDTH - 8;
+    return { x, y: Math.max(0, flowCoord.y - 30) };
+  })();
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
