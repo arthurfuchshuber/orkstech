@@ -497,6 +497,13 @@ export default function ContasAReceber() {
           samePayer = true;
         } else if (formData.payer_kind === "fornecedor" && formData.supplier_id && existing.supplier_id === formData.supplier_id) {
           samePayer = true;
+        } else {
+          // Fallback por nome (cobre lançamentos sem cliente_id/supplier_id, ex.: importações Asaas antigas)
+          const formName = (formData.supplier_name || "").trim().toLowerCase();
+          const existName = (existing.supplier_name || "").trim().toLowerCase();
+          if (formName && existName && formName === existName) {
+            samePayer = true;
+          }
         }
         if (sameAmount && samePayer) {
           matches.push({ ...existing, _dupReasons: ["Mesmo pagador", "Mesmo valor"] });

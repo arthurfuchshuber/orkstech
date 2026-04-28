@@ -6,6 +6,11 @@ import { useEmpresa } from "@/hooks/useEmpresa";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -17,7 +22,7 @@ import { ManagedSelectInput } from "@/components/inputs/ManagedSelectInput";
 import { useManagedSelect } from "@/hooks/useManagedSelect";
 import { ContaBancariaModal } from "@/components/modals/ContaBancariaModal";
 import { CategoriaFinanceiraModal } from "@/components/modals/CategoriaFinanceiraModal";
-import { Loader2, ArrowDownLeft, ArrowUpRight, Landmark, FolderTree } from "lucide-react";
+import { Loader2, ArrowDownLeft, ArrowUpRight, Landmark, FolderTree, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 
 export interface ManualBankTx {
@@ -57,6 +62,8 @@ export function ManualBankTransactionDialog({ open, onOpenChange, editing }: Pro
   const queryClient = useQueryClient();
   const [form, setForm] = useState<ManualBankTx>(empty);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [showDuplicateAlert, setShowDuplicateAlert] = useState(false);
+  const [duplicateMatches, setDuplicateMatches] = useState<any[]>([]);
 
   // Sub-modals for cadastro at source
   const [cbModalOpen, setCbModalOpen] = useState(false);
@@ -219,8 +226,58 @@ export function ManualBankTransactionDialog({ open, onOpenChange, editing }: Pro
     onError: (e: any) => toast.error(e?.message ?? "Erro ao salvar"),
   });
 
-  const submit = () => {
+  const checkDuplicates = async (): Promise<any[]> => {
+    if (!targetUserId) return [];
+    const dateStr = form.transaction_date!.toISOString().slice(0, 10);
+    const docDigits = form.document_number.trim().replace(/\D/g, "");
+    const descNorm = form.description.trim().toLowerCase();
+
+    let q = supabase
+      .from("manual_bank_transactions" as any)
+      .select("id, transaction_date, amount, type, description, document_number, bank_account_id")
+      .eq("transaction_date", dateStr)
+      .eq("type", form.type);
+    if (empresaId) q = q.eq("empresa_id", empresaId);
+    if (form.id) q = q.neq("id", form.id);
+
+    const { data } = await q;
+    const candidates = (data ?? []) as any[];
+
+    const matches: any[] = [];
+    for (const ex of candidates) {
+      const exDoc = (ex.document_number || "").replace(/\D/g, "");
+      // Prioridade 1: Nº Documento igual
+      if (docDigits && exDoc && docDigits === exDoc) {
+        matches.push({ ...ex, _dupReasons: ["Nº Documento igual"] });
+        continue;
+      }
+      // Prioridade 2 (sem doc): mesma descrição + mesmo valor + mesma conta
+      if (!docDigits) {
+        const sameAmount = Math.abs(Number(ex.amount) - form.amount) < 0.01;
+        const sameDesc = (ex.description || "").trim().toLowerCase() === descNorm;
+        const sameAccount = (ex.bank_account_id || null) === (form.bank_account_id || null);
+        if (sameAmount && sameDesc && sameAccount) {
+          matches.push({ ...ex, _dupReasons: ["Mesma descrição", "Mesmo valor", "Mesma data"] });
+        }
+      }
+    }
+    return matches;
+  };
+
+  const submit = async () => {
     if (!validate()) return;
+    const dups = await checkDuplicates();
+    if (dups.length > 0) {
+      setDuplicateMatches(dups);
+      setShowDuplicateAlert(true);
+      return;
+    }
+    saveMut.mutate();
+  };
+
+  const proceedWithSave = () => {
+    setShowDuplicateAlert(false);
+    setDuplicateMatches([]);
     saveMut.mutate();
   };
 
@@ -390,6 +447,45 @@ export function ManualBankTransactionDialog({ open, onOpenChange, editing }: Pro
         defaultTipo={form.type === "CREDIT" ? "receita" : "despesa"}
         onSaved={(id) => update("categoria_financeira_id", id)}
       />
+
+      <AlertDialog open={showDuplicateAlert} onOpenChange={setShowDuplicateAlert}>
+        <AlertDialogContent className="max-w-lg">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 text-amber-600">
+              <AlertTriangle className="w-5 h-5" />
+              Possível duplicidade detectada
+            </AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3">
+                <p>Foram encontrados lançamentos manuais semelhantes:</p>
+                <div className="max-h-48 overflow-y-auto space-y-2">
+                  {duplicateMatches.map((dup: any, idx: number) => (
+                    <div key={idx} className="rounded-md border border-border bg-muted/30 p-3 text-sm">
+                      <p className="font-medium text-foreground">{dup.description}</p>
+                      <p className="text-muted-foreground">
+                        Valor: R$ {Number(dup.amount).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                        {dup.document_number && ` • Doc: ${dup.document_number}`}
+                      </p>
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {dup._dupReasons?.map((r: string, i: number) => (
+                          <Badge key={i} variant="outline" className="text-xs border-amber-300 text-amber-600">{r}</Badge>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <p className="text-sm">Deseja continuar mesmo assim?</p>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={proceedWithSave} className="bg-amber-600 hover:bg-amber-700">
+              Continuar mesmo assim
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }
