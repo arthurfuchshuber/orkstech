@@ -132,11 +132,12 @@ export function useOrfaosFinanceiros() {
         Math.abs(totalLimiteCreditoOrfao) +
         Math.abs(totalChequeEspecialOrfao);
 
-      const totalCount =
-        lancamentos.length +
-        (payables?.length ?? 0) +
-        (receivables?.length ?? 0) +
-        contasComSnapshot.length;
+      const temValorRealocavel =
+        (lancamentos.length > 0 && Math.abs(saldoLiquidoLancamentos) > 0.01) ||
+        (contasComSnapshot.length > 0 && totalGeralAbsoluto > 0.01);
+
+      const temVinculosFaltando =
+        (payables?.length ?? 0) > 0 || (receivables?.length ?? 0) > 0;
 
       return {
         lancamentos,
@@ -156,10 +157,12 @@ export function useOrfaosFinanceiros() {
         saldoLiquido: saldoLiquidoTotal,
         totalAbsoluto,
         totalGeralAbsoluto,
-        temOrfaos:
-          // Só considera "tem órfãos" quando existe valor real para realocar
-          (lancamentos.length > 0 && Math.abs(saldoLiquidoLancamentos) > 0.01) ||
-          (contasComSnapshot.length > 0 && totalGeralAbsoluto > 0.01),
+        // Há valor real para realocar (mostra CTA "Realocar agora")
+        temValorRealocavel,
+        // Há vínculos faltando (informativo apenas — botão "Revisar")
+        temVinculosFaltando,
+        // Compat: qualquer um dos 2 ⇒ banner aparece
+        temOrfaos: temValorRealocavel || temVinculosFaltando,
         totalCount,
       };
     },
