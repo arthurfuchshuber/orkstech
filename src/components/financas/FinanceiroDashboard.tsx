@@ -121,8 +121,10 @@ export default function FinanceiroDashboard() {
     queryFn: async () => {
       let q = supabase
         .from("contas_bancarias")
-        .select("id, nome, banco, banco_id, tipo, saldo_inicial, saldo_investimento, saldo_sincronizado, saldo_ajuste_manual, investimento_sincronizado, investimento_ajuste_manual, fatura_aberto_sincronizada, fatura_aberto_ajuste_manual, limite_cheque_especial, origem, ativo")
-        .eq("ativo", true);
+        .select("id, nome, banco, banco_id, tipo, saldo_inicial, saldo_investimento, saldo_sincronizado, saldo_ajuste_manual, investimento_sincronizado, investimento_ajuste_manual, fatura_aberto_sincronizada, fatura_aberto_ajuste_manual, limite_credito_disponivel_sincronizado, limite_credito_disponivel_ajuste_manual, limite_credito_total, limite_cheque_especial, pluggy_account_id, origem, ativo")
+        .eq("ativo", true)
+        // Exclui espelhos Pluggy: a integração já é somada via `accounts` (pluggy_bank_accounts)
+        .is("pluggy_account_id", null);
       if (empresaId) q = q.eq("empresa_id", empresaId);
       else q = q.eq("user_id", targetUserId!);
       const { data, error } = await q;
