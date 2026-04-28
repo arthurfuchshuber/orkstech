@@ -62,6 +62,8 @@ export function ManualBankTransactionDialog({ open, onOpenChange, editing }: Pro
   const queryClient = useQueryClient();
   const [form, setForm] = useState<ManualBankTx>(empty);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [showDuplicateAlert, setShowDuplicateAlert] = useState(false);
+  const [duplicateMatches, setDuplicateMatches] = useState<any[]>([]);
 
   // Sub-modals for cadastro at source
   const [cbModalOpen, setCbModalOpen] = useState(false);
