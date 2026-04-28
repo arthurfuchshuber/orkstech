@@ -199,7 +199,7 @@ export default function FinanceiroDashboard() {
       while (true) {
         const { data, error } = await supabase
           .from("pluggy_transactions" as any)
-          .select("id, amount, date, type, category, description, pluggy_account_id")
+          .select("id, amount, date, type, category, description, pluggy_account_id, is_internal_transfer")
           .eq("user_id", targetUserId!)
           .in("pluggy_account_id", bankAccountIds)
           .gte("date", fromDate)
@@ -325,9 +325,9 @@ export default function FinanceiroDashboard() {
     if (txHistory.length === 0 && manualTx.length === 0) return [];
     const byDay = new Map<string, number>();
 
-    // Pluggy (ignora movimentações entre conta e investimento)
+    // Pluggy (ignora transferências internas: aplicações, resgates, conta↔conta própria)
     txHistory.forEach((t: any) => {
-      if (isInvestmentTx(t)) return;
+      if (t.is_internal_transfer || isInvestmentTx(t)) return;
       const day = t.date;
       const signed = t.type === "CREDIT" ? Math.abs(Number(t.amount)) : -Math.abs(Number(t.amount));
       byDay.set(day, (byDay.get(day) || 0) + signed);
@@ -425,9 +425,9 @@ export default function FinanceiroDashboard() {
       months.set(format(d, "yyyy-MM"), { entradas: 0, saidas: 0 });
     }
 
-    // Pluggy
+    // Pluggy (exclui transferências internas e investimentos da própria conta)
     txHistory.forEach((t: any) => {
-      if (isInvestmentTx(t)) return;
+      if (t.is_internal_transfer || isInvestmentTx(t)) return;
       const key = t.date.slice(0, 7);
       if (!months.has(key)) return;
       const v = Math.abs(Number(t.amount));
