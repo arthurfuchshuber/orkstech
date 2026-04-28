@@ -59,7 +59,9 @@ export function TransferenciaContasDialog({ open, onOpenChange, defaultOrigemId 
       let q = supabase
         .from("contas_bancarias")
         .select("id, nome, tipo, banco, saldo_inicial, saldo_sincronizado, saldo_ajuste_manual")
-        .eq("ativo", true);
+        .eq("ativo", true)
+        // Cartão de crédito não participa de transferência entre contas
+        .neq("tipo", "cartao_credito");
       if (empresaId) q = q.eq("empresa_id", empresaId);
       else q = q.eq("user_id", targetUserId!);
       const { data, error } = await q;
@@ -67,6 +69,14 @@ export function TransferenciaContasDialog({ open, onOpenChange, defaultOrigemId 
       return (data ?? []) as any[];
     },
   });
+
+  // Helper: nome curto e legível para o select (evita strings duplicadas tipo "X · X")
+  const labelConta = (c: any) => {
+    const nome = (c.nome || "").trim();
+    const banco = (c.banco || "").trim();
+    if (!banco || nome === banco || nome.toLowerCase().includes(banco.toLowerCase())) return nome;
+    return `${nome} · ${banco}`;
+  };
 
   const podeSalvar =
     !!origemId && !!destinoId && origemId !== destinoId && valor > 0;
