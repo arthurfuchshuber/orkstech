@@ -41,9 +41,20 @@ const CAMPO_SYNC_KEY: Record<AjusteCampo, (c: any) => number> = {
   limite_credito: (c) => Number(c.limite_credito_disponivel_sincronizado || 0),
 };
 
-// Tipos relacionados a cartão de crédito (limite_credito só lista cartões)
+// Tipos relacionados a cartão de crédito (limite_credito só lista cartões).
+// Inclui contas Pluggy/manuais que tenham limite de crédito ou fatura — esses são
+// efetivamente cartões mesmo que o Pluggy as devolva com tipo "corrente".
 const TIPOS_CARTAO = ["cartao_credito", "credito", "cartao"];
-const ehCartao = (c: any) => TIPOS_CARTAO.includes(String(c.tipo || "").toLowerCase());
+const ehCartao = (c: any) => {
+  if (TIPOS_CARTAO.includes(String(c.tipo || "").toLowerCase())) return true;
+  return (
+    Number(c.limite_credito_total || 0) > 0 ||
+    Number(c.limite_credito_disponivel_sincronizado || 0) > 0 ||
+    Number(c.limite_credito_disponivel_ajuste_manual || 0) > 0 ||
+    Number(c.fatura_aberto_sincronizada || 0) > 0 ||
+    Number(c.fatura_aberto_ajuste_manual || 0) > 0
+  );
+};
 
 /**
  * Botão que abre seletor de conta -> dialog de ajuste manual.
