@@ -210,6 +210,8 @@ export function PluggyConnectButton({ size = "default" }: { size?: "default" | "
 
 export function PluggyConnectionsList() {
   const { connections, deleteMutation, handleSync } = usePluggyConnections();
+  const [removeId, setRemoveId] = useState<string | null>(null);
+  const removingConn = connections.find((c: any) => c.id === removeId);
 
   if (connections.length === 0) return null;
 
@@ -245,12 +247,21 @@ export function PluggyConnectionsList() {
             <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => handleSync(conn.pluggy_item_id)}>
               <RefreshCw className="w-3 h-3" />
             </Button>
-            <Button variant="ghost" size="icon" className="h-5 w-5 text-destructive" onClick={() => deleteMutation.mutate(conn.id)}>
+            <Button variant="ghost" size="icon" className="h-5 w-5 text-destructive" onClick={() => setRemoveId(conn.id)}>
               <Trash2 className="w-3 h-3" />
             </Button>
           </div>
         </div>
       ))}
+
+      <RemoveIntegrationDialog
+        open={!!removeId}
+        onOpenChange={(v) => !v && setRemoveId(null)}
+        providerLabel={removingConn?.connector_name || "conexão Open Finance"}
+        dataDescription="Transações sincronizadas, contas e investimentos importados deste banco. Conciliações com contas a pagar/receber são preservadas em ambos os casos."
+        onKeepData={async () => { if (removeId) await deleteMutation.mutateAsync({ id: removeId, purge: false }); }}
+        onPurgeData={async () => { if (removeId) await deleteMutation.mutateAsync({ id: removeId, purge: true }); }}
+      />
     </div>
   );
 }
