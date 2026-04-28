@@ -612,6 +612,7 @@ export default function FinanceiroDashboard() {
   }, [orfaos?.temOrfaos, targetUserId, empresaId]);
 
   return (
+    <>
     <Tabs defaultValue="caixa" className="space-y-4 animate-fade-in">
       <TabsList>
         <TabsTrigger value="caixa">Caixa da Empresa</TabsTrigger>
@@ -869,9 +870,8 @@ export default function FinanceiroDashboard() {
         </div>
       </TabsContent>
     </Tabs>
-    <>
-      <RealocarOrfaosDialog open={showRealocar} onOpenChange={setShowRealocar} />
-      <TransferenciaContasDialog open={showTransferencia} onOpenChange={setShowTransferencia} />
+    <RealocarOrfaosDialog open={showRealocar} onOpenChange={setShowRealocar} />
+    <TransferenciaContasDialog open={showTransferencia} onOpenChange={setShowTransferencia} />
     </>
   );
 }
