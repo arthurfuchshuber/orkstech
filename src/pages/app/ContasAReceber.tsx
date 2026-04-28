@@ -1990,6 +1990,7 @@ export default function ContasAReceber() {
         onOpenChange={setCbModalOpen}
         editingId={cbEditingId}
         onSaved={(id) => updateField("bank_account_id", id)}
+        allowedTipos={["corrente", "poupanca", "caixa", "carteira_digital"]}
       />
       <FormaPagamentoModal
         open={fpModalOpen}
