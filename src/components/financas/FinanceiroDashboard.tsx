@@ -143,7 +143,7 @@ export default function FinanceiroDashboard() {
       const fromDate = format(startOfMonth(subMonths(new Date(), 5)), "yyyy-MM-dd");
       let q = supabase
         .from("cash_transactions")
-        .select("id, amount, type, transaction_date, bank_account_id")
+        .select("id, amount, type, transaction_date, bank_account_id, is_internal_transfer")
         .gte("transaction_date", fromDate);
       if (empresaId) q = q.eq("empresa_id", empresaId);
       else q = q.eq("user_id", targetUserId!);
