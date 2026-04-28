@@ -122,21 +122,32 @@ export function AjusteValorDialog({
       toast.error("Valor inválido");
       return;
     }
+    if (ehCartao && !limiteTotalValido) {
+      toast.error("Informe o limite total contratado do cartão");
+      return;
+    }
+    if (cartaoExcedeLimite) {
+      toast.error("O valor não pode ser maior que o limite total do cartão");
+      return;
+    }
     setSalvando(true);
     try {
       // Caso 1: campos sem reconciliação contábil — fluxo legado (ajuste_manual)
+      // OBS: cartões (limite_credito / fatura) já fazem reconciliação no banco
+      // (recalculam o par e geram lançamento de ajuste de fatura no extrato).
       if (!TEM_RECONCILIACAO(campo)) {
-        const { error } = await supabase.rpc("aplicar_ajuste_conta_bancaria", {
+        const payload: any = {
           p_conta_id: contaId,
           p_campo: campo,
           p_novo_valor: numerico,
           p_motivo: motivo || null,
-        });
+        };
+        if (ehCartao) payload.p_limite_total = limiteTotalNum;
+        const { error } = await supabase.rpc("aplicar_ajuste_conta_bancaria", payload);
         if (error) throw error;
       } else {
         // Caso 2: saldo — pode haver divergência
         if (!temDivergencia) {
-          // Sem divergência: nenhum ajuste necessário
           toast.info("Saldo já está reconciliado — nada a alterar");
           setSalvando(false);
           onOpenChange(false);
@@ -144,7 +155,6 @@ export function AjusteValorDialog({
         }
 
         if (estrategia === "criar_lancamento") {
-          // Cria transação real no extrato (mantém tudo batendo)
           const { error } = await supabase.rpc("criar_lancamento_ajuste_saldo", {
             p_conta_id: contaId,
             p_delta: deltaReconciliacao,
@@ -152,7 +162,6 @@ export function AjusteValorDialog({
           });
           if (error) throw error;
         } else {
-          // Aceita divergência: ajusta apenas o card via ajuste_manual
           const { error } = await supabase.rpc("aplicar_ajuste_conta_bancaria", {
             p_conta_id: contaId,
             p_campo: campo,
