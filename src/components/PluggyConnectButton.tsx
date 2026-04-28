@@ -33,14 +33,32 @@ export function usePluggyConnections() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: async (id: string) => {
+    mutationFn: async ({ id, purge }: { id: string; purge: boolean }) => {
+      // Lookup pluggy_item_id antes de excluir
+      const { data: conn } = await supabase
+        .from("pluggy_connections" as any)
+        .select("pluggy_item_id")
+        .eq("id", id)
+        .maybeSingle();
+      const pluggyItemId = (conn as any)?.pluggy_item_id as string | undefined;
+
+      if (purge && pluggyItemId) {
+        // Remove transações e contas vinculadas a este item (preserva conciliações em accounts_payable/receivable)
+        await supabase.from("pluggy_transactions" as any).delete().eq("pluggy_item_id", pluggyItemId);
+        await supabase.from("pluggy_bank_accounts" as any).delete().eq("pluggy_item_id", pluggyItemId);
+        await supabase.from("pluggy_investments" as any).delete().eq("pluggy_item_id", pluggyItemId);
+      }
+
       const { error } = await supabase.from("pluggy_connections" as any).delete().eq("id", id);
       if (error) throw error;
+      return { purge };
     },
-    onSuccess: () => {
+    onSuccess: ({ purge }) => {
       qc.invalidateQueries({ queryKey: ["pluggy_connections"] });
       qc.invalidateQueries({ queryKey: ["pluggy_connections_exist"] });
-      toast.success("Conexão removida");
+      qc.invalidateQueries({ queryKey: ["pluggy_bank_accounts"] });
+      qc.invalidateQueries({ queryKey: ["pluggy_transactions"] });
+      toast.success(purge ? "Conexão e dados sincronizados removidos" : "Conexão removida — dados preservados");
     },
   });
 
