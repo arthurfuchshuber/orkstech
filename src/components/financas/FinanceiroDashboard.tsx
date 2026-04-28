@@ -395,14 +395,56 @@ export default function FinanceiroDashboard() {
 
   const cardsSemVinculo = useMemo(() => {
     const vinculado = new Set(cardVinculos.map((v) => v.card_tipo));
+
+    // Origem implícita: contas/cartões já cadastrados (Pluggy ou manuais) que
+    // produzem o valor do card. Se existe ao menos UMA fonte, não há "órfão" a
+    // vincular — o número já vem dessas contas.
+    const temContaSaldo = bankAccounts.length > 0 || manualAccounts.some((a) => !ehCartaoManual(a));
+    const temContaInvestimento =
+      bankAccounts.some((a) => Number(a.bank_data?.totalInvestments ?? 0) > 0) ||
+      manualAccounts.some(
+        (a) =>
+          Number(a.investimento_sincronizado || 0) +
+            Number(a.investimento_ajuste_manual || 0) +
+            Number(a.saldo_investimento || 0) >
+          0,
+      );
+    const temCartao = creditCards.length > 0 || manualAccounts.some(ehCartaoManual);
+    const temChequeEspecial =
+      bankAccounts.some((a) => Number(a.bank_data?.overdraftContractedLimit ?? 0) > 0) ||
+      manualAccounts.some((a) => Number(a.limite_cheque_especial || 0) > 0);
+
+    const cobertoPorOrigem: Record<string, boolean> = {
+      saldo: temContaSaldo,
+      investimento: temContaInvestimento,
+      limite_credito: temCartao,
+      fatura: temCartao,
+      limite_cheque_especial: temChequeEspecial,
+    };
+
     return [
       { tipo: "saldo" as const, label: "Saldo em Contas", total: totalBankBalance },
       { tipo: "investimento" as const, label: "Investimentos", total: totalInvestments },
       { tipo: "limite_credito" as const, label: "Limite Disponível", total: totalCreditAvailable },
       { tipo: "fatura" as const, label: "Faturas em Aberto", total: totalCreditBills },
       { tipo: "limite_cheque_especial" as const, label: "Cheque Especial", total: totalOverdraftAvailable },
-    ].filter((c) => Math.abs(c.total || 0) > 0.01 && !vinculado.has(c.tipo));
-  }, [cardVinculos, totalBankBalance, totalInvestments, totalCreditAvailable, totalCreditBills, totalOverdraftAvailable]);
+    ].filter(
+      (c) =>
+        Math.abs(c.total || 0) > 0.01 &&
+        !vinculado.has(c.tipo) &&
+        !cobertoPorOrigem[c.tipo],
+    );
+  }, [
+    cardVinculos,
+    bankAccounts,
+    manualAccounts,
+    creditCards,
+    totalBankBalance,
+    totalInvestments,
+    totalCreditAvailable,
+    totalCreditBills,
+    totalOverdraftAvailable,
+  ]);
 
   // Helper: identifica transação de investimento (movimentação interna conta↔aplicação)
   const isInvestmentTx = (t: any) => {
