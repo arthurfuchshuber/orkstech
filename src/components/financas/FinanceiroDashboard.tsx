@@ -869,5 +869,9 @@ export default function FinanceiroDashboard() {
         </div>
       </TabsContent>
     </Tabs>
+    <>
+      <RealocarOrfaosDialog open={showRealocar} onOpenChange={setShowRealocar} />
+      <TransferenciaContasDialog open={showTransferencia} onOpenChange={setShowTransferencia} />
+    </>
   );
 }
