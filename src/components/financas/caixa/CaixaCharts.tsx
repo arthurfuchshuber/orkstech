@@ -15,7 +15,9 @@ interface ChartsProps {
     entradas: number;
     saidas: number;
     byBank?: { name: string; entradas: number; saidas: number }[];
+    items?: any[];
   }[];
+  onFlowBarClick?: (monthData: any) => void;
 }
 
 const FlowTooltip = ({ active, payload, label }: any) => {
