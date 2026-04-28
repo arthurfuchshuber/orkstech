@@ -1460,6 +1460,8 @@ export type Database = {
           investimento_sincronizado: number
           limite_cheque_especial: number
           limite_cheque_especial_sincronizado: number
+          limite_credito_disponivel_ajuste_manual: number
+          limite_credito_disponivel_sincronizado: number
           nome: string
           origem: Database["public"]["Enums"]["origem_dado"]
           pessoa_tipo: Database["public"]["Enums"]["pessoa_tipo"]
@@ -1488,6 +1490,8 @@ export type Database = {
           investimento_sincronizado?: number
           limite_cheque_especial?: number
           limite_cheque_especial_sincronizado?: number
+          limite_credito_disponivel_ajuste_manual?: number
+          limite_credito_disponivel_sincronizado?: number
           nome: string
           origem?: Database["public"]["Enums"]["origem_dado"]
           pessoa_tipo?: Database["public"]["Enums"]["pessoa_tipo"]
@@ -1516,6 +1520,8 @@ export type Database = {
           investimento_sincronizado?: number
           limite_cheque_especial?: number
           limite_cheque_especial_sincronizado?: number
+          limite_credito_disponivel_ajuste_manual?: number
+          limite_credito_disponivel_sincronizado?: number
           nome?: string
           origem?: Database["public"]["Enums"]["origem_dado"]
           pessoa_tipo?: Database["public"]["Enums"]["pessoa_tipo"]
