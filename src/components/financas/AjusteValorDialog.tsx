@@ -44,6 +44,7 @@ const formatBRL = (v: number) =>
 export function AjusteValorDialog({
   open, onOpenChange, contaId, contaNome, campo, valorAtual, valorSincronizado, origem,
 }: Props) {
+  const queryClient = useQueryClient();
   const [valor, setValor] = useState<string>("");
   const [motivo, setMotivo] = useState<string>("");
   const [salvando, setSalvando] = useState(false);
@@ -74,7 +75,7 @@ export function AjusteValorDialog({
       return;
     }
     toast.success("Ajuste aplicado com sucesso");
-    await refreshQueries(["contas-bancarias", "dashboard", "fluxo-caixa", "extrato-bancario", "pluggy"]);
+    await refreshQueries(queryClient, [["contas-bancarias"], ["dashboard"], ["fluxo-caixa"], ["extrato-bancario"], ["pluggy"]]);
     onOpenChange(false);
   };
 
