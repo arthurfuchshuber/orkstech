@@ -12,13 +12,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { AlertTriangle, Plus, Trash2, Wallet, Loader2 } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useEmpresa } from "@/hooks/useEmpresa";
 import { toast } from "sonner";
 import { useOrfaosFinanceiros } from "@/hooks/useOrfaosFinanceiros";
-import { refreshQueries } from "@/lib/refreshQueries";
+import { refreshQueries } from "@/lib/query-refresh";
 
 interface Linha {
   bank_account_id: string;
