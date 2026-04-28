@@ -1,13 +1,15 @@
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Settings2, Pencil, Plus, Link2, Lock } from "lucide-react";
+import { Settings2, Pencil, Plus, Link2, Lock, ArrowRightLeft } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useEmpresa } from "@/hooks/useEmpresa";
 import { useNavigate } from "react-router-dom";
 import { AjusteValorDialog, type AjusteCampo } from "./AjusteValorDialog";
 import { toast } from "sonner";
+import { ContaBancariaModal } from "@/components/modals/ContaBancariaModal";
+import { RealocarOrfaosDialog } from "./RealocarOrfaosDialog";
 
 interface Props {
   campo: AjusteCampo;
@@ -52,6 +54,8 @@ export function AjusteContaTrigger({ campo, iconOnly = true }: Props) {
   const empresaId = empresa?.id;
   const [openSeletor, setOpenSeletor] = useState(false);
   const [contaSelecionada, setContaSelecionada] = useState<any | null>(null);
+  const [openCadastro, setOpenCadastro] = useState(false);
+  const [openRealocar, setOpenRealocar] = useState(false);
 
   const { data: contas = [] } = useQuery({
     queryKey: ["contas-bancarias", empresaId, "para-ajuste", campo],
