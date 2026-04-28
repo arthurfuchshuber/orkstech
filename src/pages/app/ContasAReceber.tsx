@@ -1570,7 +1570,7 @@ export default function ContasAReceber() {
               label="Conta bancária"
               value={receiptBankAccount}
               onValueChange={setReceiptBankAccount}
-              options={bankAccounts.map((b: any) => ({ value: b.id, label: `${b.nome}${b.banco ? ` - ${b.banco}` : ""}` }))}
+              options={bankAccountOptions}
               placeholder="Selecione a conta..."
               icon={<Landmark className="w-4 h-4" />}
               onAddModal={() => { setCbEditingId(null); setCbModalOpen(true); }}
@@ -1884,7 +1884,7 @@ export default function ContasAReceber() {
             label="Conta Bancária"
             value={form.bank_account_id}
             onValueChange={(v) => updateField("bank_account_id", v)}
-            options={bankAccounts.map((b: any) => ({ value: b.id, label: `${b.nome}${b.banco ? ` - ${b.banco}` : ""}` }))}
+            options={bankAccountOptions}
             placeholder="Selecione a conta..."
             icon={<Landmark className="w-4 h-4" />}
             onAddModal={() => { setCbEditingId(null); setCbModalOpen(true); }}
