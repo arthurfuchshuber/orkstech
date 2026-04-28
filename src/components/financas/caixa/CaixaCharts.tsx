@@ -20,24 +20,34 @@ interface ChartsProps {
   onFlowBarClick?: (monthData: any) => void;
 }
 
-const FlowTooltip = ({ active, payload, label }: any) => {
+const FlowTooltip = ({ active, payload, label, coordinate, viewBox }: any) => {
   if (!active || !payload?.length) return null;
   const row = payload[0]?.payload;
   if (!row) return null;
   const banks = (row.byBank ?? []) as { name: string; entradas: number; saidas: number }[];
+
+  // Estimativa de altura do tooltip para decidir flip vertical
+  const estimatedHeight = 90 + (banks.length > 0 ? 30 + banks.length * 32 : 0);
+  const chartHeight = (viewBox?.height ?? 240) + (viewBox?.y ?? 0);
+  const cursorY = coordinate?.y ?? 0;
+  const spaceBelow = chartHeight - cursorY;
+  // Se não couber abaixo, posiciona acima do cursor
+  const placeAbove = spaceBelow < estimatedHeight + 20;
+
+  const tooltipStyleInner: React.CSSProperties = {
+    background: "hsl(var(--card))",
+    border: "1px solid hsl(var(--border))",
+    borderRadius: 8,
+    fontSize: 12,
+    padding: "10px 12px",
+    minWidth: 240,
+    maxWidth: 320,
+    boxShadow: "0 4px 12px rgba(0,0,0,0.25)",
+    transform: placeAbove ? `translateY(-100%) translateY(-12px)` : undefined,
+  };
+
   return (
-    <div
-      style={{
-        background: "hsl(var(--card))",
-        border: "1px solid hsl(var(--border))",
-        borderRadius: 8,
-        fontSize: 12,
-        padding: "10px 12px",
-        minWidth: 240,
-        maxWidth: 320,
-        boxShadow: "0 4px 12px rgba(0,0,0,0.25)",
-      }}
-    >
+    <div style={tooltipStyleInner}>
       <div style={{ fontWeight: 600, marginBottom: 6, color: "hsl(var(--foreground))" }}>{label}</div>
       <div style={{ display: "flex", justifyContent: "space-between", color: "hsl(var(--foreground))" }}>
         <span style={{ color: "hsl(160 84% 39%)" }}>Entradas</span>
