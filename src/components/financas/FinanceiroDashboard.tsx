@@ -792,7 +792,7 @@ export default function FinanceiroDashboard() {
   const [showRealocar, setShowRealocar] = useState(false);
   const [showTransferencia, setShowTransferencia] = useState(false);
   const [vincularCard, setVincularCard] = useState<typeof cardsSemVinculo[number] | null>(null);
-  const [monthDetail, setMonthDetail] = useState<{ label: string; items: MonthFlowItem[] } | null>(null);
+  const [monthDetail, setMonthDetail] = useState<{ label: string; monthKey: string; items: MonthFlowItem[] } | null>(null);
 
   // Popup automático na 1ª visita por sessão — só quando há valor a realocar
   useEffect(() => {
