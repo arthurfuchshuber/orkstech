@@ -78,6 +78,7 @@ export function CaixaKpis({
       value: fmt(totalCreditAvailable),
       sub: totalCreditLimit > 0 ? `${utilizacao.toFixed(0)}% utilizado de ${fmt(totalCreditLimit)}` : "Nenhum cartão",
       tone: "blue",
+      ajusteCampo: "limite_credito",
     },
     {
       icon: Receipt,
