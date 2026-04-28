@@ -8,6 +8,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Info } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useQueryClient } from "@tanstack/react-query";
 import { refreshQueries } from "@/lib/query-refresh";
 
 export type AjusteCampo = "saldo" | "investimento" | "fatura" | "limite_cheque_especial";
