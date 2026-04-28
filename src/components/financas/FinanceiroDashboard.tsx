@@ -604,14 +604,14 @@ export default function FinanceiroDashboard() {
   const [showRealocar, setShowRealocar] = useState(false);
   const [showTransferencia, setShowTransferencia] = useState(false);
 
-  // Popup automático na 1ª visita por sessão
+  // Popup automático na 1ª visita por sessão — só quando há valor a realocar
   useEffect(() => {
-    if (!orfaos?.temOrfaos) return;
+    if (!orfaos?.temValorRealocavel) return;
     const flagKey = `orfaos-popup-shown:${targetUserId}:${empresaId ?? "no-emp"}`;
     if (sessionStorage.getItem(flagKey)) return;
     sessionStorage.setItem(flagKey, "1");
     setShowRealocar(true);
-  }, [orfaos?.temOrfaos, targetUserId, empresaId]);
+  }, [orfaos?.temValorRealocavel, targetUserId, empresaId]);
 
   return (
     <>
@@ -623,29 +623,44 @@ export default function FinanceiroDashboard() {
 
       {/* ═══════════ ABA: Caixa da Empresa ═══════════ */}
       <TabsContent value="caixa" className="space-y-5">
-        {/* Banner de valores órfãos */}
+        {/* Banner de valores órfãos / vínculos faltando */}
         {orfaos?.temOrfaos && (
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 rounded-lg border border-amber-500/40 bg-amber-500/5 px-4 py-3">
             <div className="flex items-start gap-3">
               <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
               <div className="text-sm">
-                <p className="font-semibold text-foreground">
-                  Existem {fmt(orfaos.totalGeralAbsoluto || Math.abs(orfaos.saldoLiquido))} em valores sem conta vinculada
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  Inclui saldos, investimentos, faturas de cartão, limites de crédito e cheque especial órfãos
-                  ({orfaos.lancamentos.length} lançamento(s) + {orfaos.contasInativasComSnapshot?.length ?? 0} conta(s) excluída(s)).
-                  Realoque para manter o dashboard preciso.
-                </p>
+                {orfaos.temValorRealocavel ? (
+                  <>
+                    <p className="font-semibold text-foreground">
+                      Existem {fmt(orfaos.totalGeralAbsoluto)} em valores sem conta vinculada
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Inclui saldos, investimentos, faturas, limites e cheque especial órfãos
+                      ({orfaos.lancamentos.length} lançamento(s) + {orfaos.contasInativasComSnapshot?.length ?? 0} conta(s) excluída(s)).
+                      Realoque para manter o dashboard preciso.
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <p className="font-semibold text-foreground">
+                      {(orfaos.payablesOrfaos.length + orfaos.receivablesOrfaos.length)} pagamento(s) registrado(s) sem conta de origem
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Não afeta saldos do dashboard, mas atrapalha o extrato e o DRE por conta. Vincule manualmente para manter o histórico completo.
+                    </p>
+                  </>
+                )}
               </div>
             </div>
-            <Button
-              size="sm"
-              onClick={() => setShowRealocar(true)}
-              className="shrink-0"
-            >
-              Realocar agora
-            </Button>
+            {orfaos.temValorRealocavel && (
+              <Button
+                size="sm"
+                onClick={() => setShowRealocar(true)}
+                className="shrink-0"
+              >
+                Realocar agora
+              </Button>
+            )}
           </div>
         )}
 

@@ -71,10 +71,32 @@ export function TransferenciaContasDialog({ open, onOpenChange, defaultOrigemId 
     },
   });
 
-  // Helper: nome curto e legível para o select (evita strings duplicadas tipo "X · X")
+  // Helper: encurta nomes muito longos / institucionais para exibição no select
+  // Ex.: "Nu Pagamentos S.A. - Instituição de Pagamento · Nu Pagamentos S.A. - Instituição de Pagamento (Conta Pré-paga)"
+  //  → "Nubank"
+  const shortNomeBanco = (raw: string) => {
+    const s = (raw || "").trim();
+    if (!s) return "";
+    const lower = s.toLowerCase();
+    if (lower.includes("nu pagamentos") || lower.includes("nubank")) return "Nubank";
+    if (lower.includes("btg")) return "BTG";
+    if (lower.includes("itau") || lower.includes("itaú")) return "Itaú";
+    if (lower.includes("bradesco")) return "Bradesco";
+    if (lower.includes("santander")) return "Santander";
+    if (lower.includes("inter")) return "Banco Inter";
+    if (lower.includes("caixa")) return "Caixa";
+    if (lower.includes("banco do brasil") || /\bbb\b/.test(lower)) return "Banco do Brasil";
+    if (lower.includes("c6")) return "C6 Bank";
+    if (lower.includes("sicoob")) return "Sicoob";
+    if (lower.includes("sicredi")) return "Sicredi";
+    // Fallback: corta antes de S.A. / Ltda / hífen / parênteses
+    const cut = s.split(/\s+(?:S\.?A\.?|S\/A|LTDA|ME|EIRELI)\b|[-–·(]/i)[0].trim();
+    return cut.length > 28 ? cut.slice(0, 28) + "…" : cut;
+  };
+
   const labelConta = (c: any) => {
-    const nome = (c.nome || "").trim();
-    const banco = (c.banco || "").trim();
+    const nome = shortNomeBanco(c.nome || "");
+    const banco = shortNomeBanco(c.banco || "");
     if (!banco || nome === banco || nome.toLowerCase().includes(banco.toLowerCase())) return nome;
     return `${nome} · ${banco}`;
   };
