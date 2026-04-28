@@ -935,6 +935,12 @@ export default function FinanceiroDashboard() {
           evolution={evolutionData}
           distribution={distributionData}
           flow={flowData}
+          onFlowBarClick={(monthData) => {
+            const items = (monthData as any).items as MonthFlowItem[] | undefined;
+            if (items && items.length > 0) {
+              setMonthDetail({ label: monthData.month, items });
+            }
+          }}
         />
 
       </TabsContent>
