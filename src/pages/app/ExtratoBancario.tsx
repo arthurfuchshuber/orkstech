@@ -304,6 +304,20 @@ export default function ExtratoBancario() {
     return displayOwner ? `${connectorName} (${displayOwner})` : connectorName;
   };
 
+  // Nome curto para os cards (sem owner): "BTGPactual Empresas" ou "BTGPactual Empresas •••1962"
+  const getShortName = (account: BankAccount) => {
+    const conn = connections.find((c) => c.pluggy_item_id === account.pluggy_item_id);
+    const connectorName = conn?.connector_name || "Conta";
+    if (account.type === "CREDIT") {
+      const creditData = (account.bank_data as any)?.creditData;
+      const last4 = creditData?.disaggregatedCreditLimits?.[0]?.identificationNumber || "";
+      return last4 ? `${connectorName} •••${last4}` : connectorName;
+    }
+    return connectorName;
+  };
+
+  const getOwnerLabel = (account: BankAccount) => getAccountOwner(account);
+
   const creditCards = accounts.filter((account) => account.type === "CREDIT");
   const bankAccounts = accounts.filter((account) => account.type !== "CREDIT");
 
