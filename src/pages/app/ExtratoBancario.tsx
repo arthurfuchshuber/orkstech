@@ -924,10 +924,10 @@ export default function ExtratoBancario() {
                     <div className="flex justify-between gap-3">
                       <span>Em Aplicação</span>
                       <span
-                        className={`font-medium ${investNet > 0 ? "text-emerald-500" : "text-foreground"}`}
-                        title={`Aplicado: ${formatCurrency(internal.investOut)} · Resgatado: ${formatCurrency(internal.investIn)}`}
+                        className={`font-medium ${stored > 0 ? "text-emerald-500" : "text-foreground"}`}
+                        title={`Saldo atual aplicado em investimentos vinculados à conta`}
                       >
-                        {formatCurrency(investNet)}
+                        {formatCurrency(stored)}
                       </span>
                     </div>
                   </div>
