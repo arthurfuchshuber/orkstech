@@ -209,7 +209,7 @@ export function VincularCardFinanceiroDialog({ open, onOpenChange, cardTipo, tot
             </div>
 
             <Badge variant="outline" className="border-border text-muted-foreground">
-              Para distribuição em mais de uma conta/cartão, o sistema grava a regra e distribui os registros conforme os valores informados.
+              Com uma conta/cartão, o vínculo é aplicado nos registros sem vínculo; com múltiplos, a regra de distribuição fica registrada para uso operacional.
             </Badge>
           </div>
 
