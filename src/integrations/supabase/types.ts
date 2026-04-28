@@ -1827,6 +1827,53 @@ export type Database = {
         }
         Relationships: []
       }
+      financeiro_card_vinculos: {
+        Row: {
+          ativo: boolean
+          bank_account_id: string
+          card_tipo: string
+          created_at: string
+          empresa_id: string | null
+          id: string
+          percentual: number | null
+          updated_at: string
+          user_id: string
+          valor_alocado: number | null
+        }
+        Insert: {
+          ativo?: boolean
+          bank_account_id: string
+          card_tipo: string
+          created_at?: string
+          empresa_id?: string | null
+          id?: string
+          percentual?: number | null
+          updated_at?: string
+          user_id: string
+          valor_alocado?: number | null
+        }
+        Update: {
+          ativo?: boolean
+          bank_account_id?: string
+          card_tipo?: string
+          created_at?: string
+          empresa_id?: string | null
+          id?: string
+          percentual?: number | null
+          updated_at?: string
+          user_id?: string
+          valor_alocado?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "financeiro_card_vinculos_bank_account_id_fkey"
+            columns: ["bank_account_id"]
+            isOneToOne: false
+            referencedRelation: "contas_bancarias"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       formas_pagamento: {
         Row: {
           ativo: boolean
@@ -3152,6 +3199,15 @@ export type Database = {
             Returns: Json
           }
       aplicar_regras_retroativo: { Args: { p_user_id: string }; Returns: Json }
+      aplicar_vinculo_card_financeiro: {
+        Args: {
+          p_alocacoes: Json
+          p_card_tipo: string
+          p_empresa_id?: string
+          p_motivo?: string
+        }
+        Returns: Json
+      }
       avaliar_regra_dre: {
         Args: {
           p_amount: number
