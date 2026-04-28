@@ -49,7 +49,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { format, isPast, addDays, isBefore } from "date-fns";
 import { QuickListModal } from "@/components/financas/QuickListModal";
-import { shortNomeBanco } from "@/lib/format-conta-bancaria";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -1499,7 +1498,7 @@ export default function ContasAPagar() {
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
                             <button className="flex items-center gap-1 text-sm cursor-pointer hover:text-foreground transition-colors group w-full">
-                              <span className="truncate">{contaBanc?.nome ? shortNomeBanco(contaBanc.nome) : <span className="text-muted-foreground/50">Selecionar</span>}</span>
+                              <span className="truncate">{contaBanc?.nome || <span className="text-muted-foreground/50">Selecionar</span>}</span>
                               <ChevronDown className="w-3 h-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
                             </button>
                           </DropdownMenuTrigger>
@@ -1509,7 +1508,7 @@ export default function ContasAPagar() {
                                 key={b.id}
                                 onClick={() => updateMutation.mutate({ id: item.id, data: { bank_account_id: b.id } })}
                               >
-                                <span className="truncate" title={b.nome}>{shortNomeBanco(b.nome)}</span>
+                                {b.nome}
                               </DropdownMenuItem>
                             ))}
                             {contaBanc && (

@@ -12,7 +12,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useEmpresa } from "@/hooks/useEmpresa";
 import { refreshQueries } from "@/lib/query-refresh";
-import { shortNomeBanco } from "@/lib/format-conta-bancaria";
 import { Link2, Loader2, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -40,11 +39,23 @@ const CARD_LABEL: Record<CardVinculoTipo, string> = {
   contas_receber: "Contas a Receber",
 };
 
+const shortName = (raw?: string | null) => {
+  const s = (raw || "").trim();
+  if (!s) return "";
+  const lower = s.toLowerCase();
+  if (lower.includes("nu pagamentos") || lower.includes("nubank")) return "Nubank";
+  if (lower.includes("btg")) return "BTG";
+  if (lower.includes("itau") || lower.includes("itaú")) return "Itaú";
+  if (lower.includes("bradesco")) return "Bradesco";
+  if (lower.includes("santander")) return "Santander";
+  if (lower.includes("inter")) return "Banco Inter";
+  if (lower.includes("banco do brasil") || /\bbb\b/.test(lower)) return "Banco do Brasil";
+  const cut = s.split(/\s+(?:S\.?A\.?|S\/A|LTDA|ME|EIRELI)\b|[-–·(]/i)[0].trim();
+  return cut.length > 34 ? `${cut.slice(0, 34)}…` : cut;
+};
+
 const isCardField = (cardTipo: CardVinculoTipo) => cardTipo === "limite_credito" || cardTipo === "fatura";
-// Saldo, investimento, cheque especial e contas a receber referem-se a caixa → apenas contas (sem cartões).
-// Contas a pagar aceita contas E cartões (pagamentos podem ser feitos via cartão de crédito).
-const isAccountOnlyField = (cardTipo: CardVinculoTipo) =>
-  ["saldo", "investimento", "limite_cheque_especial", "contas_receber"].includes(cardTipo);
+const isAccountOnlyField = (cardTipo: CardVinculoTipo) => ["saldo", "investimento", "limite_cheque_especial"].includes(cardTipo);
 
 export function VincularCardFinanceiroDialog({ open, onOpenChange, cardTipo, total, titulo }: Props) {
   const { user } = useAuth();
@@ -88,8 +99,8 @@ export function VincularCardFinanceiroDialog({ open, onOpenChange, cardTipo, tot
 
   const options = useMemo(
     () => contas.map((c: any) => {
-      const nome = shortNomeBanco(c.nome) || "Conta";
-      const banco = shortNomeBanco(c.banco);
+      const nome = shortName(c.nome) || "Conta";
+      const banco = shortName(c.banco);
       const tipo = c.tipo === "cartao_credito" ? "Cartão" : "Conta";
       const label = banco && banco !== nome ? `${tipo} · ${nome} · ${banco}` : `${tipo} · ${nome}`;
       return { value: c.id, label, tooltip: `${c.nome}${c.banco ? ` · ${c.banco}` : ""}` };
@@ -137,9 +148,6 @@ export function VincularCardFinanceiroDialog({ open, onOpenChange, cardTipo, tot
   };
 
   const precisaCartao = isCardField(cardTipo);
-  const permiteCartaoEConta = !precisaCartao && !isAccountOnlyField(cardTipo);
-  const entidadeLabel = precisaCartao ? "cartão" : permiteCartaoEConta ? "conta/cartão" : "conta";
-  const entidadeLabelPlural = precisaCartao ? "cartões" : permiteCartaoEConta ? "contas/cartões" : "contas";
 
   return (
     <>
@@ -148,7 +156,7 @@ export function VincularCardFinanceiroDialog({ open, onOpenChange, cardTipo, tot
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2"><Link2 className="h-5 w-5" /> Vincular {titulo || CARD_LABEL[cardTipo]}</DialogTitle>
             <DialogDescription>
-              Selecione {precisaCartao ? "o cartão responsável" : permiteCartaoEConta ? "a conta ou cartão responsável" : "a conta responsável"} por {fmt(Math.abs(total || 0))}. O vínculo será aplicado em massa nos registros retroativos sem vínculo e usado nos próximos lançamentos.
+              Selecione a {precisaCartao ? "cartão" : "conta/cartão"} responsável por {fmt(Math.abs(total || 0))}. O vínculo será aplicado em massa nos registros retroativos sem vínculo e usado nos próximos lançamentos.
             </DialogDescription>
           </DialogHeader>
 
@@ -165,10 +173,10 @@ export function VincularCardFinanceiroDialog({ open, onOpenChange, cardTipo, tot
               if (next === "uma") setLinhas([{ bank_account_id: linhas[0]?.bank_account_id || "", valor: Math.abs(total || 0) }]);
             }} className="grid grid-cols-2 gap-3">
               <Label className="flex items-center gap-2 rounded-lg border border-border p-3 cursor-pointer">
-                <RadioGroupItem value="uma" /> Uma única {entidadeLabel}
+                <RadioGroupItem value="uma" /> Uma única conta/cartão
               </Label>
               <Label className="flex items-center gap-2 rounded-lg border border-border p-3 cursor-pointer">
-                <RadioGroupItem value="varias" /> Mais de {precisaCartao ? "um cartão" : permiteCartaoEConta ? "uma conta/cartão" : "uma conta"}
+                <RadioGroupItem value="varias" /> Mais de uma conta/cartão
               </Label>
             </RadioGroup>
 
@@ -183,9 +191,9 @@ export function VincularCardFinanceiroDialog({ open, onOpenChange, cardTipo, tot
                     value={linha.bank_account_id}
                     onValueChange={(value) => updateLinha(idx, { bank_account_id: value })}
                     options={options}
-                    placeholder={precisaCartao ? "Selecione um cartão…" : permiteCartaoEConta ? "Selecione conta ou cartão…" : "Selecione uma conta…"}
+                    placeholder={precisaCartao ? "Selecione um cartão…" : "Selecione uma conta/cartão…"}
                     onAddModal={() => { setLinhaPendenteIdx(idx); setContaModalOpen(true); }}
-                    addLabel={precisaCartao ? "Cadastrar novo cartão" : "Cadastrar nova conta"}
+                    addLabel={precisaCartao ? "Cadastrar novo cartão" : "Cadastrar nova conta/cartão"}
                   />
                   <Input type="number" step="0.01" value={linha.valor || ""} onChange={(e) => updateLinha(idx, { valor: Number(e.target.value) })} disabled={modo === "uma"} />
                   <Button type="button" variant="ghost" size="icon" disabled={linhas.length === 1} onClick={() => removeLinha(idx)}>
@@ -201,7 +209,7 @@ export function VincularCardFinanceiroDialog({ open, onOpenChange, cardTipo, tot
             </div>
 
             <Badge variant="outline" className="border-border text-muted-foreground">
-              Com {precisaCartao ? "um único cartão" : permiteCartaoEConta ? "uma única conta/cartão" : "uma única conta"}, o vínculo é aplicado nos registros sem vínculo; com múltiplas {entidadeLabelPlural}, a regra de distribuição fica registrada para uso operacional.
+              Com uma conta/cartão, o vínculo é aplicado nos registros sem vínculo; com múltiplos, a regra de distribuição fica registrada para uso operacional.
             </Badge>
           </div>
 
@@ -219,7 +227,6 @@ export function VincularCardFinanceiroDialog({ open, onOpenChange, cardTipo, tot
         onOpenChange={(v) => { setContaModalOpen(v); if (!v) setLinhaPendenteIdx(null); }}
         onSaved={handleContaCriada}
         defaultTipo={precisaCartao ? "cartao_credito" : "corrente"}
-        allowedTipos={precisaCartao ? ["cartao_credito"] : isAccountOnlyField(cardTipo) ? ["corrente", "poupanca", "caixa", "carteira_digital"] : undefined}
       />
     </>
   );

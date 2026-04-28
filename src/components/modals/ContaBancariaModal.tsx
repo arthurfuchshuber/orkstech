@@ -23,13 +23,11 @@ interface ContaBancariaModalProps {
   editingId?: string | null;
   onSaved?: (id: string) => void;
   defaultTipo?: TipoConta;
-  allowedTipos?: TipoConta[];
 }
 
-export function ContaBancariaModal({ open, onOpenChange, editingId, onSaved, defaultTipo = "corrente", allowedTipos }: ContaBancariaModalProps) {
+export function ContaBancariaModal({ open, onOpenChange, editingId, onSaved, defaultTipo = "corrente" }: ContaBancariaModalProps) {
   const { user } = useAuth();
   const qc = useQueryClient();
-  const allowedTiposKey = allowedTipos?.join("|") ?? "all";
   const [form, setForm] = useState({
     nome: "",
     banco_id: "",
@@ -71,7 +69,7 @@ export function ContaBancariaModal({ open, onOpenChange, editingId, onSaved, def
     { value: "caixa", label: "Caixa" },
     { value: "carteira_digital", label: "Carteira Digital" },
     { value: "cartao_credito", label: "Cartão de Crédito" },
-  ].filter((tipo) => !allowedTipos || allowedTipos.includes(tipo.value as TipoConta));
+  ];
 
   const ehCartao = form.tipo === "cartao_credito";
 
@@ -100,10 +98,9 @@ export function ContaBancariaModal({ open, onOpenChange, editingId, onSaved, def
         dia_vencimento_fatura: (existing as any).dia_vencimento_fatura ? String((existing as any).dia_vencimento_fatura) : "",
       });
     } else if (!editingId && open) {
-      const tipoInicial = allowedTipos?.includes(defaultTipo) ? defaultTipo : (allowedTipos?.[0] ?? defaultTipo);
-      setForm({ nome: "", banco_id: "", tipo: tipoInicial, saldo_inicial: "0", saldo_investimento: "0", pessoa_tipo: "pj", limite_credito_total: "0", fatura_aberto: "0", dia_fechamento_fatura: "", dia_vencimento_fatura: "" });
+      setForm({ nome: "", banco_id: "", tipo: defaultTipo, saldo_inicial: "0", saldo_investimento: "0", pessoa_tipo: "pj", limite_credito_total: "0", fatura_aberto: "0", dia_fechamento_fatura: "", dia_vencimento_fatura: "" });
     }
-  }, [existing, editingId, open, defaultTipo, allowedTiposKey]);
+  }, [existing, editingId, open, defaultTipo]);
 
   const saveMutation = useMutation({
     mutationFn: async () => {

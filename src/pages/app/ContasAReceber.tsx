@@ -53,7 +53,6 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { AsaasChargeDialog } from "@/components/asaas/AsaasChargeDialog";
-import { shortNomeBanco } from "@/lib/format-conta-bancaria";
 
 type PaymentMode = "avista" | "parcelado" | "recorrente" | "sazonal";
 type PayerKind = "cliente" | "fornecedor";
@@ -116,12 +115,6 @@ const statusConfig: Record<string, { label: string; color: string; icon: typeof 
   paid: { label: "Recebido", color: "bg-emerald-500/10 text-emerald-600 border-emerald-200", icon: Check },
   overdue: { label: "Vencido", color: "bg-red-500/10 text-red-600 border-red-200", icon: AlertTriangle },
   cancelled: { label: "Cancelado", color: "bg-muted text-muted-foreground border-border", icon: Ban },
-};
-
-const contaBancariaLabel = (b: any) => {
-  const nome = shortNomeBanco(b?.nome);
-  const banco = shortNomeBanco(b?.banco);
-  return banco && banco !== nome ? `${nome} · ${banco}` : nome;
 };
 
 export default function ContasAReceber() {
@@ -286,21 +279,38 @@ export default function ContasAReceber() {
   const { data: bankAccounts = [] } = useQuery({
     queryKey: ["contas-bancarias", empresaId],
     queryFn: async () => {
-      let q = supabase
-        .from("contas_bancarias")
-        .select("id, nome, banco, tipo, pluggy_account_id")
-        .eq("ativo", true)
-        .order("nome");
+      let q = supabase.from("contas_bancarias").select("id, nome, banco").eq("ativo", true).order("nome");
       if (empresaId) q = q.eq("empresa_id", empresaId);
-      const { data } = await q;
-      return data ?? [];
+      const { data: manual } = await q;
+
+      const { data: pluggy } = await supabase
+        .from("pluggy_bank_accounts")
+        .select("id, name, pluggy_item_id, type, subtype, bank_data")
+        .eq("type", "BANK")
+        .eq("subtype", "CHECKING_ACCOUNT")
+        .order("name");
+
+      const itemIds = [...new Set((pluggy ?? []).map((p: any) => p.pluggy_item_id))];
+      let connectorMap: Record<string, string> = {};
+      if (itemIds.length) {
+        const { data: conns } = await supabase
+          .from("pluggy_connections")
+          .select("pluggy_item_id, connector_name")
+          .in("pluggy_item_id", itemIds);
+        for (const c of conns ?? []) {
+          connectorMap[c.pluggy_item_id] = c.connector_name || "";
+        }
+      }
+
+      const pluggyMapped = (pluggy ?? []).map((p: any) => ({
+        id: p.id,
+        nome: connectorMap[p.pluggy_item_id] || p.name,
+        banco: "Open Finance",
+      }));
+
+      return [...(manual ?? []), ...pluggyMapped];
     },
   });
-
-  const bankAccountOptions = useMemo(
-    () => bankAccounts.map((b: any) => ({ value: b.id, label: contaBancariaLabel(b), tooltip: `${b.nome}${b.banco ? ` · ${b.banco}` : ""}` })),
-    [bankAccounts]
-  );
 
   const { data: paymentMethods = [] } = useQuery({
     queryKey: ["formas-pagamento", empresaId],
@@ -1099,7 +1109,7 @@ export default function ContasAReceber() {
                 <DropdownMenuContent className="max-h-[260px] overflow-y-auto custom-scrollbar">
                   {bankAccounts.map((b: any) => (
                     <DropdownMenuItem key={b.id} onClick={() => handleBulkUpdate({ bank_account_id: b.id })}>
-                      <span className="truncate" title={`${b.nome}${b.banco ? ` · ${b.banco}` : ""}`}>{contaBancariaLabel(b)}</span>
+                      {b.nome}
                     </DropdownMenuItem>
                   ))}
                 </DropdownMenuContent>
@@ -1326,14 +1336,14 @@ export default function ContasAReceber() {
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
                             <button className="flex items-center gap-1 text-sm cursor-pointer hover:text-foreground transition-colors group w-full">
-                              <span className="truncate">{contaBanc?.nome ? contaBancariaLabel(contaBanc) : <span className="text-muted-foreground/50">Selecionar</span>}</span>
+                              <span className="truncate">{contaBanc?.nome || <span className="text-muted-foreground/50">Selecionar</span>}</span>
                               <ChevronDown className="w-3 h-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
                             </button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="start" className="max-h-[260px] overflow-y-auto custom-scrollbar">
                             {bankAccounts.map((b: any) => (
                               <DropdownMenuItem key={b.id} onClick={() => updateMutation.mutate({ id: item.id, data: { bank_account_id: b.id } })}>
-                                <span className="truncate" title={`${b.nome}${b.banco ? ` · ${b.banco}` : ""}`}>{contaBancariaLabel(b)}</span>
+                                {b.nome}
                               </DropdownMenuItem>
                             ))}
                             {contaBanc && (
@@ -1564,7 +1574,7 @@ export default function ContasAReceber() {
               label="Conta bancária"
               value={receiptBankAccount}
               onValueChange={setReceiptBankAccount}
-              options={bankAccountOptions}
+              options={bankAccounts.map((b: any) => ({ value: b.id, label: `${b.nome}${b.banco ? ` - ${b.banco}` : ""}` }))}
               placeholder="Selecione a conta..."
               icon={<Landmark className="w-4 h-4" />}
               onAddModal={() => { setCbEditingId(null); setCbModalOpen(true); }}
@@ -1878,7 +1888,7 @@ export default function ContasAReceber() {
             label="Conta Bancária"
             value={form.bank_account_id}
             onValueChange={(v) => updateField("bank_account_id", v)}
-            options={bankAccountOptions}
+            options={bankAccounts.map((b: any) => ({ value: b.id, label: `${b.nome}${b.banco ? ` - ${b.banco}` : ""}` }))}
             placeholder="Selecione a conta..."
             icon={<Landmark className="w-4 h-4" />}
             onAddModal={() => { setCbEditingId(null); setCbModalOpen(true); }}
@@ -1984,7 +1994,6 @@ export default function ContasAReceber() {
         onOpenChange={setCbModalOpen}
         editingId={cbEditingId}
         onSaved={(id) => updateField("bank_account_id", id)}
-        allowedTipos={["corrente", "poupanca", "caixa", "carteira_digital"]}
       />
       <FormaPagamentoModal
         open={fpModalOpen}
