@@ -1114,6 +1114,13 @@ export default function ExtratoBancario() {
         onOpenChange={setManualDialogOpen}
         editing={editingManual}
       />
+
+      <PluggyTransactionEditDialog
+        open={!!pluggyEditTx}
+        onOpenChange={(v) => !v && setPluggyEditTx(null)}
+        transactionId={pluggyEditTx?.id ?? null}
+        readOnly={pluggyEditTx ? { description: pluggyEditTx.description, amount: pluggyEditTx.amount, date: pluggyEditTx.date } : null}
+      />
     </div>
   );
 }
