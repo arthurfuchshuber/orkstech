@@ -316,6 +316,7 @@ function IntegrationCard({
   const [showKey, setShowKey] = useState(false);
   const [testing, setTesting] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [removeOpen, setRemoveOpen] = useState(false);
 
   const isComingSoon = cfg.status === "coming_soon";
   const provider = providerKey as Provider;
@@ -602,25 +603,25 @@ function IntegrationCard({
                     <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={() => setEditing(true)}>
                       Editar
                     </Button>
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive">
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Remover integração?</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            A chave de API será excluída. Cobranças/documentos já gerados continuam preservados.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                          <AlertDialogAction onClick={remove}>Remover</AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
+                    <Button
+                      variant="ghost" size="icon"
+                      className="h-7 w-7 text-destructive hover:text-destructive"
+                      onClick={() => setRemoveOpen(true)}
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </Button>
+                    <RemoveIntegrationDialog
+                      open={removeOpen}
+                      onOpenChange={setRemoveOpen}
+                      providerLabel={cfg.nome}
+                      dataDescription={
+                        provider === "asaas"
+                          ? "Cobranças importadas, lançamentos a receber criados pelo Asaas e histórico de webhooks."
+                          : "Contratos importados, vínculos com clientes e histórico de assinaturas."
+                      }
+                      onKeepData={removeKeepData}
+                      onPurgeData={removePurge}
+                    />
                   </div>
                 </div>
                 <div className="flex items-center gap-1.5 flex-wrap">
