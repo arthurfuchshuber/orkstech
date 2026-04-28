@@ -5,7 +5,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Info } from "lucide-react";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Info, AlertTriangle, CheckCircle2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
@@ -32,7 +33,7 @@ const TITULOS: Record<AjusteCampo, string> = {
 };
 
 const HELPS: Record<AjusteCampo, string> = {
-  saldo: "O ajuste preserva o saldo vindo da integração e adiciona/subtrai a diferença para refletir a realidade.",
+  saldo: "Mostraremos a diferença entre o valor que você informou e a soma dos lançamentos do extrato. Você decide como tratar.",
   investimento: "Útil quando você tem investimentos fora do Open Finance ou precisa corrigir um valor.",
   fatura: "Use para ajustar a fatura quando há lançamentos manuais ou divergência da integração.",
   limite_cheque_especial: "Limite total disponibilizado pelo banco. Editado livremente.",
@@ -41,6 +42,11 @@ const HELPS: Record<AjusteCampo, string> = {
 const formatBRL = (v: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v || 0);
 
+// Reconciliação só faz sentido para o saldo (que tem extrato contábil)
+const TEM_RECONCILIACAO = (campo: AjusteCampo) => campo === "saldo";
+
+type Estrategia = "criar_lancamento" | "manter_divergencia";
+
 export function AjusteValorDialog({
   open, onOpenChange, contaId, contaNome, campo, valorAtual, valorSincronizado, origem,
 }: Props) {
@@ -48,40 +54,98 @@ export function AjusteValorDialog({
   const [valor, setValor] = useState<string>("");
   const [motivo, setMotivo] = useState<string>("");
   const [salvando, setSalvando] = useState(false);
+  const [valorEsperado, setValorEsperado] = useState<number | null>(null);
+  const [estrategia, setEstrategia] = useState<Estrategia>("criar_lancamento");
+  const [carregandoEsperado, setCarregandoEsperado] = useState(false);
 
   useEffect(() => {
     if (open) {
       setValor((valorAtual || 0).toFixed(2).replace(".", ","));
       setMotivo("");
+      setEstrategia("criar_lancamento");
+      setValorEsperado(null);
+
+      // Carrega valor esperado (calculado via lançamentos) para reconciliação
+      if (TEM_RECONCILIACAO(campo)) {
+        setCarregandoEsperado(true);
+        supabase.rpc("calcular_saldo_esperado_conta", { p_conta_id: contaId }).then(({ data, error }) => {
+          if (!error && data !== null) setValorEsperado(Number(data));
+          setCarregandoEsperado(false);
+        });
+      }
     }
-  }, [open, valorAtual]);
+  }, [open, valorAtual, contaId, campo]);
+
+  const numerico = Number(String(valor).replace(/\./g, "").replace(",", "."));
+  const valorValido = !isNaN(numerico);
+
+  // Delta = quanto falta no extrato para chegar no valor informado
+  const deltaReconciliacao = valorEsperado !== null && valorValido ? numerico - valorEsperado : 0;
+  const temDivergencia = TEM_RECONCILIACAO(campo) && valorEsperado !== null && Math.abs(deltaReconciliacao) > 0.005;
 
   const handleSalvar = async () => {
-    const numerico = Number(valor.replace(/\./g, "").replace(",", "."));
-    if (isNaN(numerico)) {
+    if (!valorValido) {
       toast.error("Valor inválido");
       return;
     }
     setSalvando(true);
-    const { error } = await supabase.rpc("aplicar_ajuste_conta_bancaria", {
-      p_conta_id: contaId,
-      p_campo: campo,
-      p_novo_valor: numerico,
-      p_motivo: motivo || null,
-    });
-    setSalvando(false);
-    if (error) {
-      toast.error("Erro ao ajustar: " + error.message);
-      return;
+    try {
+      // Caso 1: campos sem reconciliação contábil — fluxo legado (ajuste_manual)
+      if (!TEM_RECONCILIACAO(campo)) {
+        const { error } = await supabase.rpc("aplicar_ajuste_conta_bancaria", {
+          p_conta_id: contaId,
+          p_campo: campo,
+          p_novo_valor: numerico,
+          p_motivo: motivo || null,
+        });
+        if (error) throw error;
+      } else {
+        // Caso 2: saldo — pode haver divergência
+        if (!temDivergencia) {
+          // Sem divergência: nenhum ajuste necessário
+          toast.info("Saldo já está reconciliado — nada a alterar");
+          setSalvando(false);
+          onOpenChange(false);
+          return;
+        }
+
+        if (estrategia === "criar_lancamento") {
+          // Cria transação real no extrato (mantém tudo batendo)
+          const { error } = await supabase.rpc("criar_lancamento_ajuste_saldo", {
+            p_conta_id: contaId,
+            p_delta: deltaReconciliacao,
+            p_motivo: motivo || null,
+          });
+          if (error) throw error;
+        } else {
+          // Aceita divergência: ajusta apenas o card via ajuste_manual
+          const { error } = await supabase.rpc("aplicar_ajuste_conta_bancaria", {
+            p_conta_id: contaId,
+            p_campo: campo,
+            p_novo_valor: numerico,
+            p_motivo: motivo || "Ajuste sem lançamento contábil",
+          });
+          if (error) throw error;
+        }
+      }
+
+      toast.success("Ajuste aplicado com sucesso");
+      await refreshQueries(queryClient, [
+        ["contas-bancarias"], ["dashboard"], ["fluxo-caixa"],
+        ["extrato-bancario"], ["pluggy"], ["cash_transactions"],
+        ["accounts-payable"], ["accounts-receivable"], ["dre"],
+      ]);
+      onOpenChange(false);
+    } catch (e: any) {
+      toast.error("Erro ao ajustar: " + (e?.message || String(e)));
+    } finally {
+      setSalvando(false);
     }
-    toast.success("Ajuste aplicado com sucesso");
-    await refreshQueries(queryClient, [["contas-bancarias"], ["dashboard"], ["fluxo-caixa"], ["extrato-bancario"], ["pluggy"]]);
-    onOpenChange(false);
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle>{TITULOS[campo]}</DialogTitle>
           <DialogDescription className="text-xs">{contaNome}</DialogDescription>
@@ -101,7 +165,7 @@ export function AjusteValorDialog({
 
         <div className="space-y-3 py-2">
           <div className="space-y-1.5">
-            <Label htmlFor="ajuste-valor">Novo valor (R$)</Label>
+            <Label htmlFor="ajuste-valor">Saldo real informado por você (R$)</Label>
             <Input
               id="ajuste-valor"
               value={valor}
@@ -110,6 +174,70 @@ export function AjusteValorDialog({
               inputMode="decimal"
             />
           </div>
+
+          {/* Reconciliação — apenas para o campo "saldo" */}
+          {TEM_RECONCILIACAO(campo) && (
+            <>
+              {carregandoEsperado && (
+                <div className="text-xs text-muted-foreground">Calculando saldo esperado...</div>
+              )}
+
+              {!carregandoEsperado && valorEsperado !== null && !temDivergencia && (
+                <Alert className="border-emerald-500/30 bg-emerald-500/5">
+                  <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                  <AlertDescription className="text-xs">
+                    O valor informado bate exatamente com a soma do extrato ({formatBRL(valorEsperado)}). Sem divergências.
+                  </AlertDescription>
+                </Alert>
+              )}
+
+              {!carregandoEsperado && temDivergencia && (
+                <Alert variant="destructive" className="border-amber-500/40 bg-amber-500/5 text-amber-600 dark:text-amber-400">
+                  <AlertTriangle className="h-4 w-4" />
+                  <AlertDescription className="text-xs space-y-1">
+                    <div className="font-semibold">Divergência detectada</div>
+                    <div className="grid grid-cols-2 gap-1 mt-1">
+                      <span>Soma do extrato:</span>
+                      <span className="text-right tabular-nums">{formatBRL(valorEsperado!)}</span>
+                      <span>Saldo informado:</span>
+                      <span className="text-right tabular-nums">{formatBRL(numerico)}</span>
+                      <span className="font-semibold">Diferença:</span>
+                      <span className="text-right tabular-nums font-semibold">
+                        {deltaReconciliacao > 0 ? "+" : ""}{formatBRL(deltaReconciliacao)}
+                      </span>
+                    </div>
+                  </AlertDescription>
+                </Alert>
+              )}
+
+              {temDivergencia && (
+                <div className="space-y-2">
+                  <Label className="text-xs">Como resolver a divergência?</Label>
+                  <RadioGroup value={estrategia} onValueChange={(v: any) => setEstrategia(v)}>
+                    <label htmlFor="es-criar" className="flex items-start gap-2 rounded-md border p-3 cursor-pointer hover:bg-accent/50 has-[:checked]:border-primary has-[:checked]:bg-primary/5">
+                      <RadioGroupItem value="criar_lancamento" id="es-criar" className="mt-0.5" />
+                      <div className="space-y-0.5">
+                        <div className="text-sm font-medium">Criar lançamento de ajuste no extrato (recomendado)</div>
+                        <div className="text-[11px] text-muted-foreground">
+                          Cria uma transação "Ajuste de Saldo" de {formatBRL(Math.abs(deltaReconciliacao))} {deltaReconciliacao > 0 ? "(entrada)" : "(saída)"} no extrato. Dashboard, DRE e fluxo continuam batendo.
+                        </div>
+                      </div>
+                    </label>
+                    <label htmlFor="es-manter" className="flex items-start gap-2 rounded-md border p-3 cursor-pointer hover:bg-accent/50 has-[:checked]:border-amber-500 has-[:checked]:bg-amber-500/5">
+                      <RadioGroupItem value="manter_divergencia" id="es-manter" className="mt-0.5" />
+                      <div className="space-y-0.5">
+                        <div className="text-sm font-medium">Apenas ajustar o card (manter divergência)</div>
+                        <div className="text-[11px] text-muted-foreground">
+                          O card mostra o valor informado, mas o extrato continua sem essa entrada. Um badge âmbar de "Divergência" aparecerá até você reconciliar.
+                        </div>
+                      </div>
+                    </label>
+                  </RadioGroup>
+                </div>
+              )}
+            </>
+          )}
+
           <div className="space-y-1.5">
             <Label htmlFor="ajuste-motivo">Motivo do ajuste (opcional)</Label>
             <Textarea
@@ -125,7 +253,9 @@ export function AjusteValorDialog({
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={salvando}>Cancelar</Button>
-          <Button onClick={handleSalvar} disabled={salvando}>{salvando ? "Salvando..." : "Aplicar ajuste"}</Button>
+          <Button onClick={handleSalvar} disabled={salvando || !valorValido}>
+            {salvando ? "Salvando..." : "Aplicar"}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
