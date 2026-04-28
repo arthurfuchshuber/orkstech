@@ -551,8 +551,8 @@ Deno.serve(async (req) => {
           }
 
           if (!accountReceivableId) {
-            // Anti-duplicidade: procura receivable existente por document_number = payment.id
-            // (caso a integração tenha sido purgada e reativada, ou registro criado manualmente antes)
+            // Anti-duplicidade nível 1: procura receivable existente por document_number = payment.id
+            // (caso a integração tenha sido purgada e reativada)
             const { data: existingRec } = await serviceClient
               .from("accounts_receivable")
               .select("id")
@@ -560,8 +560,27 @@ Deno.serve(async (req) => {
               .eq("document_number", payment.id)
               .maybeSingle();
 
-            if (existingRec) {
-              accountReceivableId = existingRec.id;
+            // Anti-duplicidade nível 2: lançamento manual sem document_number — match por
+            // cliente + valor + vencimento. Evita criar duplicata "RECEBIDO" ao lado do manual.
+            let matchedManualId: string | null = null;
+            if (!existingRec && clienteIdLocal) {
+              const { data: manualMatches } = await serviceClient
+                .from("accounts_receivable")
+                .select("id, document_number")
+                .eq("user_id", userId)
+                .eq("cliente_id", clienteIdLocal)
+                .eq("due_date", payment.dueDate)
+                .eq("amount", Number(payment.value) || 0)
+                .neq("status", "cancelled")
+                .limit(5);
+              const candidate = (manualMatches ?? []).find((m: any) => !m.document_number);
+              if (candidate) matchedManualId = candidate.id;
+            }
+
+            const targetId = existingRec?.id || matchedManualId;
+
+            if (targetId) {
+              accountReceivableId = targetId;
               await serviceClient
                 .from("accounts_receivable")
                 .update({
@@ -572,8 +591,9 @@ Deno.serve(async (req) => {
                   pessoa_tipo: payerPessoaTipo,
                   amount: Number(payment.value) || 0,
                   due_date: payment.dueDate,
+                  document_number: payment.id, // assume o id do Asaas para próximas sincronizações
                 })
-                .eq("id", existingRec.id);
+                .eq("id", targetId);
             } else {
               const description = payment.description || `Cobrança Asaas ${payment.id}`;
               const { data: newRec } = await serviceClient
