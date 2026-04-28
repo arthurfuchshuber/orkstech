@@ -290,16 +290,10 @@ export default function ContasAReceber() {
         .from("contas_bancarias")
         .select("id, nome, banco, tipo, pluggy_account_id")
         .eq("ativo", true)
-        .neq("tipo", "cartao_credito")
         .order("nome");
       if (empresaId) q = q.eq("empresa_id", empresaId);
       const { data } = await q;
-      const dedup = new Map<string, any>();
-      for (const conta of data ?? []) {
-        const key = conta.pluggy_account_id || `${shortNomeBanco(conta.nome)}|${shortNomeBanco(conta.banco)}`.toLowerCase();
-        if (!dedup.has(key)) dedup.set(key, conta);
-      }
-      return Array.from(dedup.values());
+      return data ?? [];
     },
   });
 
