@@ -19,6 +19,7 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { RemoveIntegrationDialog } from "@/components/integrations/RemoveIntegrationDialog";
 import { cn } from "@/lib/utils";
 
 type Provider = "asaas" | "clicksign";
