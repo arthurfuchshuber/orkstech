@@ -290,15 +290,18 @@ export default function FinanceiroDashboard() {
     return 0;
   };
 
-  // Fatura/consumo atual: prioriza dados oficiais, depois deriva do balance (consumo do cartão)
+  // Fatura PARCIAL atual (em formação, ainda não fechada).
+  // Conforme suporte Pluggy: o campo `balance` da conta CREDIT já representa o valor da fatura parcial,
+  // NÃO o total utilizado do limite. Por isso é a fonte primária.
   const getCreditBillAmount = (account: BankAccount) => {
-    const bill = account.bank_data?.openBillAmount;
-    if (bill != null && bill > 0) return bill;
-    const totalDebt = account.bank_data?.totalDebt;
-    if (totalDebt != null && totalDebt > 0) return totalDebt;
+    // 1) `balance` direto da API Pluggy = fatura parcial em aberto
+    const partialBill = Math.abs(account.balance ?? 0);
+    if (partialBill > 0) return partialBill;
+    // 2) Fallbacks (caso balance venha zerado): valor calculado a partir das transações pós-fechamento
+    const openBill = account.bank_data?.openBillAmount;
+    if (openBill != null && openBill > 0) return openBill;
     if (account.credit_bill_amount != null && account.credit_bill_amount > 0) return account.credit_bill_amount;
-    const used = Math.abs(account.balance ?? 0);
-    if (used > 0) return used;
+    // 3) Último recurso: diferença limite - disponível (= total usado do limite)
     if (account.credit_limit && account.credit_available != null) {
       const diff = account.credit_limit - account.credit_available;
       return diff > 0 ? diff : 0;
