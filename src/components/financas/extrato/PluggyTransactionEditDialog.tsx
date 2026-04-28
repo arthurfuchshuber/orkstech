@@ -29,7 +29,8 @@ interface Props {
  * Valor, data e descrição original são bloqueados (vêm do Open Finance).
  */
 export function PluggyTransactionEditDialog({ open, onOpenChange, transactionId, readOnly }: Props) {
-  const { empresaId } = useEmpresa();
+  const { empresa } = useEmpresa();
+  const empresaId = empresa?.id;
   const queryClient = useQueryClient();
 
   const [categoriaId, setCategoriaId] = useState<string | null>(null);
