@@ -41,6 +41,9 @@ interface BankAccount {
   bank_data: {
     totalInvestments?: number | null;
     automaticallyInvestedBalance?: number | null;
+    overdraftContractedLimit?: number | null;
+    overdraftUsedLimit?: number | null;
+    unarrangedOverdraftAmount?: number | null;
     creditData?: {
       disaggregatedCreditLimits?: { identificationNumber?: string }[];
     };
