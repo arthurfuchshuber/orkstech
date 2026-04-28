@@ -198,8 +198,7 @@ export function CaixaCharts({ evolution, distribution, flow, onFlowBarClick }: C
                 <Tooltip
                   content={<FlowTooltip />}
                   cursor={{ fill: "hsl(var(--muted) / 0.3)" }}
-                  offset={24}
-                  allowEscapeViewBox={{ x: false, y: true }}
+                  offset={16}
                   wrapperStyle={{ pointerEvents: "none", zIndex: 50 }}
                 />
                 <Legend wrapperStyle={{ fontSize: 11 }} iconType="circle" formatter={(v) => v === "entradas" ? "Entradas" : "Saídas"} />
