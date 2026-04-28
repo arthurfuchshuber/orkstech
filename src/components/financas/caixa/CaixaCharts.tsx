@@ -86,7 +86,7 @@ const tooltipStyle = {
   padding: "8px 12px",
 };
 
-export function CaixaCharts({ evolution, distribution, flow }: ChartsProps) {
+export function CaixaCharts({ evolution, distribution, flow, onFlowBarClick }: ChartsProps) {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
       {/* Evolução do saldo */}
