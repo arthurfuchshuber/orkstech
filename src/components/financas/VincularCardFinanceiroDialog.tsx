@@ -213,7 +213,7 @@ export function VincularCardFinanceiroDialog({ open, onOpenChange, cardTipo, tot
             </div>
 
             <Badge variant="outline" className="border-border text-muted-foreground">
-              Com uma conta/cartão, o vínculo é aplicado nos registros sem vínculo; com múltiplos, a regra de distribuição fica registrada para uso operacional.
+              Com {precisaCartao ? "um único cartão" : "uma única conta"}, o vínculo é aplicado nos registros sem vínculo; com {entidadeLabelPlural === "cartões" ? "múltiplos cartões" : "múltiplas contas"}, a regra de distribuição fica registrada para uso operacional.
             </Badge>
           </div>
 
