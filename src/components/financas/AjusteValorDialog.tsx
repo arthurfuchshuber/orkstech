@@ -12,7 +12,7 @@ import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { refreshQueries } from "@/lib/query-refresh";
 
-export type AjusteCampo = "saldo" | "investimento" | "fatura" | "limite_cheque_especial";
+export type AjusteCampo = "saldo" | "investimento" | "fatura" | "limite_cheque_especial" | "limite_credito";
 
 interface Props {
   open: boolean;
@@ -30,6 +30,7 @@ const TITULOS: Record<AjusteCampo, string> = {
   investimento: "Ajustar valor investido",
   fatura: "Ajustar fatura em aberto",
   limite_cheque_especial: "Ajustar limite do cheque especial",
+  limite_credito: "Ajustar limite disponível do cartão",
 };
 
 const HELPS: Record<AjusteCampo, string> = {
@@ -37,6 +38,7 @@ const HELPS: Record<AjusteCampo, string> = {
   investimento: "Útil quando você tem investimentos fora do Open Finance ou precisa corrigir um valor.",
   fatura: "Use para ajustar a fatura quando há lançamentos manuais ou divergência da integração.",
   limite_cheque_especial: "Limite total disponibilizado pelo banco. Editado livremente.",
+  limite_credito: "Limite disponível atual do cartão (limite total menos o que já foi consumido). Para cartões conectados via Open Finance este valor vem do banco.",
 };
 
 const formatBRL = (v: number) =>
