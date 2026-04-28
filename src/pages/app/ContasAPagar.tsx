@@ -49,6 +49,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { format, isPast, addDays, isBefore } from "date-fns";
 import { QuickListModal } from "@/components/financas/QuickListModal";
+import { shortNomeBanco } from "@/lib/format-conta-bancaria";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
