@@ -90,22 +90,35 @@ const tooltipStyle = {
 
 // Largura aproximada do tooltip (precisa bater com o min/maxWidth do FlowTooltip)
 const FLOW_TOOLTIP_WIDTH = 280;
-const BAR_HALF_WIDTH = 28; // metade da largura visual do par de barras
+const FLOW_CHART_HEIGHT = 240;
+
+const clamp = (value: number, min: number, max: number) => Math.min(Math.max(value, min), max);
+
+const getFlowTooltipHeight = (row: any) => {
+  const banks = (row?.byBank ?? []) as unknown[];
+  return 82 + banks.length * 44;
+};
 
 export function CaixaCharts({ evolution, distribution, flow, onFlowBarClick }: ChartsProps) {
   const flowChartRef = useRef<HTMLDivElement | null>(null);
   const [flowChartWidth, setFlowChartWidth] = useState(0);
   const [flowCoord, setFlowCoord] = useState<{ x: number; y: number } | null>(null);
+  const [activeFlowRow, setActiveFlowRow] = useState<any | null>(null);
 
   const tooltipPosition = (() => {
     if (!flowCoord) return undefined;
     const chartW = flowChartWidth || 800;
-    const spaceRight = chartW - flowCoord.x - BAR_HALF_WIDTH;
+    const plotWidth = Math.max(chartW - 80, 320);
+    const monthBandWidth = flow.length ? plotWidth / flow.length : 120;
+    const barClusterHalfWidth = clamp(monthBandWidth * 0.43, 48, 92);
+    const tooltipHeight = getFlowTooltipHeight(activeFlowRow);
+    const y = clamp(flowCoord.y - tooltipHeight / 2, 0, Math.max(0, FLOW_CHART_HEIGHT - tooltipHeight));
+    const spaceRight = chartW - flowCoord.x - barClusterHalfWidth;
     const x =
-      spaceRight >= FLOW_TOOLTIP_WIDTH + 12
-        ? flowCoord.x + BAR_HALF_WIDTH + 8
-        : flowCoord.x - BAR_HALF_WIDTH - FLOW_TOOLTIP_WIDTH - 8;
-    return { x, y: Math.max(0, flowCoord.y - 30) };
+      spaceRight >= FLOW_TOOLTIP_WIDTH + 8
+        ? flowCoord.x + barClusterHalfWidth + 6
+        : flowCoord.x - barClusterHalfWidth - FLOW_TOOLTIP_WIDTH - 6;
+    return { x: clamp(x, 0, Math.max(0, chartW - FLOW_TOOLTIP_WIDTH)), y };
   })();
 
   return (
