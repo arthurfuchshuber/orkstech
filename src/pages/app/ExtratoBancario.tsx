@@ -843,7 +843,13 @@ export default function ExtratoBancario() {
                 income: 0,
                 expense: 0,
               };
-              const transfers = transfersByAccount[account.pluggy_account_id] ?? { in: 0, out: 0 };
+              const internal = internalByAccount[account.pluggy_account_id] ?? {
+                transfersIn: 0,
+                transfersOut: 0,
+                investIn: 0,
+                investOut: 0,
+              };
+              const investNet = internal.investOut - internal.investIn; // saldo aplicado no período
 
               return (
                 <Card key={account.id} className="space-y-2 p-3">
