@@ -485,23 +485,28 @@ function IntegrationCard({
     if (!cred) return;
     const { error } = await supabase.from("integracoes_credenciais").update({ ativo: checked }).eq("id", cred.id);
     if (error) { toast.error("Erro ao atualizar"); return; }
-    toast.success(checked ? "Integração ativada" : "Integração desativada");
+    toast.success(checked ? "Integração ativada" : "Integração pausada — dados sincronizados foram preservados");
     onChanged();
-    if (provider === "asaas") {
-      if (checked) syncAsaasHistory();
-      else purgeAsaasHistory();
-    }
-    if (provider === "clicksign" && checked) {
-      syncClicksignHistory();
-    }
+    if (provider === "asaas" && checked) syncAsaasHistory();
+    if (provider === "clicksign" && checked) syncClicksignHistory();
+    // Pausar NÃO apaga dados — preserva histórico até o usuário decidir explicitamente.
   };
 
-  const remove = async () => {
+  const removeKeepData = async () => {
+    if (!cred) return;
+    const { error } = await supabase.from("integracoes_credenciais").delete().eq("id", cred.id);
+    if (error) { toast.error("Erro ao remover"); return; }
+    toast.success("Integração removida — dados sincronizados foram preservados");
+    onChanged();
+  };
+
+  const removePurge = async () => {
     if (!cred) return;
     if (provider === "asaas") await purgeAsaasHistory();
     const { error } = await supabase.from("integracoes_credenciais").delete().eq("id", cred.id);
-    if (error) toast.error("Erro ao remover");
-    else { toast.success("Integração removida"); onChanged(); }
+    if (error) { toast.error("Erro ao remover"); return; }
+    toast.success("Integração e dados sincronizados removidos");
+    onChanged();
   };
 
   const copyWebhook = () => {
