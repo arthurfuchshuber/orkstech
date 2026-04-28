@@ -1946,6 +1946,50 @@ export type Database = {
           },
         ]
       }
+      integration_notification_prefs: {
+        Row: {
+          created_at: string
+          empresa_id: string | null
+          id: string
+          provider: string
+          silenced_banner: boolean
+          silenced_bell: boolean
+          silenced_popup: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          empresa_id?: string | null
+          id?: string
+          provider: string
+          silenced_banner?: boolean
+          silenced_bell?: boolean
+          silenced_popup?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          empresa_id?: string | null
+          id?: string
+          provider?: string
+          silenced_banner?: boolean
+          silenced_bell?: boolean
+          silenced_popup?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "integration_notification_prefs_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       manual_bank_transactions: {
         Row: {
           amount: number
