@@ -538,16 +538,34 @@ export default function ExtratoBancario() {
     return accumulator;
   }, {});
 
-  // Transferências internas (entre contas próprias / aplicações / resgates)
-  // Separadas em recebidas (entrou) e enviadas (saiu) — não impactam DRE,
-  // apenas movimentam saldo. NÃO contam como Entrada nem Saída.
-  const transfersByAccount = internalTransactions.reduce<
-    Record<string, { in: number; out: number }>
+  // Movimentações internas — separadas em:
+  //   • transfers: transferências entre contas próprias (Same person transfer)
+  //   • investments: aplicações/resgates (Investments, Mutual funds)
+  // Ambas com sentido in/out. NÃO contam como Entrada/Saída (não impactam DRE).
+  const isInvestmentCategory = (cat?: string | null) => {
+    const c = (cat || "").toLowerCase();
+    return c.includes("investment") || c.includes("mutual fund") || c.includes("aplicac");
+  };
+
+  const internalByAccount = internalTransactions.reduce<
+    Record<
+      string,
+      { transfersIn: number; transfersOut: number; investIn: number; investOut: number }
+    >
   >((acc, tx) => {
-    const current = acc[tx.pluggy_account_id] ?? { in: 0, out: 0 };
+    const current =
+      acc[tx.pluggy_account_id] ?? { transfersIn: 0, transfersOut: 0, investIn: 0, investOut: 0 };
     const isIn = tx.type === "CREDIT" || tx.amount > 0;
-    if (isIn) current.in += Math.abs(tx.amount);
-    else current.out += Math.abs(tx.amount);
+    const amt = Math.abs(tx.amount);
+    if (isInvestmentCategory(tx.category)) {
+      // Aplicação: saída de caixa → entrada em investimento (out)
+      // Resgate: entrada de caixa ← saída de investimento (in)
+      if (isIn) current.investIn += amt;
+      else current.investOut += amt;
+    } else {
+      if (isIn) current.transfersIn += amt;
+      else current.transfersOut += amt;
+    }
     acc[tx.pluggy_account_id] = current;
     return acc;
   }, {});
@@ -825,7 +843,13 @@ export default function ExtratoBancario() {
                 income: 0,
                 expense: 0,
               };
-              const transfers = transfersByAccount[account.pluggy_account_id] ?? { in: 0, out: 0 };
+              const internal = internalByAccount[account.pluggy_account_id] ?? {
+                transfersIn: 0,
+                transfersOut: 0,
+                investIn: 0,
+                investOut: 0,
+              };
+              const investNet = internal.investOut - internal.investIn; // saldo aplicado no período
 
               return (
                 <Card key={account.id} className="space-y-2 p-3">
@@ -888,13 +912,22 @@ export default function ExtratoBancario() {
                     <div className="flex justify-between gap-3">
                       <span>Transferências recebidas</span>
                       <span className="font-medium text-foreground">
-                        {formatCurrency(transfers.in)}
+                        {formatCurrency(internal.transfersIn)}
                       </span>
                     </div>
                     <div className="flex justify-between gap-3">
                       <span>Transferências enviadas</span>
                       <span className="font-medium text-foreground">
-                        {formatCurrency(transfers.out)}
+                        {formatCurrency(internal.transfersOut)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between gap-3">
+                      <span>Em Aplicação</span>
+                      <span
+                        className="font-medium text-foreground"
+                        title={`Aplicado: ${formatCurrency(internal.investOut)} · Resgatado: ${formatCurrency(internal.investIn)}`}
+                      >
+                        {formatCurrency(investNet)}
                       </span>
                     </div>
                   </div>
