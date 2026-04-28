@@ -325,9 +325,9 @@ export default function FinanceiroDashboard() {
     if (txHistory.length === 0 && manualTx.length === 0) return [];
     const byDay = new Map<string, number>();
 
-    // Pluggy (ignora movimentações entre conta e investimento)
+    // Pluggy (ignora transferências internas: aplicações, resgates, conta↔conta própria)
     txHistory.forEach((t: any) => {
-      if (isInvestmentTx(t)) return;
+      if (t.is_internal_transfer || isInvestmentTx(t)) return;
       const day = t.date;
       const signed = t.type === "CREDIT" ? Math.abs(Number(t.amount)) : -Math.abs(Number(t.amount));
       byDay.set(day, (byDay.get(day) || 0) + signed);
