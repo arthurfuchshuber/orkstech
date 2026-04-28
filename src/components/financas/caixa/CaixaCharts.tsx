@@ -185,7 +185,13 @@ export function CaixaCharts({ evolution, distribution, flow, onFlowBarClick }: C
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
                 <XAxis dataKey="month" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false} />
                 <YAxis tickFormatter={fmt} tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false} width={70} />
-                <Tooltip content={<FlowTooltip />} cursor={{ fill: "hsl(var(--muted) / 0.3)" }} />
+                <Tooltip
+                  content={<FlowTooltip />}
+                  cursor={{ fill: "hsl(var(--muted) / 0.3)" }}
+                  offset={24}
+                  allowEscapeViewBox={{ x: false, y: true }}
+                  wrapperStyle={{ pointerEvents: "none", zIndex: 50 }}
+                />
                 <Legend wrapperStyle={{ fontSize: 11 }} iconType="circle" formatter={(v) => v === "entradas" ? "Entradas" : "Saídas"} />
                 <Bar dataKey="entradas" fill="hsl(160 84% 39%)" radius={[6, 6, 0, 0]} style={{ cursor: onFlowBarClick ? "pointer" : "default" }} />
                 <Bar dataKey="saidas" fill="hsl(0 72% 51%)" radius={[6, 6, 0, 0]} style={{ cursor: onFlowBarClick ? "pointer" : "default" }} />
