@@ -304,6 +304,20 @@ export default function ExtratoBancario() {
     return displayOwner ? `${connectorName} (${displayOwner})` : connectorName;
   };
 
+  // Nome curto para os cards (sem owner): "BTGPactual Empresas" ou "BTGPactual Empresas •••1962"
+  const getShortName = (account: BankAccount) => {
+    const conn = connections.find((c) => c.pluggy_item_id === account.pluggy_item_id);
+    const connectorName = conn?.connector_name || "Conta";
+    if (account.type === "CREDIT") {
+      const creditData = (account.bank_data as any)?.creditData;
+      const last4 = creditData?.disaggregatedCreditLimits?.[0]?.identificationNumber || "";
+      return last4 ? `${connectorName} •••${last4}` : connectorName;
+    }
+    return connectorName;
+  };
+
+  const getOwnerLabel = (account: BankAccount) => getAccountOwner(account);
+
   const creditCards = accounts.filter((account) => account.type === "CREDIT");
   const bankAccounts = accounts.filter((account) => account.type !== "CREDIT");
 
@@ -506,6 +520,7 @@ export default function ExtratoBancario() {
 
   // Filter out internal transactions (caixinhas/investments) for totals
   const externalTransactions = allTransactions.filter((tx) => !isInternalTransaction(tx));
+  const internalTransactions = allTransactions.filter((tx) => isInternalTransaction(tx));
 
   const totalsByAccount = externalTransactions.reduce<
     Record<string, { income: number; expense: number }>
@@ -522,6 +537,17 @@ export default function ExtratoBancario() {
     accumulator[tx.pluggy_account_id] = current;
     return accumulator;
   }, {});
+
+  // Transferências entre contas (saídas internas) — soma do volume movimentado por conta
+  const transfersByAccount = internalTransactions.reduce<Record<string, number>>(
+    (acc, tx) => {
+      const isOut = tx.type !== "CREDIT" && tx.amount < 0;
+      if (!isOut) return acc;
+      acc[tx.pluggy_account_id] = (acc[tx.pluggy_account_id] ?? 0) + Math.abs(tx.amount);
+      return acc;
+    },
+    {}
+  );
 
   const totalBalance = bankAccounts.reduce(
     (sum, account) => sum + getAccountTotalBalance(account),
@@ -711,12 +737,21 @@ export default function ExtratoBancario() {
           <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
             {creditCards.map((card) => (
               <Card key={card.id} className="space-y-3 border-l-4 border-l-primary p-4">
-                <div className="flex items-center justify-between">
-                  <p className="text-sm font-semibold text-foreground">{getDisplayName(card)}</p>
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-semibold text-foreground" title={getDisplayName(card)}>
+                      {getShortName(card)}
+                    </p>
+                    {getOwnerLabel(card) && (
+                      <p className="truncate text-[11px] text-muted-foreground" title={getOwnerLabel(card)}>
+                        {getOwnerLabel(card)}
+                      </p>
+                    )}
+                  </div>
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-7 w-7"
+                    className="h-7 w-7 shrink-0"
                     onClick={() => handleSync(card.pluggy_item_id)}
                     disabled={syncing === card.pluggy_item_id}
                   >
@@ -787,14 +822,34 @@ export default function ExtratoBancario() {
                 income: 0,
                 expense: 0,
               };
+              const transfersOut = transfersByAccount[account.pluggy_account_id] ?? 0;
 
               return (
-                <Card key={account.id} className="space-y-1 p-3">
+                <Card key={account.id} className="space-y-2 p-3">
                   <div className="flex items-start justify-between gap-2">
-                    <p className="text-xs text-muted-foreground">{getDisplayName(account)}</p>
+                    <div className="min-w-0 flex-1">
+                      <p
+                        className="truncate text-sm font-semibold text-foreground"
+                        title={getDisplayName(account)}
+                      >
+                        {getShortName(account)}
+                      </p>
+                      {getOwnerLabel(account) && (
+                        <p
+                          className="truncate text-[11px] text-muted-foreground"
+                          title={getOwnerLabel(account)}
+                        >
+                          {getOwnerLabel(account)}
+                        </p>
+                      )}
+                    </div>
                     {(() => {
                       const conn = connections.find((c) => c.pluggy_item_id === account.pluggy_item_id);
-                      return <PluggyLastSyncBadge lastSyncAt={conn?.last_sync_at} status={conn?.status} />;
+                      return (
+                        <div className="shrink-0">
+                          <PluggyLastSyncBadge lastSyncAt={conn?.last_sync_at} status={conn?.status} />
+                        </div>
+                      );
                     })()}
                   </div>
                   <p className="text-lg font-bold text-foreground">
@@ -825,6 +880,12 @@ export default function ExtratoBancario() {
                       <span>Saídas</span>
                       <span className="font-medium text-foreground">
                         {formatCurrency(totals.expense)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between gap-3">
+                      <span>Transferência entre contas</span>
+                      <span className="font-medium text-foreground">
+                        {formatCurrency(transfersOut)}
                       </span>
                     </div>
                   </div>
