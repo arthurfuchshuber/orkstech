@@ -53,6 +53,7 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { AsaasChargeDialog } from "@/components/asaas/AsaasChargeDialog";
+import { shortNomeBanco } from "@/lib/format-conta-bancaria";
 
 type PaymentMode = "avista" | "parcelado" | "recorrente" | "sazonal";
 type PayerKind = "cliente" | "fornecedor";
