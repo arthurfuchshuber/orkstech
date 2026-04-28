@@ -885,7 +885,7 @@ export default function ExtratoBancario() {
                   <div className="space-y-0.5 border-t border-border pt-1 text-[11px] text-muted-foreground">
                     <div className="flex justify-between gap-3">
                       <span>Disponível</span>
-                      <span className="font-medium text-foreground">
+                      <span className={`font-medium ${account.balance > 0 ? "text-emerald-500" : "text-foreground"}`}>
                         {formatCurrency(account.balance)}
                       </span>
                     </div>
