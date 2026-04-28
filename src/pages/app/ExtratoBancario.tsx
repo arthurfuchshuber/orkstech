@@ -822,14 +822,34 @@ export default function ExtratoBancario() {
                 income: 0,
                 expense: 0,
               };
+              const transfersOut = transfersByAccount[account.pluggy_account_id] ?? 0;
 
               return (
-                <Card key={account.id} className="space-y-1 p-3">
+                <Card key={account.id} className="space-y-2 p-3">
                   <div className="flex items-start justify-between gap-2">
-                    <p className="text-xs text-muted-foreground">{getDisplayName(account)}</p>
+                    <div className="min-w-0 flex-1">
+                      <p
+                        className="truncate text-sm font-semibold text-foreground"
+                        title={getDisplayName(account)}
+                      >
+                        {getShortName(account)}
+                      </p>
+                      {getOwnerLabel(account) && (
+                        <p
+                          className="truncate text-[11px] text-muted-foreground"
+                          title={getOwnerLabel(account)}
+                        >
+                          {getOwnerLabel(account)}
+                        </p>
+                      )}
+                    </div>
                     {(() => {
                       const conn = connections.find((c) => c.pluggy_item_id === account.pluggy_item_id);
-                      return <PluggyLastSyncBadge lastSyncAt={conn?.last_sync_at} status={conn?.status} />;
+                      return (
+                        <div className="shrink-0">
+                          <PluggyLastSyncBadge lastSyncAt={conn?.last_sync_at} status={conn?.status} />
+                        </div>
+                      );
                     })()}
                   </div>
                   <p className="text-lg font-bold text-foreground">
@@ -860,6 +880,12 @@ export default function ExtratoBancario() {
                       <span>Saídas</span>
                       <span className="font-medium text-foreground">
                         {formatCurrency(totals.expense)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between gap-3">
+                      <span>Transferência entre contas</span>
+                      <span className="font-medium text-foreground">
+                        {formatCurrency(transfersOut)}
                       </span>
                     </div>
                   </div>
