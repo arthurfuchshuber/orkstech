@@ -1134,6 +1134,12 @@ export default function FinanceiroDashboard() {
     </Tabs>
     <RealocarOrfaosDialog open={showRealocar} onOpenChange={setShowRealocar} />
     <TransferenciaContasDialog open={showTransferencia} onOpenChange={setShowTransferencia} />
+    <MonthFlowDetailModal
+      open={!!monthDetail}
+      onOpenChange={(o) => !o && setMonthDetail(null)}
+      monthLabel={monthDetail?.label ?? ""}
+      items={monthDetail?.items ?? []}
+    />
     {vincularCard && (
       <VincularCardFinanceiroDialog
         open={!!vincularCard}
