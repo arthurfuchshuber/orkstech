@@ -19,6 +19,7 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { RemoveIntegrationDialog } from "@/components/integrations/RemoveIntegrationDialog";
 import { cn } from "@/lib/utils";
 
 type Provider = "asaas" | "clicksign";
@@ -315,6 +316,7 @@ function IntegrationCard({
   const [showKey, setShowKey] = useState(false);
   const [testing, setTesting] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [removeOpen, setRemoveOpen] = useState(false);
 
   const isComingSoon = cfg.status === "coming_soon";
   const provider = providerKey as Provider;
@@ -484,23 +486,28 @@ function IntegrationCard({
     if (!cred) return;
     const { error } = await supabase.from("integracoes_credenciais").update({ ativo: checked }).eq("id", cred.id);
     if (error) { toast.error("Erro ao atualizar"); return; }
-    toast.success(checked ? "Integração ativada" : "Integração desativada");
+    toast.success(checked ? "Integração ativada" : "Integração pausada — dados sincronizados foram preservados");
     onChanged();
-    if (provider === "asaas") {
-      if (checked) syncAsaasHistory();
-      else purgeAsaasHistory();
-    }
-    if (provider === "clicksign" && checked) {
-      syncClicksignHistory();
-    }
+    if (provider === "asaas" && checked) syncAsaasHistory();
+    if (provider === "clicksign" && checked) syncClicksignHistory();
+    // Pausar NÃO apaga dados — preserva histórico até o usuário decidir explicitamente.
   };
 
-  const remove = async () => {
+  const removeKeepData = async () => {
+    if (!cred) return;
+    const { error } = await supabase.from("integracoes_credenciais").delete().eq("id", cred.id);
+    if (error) { toast.error("Erro ao remover"); return; }
+    toast.success("Integração removida — dados sincronizados foram preservados");
+    onChanged();
+  };
+
+  const removePurge = async () => {
     if (!cred) return;
     if (provider === "asaas") await purgeAsaasHistory();
     const { error } = await supabase.from("integracoes_credenciais").delete().eq("id", cred.id);
-    if (error) toast.error("Erro ao remover");
-    else { toast.success("Integração removida"); onChanged(); }
+    if (error) { toast.error("Erro ao remover"); return; }
+    toast.success("Integração e dados sincronizados removidos");
+    onChanged();
   };
 
   const copyWebhook = () => {
@@ -596,25 +603,25 @@ function IntegrationCard({
                     <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={() => setEditing(true)}>
                       Editar
                     </Button>
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive">
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Remover integração?</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            A chave de API será excluída. Cobranças/documentos já gerados continuam preservados.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                          <AlertDialogAction onClick={remove}>Remover</AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
+                    <Button
+                      variant="ghost" size="icon"
+                      className="h-7 w-7 text-destructive hover:text-destructive"
+                      onClick={() => setRemoveOpen(true)}
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </Button>
+                    <RemoveIntegrationDialog
+                      open={removeOpen}
+                      onOpenChange={setRemoveOpen}
+                      providerLabel={cfg.nome}
+                      dataDescription={
+                        provider === "asaas"
+                          ? "Cobranças importadas, lançamentos a receber criados pelo Asaas e histórico de webhooks."
+                          : "Contratos importados, vínculos com clientes e histórico de assinaturas."
+                      }
+                      onKeepData={removeKeepData}
+                      onPurgeData={removePurge}
+                    />
                   </div>
                 </div>
                 <div className="flex items-center gap-1.5 flex-wrap">

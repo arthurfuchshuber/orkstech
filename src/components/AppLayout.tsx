@@ -6,6 +6,7 @@ import { NotificationDropdown } from "@/components/NotificationDropdown";
 import { EmpresaCnpjGuard } from "@/components/EmpresaCnpjGuard";
 import { SubscriptionGuard } from "@/components/SubscriptionGuard";
 import { SubscriptionStatusBanner } from "@/components/SubscriptionStatusBanner";
+import { IntegrationFailureBanner } from "@/components/integrations/IntegrationFailureBanner";
 import { useAuth } from "@/hooks/useAuth";
 import { useBankNotifications } from "@/hooks/useBankNotifications";
 import { toast } from "sonner";
@@ -49,6 +50,7 @@ export default function AppLayout() {
               </button>
             </div>
           </header>
+          <IntegrationFailureBanner />
           <main className="flex-1 p-6 overflow-auto">
             <Outlet />
           </main>

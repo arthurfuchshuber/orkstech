@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { PluggyConnect } from "react-pluggy-connect";
 import { Link2, RefreshCw, Trash2, Loader2 } from "lucide-react";
+import { RemoveIntegrationDialog } from "@/components/integrations/RemoveIntegrationDialog";
 
 export function usePluggyConnections() {
   const { user } = useAuth();
@@ -32,14 +33,32 @@ export function usePluggyConnections() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: async (id: string) => {
+    mutationFn: async ({ id, purge }: { id: string; purge: boolean }) => {
+      // Lookup pluggy_item_id antes de excluir
+      const { data: conn } = await supabase
+        .from("pluggy_connections" as any)
+        .select("pluggy_item_id")
+        .eq("id", id)
+        .maybeSingle();
+      const pluggyItemId = (conn as any)?.pluggy_item_id as string | undefined;
+
+      if (purge && pluggyItemId) {
+        // Remove transações e contas vinculadas a este item (preserva conciliações em accounts_payable/receivable)
+        await supabase.from("pluggy_transactions" as any).delete().eq("pluggy_item_id", pluggyItemId);
+        await supabase.from("pluggy_bank_accounts" as any).delete().eq("pluggy_item_id", pluggyItemId);
+        await supabase.from("pluggy_investments" as any).delete().eq("pluggy_item_id", pluggyItemId);
+      }
+
       const { error } = await supabase.from("pluggy_connections" as any).delete().eq("id", id);
       if (error) throw error;
+      return { purge };
     },
-    onSuccess: () => {
+    onSuccess: ({ purge }) => {
       qc.invalidateQueries({ queryKey: ["pluggy_connections"] });
       qc.invalidateQueries({ queryKey: ["pluggy_connections_exist"] });
-      toast.success("Conexão removida");
+      qc.invalidateQueries({ queryKey: ["pluggy_bank_accounts"] });
+      qc.invalidateQueries({ queryKey: ["pluggy_transactions"] });
+      toast.success(purge ? "Conexão e dados sincronizados removidos" : "Conexão removida — dados preservados");
     },
   });
 
@@ -191,6 +210,8 @@ export function PluggyConnectButton({ size = "default" }: { size?: "default" | "
 
 export function PluggyConnectionsList() {
   const { connections, deleteMutation, handleSync } = usePluggyConnections();
+  const [removeId, setRemoveId] = useState<string | null>(null);
+  const removingConn = connections.find((c: any) => c.id === removeId);
 
   if (connections.length === 0) return null;
 
@@ -226,12 +247,21 @@ export function PluggyConnectionsList() {
             <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => handleSync(conn.pluggy_item_id)}>
               <RefreshCw className="w-3 h-3" />
             </Button>
-            <Button variant="ghost" size="icon" className="h-5 w-5 text-destructive" onClick={() => deleteMutation.mutate(conn.id)}>
+            <Button variant="ghost" size="icon" className="h-5 w-5 text-destructive" onClick={() => setRemoveId(conn.id)}>
               <Trash2 className="w-3 h-3" />
             </Button>
           </div>
         </div>
       ))}
+
+      <RemoveIntegrationDialog
+        open={!!removeId}
+        onOpenChange={(v) => !v && setRemoveId(null)}
+        providerLabel={removingConn?.connector_name || "conexão Open Finance"}
+        dataDescription="Transações sincronizadas, contas e investimentos importados deste banco. Conciliações com contas a pagar/receber são preservadas em ambos os casos."
+        onKeepData={async () => { if (removeId) await deleteMutation.mutateAsync({ id: removeId, purge: false }); }}
+        onPurgeData={async () => { if (removeId) await deleteMutation.mutateAsync({ id: removeId, purge: true }); }}
+      />
     </div>
   );
 }
