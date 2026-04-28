@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Lock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { useEmpresa } from "@/contexts/EmpresaContext";
+import { useEmpresa } from "@/hooks/useEmpresa";
 import { toast } from "sonner";
 
 interface Props {
