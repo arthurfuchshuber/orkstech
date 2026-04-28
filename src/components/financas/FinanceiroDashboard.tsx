@@ -393,6 +393,20 @@ export default function FinanceiroDashboard() {
   );
   const totalOverdraftAvailable = Math.max(totalOverdraftLimit - totalOverdraftUsed, 0);
 
+  // Cartão "manual": tipo cartão OU possui limite/fatura preenchidos (Pluggy às
+  // vezes devolve cartões com tipo "corrente").
+  const ehCartaoManual = (a: any) => {
+    const tipo = String(a?.tipo || "").toLowerCase();
+    if (["cartao_credito", "credito", "cartao"].includes(tipo)) return true;
+    return (
+      Number(a?.limite_credito_total || 0) > 0 ||
+      Number(a?.limite_credito_disponivel_sincronizado || 0) > 0 ||
+      Number(a?.limite_credito_disponivel_ajuste_manual || 0) > 0 ||
+      Number(a?.fatura_aberto_sincronizada || 0) > 0 ||
+      Number(a?.fatura_aberto_ajuste_manual || 0) > 0
+    );
+  };
+
   const cardsSemVinculo = useMemo(() => {
     const vinculado = new Set(cardVinculos.map((v) => v.card_tipo));
 
