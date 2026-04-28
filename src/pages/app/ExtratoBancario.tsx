@@ -737,12 +737,21 @@ export default function ExtratoBancario() {
           <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
             {creditCards.map((card) => (
               <Card key={card.id} className="space-y-3 border-l-4 border-l-primary p-4">
-                <div className="flex items-center justify-between">
-                  <p className="text-sm font-semibold text-foreground">{getDisplayName(card)}</p>
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-semibold text-foreground" title={getDisplayName(card)}>
+                      {getShortName(card)}
+                    </p>
+                    {getOwnerLabel(card) && (
+                      <p className="truncate text-[11px] text-muted-foreground" title={getOwnerLabel(card)}>
+                        {getOwnerLabel(card)}
+                      </p>
+                    )}
+                  </div>
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-7 w-7"
+                    className="h-7 w-7 shrink-0"
                     onClick={() => handleSync(card.pluggy_item_id)}
                     disabled={syncing === card.pluggy_item_id}
                   >
