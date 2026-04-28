@@ -239,11 +239,13 @@ Deno.serve(async (req) => {
           console.error('Bills fetch error:', e)
         }
 
-        // 2) Fallback: calculate the OPEN bill from transactions.
-        //    Strategy: fetch the last 90 days of transactions and find the most recent payment
-        //    (CREDIT type with description containing "pagamento"). Everything AFTER that payment
-        //    is the current open bill in formation. This is robust even when balanceCloseDate is null
-        //    or balanceDueDate is stale.
+        // 2) Fallback: calculate the NEXT BILL TO MATURE (BTG-style: shows only the closing bill,
+        //    not the future bill in formation).
+        //    Strategy:
+        //      a) Find the next billing close date. We derive it from `balanceDueDate` recurring monthly
+        //         (assume close = dueDate - 3 days, typical for most issuers).
+        //      b) Find the previous close date (one month before the next close).
+        //      c) Sum DEBITs in [previousClose+1 .. nextClose] = next bill to mature.
         if (billAmount == null) {
           try {
             const today = new Date()
@@ -257,32 +259,44 @@ Deno.serve(async (req) => {
             if (txRes.ok) {
               const txData = await txRes.json()
               const txs: any[] = txData.results || []
-              // Sort ascending by date
-              txs.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
-              // Find date of the most recent bill payment (CREDIT/positive entry on a credit card)
-              let lastPaymentDate: string | null = null
-              for (let i = txs.length - 1; i >= 0; i--) {
-                const tx = txs[i]
-                const isPayment = tx.type === 'CREDIT' || tx.amount < 0
-                const desc = (tx.description || '').toLowerCase()
-                if (isPayment && (desc.includes('pagamento') || desc.includes('payment'))) {
-                  lastPaymentDate = tx.date
-                  break
-                }
+
+              // Determine the day-of-month for due date (from balanceDueDate, recurring monthly)
+              const rawDue = acc.creditData?.balanceDueDate
+              const dueDay = rawDue ? new Date(rawDue).getUTCDate() : 5
+
+              // Project the NEXT due date >= today (recurring on dueDay each month)
+              const projectNextDue = (): Date => {
+                const d = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), dueDay))
+                if (d.getTime() < today.getTime()) d.setUTCMonth(d.getUTCMonth() + 1)
+                return d
               }
-              const cutoff = lastPaymentDate ? new Date(lastPaymentDate).getTime() : 0
-              // Sum debits AFTER the last payment = current open bill
+              const nextDue = projectNextDue()
+              // Closing date = due date - 3 days (typical "melhor dia de compra" gap)
+              const nextClose = new Date(nextDue)
+              nextClose.setUTCDate(nextClose.getUTCDate() - 3)
+              const prevClose = new Date(nextClose)
+              prevClose.setUTCMonth(prevClose.getUTCMonth() - 1)
+
+              const nextCloseMs = nextClose.getTime()
+              const prevCloseMs = prevClose.getTime()
+
+              // Sum DEBITs in (prevClose, nextClose]
               openBillAmount = txs
                 .filter((tx) => {
                   const isDebit = tx.type === 'DEBIT' || tx.amount > 0
-                  return isDebit && new Date(tx.date).getTime() > cutoff
+                  if (!isDebit) return false
+                  const t = new Date(tx.date).getTime()
+                  return t > prevCloseMs && t <= nextCloseMs
                 })
                 .reduce((sum, tx) => sum + Math.abs(tx.amount), 0)
               openBillAmount = Math.round((openBillAmount ?? 0) * 100) / 100
-              console.log(`Open bill calc: R$ ${openBillAmount} (last payment: ${lastPaymentDate || 'none in 90d'}, ${txs.length} txs analyzed)`)
+              console.log(
+                `Next bill to mature: R$ ${openBillAmount} | window: ${prevClose.toISOString().split('T')[0]} → ${nextClose.toISOString().split('T')[0]} | due: ${nextDue.toISOString().split('T')[0]}`
+              )
+              billDueDate = billDueDate || nextDue.toISOString().split('T')[0]
             }
           } catch (e) {
-            console.error('Open bill calc error:', e)
+            console.error('Next bill calc error:', e)
           }
         }
       }
