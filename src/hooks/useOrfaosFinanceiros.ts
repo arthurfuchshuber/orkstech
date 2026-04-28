@@ -139,6 +139,12 @@ export function useOrfaosFinanceiros() {
       const temVinculosFaltando =
         (payables?.length ?? 0) > 0 || (receivables?.length ?? 0) > 0;
 
+      const totalCount =
+        lancamentos.length +
+        (payables?.length ?? 0) +
+        (receivables?.length ?? 0) +
+        contasComSnapshot.length;
+
       return {
         lancamentos,
         payablesOrfaos: payables ?? [],
