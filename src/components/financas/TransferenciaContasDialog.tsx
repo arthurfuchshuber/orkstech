@@ -125,34 +125,34 @@ export function TransferenciaContasDialog({ open, onOpenChange, defaultOrigemId 
         <div className="space-y-4">
           <div className="space-y-2">
             <Label>Conta de origem</Label>
-            <select
-              className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm"
-              value={origemId}
-              onChange={(e) => setOrigemId(e.target.value)}
-            >
-              <option value="">Selecione…</option>
-              {contas.map((c: any) => (
-                <option key={c.id} value={c.id} disabled={c.id === destinoId}>
-                  {c.nome} {c.banco ? `· ${c.banco}` : ""}
-                </option>
-              ))}
-            </select>
+            <Select value={origemId} onValueChange={setOrigemId}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Selecione…" />
+              </SelectTrigger>
+              <SelectContent className="max-w-[--radix-select-trigger-width]">
+                {contas.map((c: any) => (
+                  <SelectItem key={c.id} value={c.id} disabled={c.id === destinoId}>
+                    <span className="block truncate max-w-[420px]">{labelConta(c)}</span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="space-y-2">
             <Label>Conta de destino</Label>
-            <select
-              className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm"
-              value={destinoId}
-              onChange={(e) => setDestinoId(e.target.value)}
-            >
-              <option value="">Selecione…</option>
-              {contas.map((c: any) => (
-                <option key={c.id} value={c.id} disabled={c.id === origemId}>
-                  {c.nome} {c.banco ? `· ${c.banco}` : ""}
-                </option>
-              ))}
-            </select>
+            <Select value={destinoId} onValueChange={setDestinoId}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Selecione…" />
+              </SelectTrigger>
+              <SelectContent className="max-w-[--radix-select-trigger-width]">
+                {contas.map((c: any) => (
+                  <SelectItem key={c.id} value={c.id} disabled={c.id === origemId}>
+                    <span className="block truncate max-w-[420px]">{labelConta(c)}</span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
