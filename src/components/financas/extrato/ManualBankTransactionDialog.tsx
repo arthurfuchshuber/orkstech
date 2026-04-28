@@ -226,8 +226,58 @@ export function ManualBankTransactionDialog({ open, onOpenChange, editing }: Pro
     onError: (e: any) => toast.error(e?.message ?? "Erro ao salvar"),
   });
 
-  const submit = () => {
+  const checkDuplicates = async (): Promise<any[]> => {
+    if (!targetUserId) return [];
+    const dateStr = form.transaction_date!.toISOString().slice(0, 10);
+    const docDigits = form.document_number.trim().replace(/\D/g, "");
+    const descNorm = form.description.trim().toLowerCase();
+
+    let q = supabase
+      .from("manual_bank_transactions" as any)
+      .select("id, transaction_date, amount, type, description, document_number, bank_account_id")
+      .eq("transaction_date", dateStr)
+      .eq("type", form.type);
+    if (empresaId) q = q.eq("empresa_id", empresaId);
+    if (form.id) q = q.neq("id", form.id);
+
+    const { data } = await q;
+    const candidates = (data ?? []) as any[];
+
+    const matches: any[] = [];
+    for (const ex of candidates) {
+      const exDoc = (ex.document_number || "").replace(/\D/g, "");
+      // Prioridade 1: Nº Documento igual
+      if (docDigits && exDoc && docDigits === exDoc) {
+        matches.push({ ...ex, _dupReasons: ["Nº Documento igual"] });
+        continue;
+      }
+      // Prioridade 2 (sem doc): mesma descrição + mesmo valor + mesma conta
+      if (!docDigits) {
+        const sameAmount = Math.abs(Number(ex.amount) - form.amount) < 0.01;
+        const sameDesc = (ex.description || "").trim().toLowerCase() === descNorm;
+        const sameAccount = (ex.bank_account_id || null) === (form.bank_account_id || null);
+        if (sameAmount && sameDesc && sameAccount) {
+          matches.push({ ...ex, _dupReasons: ["Mesma descrição", "Mesmo valor", "Mesma data"] });
+        }
+      }
+    }
+    return matches;
+  };
+
+  const submit = async () => {
     if (!validate()) return;
+    const dups = await checkDuplicates();
+    if (dups.length > 0) {
+      setDuplicateMatches(dups);
+      setShowDuplicateAlert(true);
+      return;
+    }
+    saveMut.mutate();
+  };
+
+  const proceedWithSave = () => {
+    setShowDuplicateAlert(false);
+    setDuplicateMatches([]);
     saveMut.mutate();
   };
 
