@@ -1,4 +1,5 @@
-import { useState, useMemo, useRef } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEmpresa } from "@/hooks/useEmpresa";
 import {
@@ -135,6 +136,17 @@ export default function ContasAPagar() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState<string>("open");
+  const [searchParams, setSearchParams] = useSearchParams();
+  // Filtro vindo do banner do Dashboard (?filtro=sem-conta) — pagamentos sem conta vinculada
+  useEffect(() => {
+    if (searchParams.get("filtro") === "sem-conta") {
+      setFilterStatus("sem-conta");
+      const next = new URLSearchParams(searchParams);
+      next.delete("filtro");
+      setSearchParams(next, { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
   const [payingId, setPayingId] = useState<string | null>(null);
   const [paymentBankAccount, setPaymentBankAccount] = useState("");
@@ -948,6 +960,8 @@ export default function ContasAPagar() {
       list = list.filter((p: any) => p.status === "pending" || p.status === "overdue");
     } else if (filterStatus === "upcoming") {
       list = list.filter((p: any) => p.status === "pending" && p.due_date >= todayStr);
+    } else if (filterStatus === "sem-conta") {
+      list = list.filter((p: any) => p.status === "paid" && !p.bank_account_id);
     } else if (filterStatus !== "all") {
       list = list.filter((p: any) => p.status === filterStatus);
     }

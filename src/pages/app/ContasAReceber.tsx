@@ -195,6 +195,17 @@ export default function ContasAReceber() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Filtro vindo do banner do Dashboard (?filtro=sem-conta) — pagamentos sem conta vinculada
+  useEffect(() => {
+    if (searchParams.get("filtro") === "sem-conta") {
+      setFilterStatus("sem-conta");
+      const next = new URLSearchParams(searchParams);
+      next.delete("filtro");
+      setSearchParams(next, { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const { data: receivables = [], isLoading } = useQuery({
     queryKey: ["accounts-receivable", empresaId],
     queryFn: async () => fetchAccountsReceivable(empresaId),
@@ -863,6 +874,8 @@ export default function ContasAReceber() {
       list = list.filter((p: any) => p.status === "pending" || p.status === "overdue");
     } else if (filterStatus === "upcoming") {
       list = list.filter((p: any) => p.status === "pending" && p.due_date >= todayStr);
+    } else if (filterStatus === "sem-conta") {
+      list = list.filter((p: any) => p.status === "paid" && !p.bank_account_id);
     } else if (filterStatus !== "all") {
       list = list.filter((p: any) => p.status === filterStatus);
     }
