@@ -630,11 +630,12 @@ export default function FinanceiroDashboard() {
               <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
               <div className="text-sm">
                 <p className="font-semibold text-foreground">
-                  Existem {fmt(Math.abs(orfaos.saldoLiquido))} em valores sem conta vinculada
+                  Existem {fmt(orfaos.totalGeralAbsoluto || Math.abs(orfaos.saldoLiquido))} em valores sem conta vinculada
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  {orfaos.lancamentos.length} lançamento(s) ficaram órfãos após exclusão de contas/cartões.
-                  Realoque-os entre suas contas para manter o dashboard preciso.
+                  Inclui saldos, investimentos, faturas de cartão, limites de crédito e cheque especial órfãos
+                  ({orfaos.lancamentos.length} lançamento(s) + {orfaos.contasInativasComSnapshot?.length ?? 0} conta(s) excluída(s)).
+                  Realoque para manter o dashboard preciso.
                 </p>
               </div>
             </div>
