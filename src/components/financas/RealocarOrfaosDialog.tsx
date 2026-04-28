@@ -303,5 +303,16 @@ export function RealocarOrfaosDialog({ open, onOpenChange }: Props) {
         </DialogFooter>
       </DialogContent>
     </Dialog>
+
+    {/* Modal ORIGINAL de cadastro de conta/cartão */}
+    <ContaBancariaModal
+      open={contaModalOpen}
+      onOpenChange={(v) => {
+        setContaModalOpen(v);
+        if (!v) setLinhaPendenteIdx(null);
+      }}
+      onSaved={handleContaCriada}
+    />
+    </>
   );
 }
