@@ -10,6 +10,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ArrowRightLeft, Loader2 } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -59,7 +60,9 @@ export function TransferenciaContasDialog({ open, onOpenChange, defaultOrigemId 
       let q = supabase
         .from("contas_bancarias")
         .select("id, nome, tipo, banco, saldo_inicial, saldo_sincronizado, saldo_ajuste_manual")
-        .eq("ativo", true);
+        .eq("ativo", true)
+        // Cartão de crédito não participa de transferência entre contas
+        .neq("tipo", "cartao_credito");
       if (empresaId) q = q.eq("empresa_id", empresaId);
       else q = q.eq("user_id", targetUserId!);
       const { data, error } = await q;
@@ -67,6 +70,14 @@ export function TransferenciaContasDialog({ open, onOpenChange, defaultOrigemId 
       return (data ?? []) as any[];
     },
   });
+
+  // Helper: nome curto e legível para o select (evita strings duplicadas tipo "X · X")
+  const labelConta = (c: any) => {
+    const nome = (c.nome || "").trim();
+    const banco = (c.banco || "").trim();
+    if (!banco || nome === banco || nome.toLowerCase().includes(banco.toLowerCase())) return nome;
+    return `${nome} · ${banco}`;
+  };
 
   const podeSalvar =
     !!origemId && !!destinoId && origemId !== destinoId && valor > 0;
@@ -115,34 +126,34 @@ export function TransferenciaContasDialog({ open, onOpenChange, defaultOrigemId 
         <div className="space-y-4">
           <div className="space-y-2">
             <Label>Conta de origem</Label>
-            <select
-              className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm"
-              value={origemId}
-              onChange={(e) => setOrigemId(e.target.value)}
-            >
-              <option value="">Selecione…</option>
-              {contas.map((c: any) => (
-                <option key={c.id} value={c.id} disabled={c.id === destinoId}>
-                  {c.nome} {c.banco ? `· ${c.banco}` : ""}
-                </option>
-              ))}
-            </select>
+            <Select value={origemId} onValueChange={setOrigemId}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Selecione…" />
+              </SelectTrigger>
+              <SelectContent className="max-w-[--radix-select-trigger-width]">
+                {contas.map((c: any) => (
+                  <SelectItem key={c.id} value={c.id} disabled={c.id === destinoId}>
+                    <span className="block truncate max-w-[420px]">{labelConta(c)}</span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="space-y-2">
             <Label>Conta de destino</Label>
-            <select
-              className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm"
-              value={destinoId}
-              onChange={(e) => setDestinoId(e.target.value)}
-            >
-              <option value="">Selecione…</option>
-              {contas.map((c: any) => (
-                <option key={c.id} value={c.id} disabled={c.id === origemId}>
-                  {c.nome} {c.banco ? `· ${c.banco}` : ""}
-                </option>
-              ))}
-            </select>
+            <Select value={destinoId} onValueChange={setDestinoId}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Selecione…" />
+              </SelectTrigger>
+              <SelectContent className="max-w-[--radix-select-trigger-width]">
+                {contas.map((c: any) => (
+                  <SelectItem key={c.id} value={c.id} disabled={c.id === origemId}>
+                    <span className="block truncate max-w-[420px]">{labelConta(c)}</span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
