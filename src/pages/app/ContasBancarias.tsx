@@ -64,6 +64,10 @@ export default function ContasBancarias({
         .from("contas_bancarias")
         .select("*")
         .eq("user_id", targetUserId!)
+        // Exclui espelhos automáticos das integrações Open Finance (Pluggy):
+        // eles já aparecem na lista "PluggyConnectionsList" acima e não devem
+        // duplicar como se fossem contas manuais.
+        .is("pluggy_account_id", null)
         .order("nome");
       if (empresaId) q = q.eq("empresa_id", empresaId);
       const { data, error } = await q;
