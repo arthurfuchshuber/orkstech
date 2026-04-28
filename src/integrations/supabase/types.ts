@@ -682,7 +682,9 @@ export type Database = {
           description: string | null
           empresa_id: string | null
           id: string
+          is_internal_transfer: boolean
           transaction_date: string
+          transfer_pair_id: string | null
           type: Database["public"]["Enums"]["cash_transaction_type"]
           updated_at: string
           user_id: string
@@ -696,7 +698,9 @@ export type Database = {
           description?: string | null
           empresa_id?: string | null
           id?: string
+          is_internal_transfer?: boolean
           transaction_date?: string
+          transfer_pair_id?: string | null
           type: Database["public"]["Enums"]["cash_transaction_type"]
           updated_at?: string
           user_id: string
@@ -710,7 +714,9 @@ export type Database = {
           description?: string | null
           empresa_id?: string | null
           id?: string
+          is_internal_transfer?: boolean
           transaction_date?: string
+          transfer_pair_id?: string | null
           type?: Database["public"]["Enums"]["cash_transaction_type"]
           updated_at?: string
           user_id?: string
@@ -3234,8 +3240,26 @@ export type Database = {
         Args: { p_conta_id: string; p_delta: number; p_motivo?: string }
         Returns: string
       }
+      criar_transferencia_entre_contas: {
+        Args: {
+          p_conta_destino: string
+          p_conta_origem: string
+          p_data?: string
+          p_descricao?: string
+          p_valor: number
+        }
+        Returns: Json
+      }
       delete_import_cascade: { Args: { p_import_id: string }; Returns: Json }
       get_or_create_ajuste_saldo_categoria: {
+        Args: {
+          p_empresa_id: string
+          p_tipo: Database["public"]["Enums"]["tipo_financeiro"]
+          p_user_id: string
+        }
+        Returns: string
+      }
+      get_or_create_transferencia_categoria: {
         Args: {
           p_empresa_id: string
           p_tipo: Database["public"]["Enums"]["tipo_financeiro"]
@@ -3276,6 +3300,10 @@ export type Database = {
           p_user_id: string
         }
         Returns: undefined
+      }
+      realocar_lancamentos_orfaos: {
+        Args: { p_alocacoes: Json; p_motivo?: string }
+        Returns: Json
       }
       resolver_categoria_por_regras: {
         Args: {

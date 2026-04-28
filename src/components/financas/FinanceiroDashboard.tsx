@@ -21,10 +21,15 @@ import {
 } from "lucide-react";
 import { format, differenceInDays, startOfMonth, endOfMonth, subMonths, addMonths, isBefore, subDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { CaixaKpis } from "./caixa/CaixaKpis";
 import { CaixaCharts } from "./caixa/CaixaCharts";
+import { useOrfaosFinanceiros } from "@/hooks/useOrfaosFinanceiros";
+import { RealocarOrfaosDialog } from "./RealocarOrfaosDialog";
+import { TransferenciaContasDialog } from "./TransferenciaContasDialog";
+import { Button } from "@/components/ui/button";
+import { ArrowRightLeft } from "lucide-react";
 
 interface BankAccount {
   id: string;
@@ -592,7 +597,22 @@ export default function FinanceiroDashboard() {
     return connections[0]?.status ?? "outdated";
   }, [connections]);
 
+  // ── Detecção de valores órfãos (contas excluídas) ──
+  const { data: orfaos } = useOrfaosFinanceiros();
+  const [showRealocar, setShowRealocar] = useState(false);
+  const [showTransferencia, setShowTransferencia] = useState(false);
+
+  // Popup automático na 1ª visita por sessão
+  useEffect(() => {
+    if (!orfaos?.temOrfaos) return;
+    const flagKey = `orfaos-popup-shown:${targetUserId}:${empresaId ?? "no-emp"}`;
+    if (sessionStorage.getItem(flagKey)) return;
+    sessionStorage.setItem(flagKey, "1");
+    setShowRealocar(true);
+  }, [orfaos?.temOrfaos, targetUserId, empresaId]);
+
   return (
+    <>
     <Tabs defaultValue="caixa" className="space-y-4 animate-fade-in">
       <TabsList>
         <TabsTrigger value="caixa">Caixa da Empresa</TabsTrigger>
@@ -601,6 +621,43 @@ export default function FinanceiroDashboard() {
 
       {/* ═══════════ ABA: Caixa da Empresa ═══════════ */}
       <TabsContent value="caixa" className="space-y-5">
+        {/* Banner de valores órfãos */}
+        {orfaos?.temOrfaos && (
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 rounded-lg border border-amber-500/40 bg-amber-500/5 px-4 py-3">
+            <div className="flex items-start gap-3">
+              <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
+              <div className="text-sm">
+                <p className="font-semibold text-foreground">
+                  Existem {fmt(Math.abs(orfaos.saldoLiquido))} em valores sem conta vinculada
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {orfaos.lancamentos.length} lançamento(s) ficaram órfãos após exclusão de contas/cartões.
+                  Realoque-os entre suas contas para manter o dashboard preciso.
+                </p>
+              </div>
+            </div>
+            <Button
+              size="sm"
+              onClick={() => setShowRealocar(true)}
+              className="shrink-0"
+            >
+              Realocar agora
+            </Button>
+          </div>
+        )}
+
+        {/* Ação rápida: Transferir entre contas */}
+        <div className="flex justify-end">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowTransferencia(true)}
+          >
+            <ArrowRightLeft className="w-4 h-4 mr-1" />
+            Transferir entre contas
+          </Button>
+        </div>
+
         {/* KPIs aprimorados */}
         <CaixaKpis
           totalBalance={totalBankBalance}
@@ -813,5 +870,8 @@ export default function FinanceiroDashboard() {
         </div>
       </TabsContent>
     </Tabs>
+    <RealocarOrfaosDialog open={showRealocar} onOpenChange={setShowRealocar} />
+    <TransferenciaContasDialog open={showTransferencia} onOpenChange={setShowTransferencia} />
+    </>
   );
 }
