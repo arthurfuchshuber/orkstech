@@ -138,13 +138,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "accounts_payable_bank_account_id_fkey"
-            columns: ["bank_account_id"]
-            isOneToOne: false
-            referencedRelation: "contas_bancarias_efetivas"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "accounts_payable_categoria_financeira_id_fkey"
             columns: ["categoria_financeira_id"]
             isOneToOne: false
@@ -308,13 +301,6 @@ export type Database = {
             columns: ["bank_account_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "accounts_receivable_bank_account_id_fkey"
-            columns: ["bank_account_id"]
-            isOneToOne: false
-            referencedRelation: "contas_bancarias_efetivas"
             referencedColumns: ["id"]
           },
           {
@@ -745,13 +731,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "cash_transactions_bank_account_id_fkey"
-            columns: ["bank_account_id"]
-            isOneToOne: false
-            referencedRelation: "contas_bancarias_efetivas"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "cash_transactions_categoria_financeira_id_fkey"
             columns: ["categoria_financeira_id"]
             isOneToOne: false
@@ -831,13 +810,6 @@ export type Database = {
             columns: ["bank_account_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "cashflow_forecasts_bank_account_id_fkey"
-            columns: ["bank_account_id"]
-            isOneToOne: false
-            referencedRelation: "contas_bancarias_efetivas"
             referencedColumns: ["id"]
           },
           {
@@ -2202,13 +2174,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "manual_bank_transactions_bank_account_id_fkey"
-            columns: ["bank_account_id"]
-            isOneToOne: false
-            referencedRelation: "contas_bancarias_efetivas"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "manual_bank_transactions_categoria_financeira_id_fkey"
             columns: ["categoria_financeira_id"]
             isOneToOne: false
@@ -3122,117 +3087,7 @@ export type Database = {
       }
     }
     Views: {
-      contas_bancarias_efetivas: {
-        Row: {
-          ajuste_atualizado_em: string | null
-          ajuste_motivo: string | null
-          ativo: boolean | null
-          banco: string | null
-          banco_id: string | null
-          created_at: string | null
-          empresa_id: string | null
-          fatura_aberto_ajuste_manual: number | null
-          fatura_aberto_sincronizada: number | null
-          fatura_efetiva: number | null
-          id: string | null
-          investimento_ajuste_manual: number | null
-          investimento_efetivo: number | null
-          investimento_sincronizado: number | null
-          limite_cheque_especial: number | null
-          limite_cheque_especial_sincronizado: number | null
-          nome: string | null
-          origem: Database["public"]["Enums"]["origem_dado"] | null
-          pessoa_tipo: Database["public"]["Enums"]["pessoa_tipo"] | null
-          pluggy_account_id: string | null
-          saldo_ajuste_manual: number | null
-          saldo_efetivo: number | null
-          saldo_inicial: number | null
-          saldo_investimento: number | null
-          saldo_sincronizado: number | null
-          tipo: Database["public"]["Enums"]["tipo_conta_bancaria"] | null
-          ultima_sync_at: string | null
-          updated_at: string | null
-          user_id: string | null
-        }
-        Insert: {
-          ajuste_atualizado_em?: string | null
-          ajuste_motivo?: string | null
-          ativo?: boolean | null
-          banco?: string | null
-          banco_id?: string | null
-          created_at?: string | null
-          empresa_id?: string | null
-          fatura_aberto_ajuste_manual?: number | null
-          fatura_aberto_sincronizada?: number | null
-          fatura_efetiva?: never
-          id?: string | null
-          investimento_ajuste_manual?: number | null
-          investimento_efetivo?: never
-          investimento_sincronizado?: number | null
-          limite_cheque_especial?: number | null
-          limite_cheque_especial_sincronizado?: number | null
-          nome?: string | null
-          origem?: Database["public"]["Enums"]["origem_dado"] | null
-          pessoa_tipo?: Database["public"]["Enums"]["pessoa_tipo"] | null
-          pluggy_account_id?: string | null
-          saldo_ajuste_manual?: number | null
-          saldo_efetivo?: never
-          saldo_inicial?: number | null
-          saldo_investimento?: number | null
-          saldo_sincronizado?: number | null
-          tipo?: Database["public"]["Enums"]["tipo_conta_bancaria"] | null
-          ultima_sync_at?: string | null
-          updated_at?: string | null
-          user_id?: string | null
-        }
-        Update: {
-          ajuste_atualizado_em?: string | null
-          ajuste_motivo?: string | null
-          ativo?: boolean | null
-          banco?: string | null
-          banco_id?: string | null
-          created_at?: string | null
-          empresa_id?: string | null
-          fatura_aberto_ajuste_manual?: number | null
-          fatura_aberto_sincronizada?: number | null
-          fatura_efetiva?: never
-          id?: string | null
-          investimento_ajuste_manual?: number | null
-          investimento_efetivo?: never
-          investimento_sincronizado?: number | null
-          limite_cheque_especial?: number | null
-          limite_cheque_especial_sincronizado?: number | null
-          nome?: string | null
-          origem?: Database["public"]["Enums"]["origem_dado"] | null
-          pessoa_tipo?: Database["public"]["Enums"]["pessoa_tipo"] | null
-          pluggy_account_id?: string | null
-          saldo_ajuste_manual?: number | null
-          saldo_efetivo?: never
-          saldo_inicial?: number | null
-          saldo_investimento?: number | null
-          saldo_sincronizado?: number | null
-          tipo?: Database["public"]["Enums"]["tipo_conta_bancaria"] | null
-          ultima_sync_at?: string | null
-          updated_at?: string | null
-          user_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "contas_bancarias_banco_id_fkey"
-            columns: ["banco_id"]
-            isOneToOne: false
-            referencedRelation: "bancos"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "contas_bancarias_empresa_id_fkey"
-            columns: ["empresa_id"]
-            isOneToOne: false
-            referencedRelation: "empresas"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
+      [_ in never]: never
     }
     Functions: {
       _fmt_brl: { Args: { v: number }; Returns: string }
