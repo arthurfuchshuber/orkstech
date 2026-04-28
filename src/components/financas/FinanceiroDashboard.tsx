@@ -967,6 +967,15 @@ export default function FinanceiroDashboard() {
     </Tabs>
     <RealocarOrfaosDialog open={showRealocar} onOpenChange={setShowRealocar} />
     <TransferenciaContasDialog open={showTransferencia} onOpenChange={setShowTransferencia} />
+    {vincularCard && (
+      <VincularCardFinanceiroDialog
+        open={!!vincularCard}
+        onOpenChange={(open) => !open && setVincularCard(null)}
+        cardTipo={vincularCard.tipo}
+        total={vincularCard.total}
+        titulo={vincularCard.label}
+      />
+    )}
     </>
   );
 }
