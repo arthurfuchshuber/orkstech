@@ -313,7 +313,7 @@ Deno.serve(async (req) => {
         currency_code: acc.currencyCode || 'BRL',
         credit_limit: acc.creditData?.limit ?? acc.creditData?.creditLimit ?? null,
         credit_available: acc.creditData?.availableCreditLimit ?? null,
-        credit_bill_amount: billAmount ?? openBillAmount ?? (acc.type === 'CREDIT' ? (acc.balance ?? null) : null),
+        credit_bill_amount: acc.type === 'CREDIT' ? (acc.balance ?? billAmount ?? openBillAmount ?? null) : null,
         credit_bill_due_date: billDueDate || acc.creditData?.balanceDueDate || null,
         bank_data: {
           ...(acc.bankData || {}),
