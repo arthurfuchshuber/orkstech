@@ -1462,6 +1462,8 @@ export type Database = {
           limite_cheque_especial_sincronizado: number
           limite_credito_disponivel_ajuste_manual: number
           limite_credito_disponivel_sincronizado: number
+          limite_credito_total: number
+          limite_credito_total_sincronizado: number
           nome: string
           origem: Database["public"]["Enums"]["origem_dado"]
           pessoa_tipo: Database["public"]["Enums"]["pessoa_tipo"]
@@ -1492,6 +1494,8 @@ export type Database = {
           limite_cheque_especial_sincronizado?: number
           limite_credito_disponivel_ajuste_manual?: number
           limite_credito_disponivel_sincronizado?: number
+          limite_credito_total?: number
+          limite_credito_total_sincronizado?: number
           nome: string
           origem?: Database["public"]["Enums"]["origem_dado"]
           pessoa_tipo?: Database["public"]["Enums"]["pessoa_tipo"]
@@ -1522,6 +1526,8 @@ export type Database = {
           limite_cheque_especial_sincronizado?: number
           limite_credito_disponivel_ajuste_manual?: number
           limite_credito_disponivel_sincronizado?: number
+          limite_credito_total?: number
+          limite_credito_total_sincronizado?: number
           nome?: string
           origem?: Database["public"]["Enums"]["origem_dado"]
           pessoa_tipo?: Database["public"]["Enums"]["pessoa_tipo"]
@@ -3113,15 +3119,26 @@ export type Database = {
     }
     Functions: {
       _fmt_brl: { Args: { v: number }; Returns: string }
-      aplicar_ajuste_conta_bancaria: {
-        Args: {
-          p_campo: string
-          p_conta_id: string
-          p_motivo?: string
-          p_novo_valor: number
-        }
-        Returns: Json
-      }
+      aplicar_ajuste_conta_bancaria:
+        | {
+            Args: {
+              p_campo: string
+              p_conta_id: string
+              p_motivo?: string
+              p_novo_valor: number
+            }
+            Returns: Json
+          }
+        | {
+            Args: {
+              p_campo: string
+              p_conta_id: string
+              p_limite_total?: number
+              p_motivo?: string
+              p_novo_valor: number
+            }
+            Returns: Json
+          }
       aplicar_regras_retroativo: { Args: { p_user_id: string }; Returns: Json }
       avaliar_regra_dre: {
         Args: {
@@ -3209,6 +3226,10 @@ export type Database = {
         Returns: string
       }
       cashflow_normalize_text: { Args: { p_text: string }; Returns: string }
+      criar_lancamento_ajuste_fatura: {
+        Args: { p_conta_id: string; p_delta: number; p_motivo?: string }
+        Returns: Json
+      }
       criar_lancamento_ajuste_saldo: {
         Args: { p_conta_id: string; p_delta: number; p_motivo?: string }
         Returns: string

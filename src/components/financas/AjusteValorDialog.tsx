@@ -23,6 +23,12 @@ interface Props {
   valorAtual: number;
   valorSincronizado?: number;
   origem?: string | null;
+  /** Cartão de crédito: limite total contratado (necessário para reconciliação fatura ↔ disponível) */
+  limiteCreditoTotal?: number;
+  /** Cartão de crédito: fatura em aberto atual */
+  faturaAtual?: number;
+  /** Cartão de crédito: limite disponível atual */
+  disponivelAtual?: number;
 }
 
 const TITULOS: Record<AjusteCampo, string> = {
@@ -51,6 +57,7 @@ type Estrategia = "criar_lancamento" | "manter_divergencia";
 
 export function AjusteValorDialog({
   open, onOpenChange, contaId, contaNome, campo, valorAtual, valorSincronizado, origem,
+  limiteCreditoTotal, faturaAtual, disponivelAtual,
 }: Props) {
   const queryClient = useQueryClient();
   const [valor, setValor] = useState<string>("");
@@ -59,6 +66,9 @@ export function AjusteValorDialog({
   const [valorEsperado, setValorEsperado] = useState<number | null>(null);
   const [estrategia, setEstrategia] = useState<Estrategia>("criar_lancamento");
   const [carregandoEsperado, setCarregandoEsperado] = useState(false);
+  const [limiteTotal, setLimiteTotal] = useState<string>("");
+
+  const ehCartao = campo === "limite_credito" || campo === "fatura";
 
   useEffect(() => {
     if (open) {
@@ -66,6 +76,11 @@ export function AjusteValorDialog({
       setMotivo("");
       setEstrategia("criar_lancamento");
       setValorEsperado(null);
+      // Inicializa limite total: usa o salvo, ou deduz por (disponivel + fatura)
+      const limiteInicial = limiteCreditoTotal && limiteCreditoTotal > 0
+        ? limiteCreditoTotal
+        : (disponivelAtual || 0) + (faturaAtual || 0);
+      setLimiteTotal(limiteInicial.toFixed(2).replace(".", ","));
 
       // Carrega valor esperado (calculado via lançamentos) para reconciliação
       if (TEM_RECONCILIACAO(campo)) {
@@ -76,10 +91,27 @@ export function AjusteValorDialog({
         });
       }
     }
-  }, [open, valorAtual, contaId, campo]);
+  }, [open, valorAtual, contaId, campo, limiteCreditoTotal, disponivelAtual, faturaAtual]);
 
   const numerico = Number(String(valor).replace(/\./g, "").replace(",", "."));
   const valorValido = !isNaN(numerico);
+  const limiteTotalNum = Number(String(limiteTotal).replace(/\./g, "").replace(",", "."));
+  const limiteTotalValido = !isNaN(limiteTotalNum) && limiteTotalNum >= 0;
+
+  // Prévia da reconciliação para cartão (limite_credito ↔ fatura)
+  const previaCartao = ehCartao && valorValido && limiteTotalValido ? (() => {
+    if (campo === "limite_credito") {
+      const novaFatura = limiteTotalNum - numerico;
+      const deltaFatura = novaFatura - (faturaAtual || 0);
+      return { novoDisponivel: numerico, novaFatura, deltaFatura, novoLimiteTotal: limiteTotalNum };
+    } else {
+      const novoDisponivel = limiteTotalNum - numerico;
+      const deltaFatura = numerico - (faturaAtual || 0);
+      return { novoDisponivel, novaFatura: numerico, deltaFatura, novoLimiteTotal: limiteTotalNum };
+    }
+  })() : null;
+
+  const cartaoExcedeLimite = ehCartao && valorValido && limiteTotalValido && numerico > limiteTotalNum;
 
   // Delta = quanto falta no extrato para chegar no valor informado
   const deltaReconciliacao = valorEsperado !== null && valorValido ? numerico - valorEsperado : 0;
@@ -90,21 +122,32 @@ export function AjusteValorDialog({
       toast.error("Valor inválido");
       return;
     }
+    if (ehCartao && !limiteTotalValido) {
+      toast.error("Informe o limite total contratado do cartão");
+      return;
+    }
+    if (cartaoExcedeLimite) {
+      toast.error("O valor não pode ser maior que o limite total do cartão");
+      return;
+    }
     setSalvando(true);
     try {
       // Caso 1: campos sem reconciliação contábil — fluxo legado (ajuste_manual)
+      // OBS: cartões (limite_credito / fatura) já fazem reconciliação no banco
+      // (recalculam o par e geram lançamento de ajuste de fatura no extrato).
       if (!TEM_RECONCILIACAO(campo)) {
-        const { error } = await supabase.rpc("aplicar_ajuste_conta_bancaria", {
+        const payload: any = {
           p_conta_id: contaId,
           p_campo: campo,
           p_novo_valor: numerico,
           p_motivo: motivo || null,
-        });
+        };
+        if (ehCartao) payload.p_limite_total = limiteTotalNum;
+        const { error } = await supabase.rpc("aplicar_ajuste_conta_bancaria", payload);
         if (error) throw error;
       } else {
         // Caso 2: saldo — pode haver divergência
         if (!temDivergencia) {
-          // Sem divergência: nenhum ajuste necessário
           toast.info("Saldo já está reconciliado — nada a alterar");
           setSalvando(false);
           onOpenChange(false);
@@ -112,7 +155,6 @@ export function AjusteValorDialog({
         }
 
         if (estrategia === "criar_lancamento") {
-          // Cria transação real no extrato (mantém tudo batendo)
           const { error } = await supabase.rpc("criar_lancamento_ajuste_saldo", {
             p_conta_id: contaId,
             p_delta: deltaReconciliacao,
@@ -120,7 +162,6 @@ export function AjusteValorDialog({
           });
           if (error) throw error;
         } else {
-          // Aceita divergência: ajusta apenas o card via ajuste_manual
           const { error } = await supabase.rpc("aplicar_ajuste_conta_bancaria", {
             p_conta_id: contaId,
             p_campo: campo,
@@ -167,7 +208,11 @@ export function AjusteValorDialog({
 
         <div className="space-y-3 py-2">
           <div className="space-y-1.5">
-            <Label htmlFor="ajuste-valor">Saldo real informado por você (R$)</Label>
+            <Label htmlFor="ajuste-valor">
+              {campo === "limite_credito" && "Limite disponível atual (R$)"}
+              {campo === "fatura" && "Fatura em aberto atual (R$)"}
+              {campo !== "limite_credito" && campo !== "fatura" && "Saldo real informado por você (R$)"}
+            </Label>
             <Input
               id="ajuste-valor"
               value={valor}
@@ -176,6 +221,61 @@ export function AjusteValorDialog({
               inputMode="decimal"
             />
           </div>
+
+          {/* Cartão: limite total contratado + prévia da reconciliação */}
+          {ehCartao && (
+            <>
+              <div className="space-y-1.5">
+                <Label htmlFor="ajuste-limite-total">Limite total contratado (R$)</Label>
+                <Input
+                  id="ajuste-limite-total"
+                  value={limiteTotal}
+                  onChange={(e) => setLimiteTotal(e.target.value)}
+                  placeholder="0,00"
+                  inputMode="decimal"
+                />
+                <p className="text-[11px] text-muted-foreground">
+                  Limite contratado com o banco. O sistema usa este valor para recalcular automaticamente o outro card.
+                </p>
+              </div>
+
+              {cartaoExcedeLimite && (
+                <Alert variant="destructive" className="border-destructive/40">
+                  <AlertTriangle className="h-4 w-4" />
+                  <AlertDescription className="text-xs">
+                    O valor informado ({formatBRL(numerico)}) é maior que o limite total ({formatBRL(limiteTotalNum)}). Ajuste um dos dois.
+                  </AlertDescription>
+                </Alert>
+              )}
+
+              {previaCartao && !cartaoExcedeLimite && (
+                <div className="rounded-md border border-primary/20 bg-primary/5 p-3 space-y-2">
+                  <div className="text-xs font-semibold flex items-center gap-1.5">
+                    <Info className="h-3.5 w-3.5" /> Após o ajuste:
+                  </div>
+                  <div className="grid grid-cols-2 gap-1.5 text-xs">
+                    <span className="text-muted-foreground">Limite total:</span>
+                    <span className="text-right tabular-nums font-medium">{formatBRL(previaCartao.novoLimiteTotal)}</span>
+                    <span className="text-muted-foreground">Limite disponível:</span>
+                    <span className="text-right tabular-nums font-medium">{formatBRL(previaCartao.novoDisponivel)}</span>
+                    <span className="text-muted-foreground">Fatura em aberto:</span>
+                    <span className="text-right tabular-nums font-medium">{formatBRL(previaCartao.novaFatura)}</span>
+                    <span className="text-muted-foreground">% utilizado:</span>
+                    <span className="text-right tabular-nums font-medium">
+                      {previaCartao.novoLimiteTotal > 0
+                        ? ((previaCartao.novaFatura / previaCartao.novoLimiteTotal) * 100).toFixed(0)
+                        : 0}%
+                    </span>
+                  </div>
+                  {Math.abs(previaCartao.deltaFatura) >= 0.005 && (
+                    <p className="text-[11px] text-muted-foreground border-t border-primary/10 pt-2">
+                      Será criado um lançamento de <strong>{previaCartao.deltaFatura > 0 ? "Ajuste de Fatura (despesa)" : "Ajuste de Fatura (entrada)"}</strong> de {formatBRL(Math.abs(previaCartao.deltaFatura))} no extrato deste cartão para manter Dashboard, DRE e Fluxo de Caixa coerentes.
+                    </p>
+                  )}
+                </div>
+              )}
+            </>
+          )}
 
           {/* Reconciliação — apenas para o campo "saldo" */}
           {TEM_RECONCILIACAO(campo) && (
