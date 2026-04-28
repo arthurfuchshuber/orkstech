@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { AlertTriangle, Plus, Trash2, Loader2, Check, X } from "lucide-react";
+import { AlertTriangle, Plus, Trash2, Loader2 } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -19,6 +19,7 @@ import { useEmpresa } from "@/hooks/useEmpresa";
 import { toast } from "sonner";
 import { useOrfaosFinanceiros } from "@/hooks/useOrfaosFinanceiros";
 import { refreshQueries } from "@/lib/query-refresh";
+import { ContaBancariaModal } from "@/components/modals/ContaBancariaModal";
 
 interface Linha {
   bank_account_id: string;
@@ -62,11 +63,9 @@ export function RealocarOrfaosDialog({ open, onOpenChange }: Props) {
 
   const [linhas, setLinhas] = useState<Linha[]>([]);
   const [motivo, setMotivo] = useState("");
-  // Mini-form inline para "Nova conta" disparado pelo dropdown
-  const [criandoLinhaIdx, setCriandoLinhaIdx] = useState<number | null>(null);
-  const [novaContaNome, setNovaContaNome] = useState("");
-  const [novaContaTipo, setNovaContaTipo] = useState<"corrente" | "poupanca" | "caixa" | "carteira_digital">("corrente");
-  const [criandoContaSalvando, setCriandoContaSalvando] = useState(false);
+  // Modal original de Conta Bancária para criar/editar contas e cartões
+  const [contaModalOpen, setContaModalOpen] = useState(false);
+  const [linhaPendenteIdx, setLinhaPendenteIdx] = useState<number | null>(null);
   const [salvando, setSalvando] = useState(false);
 
   const totalOrfao = orfaos?.saldoLiquido ?? 0;
@@ -76,8 +75,7 @@ export function RealocarOrfaosDialog({ open, onOpenChange }: Props) {
     if (open) {
       setLinhas([{ bank_account_id: "", valor: 0 }]);
       setMotivo("");
-      setCriandoLinhaIdx(null);
-      setNovaContaNome("");
+      setLinhaPendenteIdx(null);
     }
   }, [open]);
 
@@ -97,45 +95,19 @@ export function RealocarOrfaosDialog({ open, onOpenChange }: Props) {
 
   function handleSelectChange(i: number, value: string) {
     if (value === NEW_ACCOUNT_TOKEN) {
-      setCriandoLinhaIdx(i);
-      setNovaContaNome("");
-      setNovaContaTipo("corrente");
-      // não atribui ainda; aguarda criação
+      // Abre o modal ORIGINAL de conta bancária
+      setLinhaPendenteIdx(i);
+      setContaModalOpen(true);
       return;
     }
-    setCriandoLinhaIdx(null);
     updateLinha(i, { bank_account_id: value });
   }
 
-  async function confirmarNovaConta(idx: number) {
-    if (!novaContaNome.trim()) {
-      toast.error("Informe o nome da conta");
-      return;
-    }
-    setCriandoContaSalvando(true);
-    try {
-      const { data, error } = await supabase
-        .from("contas_bancarias")
-        .insert({
-          user_id: targetUserId!,
-          empresa_id: empresaId ?? null,
-          nome: novaContaNome.trim(),
-          tipo: novaContaTipo,
-          ativo: true,
-          origem: "manual" as const,
-        })
-        .select("id")
-        .single();
-      if (error) throw error;
-      await refetchContas();
-      updateLinha(idx, { bank_account_id: data.id });
-      setCriandoLinhaIdx(null);
-      setNovaContaNome("");
-      toast.success("Conta criada");
-    } catch (e: any) {
-      toast.error(e.message || "Erro ao criar conta");
-    } finally {
-      setCriandoContaSalvando(false);
+  async function handleContaCriada(novaContaId: string) {
+    await refetchContas();
+    if (linhaPendenteIdx !== null) {
+      updateLinha(linhaPendenteIdx, { bank_account_id: novaContaId });
+      setLinhaPendenteIdx(null);
     }
   }
 
