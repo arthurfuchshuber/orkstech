@@ -286,10 +286,22 @@ export default function FinanceiroDashboard() {
     [manualAccounts]
   );
 
+  // Limite disponível manual (cartões cadastrados manualmente)
+  const totalManualCreditAvailable = useMemo(
+    () => manualAccounts.reduce(
+      (s, a) =>
+        s +
+        Number(a.limite_credito_disponivel_sincronizado || 0) +
+        Number(a.limite_credito_disponivel_ajuste_manual || 0),
+      0
+    ),
+    [manualAccounts]
+  );
+
   // ── Unified totals ──
   const totalBankBalance = totalPluggyBalance + totalManualBalance;
   const totalInvestments = totalPluggyInvestments + totalManualInvestments;
-  const totalCreditAvailable = creditCards.reduce((sum, a) => sum + (a.credit_available ?? 0), 0);
+  const totalCreditAvailable = creditCards.reduce((sum, a) => sum + (a.credit_available ?? 0), 0) + totalManualCreditAvailable;
 
   const getConnectorName = (account: BankAccount) => {
     const conn = connections.find((c) => c.pluggy_item_id === account.pluggy_item_id);
