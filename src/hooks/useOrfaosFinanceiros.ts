@@ -157,10 +157,9 @@ export function useOrfaosFinanceiros() {
         totalAbsoluto,
         totalGeralAbsoluto,
         temOrfaos:
-          lancamentos.length > 0 ||
-          (payables?.length ?? 0) > 0 ||
-          (receivables?.length ?? 0) > 0 ||
-          contasComSnapshot.length > 0,
+          // Só considera "tem órfãos" quando existe valor real para realocar
+          (lancamentos.length > 0 && Math.abs(saldoLiquidoLancamentos) > 0.01) ||
+          (contasComSnapshot.length > 0 && totalGeralAbsoluto > 0.01),
         totalCount,
       };
     },
