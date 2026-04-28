@@ -25,6 +25,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { CaixaKpis } from "./caixa/CaixaKpis";
 import { CaixaCharts } from "./caixa/CaixaCharts";
+import { MonthFlowDetailModal, type MonthFlowItem } from "./caixa/MonthFlowDetailModal";
 import { useOrfaosFinanceiros } from "@/hooks/useOrfaosFinanceiros";
 import { RealocarOrfaosDialog } from "./RealocarOrfaosDialog";
 import { TransferenciaContasDialog } from "./TransferenciaContasDialog";
