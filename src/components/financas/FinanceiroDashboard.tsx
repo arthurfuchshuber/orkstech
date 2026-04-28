@@ -604,14 +604,14 @@ export default function FinanceiroDashboard() {
   const [showRealocar, setShowRealocar] = useState(false);
   const [showTransferencia, setShowTransferencia] = useState(false);
 
-  // Popup automático na 1ª visita por sessão
+  // Popup automático na 1ª visita por sessão — só quando há valor a realocar
   useEffect(() => {
-    if (!orfaos?.temOrfaos) return;
+    if (!orfaos?.temValorRealocavel) return;
     const flagKey = `orfaos-popup-shown:${targetUserId}:${empresaId ?? "no-emp"}`;
     if (sessionStorage.getItem(flagKey)) return;
     sessionStorage.setItem(flagKey, "1");
     setShowRealocar(true);
-  }, [orfaos?.temOrfaos, targetUserId, empresaId]);
+  }, [orfaos?.temValorRealocavel, targetUserId, empresaId]);
 
   return (
     <>
