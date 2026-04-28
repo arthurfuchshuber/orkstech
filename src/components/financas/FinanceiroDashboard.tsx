@@ -21,10 +21,15 @@ import {
 } from "lucide-react";
 import { format, differenceInDays, startOfMonth, endOfMonth, subMonths, addMonths, isBefore, subDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { CaixaKpis } from "./caixa/CaixaKpis";
 import { CaixaCharts } from "./caixa/CaixaCharts";
+import { useOrfaosFinanceiros } from "@/hooks/useOrfaosFinanceiros";
+import { RealocarOrfaosDialog } from "./RealocarOrfaosDialog";
+import { TransferenciaContasDialog } from "./TransferenciaContasDialog";
+import { Button } from "@/components/ui/button";
+import { ArrowRightLeft } from "lucide-react";
 
 interface BankAccount {
   id: string;
