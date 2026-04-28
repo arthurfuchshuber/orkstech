@@ -525,14 +525,15 @@ export default function FinanceiroDashboard() {
 
     // Pluggy (ignora transferências internas: aplicações, resgates, conta↔conta própria)
     txHistory.forEach((t: any) => {
-      if (t.is_internal_transfer || isInvestmentTx(t)) return;
+      if (isCashflowNeutral(t) || internalTransferIds.has(t.id)) return;
       const day = t.date;
       const signed = t.type === "CREDIT" ? Math.abs(Number(t.amount)) : -Math.abs(Number(t.amount));
       byDay.set(day, (byDay.get(day) || 0) + signed);
     });
 
-    // Manual cash_transactions (últimos 90 dias)
+    // Manual cash_transactions (últimos 90 dias) — ignora transferências entre contas
     manualTx.forEach((t: any) => {
+      if (t.is_internal_transfer) return;
       const day = t.transaction_date;
       const v = Number(t.amount || 0);
       const signed = t.type === "entrada" ? v : -v;
