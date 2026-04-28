@@ -239,36 +239,50 @@ Deno.serve(async (req) => {
           console.error('Bills fetch error:', e)
         }
 
-        // 2) Fallback: derive cycle start. Use balanceCloseDate when available; otherwise dueDate - 37 days.
+        // 2) Fallback: calculate the OPEN bill from transactions.
+        //    Strategy: fetch the last 90 days of transactions and find the most recent payment
+        //    (CREDIT type with description containing "pagamento"). Everything AFTER that payment
+        //    is the current open bill in formation. This is robust even when balanceCloseDate is null
+        //    or balanceDueDate is stale.
         if (billAmount == null) {
-          let cycleStart: string | null = null
-          const closeDate = acc.creditData?.balanceCloseDate || null
-          if (closeDate) {
-            cycleStart = typeof closeDate === 'string' ? closeDate.split('T')[0] : closeDate
-          } else if (acc.creditData?.balanceDueDate) {
-            const due = new Date(acc.creditData.balanceDueDate)
-            const start = new Date(due)
-            start.setDate(start.getDate() - 37)
-            cycleStart = start.toISOString().split('T')[0]
-          }
-          if (cycleStart) {
-            try {
-              const txRes = await fetch(
-                `https://api.pluggy.ai/transactions?accountId=${acc.id}&from=${cycleStart}&pageSize=500`,
-                { headers }
-              )
-              if (txRes.ok) {
-                const txData = await txRes.json()
-                const txs = txData.results || []
-                openBillAmount = txs
-                  .filter((tx: any) => tx.type === 'DEBIT' || tx.amount < 0)
-                  .reduce((sum: number, tx: any) => sum + Math.abs(tx.amount), 0)
-                openBillAmount = Math.round((openBillAmount ?? 0) * 100) / 100
-                console.log(`Open bill calc: R$ ${openBillAmount} from ${txs.length} txs since ${cycleStart}`)
+          try {
+            const today = new Date()
+            const lookback = new Date(today)
+            lookback.setDate(lookback.getDate() - 90)
+            const fromDate = lookback.toISOString().split('T')[0]
+            const txRes = await fetch(
+              `https://api.pluggy.ai/transactions?accountId=${acc.id}&from=${fromDate}&pageSize=500`,
+              { headers }
+            )
+            if (txRes.ok) {
+              const txData = await txRes.json()
+              const txs: any[] = txData.results || []
+              // Sort ascending by date
+              txs.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+              // Find date of the most recent bill payment (CREDIT/positive entry on a credit card)
+              let lastPaymentDate: string | null = null
+              for (let i = txs.length - 1; i >= 0; i--) {
+                const tx = txs[i]
+                const isPayment = tx.type === 'CREDIT' || tx.amount < 0
+                const desc = (tx.description || '').toLowerCase()
+                if (isPayment && (desc.includes('pagamento') || desc.includes('payment'))) {
+                  lastPaymentDate = tx.date
+                  break
+                }
               }
-            } catch (e) {
-              console.error('Open bill calc error:', e)
+              const cutoff = lastPaymentDate ? new Date(lastPaymentDate).getTime() : 0
+              // Sum debits AFTER the last payment = current open bill
+              openBillAmount = txs
+                .filter((tx) => {
+                  const isDebit = tx.type === 'DEBIT' || tx.amount > 0
+                  return isDebit && new Date(tx.date).getTime() > cutoff
+                })
+                .reduce((sum, tx) => sum + Math.abs(tx.amount), 0)
+              openBillAmount = Math.round((openBillAmount ?? 0) * 100) / 100
+              console.log(`Open bill calc: R$ ${openBillAmount} (last payment: ${lastPaymentDate || 'none in 90d'}, ${txs.length} txs analyzed)`)
             }
+          } catch (e) {
+            console.error('Open bill calc error:', e)
           }
         }
       }
