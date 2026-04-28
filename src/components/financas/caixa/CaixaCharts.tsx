@@ -214,7 +214,7 @@ export function CaixaCharts({ evolution, distribution, flow, onFlowBarClick }: C
             >
               <ResponsiveContainer
                 width="100%"
-                height={240}
+                height={FLOW_CHART_HEIGHT}
                 onResize={(w) => setFlowChartWidth(w)}
               >
                 <BarChart
@@ -223,9 +223,13 @@ export function CaixaCharts({ evolution, distribution, flow, onFlowBarClick }: C
                   onMouseMove={(e: any) => {
                     if (e?.isTooltipActive && e?.activeCoordinate) {
                       setFlowCoord({ x: e.activeCoordinate.x, y: e.activeCoordinate.y });
+                      setActiveFlowRow(e.activePayload?.[0]?.payload ?? null);
                     }
                   }}
-                  onMouseLeave={() => setFlowCoord(null)}
+                  onMouseLeave={() => {
+                    setFlowCoord(null);
+                    setActiveFlowRow(null);
+                  }}
                   onClick={(e: any) => {
                     if (onFlowBarClick && e?.activePayload?.[0]?.payload) {
                       onFlowBarClick(e.activePayload[0].payload);
@@ -238,7 +242,7 @@ export function CaixaCharts({ evolution, distribution, flow, onFlowBarClick }: C
                   <Tooltip
                     content={<FlowTooltip />}
                     cursor={{ fill: "hsl(var(--muted) / 0.3)" }}
-                    wrapperStyle={{ pointerEvents: "none", zIndex: 50 }}
+                    wrapperStyle={{ pointerEvents: "none", zIndex: 50, maxHeight: FLOW_CHART_HEIGHT }}
                     position={tooltipPosition}
                   />
                   <Legend wrapperStyle={{ fontSize: 11 }} iconType="circle" formatter={(v) => v === "entradas" ? "Entradas" : "Saídas"} />
