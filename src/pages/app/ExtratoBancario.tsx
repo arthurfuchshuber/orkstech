@@ -889,14 +889,6 @@ export default function ExtratoBancario() {
                         {formatCurrency(account.balance)}
                       </span>
                     </div>
-                    {stored > 0 && (
-                      <div className="flex justify-between gap-3">
-                        <span>Caixinhas / Guardado</span>
-                        <span className="font-medium text-foreground">
-                          {formatCurrency(stored)}
-                        </span>
-                      </div>
-                    )}
                     <div className="flex justify-between gap-3">
                       <span>Entradas</span>
                       <span className="font-medium text-foreground">
@@ -924,10 +916,10 @@ export default function ExtratoBancario() {
                     <div className="flex justify-between gap-3">
                       <span>Em Aplicação</span>
                       <span
-                        className={`font-medium ${investNet > 0 ? "text-emerald-500" : "text-foreground"}`}
-                        title={`Aplicado: ${formatCurrency(internal.investOut)} · Resgatado: ${formatCurrency(internal.investIn)}`}
+                        className={`font-medium ${stored > 0 ? "text-emerald-500" : "text-foreground"}`}
+                        title={`Saldo atual aplicado em investimentos vinculados à conta`}
                       >
-                        {formatCurrency(investNet)}
+                        {formatCurrency(stored)}
                       </span>
                     </div>
                   </div>
