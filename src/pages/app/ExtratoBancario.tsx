@@ -889,14 +889,6 @@ export default function ExtratoBancario() {
                         {formatCurrency(account.balance)}
                       </span>
                     </div>
-                    {stored > 0 && (
-                      <div className="flex justify-between gap-3">
-                        <span>Caixinhas / Guardado</span>
-                        <span className="font-medium text-foreground">
-                          {formatCurrency(stored)}
-                        </span>
-                      </div>
-                    )}
                     <div className="flex justify-between gap-3">
                       <span>Entradas</span>
                       <span className="font-medium text-foreground">
