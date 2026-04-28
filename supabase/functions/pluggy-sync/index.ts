@@ -214,47 +214,57 @@ Deno.serve(async (req) => {
       let openBillAmount: number | null = null
 
       if (acc.type === 'CREDIT') {
-        // Try to get bills from the API
+        // 1) Try the Bills API. The OPEN bill is the partial bill in formation.
         try {
           const billsRes = await fetch(`https://api.pluggy.ai/accounts/${acc.id}/bills`, { headers })
-          if (billsRes.ok) {
-            const billsData = await billsRes.json()
+          const billsBody = await billsRes.text()
+          if (!billsRes.ok) {
+            console.warn(`Bills endpoint ${billsRes.status} for account ${acc.id}: ${billsBody.slice(0, 300)}`)
+          } else {
+            const billsData = JSON.parse(billsBody)
             const bills = billsData.results || []
-            const now = new Date()
+            console.log(`Bills for ${acc.id}: ${bills.length} bills, statuses=${bills.map((b: any) => b.status).join(',')}`)
+            const openBill = bills.find((b: any) => (b.status || '').toUpperCase() === 'OPEN')
+            const today = new Date().toISOString().split('T')[0]
             const futureBills = bills
-              .filter((b: any) => new Date(b.dueDate) >= new Date(now.toISOString().split('T')[0]))
+              .filter((b: any) => b.dueDate && b.dueDate.split('T')[0] >= today)
               .sort((a: any, b: any) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime())
-            const nextBill = futureBills[0] || bills[0]
-            if (nextBill) {
-              billAmount = nextBill.totalAmount ?? null
-              billDueDate = nextBill.dueDate ? nextBill.dueDate.split('T')[0] : null
+            const chosen = openBill || futureBills[0] || bills[0]
+            if (chosen) {
+              billAmount = chosen.totalAmount ?? chosen.amount ?? null
+              billDueDate = chosen.dueDate ? chosen.dueDate.split('T')[0] : null
             }
           }
         } catch (e) {
           console.error('Bills fetch error:', e)
         }
 
-        // Calculate open/partial bill from transactions after balanceCloseDate
+        // 2) Fallback: derive cycle start. Use balanceCloseDate when available; otherwise dueDate - 37 days.
         if (billAmount == null) {
+          let cycleStart: string | null = null
           const closeDate = acc.creditData?.balanceCloseDate || null
           if (closeDate) {
+            cycleStart = typeof closeDate === 'string' ? closeDate.split('T')[0] : closeDate
+          } else if (acc.creditData?.balanceDueDate) {
+            const due = new Date(acc.creditData.balanceDueDate)
+            const start = new Date(due)
+            start.setDate(start.getDate() - 37)
+            cycleStart = start.toISOString().split('T')[0]
+          }
+          if (cycleStart) {
             try {
-              // Fetch transactions after the close date (current open cycle)
-              const closeDateStr = typeof closeDate === 'string' ? closeDate.split('T')[0] : closeDate
               const txRes = await fetch(
-                `https://api.pluggy.ai/transactions?accountId=${acc.id}&from=${closeDateStr}&pageSize=500`,
+                `https://api.pluggy.ai/transactions?accountId=${acc.id}&from=${cycleStart}&pageSize=500`,
                 { headers }
               )
               if (txRes.ok) {
                 const txData = await txRes.json()
                 const txs = txData.results || []
-                // Sum all debits (purchases) in the open cycle
                 openBillAmount = txs
                   .filter((tx: any) => tx.type === 'DEBIT' || tx.amount < 0)
                   .reduce((sum: number, tx: any) => sum + Math.abs(tx.amount), 0)
-                // Round to 2 decimals
                 openBillAmount = Math.round((openBillAmount ?? 0) * 100) / 100
-                console.log(`Open bill calculated: R$ ${openBillAmount} from ${txs.length} transactions since ${closeDateStr}`)
+                console.log(`Open bill calc: R$ ${openBillAmount} from ${txs.length} txs since ${cycleStart}`)
               }
             } catch (e) {
               console.error('Open bill calc error:', e)
