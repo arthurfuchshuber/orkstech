@@ -22,9 +22,10 @@ interface ContaBancariaModalProps {
   onOpenChange: (open: boolean) => void;
   editingId?: string | null;
   onSaved?: (id: string) => void;
+  defaultTipo?: TipoConta;
 }
 
-export function ContaBancariaModal({ open, onOpenChange, editingId, onSaved }: ContaBancariaModalProps) {
+export function ContaBancariaModal({ open, onOpenChange, editingId, onSaved, defaultTipo = "corrente" }: ContaBancariaModalProps) {
   const { user } = useAuth();
   const qc = useQueryClient();
   const [form, setForm] = useState({
@@ -97,9 +98,9 @@ export function ContaBancariaModal({ open, onOpenChange, editingId, onSaved }: C
         dia_vencimento_fatura: (existing as any).dia_vencimento_fatura ? String((existing as any).dia_vencimento_fatura) : "",
       });
     } else if (!editingId && open) {
-      setForm({ nome: "", banco_id: "", tipo: "corrente", saldo_inicial: "0", saldo_investimento: "0", pessoa_tipo: "pj", limite_credito_total: "0", fatura_aberto: "0", dia_fechamento_fatura: "", dia_vencimento_fatura: "" });
+      setForm({ nome: "", banco_id: "", tipo: defaultTipo, saldo_inicial: "0", saldo_investimento: "0", pessoa_tipo: "pj", limite_credito_total: "0", fatura_aberto: "0", dia_fechamento_fatura: "", dia_vencimento_fatura: "" });
     }
-  }, [existing, editingId, open]);
+  }, [existing, editingId, open, defaultTipo]);
 
   const saveMutation = useMutation({
     mutationFn: async () => {
