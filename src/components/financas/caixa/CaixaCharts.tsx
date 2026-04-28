@@ -10,8 +10,61 @@ const fmtFull = (v: number) =>
 interface ChartsProps {
   evolution: { date: string; saldo: number }[];
   distribution: { name: string; value: number }[];
-  flow: { month: string; entradas: number; saidas: number }[];
+  flow: {
+    month: string;
+    entradas: number;
+    saidas: number;
+    byBank?: { name: string; entradas: number; saidas: number }[];
+  }[];
 }
+
+const FlowTooltip = ({ active, payload, label }: any) => {
+  if (!active || !payload?.length) return null;
+  const row = payload[0]?.payload;
+  if (!row) return null;
+  const banks = (row.byBank ?? []) as { name: string; entradas: number; saidas: number }[];
+  return (
+    <div
+      style={{
+        background: "hsl(var(--card))",
+        border: "1px solid hsl(var(--border))",
+        borderRadius: 8,
+        fontSize: 12,
+        padding: "10px 12px",
+        minWidth: 240,
+        maxWidth: 320,
+        boxShadow: "0 4px 12px rgba(0,0,0,0.25)",
+      }}
+    >
+      <div style={{ fontWeight: 600, marginBottom: 6, color: "hsl(var(--foreground))" }}>{label}</div>
+      <div style={{ display: "flex", justifyContent: "space-between", color: "hsl(var(--foreground))" }}>
+        <span style={{ color: "hsl(160 84% 39%)" }}>Entradas</span>
+        <span>{fmtFull(row.entradas)}</span>
+      </div>
+      <div style={{ display: "flex", justifyContent: "space-between", color: "hsl(var(--foreground))", marginTop: 2 }}>
+        <span style={{ color: "hsl(0 72% 51%)" }}>Saídas</span>
+        <span>{fmtFull(row.saidas)}</span>
+      </div>
+      {banks.length > 0 && (
+        <>
+          <div style={{ height: 1, background: "hsl(var(--border))", margin: "8px 0" }} />
+          <div style={{ fontSize: 10, color: "hsl(var(--muted-foreground))", marginBottom: 4, textTransform: "uppercase", letterSpacing: 0.5 }}>
+            Por conta
+          </div>
+          {banks.map((b) => (
+            <div key={b.name} style={{ marginBottom: 4 }}>
+              <div style={{ color: "hsl(var(--foreground))", fontWeight: 500, marginBottom: 1 }}>{b.name}</div>
+              <div style={{ display: "flex", justifyContent: "space-between", color: "hsl(var(--muted-foreground))", fontSize: 11 }}>
+                <span>↑ {fmtFull(b.entradas)}</span>
+                <span>↓ {fmtFull(b.saidas)}</span>
+              </div>
+            </div>
+          ))}
+        </>
+      )}
+    </div>
+  );
+};
 
 const PIE_COLORS = [
   "hsl(var(--primary))",
