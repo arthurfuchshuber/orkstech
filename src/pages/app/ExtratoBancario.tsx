@@ -520,6 +520,7 @@ export default function ExtratoBancario() {
 
   // Filter out internal transactions (caixinhas/investments) for totals
   const externalTransactions = allTransactions.filter((tx) => !isInternalTransaction(tx));
+  const internalTransactions = allTransactions.filter((tx) => isInternalTransaction(tx));
 
   const totalsByAccount = externalTransactions.reduce<
     Record<string, { income: number; expense: number }>
@@ -536,6 +537,17 @@ export default function ExtratoBancario() {
     accumulator[tx.pluggy_account_id] = current;
     return accumulator;
   }, {});
+
+  // Transferências entre contas (saídas internas) — soma do volume movimentado por conta
+  const transfersByAccount = internalTransactions.reduce<Record<string, number>>(
+    (acc, tx) => {
+      const isOut = tx.type !== "CREDIT" && tx.amount < 0;
+      if (!isOut) return acc;
+      acc[tx.pluggy_account_id] = (acc[tx.pluggy_account_id] ?? 0) + Math.abs(tx.amount);
+      return acc;
+    },
+    {}
+  );
 
   const totalBalance = bankAccounts.reduce(
     (sum, account) => sum + getAccountTotalBalance(account),
