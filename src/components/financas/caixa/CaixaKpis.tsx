@@ -3,6 +3,8 @@ import { Landmark, CreditCard, PiggyBank, Receipt, TrendingUp, TrendingDown, Wal
 import { cn } from "@/lib/utils";
 import { PluggyLastSyncBadge } from "@/components/PluggyLastSyncBadge";
 import { AjusteContaTrigger } from "@/components/financas/AjusteContaTrigger";
+import { DivergenciaBadge } from "@/components/financas/DivergenciaBadge";
+import { useSaldoDivergencias } from "@/hooks/useSaldoDivergencias";
 import type { AjusteCampo } from "@/components/financas/AjusteValorDialog";
 
 const fmt = (v: number) =>
