@@ -496,7 +496,7 @@ export default function FinanceiroDashboard() {
     txHistory.forEach((t: any) => {
       if (t.is_internal_transfer) return;
       const cat = (t.category || "").toLowerCase();
-      if (!cat.startsWith("transfer")) return;
+      if (!cat.startsWith("transfer") && !cat.includes("same person") && !cat.includes("pix")) return;
       const key = `${t.date}|${Math.abs(Number(t.amount)).toFixed(2)}`;
       const arr = buckets.get(key) ?? [];
       arr.push(t);
