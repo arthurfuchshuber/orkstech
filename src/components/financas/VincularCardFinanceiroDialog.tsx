@@ -55,7 +55,9 @@ const shortName = (raw?: string | null) => {
 };
 
 const isCardField = (cardTipo: CardVinculoTipo) => cardTipo === "limite_credito" || cardTipo === "fatura";
-const isAccountOnlyField = (cardTipo: CardVinculoTipo) => ["saldo", "investimento", "limite_cheque_especial"].includes(cardTipo);
+// Contas a pagar/receber, saldo, investimento e cheque especial referem-se a caixa → apenas contas (sem cartões)
+const isAccountOnlyField = (cardTipo: CardVinculoTipo) =>
+  ["saldo", "investimento", "limite_cheque_especial", "contas_pagar", "contas_receber"].includes(cardTipo);
 
 export function VincularCardFinanceiroDialog({ open, onOpenChange, cardTipo, total, titulo }: Props) {
   const { user } = useAuth();
