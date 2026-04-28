@@ -1,3 +1,4 @@
+import { useRef, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LineChart, Line, ResponsiveContainer, XAxis, YAxis, Tooltip, PieChart, Pie, Cell, BarChart, Bar, Legend, CartesianGrid } from "recharts";
 import { TrendingUp, PieChart as PieIcon, BarChart3 } from "lucide-react";
@@ -20,34 +21,25 @@ interface ChartsProps {
   onFlowBarClick?: (monthData: any) => void;
 }
 
-const FlowTooltip = ({ active, payload, label, coordinate, viewBox }: any) => {
+const FlowTooltip = ({ active, payload, label }: any) => {
   if (!active || !payload?.length) return null;
   const row = payload[0]?.payload;
   if (!row) return null;
   const banks = (row.byBank ?? []) as { name: string; entradas: number; saidas: number }[];
 
-  // Estimativa de altura do tooltip para decidir flip vertical
-  const estimatedHeight = 90 + (banks.length > 0 ? 30 + banks.length * 32 : 0);
-  const chartHeight = (viewBox?.height ?? 240) + (viewBox?.y ?? 0);
-  const cursorY = coordinate?.y ?? 0;
-  const spaceBelow = chartHeight - cursorY;
-  // Se não couber abaixo, posiciona acima do cursor
-  const placeAbove = spaceBelow < estimatedHeight + 20;
-
-  const tooltipStyleInner: React.CSSProperties = {
-    background: "hsl(var(--card))",
-    border: "1px solid hsl(var(--border))",
-    borderRadius: 8,
-    fontSize: 12,
-    padding: "10px 12px",
-    minWidth: 240,
-    maxWidth: 320,
-    boxShadow: "0 4px 12px rgba(0,0,0,0.25)",
-    transform: placeAbove ? `translateY(-100%) translateY(-12px)` : undefined,
-  };
-
   return (
-    <div style={tooltipStyleInner}>
+    <div
+      style={{
+        background: "hsl(var(--card))",
+        border: "1px solid hsl(var(--border))",
+        borderRadius: 8,
+        fontSize: 12,
+        padding: "10px 12px",
+        minWidth: 240,
+        maxWidth: 320,
+        boxShadow: "0 4px 12px rgba(0,0,0,0.25)",
+      }}
+    >
       <div style={{ fontWeight: 600, marginBottom: 6, color: "hsl(var(--foreground))" }}>{label}</div>
       <div style={{ display: "flex", justifyContent: "space-between", color: "hsl(var(--foreground))" }}>
         <span style={{ color: "hsl(160 84% 39%)" }}>Entradas</span>
@@ -96,7 +88,26 @@ const tooltipStyle = {
   padding: "8px 12px",
 };
 
+// Largura aproximada do tooltip (precisa bater com o min/maxWidth do FlowTooltip)
+const FLOW_TOOLTIP_WIDTH = 280;
+const BAR_HALF_WIDTH = 28; // metade da largura visual do par de barras
+
 export function CaixaCharts({ evolution, distribution, flow, onFlowBarClick }: ChartsProps) {
+  const flowChartRef = useRef<HTMLDivElement | null>(null);
+  const [flowChartWidth, setFlowChartWidth] = useState(0);
+  const [flowCoord, setFlowCoord] = useState<{ x: number; y: number } | null>(null);
+
+  const tooltipPosition = (() => {
+    if (!flowCoord) return undefined;
+    const chartW = flowChartWidth || 800;
+    const spaceRight = chartW - flowCoord.x - BAR_HALF_WIDTH;
+    const x =
+      spaceRight >= FLOW_TOOLTIP_WIDTH + 12
+        ? flowCoord.x + BAR_HALF_WIDTH + 8
+        : flowCoord.x - BAR_HALF_WIDTH - FLOW_TOOLTIP_WIDTH - 8;
+    return { x, y: Math.max(0, flowCoord.y - 30) };
+  })();
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
       {/* Evolução do saldo */}
@@ -182,30 +193,47 @@ export function CaixaCharts({ evolution, distribution, flow, onFlowBarClick }: C
               Sem movimentações no período
             </div>
           ) : (
-            <ResponsiveContainer width="100%" height={240}>
-              <BarChart
-                data={flow}
-                margin={{ top: 5, right: 10, bottom: 0, left: 0 }}
-                onClick={(e: any) => {
-                  if (onFlowBarClick && e?.activePayload?.[0]?.payload) {
-                    onFlowBarClick(e.activePayload[0].payload);
-                  }
-                }}
+            <div
+              ref={(el) => {
+                flowChartRef.current = el;
+                if (el && el.clientWidth !== flowChartWidth) setFlowChartWidth(el.clientWidth);
+              }}
+            >
+              <ResponsiveContainer
+                width="100%"
+                height={240}
+                onResize={(w) => setFlowChartWidth(w)}
               >
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
-                <XAxis dataKey="month" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false} />
-                <YAxis tickFormatter={fmt} tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false} width={70} />
-                <Tooltip
-                  content={<FlowTooltip />}
-                  cursor={{ fill: "hsl(var(--muted) / 0.3)" }}
-                  offset={16}
-                  wrapperStyle={{ pointerEvents: "none", zIndex: 50 }}
-                />
-                <Legend wrapperStyle={{ fontSize: 11 }} iconType="circle" formatter={(v) => v === "entradas" ? "Entradas" : "Saídas"} />
-                <Bar dataKey="entradas" fill="hsl(160 84% 39%)" radius={[6, 6, 0, 0]} style={{ cursor: onFlowBarClick ? "pointer" : "default" }} />
-                <Bar dataKey="saidas" fill="hsl(0 72% 51%)" radius={[6, 6, 0, 0]} style={{ cursor: onFlowBarClick ? "pointer" : "default" }} />
-              </BarChart>
-            </ResponsiveContainer>
+                <BarChart
+                  data={flow}
+                  margin={{ top: 5, right: 10, bottom: 0, left: 0 }}
+                  onMouseMove={(e: any) => {
+                    if (e?.isTooltipActive && e?.activeCoordinate) {
+                      setFlowCoord({ x: e.activeCoordinate.x, y: e.activeCoordinate.y });
+                    }
+                  }}
+                  onMouseLeave={() => setFlowCoord(null)}
+                  onClick={(e: any) => {
+                    if (onFlowBarClick && e?.activePayload?.[0]?.payload) {
+                      onFlowBarClick(e.activePayload[0].payload);
+                    }
+                  }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+                  <XAxis dataKey="month" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false} />
+                  <YAxis tickFormatter={fmt} tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false} width={70} />
+                  <Tooltip
+                    content={<FlowTooltip />}
+                    cursor={{ fill: "hsl(var(--muted) / 0.3)" }}
+                    wrapperStyle={{ pointerEvents: "none", zIndex: 50 }}
+                    position={tooltipPosition}
+                  />
+                  <Legend wrapperStyle={{ fontSize: 11 }} iconType="circle" formatter={(v) => v === "entradas" ? "Entradas" : "Saídas"} />
+                  <Bar dataKey="entradas" fill="hsl(160 84% 39%)" radius={[6, 6, 0, 0]} style={{ cursor: onFlowBarClick ? "pointer" : "default" }} />
+                  <Bar dataKey="saidas" fill="hsl(0 72% 51%)" radius={[6, 6, 0, 0]} style={{ cursor: onFlowBarClick ? "pointer" : "default" }} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
           )}
         </CardContent>
       </Card>
