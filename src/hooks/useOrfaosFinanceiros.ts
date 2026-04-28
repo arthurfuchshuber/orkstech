@@ -4,11 +4,14 @@ import { useAuth } from "@/hooks/useAuth";
 import { useEmpresa } from "@/hooks/useEmpresa";
 
 /**
- * Detecta valores "órfãos" — lançamentos cujo `bank_account_id` ficou NULL
- * porque a conta bancária/cartão foi excluída (ON DELETE SET NULL).
+ * Detecta TODOS os valores "órfãos" no sistema:
+ *  - cash_transactions sem bank_account_id (excluindo transferências internas já realocadas)
+ *  - accounts_payable / accounts_receivable pagos sem conta
+ *  - contas_bancarias INATIVAS (soft-deleted) com snapshots > 0:
+ *      saldo_sincronizado, investimento_sincronizado, fatura_aberto_sincronizada,
+ *      limite_credito_disponivel_sincronizado, limite_cheque_especial_sincronizado
  *
- * Retorna o saldo líquido órfão (entradas - saídas) em cash_transactions
- * e contagens auxiliares em accounts_payable/receivable pagos sem conta.
+ * Retorna o detalhamento por categoria para realocação consciente.
  */
 export function useOrfaosFinanceiros() {
   const { user } = useAuth();
@@ -20,7 +23,7 @@ export function useOrfaosFinanceiros() {
     queryKey: ["orfaos-financeiros", targetUserId, empresaId],
     enabled: !!targetUserId,
     queryFn: async () => {
-      // cash_transactions órfãos (não internas, ainda não realocadas)
+      // 1. Cash transactions órfãs (não internas)
       let q = supabase
         .from("cash_transactions")
         .select("id, amount, type, description, transaction_date, is_internal_transfer")
@@ -32,12 +35,12 @@ export function useOrfaosFinanceiros() {
       if (error) throw error;
 
       const lancamentos = (txs ?? []) as any[];
-      const saldoLiquido = lancamentos.reduce((sum, t) => {
+      const saldoLiquidoLancamentos = lancamentos.reduce((sum, t) => {
         const v = Number(t.amount || 0);
         return sum + (t.type === "income" ? v : -v);
       }, 0);
 
-      // payables/receivables pagos sem conta (informativo apenas)
+      // 2. Payables / receivables pagos sem conta (informativo)
       let pq = supabase
         .from("accounts_payable")
         .select("id, amount, description, payment_date")
@@ -56,16 +59,99 @@ export function useOrfaosFinanceiros() {
       else rq = rq.eq("user_id", targetUserId!);
       const { data: receivables } = await rq;
 
+      // 3. contas_bancarias INATIVAS (soft-deleted) com snapshots
+      let cq = supabase
+        .from("contas_bancarias")
+        .select(
+          "id, nome, banco, saldo_inicial, saldo_sincronizado, saldo_ajuste_manual, investimento_sincronizado, investimento_ajuste_manual, saldo_investimento, fatura_aberto_sincronizada, fatura_aberto_ajuste_manual, limite_credito_disponivel_sincronizado, limite_credito_disponivel_ajuste_manual, limite_cheque_especial, limite_cheque_especial_sincronizado"
+        )
+        .eq("ativo", false);
+      if (empresaId) cq = cq.eq("empresa_id", empresaId);
+      else cq = cq.eq("user_id", targetUserId!);
+      const { data: contasInativas } = await cq;
+
+      const contasComSnapshot = (contasInativas ?? []).filter((c: any) => {
+        const saldo = Number(c.saldo_inicial || 0) + Number(c.saldo_sincronizado || 0) + Number(c.saldo_ajuste_manual || 0);
+        const inv = Number(c.investimento_sincronizado || 0) + Number(c.investimento_ajuste_manual || 0) + Number(c.saldo_investimento || 0);
+        const fat = Number(c.fatura_aberto_sincronizada || 0) + Number(c.fatura_aberto_ajuste_manual || 0);
+        const lim = Number(c.limite_credito_disponivel_sincronizado || 0) + Number(c.limite_credito_disponivel_ajuste_manual || 0);
+        const ce = Number(c.limite_cheque_especial || 0) + Number(c.limite_cheque_especial_sincronizado || 0);
+        return saldo + inv + fat + lim + ce > 0;
+      });
+
+      // Detalhamento por categoria
+      const totalSaldoOrfao = contasComSnapshot.reduce(
+        (s: number, c: any) =>
+          s +
+          Number(c.saldo_inicial || 0) +
+          Number(c.saldo_sincronizado || 0) +
+          Number(c.saldo_ajuste_manual || 0),
+        0
+      );
+      const totalInvestimentoOrfao = contasComSnapshot.reduce(
+        (s: number, c: any) =>
+          s +
+          Number(c.investimento_sincronizado || 0) +
+          Number(c.investimento_ajuste_manual || 0) +
+          Number(c.saldo_investimento || 0),
+        0
+      );
+      const totalFaturaOrfa = contasComSnapshot.reduce(
+        (s: number, c: any) =>
+          s +
+          Number(c.fatura_aberto_sincronizada || 0) +
+          Number(c.fatura_aberto_ajuste_manual || 0),
+        0
+      );
+      const totalLimiteCreditoOrfao = contasComSnapshot.reduce(
+        (s: number, c: any) =>
+          s +
+          Number(c.limite_credito_disponivel_sincronizado || 0) +
+          Number(c.limite_credito_disponivel_ajuste_manual || 0),
+        0
+      );
+      const totalChequeEspecialOrfao = contasComSnapshot.reduce(
+        (s: number, c: any) =>
+          s + Number(c.limite_cheque_especial || 0) + Number(c.limite_cheque_especial_sincronizado || 0),
+        0
+      );
+
       const totalAbsoluto = lancamentos.reduce((s, t) => s + Math.abs(Number(t.amount || 0)), 0);
+
+      // Saldo líquido total disponível para realocação:
+      //  = saldoLiquido de cash_transactions + saldo + investimento de contas inativas
+      //  (fatura e limites são informativos — não realocados como "saldo")
+      const saldoLiquidoTotal = saldoLiquidoLancamentos + totalSaldoOrfao + totalInvestimentoOrfao;
+
+      const totalCount =
+        lancamentos.length +
+        (payables?.length ?? 0) +
+        (receivables?.length ?? 0) +
+        contasComSnapshot.length;
 
       return {
         lancamentos,
         payablesOrfaos: payables ?? [],
         receivablesOrfaos: receivables ?? [],
-        saldoLiquido,
+        contasInativasComSnapshot: contasComSnapshot,
+        // Saldos detalhados (para mostrar no modal)
+        breakdown: {
+          saldoLancamentos: saldoLiquidoLancamentos,
+          saldoContasInativas: totalSaldoOrfao,
+          investimentos: totalInvestimentoOrfao,
+          faturasCartao: totalFaturaOrfa,
+          limiteCredito: totalLimiteCreditoOrfao,
+          chequeEspecial: totalChequeEspecialOrfao,
+        },
+        // Compatibilidade
+        saldoLiquido: saldoLiquidoTotal,
         totalAbsoluto,
-        temOrfaos: lancamentos.length > 0 || (payables?.length ?? 0) > 0 || (receivables?.length ?? 0) > 0,
-        totalCount: lancamentos.length + (payables?.length ?? 0) + (receivables?.length ?? 0),
+        temOrfaos:
+          lancamentos.length > 0 ||
+          (payables?.length ?? 0) > 0 ||
+          (receivables?.length ?? 0) > 0 ||
+          contasComSnapshot.length > 0,
+        totalCount,
       };
     },
   });
