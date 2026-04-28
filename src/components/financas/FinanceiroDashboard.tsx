@@ -792,7 +792,7 @@ export default function FinanceiroDashboard() {
   const [showRealocar, setShowRealocar] = useState(false);
   const [showTransferencia, setShowTransferencia] = useState(false);
   const [vincularCard, setVincularCard] = useState<typeof cardsSemVinculo[number] | null>(null);
-  const [monthDetail, setMonthDetail] = useState<{ label: string; items: MonthFlowItem[] } | null>(null);
+  const [monthDetail, setMonthDetail] = useState<{ label: string; monthKey: string; items: MonthFlowItem[] } | null>(null);
 
   // Popup automático na 1ª visita por sessão — só quando há valor a realocar
   useEffect(() => {
@@ -937,8 +937,9 @@ export default function FinanceiroDashboard() {
           flow={flowData}
           onFlowBarClick={(monthData) => {
             const items = (monthData as any).items as MonthFlowItem[] | undefined;
-            if (items && items.length > 0) {
-              setMonthDetail({ label: monthData.month, items });
+            const monthKey = (monthData as any).monthKey as string | undefined;
+            if (monthKey) {
+              setMonthDetail({ label: monthData.month, monthKey, items: items ?? [] });
             }
           }}
         />
@@ -1138,6 +1139,7 @@ export default function FinanceiroDashboard() {
       open={!!monthDetail}
       onOpenChange={(o) => !o && setMonthDetail(null)}
       monthLabel={monthDetail?.label ?? ""}
+      monthKey={monthDetail?.monthKey}
       items={monthDetail?.items ?? []}
     />
     {vincularCard && (
