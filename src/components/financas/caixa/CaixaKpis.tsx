@@ -44,6 +44,8 @@ export function CaixaKpis({
 }: KpiProps) {
   const utilizacao = totalCreditLimit > 0 ? ((totalCreditLimit - totalCreditAvailable) / totalCreditLimit) * 100 : 0;
   const odUtilizacao = totalOverdraftLimit > 0 ? (totalOverdraftUsed / totalOverdraftLimit) * 100 : 0;
+  const { data: divergencias } = useSaldoDivergencias();
+  const divergenciaSaldoTotal = divergencias?.total ?? 0;
 
   const cards: Array<{
     icon: any; label: string; flag: string; value: string;
@@ -152,6 +154,9 @@ export function CaixaKpis({
                 <p className="text-2xl font-bold text-foreground mt-1 tabular-nums">{c.value}</p>
                 {c.sub && (
                   <p className={cn("text-[11px] mt-1.5", c.subColor || "text-muted-foreground")}>{c.sub}</p>
+                )}
+                {c.ajusteCampo === "saldo" && (
+                  <div className="mt-2"><DivergenciaBadge delta={divergenciaSaldoTotal} /></div>
                 )}
               </CardContent>
             </Card>
