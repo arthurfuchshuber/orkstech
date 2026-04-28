@@ -12,6 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useEmpresa } from "@/hooks/useEmpresa";
 import { refreshQueries } from "@/lib/query-refresh";
+import { shortNomeBanco } from "@/lib/format-conta-bancaria";
 import { Link2, Loader2, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -39,26 +40,11 @@ const CARD_LABEL: Record<CardVinculoTipo, string> = {
   contas_receber: "Contas a Receber",
 };
 
-const shortName = (raw?: string | null) => {
-  const s = (raw || "").trim();
-  if (!s) return "";
-  const lower = s.toLowerCase();
-  if (lower.includes("nu pagamentos") || lower.includes("nubank")) return "Nubank";
-  if (lower.includes("btg")) return "BTG";
-  if (lower.includes("itau") || lower.includes("itaú")) return "Itaú";
-  if (lower.includes("bradesco")) return "Bradesco";
-  if (lower.includes("santander")) return "Santander";
-  if (lower.includes("inter")) return "Banco Inter";
-  if (lower.includes("banco do brasil") || /\bbb\b/.test(lower)) return "Banco do Brasil";
-  const cut = s.split(/\s+(?:S\.?A\.?|S\/A|LTDA|ME|EIRELI)\b|[-–·(]/i)[0].trim();
-  return cut.length > 34 ? `${cut.slice(0, 34)}…` : cut;
-};
-
 const isCardField = (cardTipo: CardVinculoTipo) => cardTipo === "limite_credito" || cardTipo === "fatura";
-// Saldo, investimento e cheque especial referem-se a caixa → apenas contas (sem cartões).
-// Contas a pagar/receber aceitam contas E cartões (pagamentos podem ser feitos via cartão de crédito).
+// Saldo, investimento, cheque especial e contas a receber referem-se a caixa → apenas contas (sem cartões).
+// Contas a pagar aceita contas E cartões (pagamentos podem ser feitos via cartão de crédito).
 const isAccountOnlyField = (cardTipo: CardVinculoTipo) =>
-  ["saldo", "investimento", "limite_cheque_especial"].includes(cardTipo);
+  ["saldo", "investimento", "limite_cheque_especial", "contas_receber"].includes(cardTipo);
 
 export function VincularCardFinanceiroDialog({ open, onOpenChange, cardTipo, total, titulo }: Props) {
   const { user } = useAuth();
@@ -102,8 +88,8 @@ export function VincularCardFinanceiroDialog({ open, onOpenChange, cardTipo, tot
 
   const options = useMemo(
     () => contas.map((c: any) => {
-      const nome = shortName(c.nome) || "Conta";
-      const banco = shortName(c.banco);
+      const nome = shortNomeBanco(c.nome) || "Conta";
+      const banco = shortNomeBanco(c.banco);
       const tipo = c.tipo === "cartao_credito" ? "Cartão" : "Conta";
       const label = banco && banco !== nome ? `${tipo} · ${nome} · ${banco}` : `${tipo} · ${nome}`;
       return { value: c.id, label, tooltip: `${c.nome}${c.banco ? ` · ${c.banco}` : ""}` };
