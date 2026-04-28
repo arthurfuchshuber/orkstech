@@ -85,20 +85,31 @@ export function IntegrationFailureBanner() {
     })),
   ];
 
-  // Popup: 1x por sessão por provider, se não silenciado
+  // Popup + sino: 1x por janela de 6h por provider, respeitando silenciamento
   useEffect(() => {
-    if (!failures.length) return;
+    if (!failures.length || !user) return;
     const seen = loadSeen();
     const SIX_HOURS = 6 * 60 * 60 * 1000;
     for (const f of failures) {
       const pref = getPref(f.provider);
-      if (pref.silenced_popup) continue;
-      if (Date.now() - (seen[f.provider] || 0) < SIX_HOURS) continue;
-      setPopupFor(f);
+      const stale = Date.now() - (seen[f.provider] || 0) >= SIX_HOURS;
+      if (!stale) continue;
+
+      if (!pref.silenced_popup && !popupFor) setPopupFor(f);
+
+      if (!pref.silenced_bell) {
+        supabase.from("notificacoes_sistema").insert({
+          user_id: user.id,
+          titulo: `${f.label}: integração com problema`,
+          descricao: `${f.detail} Seus dados sincronizados estão preservados.`,
+          tipo: "alerta",
+          entidade_tipo: "integracao",
+        }).then(() => {});
+      }
+
       markSeen(f.provider);
-      break;
     }
-  }, [failures.length]);
+  }, [failures.length, user?.id]);
 
   const visibleBanners = failures.filter((f) => !getPref(f.provider).silenced_banner);
 
