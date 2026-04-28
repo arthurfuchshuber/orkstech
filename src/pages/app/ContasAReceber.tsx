@@ -1337,14 +1337,14 @@ export default function ContasAReceber() {
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
                             <button className="flex items-center gap-1 text-sm cursor-pointer hover:text-foreground transition-colors group w-full">
-                              <span className="truncate">{contaBanc?.nome || <span className="text-muted-foreground/50">Selecionar</span>}</span>
+                              <span className="truncate">{contaBanc?.nome ? shortNomeBanco(contaBanc.nome) : <span className="text-muted-foreground/50">Selecionar</span>}</span>
                               <ChevronDown className="w-3 h-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
                             </button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="start" className="max-h-[260px] overflow-y-auto custom-scrollbar">
                             {bankAccounts.map((b: any) => (
                               <DropdownMenuItem key={b.id} onClick={() => updateMutation.mutate({ id: item.id, data: { bank_account_id: b.id } })}>
-                                {b.nome}
+                                <span className="truncate" title={b.nome}>{shortNomeBanco(b.nome)}</span>
                               </DropdownMenuItem>
                             ))}
                             {contaBanc && (
