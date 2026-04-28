@@ -29,6 +29,7 @@ interface ContaBancariaModalProps {
 export function ContaBancariaModal({ open, onOpenChange, editingId, onSaved, defaultTipo = "corrente", allowedTipos }: ContaBancariaModalProps) {
   const { user } = useAuth();
   const qc = useQueryClient();
+  const allowedTiposKey = allowedTipos?.join("|") ?? "all";
   const [form, setForm] = useState({
     nome: "",
     banco_id: "",
@@ -102,7 +103,7 @@ export function ContaBancariaModal({ open, onOpenChange, editingId, onSaved, def
       const tipoInicial = allowedTipos?.includes(defaultTipo) ? defaultTipo : (allowedTipos?.[0] ?? defaultTipo);
       setForm({ nome: "", banco_id: "", tipo: tipoInicial, saldo_inicial: "0", saldo_investimento: "0", pessoa_tipo: "pj", limite_credito_total: "0", fatura_aberto: "0", dia_fechamento_fatura: "", dia_vencimento_fatura: "" });
     }
-  }, [existing, editingId, open, defaultTipo, allowedTipos]);
+  }, [existing, editingId, open, defaultTipo, allowedTiposKey]);
 
   const saveMutation = useMutation({
     mutationFn: async () => {
