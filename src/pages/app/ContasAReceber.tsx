@@ -118,6 +118,12 @@ const statusConfig: Record<string, { label: string; color: string; icon: typeof 
   cancelled: { label: "Cancelado", color: "bg-muted text-muted-foreground border-border", icon: Ban },
 };
 
+const contaBancariaLabel = (b: any) => {
+  const nome = shortNomeBanco(b?.nome);
+  const banco = shortNomeBanco(b?.banco);
+  return banco && banco !== nome ? `${nome} · ${banco}` : nome;
+};
+
 export default function ContasAReceber() {
   const { user } = useAuth();
   const { empresa } = useEmpresa();
@@ -280,38 +286,27 @@ export default function ContasAReceber() {
   const { data: bankAccounts = [] } = useQuery({
     queryKey: ["contas-bancarias", empresaId],
     queryFn: async () => {
-      let q = supabase.from("contas_bancarias").select("id, nome, banco").eq("ativo", true).order("nome");
+      let q = supabase
+        .from("contas_bancarias")
+        .select("id, nome, banco, tipo, pluggy_account_id")
+        .eq("ativo", true)
+        .neq("tipo", "cartao_credito")
+        .order("nome");
       if (empresaId) q = q.eq("empresa_id", empresaId);
-      const { data: manual } = await q;
-
-      const { data: pluggy } = await supabase
-        .from("pluggy_bank_accounts")
-        .select("id, name, pluggy_item_id, type, subtype, bank_data")
-        .eq("type", "BANK")
-        .eq("subtype", "CHECKING_ACCOUNT")
-        .order("name");
-
-      const itemIds = [...new Set((pluggy ?? []).map((p: any) => p.pluggy_item_id))];
-      let connectorMap: Record<string, string> = {};
-      if (itemIds.length) {
-        const { data: conns } = await supabase
-          .from("pluggy_connections")
-          .select("pluggy_item_id, connector_name")
-          .in("pluggy_item_id", itemIds);
-        for (const c of conns ?? []) {
-          connectorMap[c.pluggy_item_id] = c.connector_name || "";
-        }
+      const { data } = await q;
+      const dedup = new Map<string, any>();
+      for (const conta of data ?? []) {
+        const key = conta.pluggy_account_id || `${shortNomeBanco(conta.nome)}|${shortNomeBanco(conta.banco)}`.toLowerCase();
+        if (!dedup.has(key)) dedup.set(key, conta);
       }
-
-      const pluggyMapped = (pluggy ?? []).map((p: any) => ({
-        id: p.id,
-        nome: connectorMap[p.pluggy_item_id] || p.name,
-        banco: "Open Finance",
-      }));
-
-      return [...(manual ?? []), ...pluggyMapped];
+      return Array.from(dedup.values());
     },
   });
+
+  const bankAccountOptions = useMemo(
+    () => bankAccounts.map((b: any) => ({ value: b.id, label: contaBancariaLabel(b), tooltip: `${b.nome}${b.banco ? ` · ${b.banco}` : ""}` })),
+    [bankAccounts]
+  );
 
   const { data: paymentMethods = [] } = useQuery({
     queryKey: ["formas-pagamento", empresaId],
