@@ -886,9 +886,15 @@ export default function ExtratoBancario() {
                       </span>
                     </div>
                     <div className="flex justify-between gap-3">
-                      <span>Transferência entre contas</span>
+                      <span>Transferências recebidas</span>
                       <span className="font-medium text-foreground">
-                        {formatCurrency(transfersOut)}
+                        {formatCurrency(transfers.in)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between gap-3">
+                      <span>Transferências enviadas</span>
+                      <span className="font-medium text-foreground">
+                        {formatCurrency(transfers.out)}
                       </span>
                     </div>
                   </div>
