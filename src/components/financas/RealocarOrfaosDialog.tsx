@@ -27,7 +27,7 @@ interface Linha {
 
 interface NovaContaDraft {
   nome: string;
-  tipo: "corrente" | "poupanca" | "cartao_credito";
+  tipo: "corrente" | "poupanca" | "caixa" | "carteira_digital";
 }
 
 interface Props {
@@ -43,6 +43,7 @@ export function RealocarOrfaosDialog({ open, onOpenChange }: Props) {
   const { empresa } = useEmpresa();
   const empresaId = empresa?.id;
   const targetUserId = empresa?.user_id ?? user?.id;
+  const queryClient = useQueryClient();
 
   const { data: orfaos, isLoading: loadingOrfaos } = useOrfaosFinanceiros();
 
@@ -144,11 +145,11 @@ export function RealocarOrfaosDialog({ open, onOpenChange }: Props) {
       } as any);
       if (error) throw error;
       toast.success("Valores realocados com sucesso!");
-      await refreshQueries([
-        "orfaos-financeiros",
-        "dashboard-manual-accounts",
-        "dashboard-manual-tx",
-        "dashboard-manual-tx-all",
+      await refreshQueries(queryClient, [
+        ["orfaos-financeiros"],
+        ["dashboard-manual-accounts"],
+        ["dashboard-manual-tx"],
+        ["dashboard-manual-tx-all"],
       ]);
       onOpenChange(false);
     } catch (e: any) {
@@ -278,7 +279,8 @@ export function RealocarOrfaosDialog({ open, onOpenChange }: Props) {
                   >
                     <option value="corrente">Corrente</option>
                     <option value="poupanca">Poupança</option>
-                    <option value="cartao_credito">Cartão de Crédito</option>
+                    <option value="caixa">Caixa</option>
+                    <option value="carteira_digital">Carteira digital</option>
                   </select>
                   <Button
                     type="button"
