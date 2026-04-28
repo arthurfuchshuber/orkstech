@@ -482,6 +482,8 @@ export default function FinanceiroDashboard() {
     if (isInvestmentTx(t)) return true;
     const cat = (t.category || "").toLowerCase();
     if (cat.includes("credit card payment") || cat.includes("pagamento de cart")) return true;
+    // "Same person transfer" do Pluggy = transferência entre contas do mesmo titular (TED/DOC próprio)
+    if (cat.includes("same person")) return true;
     return false;
   };
 
@@ -494,7 +496,7 @@ export default function FinanceiroDashboard() {
     txHistory.forEach((t: any) => {
       if (t.is_internal_transfer) return;
       const cat = (t.category || "").toLowerCase();
-      if (!cat.startsWith("transfer")) return;
+      if (!cat.startsWith("transfer") && !cat.includes("same person") && !cat.includes("pix")) return;
       const key = `${t.date}|${Math.abs(Number(t.amount)).toFixed(2)}`;
       const arr = buckets.get(key) ?? [];
       arr.push(t);
