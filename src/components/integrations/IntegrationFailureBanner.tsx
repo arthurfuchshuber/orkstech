@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useEmpresa } from "@/hooks/useEmpresa";
 import { useIntegrationNotifPrefs, IntegrationProvider } from "@/hooks/useIntegrationNotifPrefs";
-import { AlertTriangle, BellOff, X, Settings2 } from "lucide-react";
+import { AlertTriangle, BellOff, Settings2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import {
