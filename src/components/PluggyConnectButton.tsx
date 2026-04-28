@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { PluggyConnect } from "react-pluggy-connect";
 import { Link2, RefreshCw, Trash2, Loader2 } from "lucide-react";
+import { RemoveIntegrationDialog } from "@/components/integrations/RemoveIntegrationDialog";
 
 export function usePluggyConnections() {
   const { user } = useAuth();
