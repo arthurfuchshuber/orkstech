@@ -143,7 +143,7 @@ export default function FinanceiroDashboard() {
       const fromDate = format(startOfMonth(subMonths(new Date(), 5)), "yyyy-MM-dd");
       let q = supabase
         .from("cash_transactions")
-        .select("id, amount, type, transaction_date, bank_account_id")
+        .select("id, amount, type, transaction_date, bank_account_id, is_internal_transfer")
         .gte("transaction_date", fromDate);
       if (empresaId) q = q.eq("empresa_id", empresaId);
       else q = q.eq("user_id", targetUserId!);
@@ -468,6 +468,53 @@ export default function FinanceiroDashboard() {
     return /\b(aplica[cç][aã]o|resgate|cdb|lci|lca|tesouro|fundo|poupan[cç]a)\b/.test(desc);
   };
 
+  // Helper: identifica movimentações que NÃO são entrada/saída efetiva de caixa.
+  // Inclui:
+  //  - Flag `is_internal_transfer` do Pluggy/manual (transferências entre contas próprias)
+  //  - Aplicações/resgates em investimento (caixinhas, CDB, fundos…)
+  //  - Pagamento de fatura de cartão (categoria "Credit card payment") — é movimento
+  //    interno conta corrente → cartão, não saída real
+  //  - Categorias `Transfers` / `Transfer - PIX` em pares espelhados (mesmo valor
+  //    creditado e debitado em contas próprias no mesmo dia) — quando o Pluggy não
+  //    conseguiu marcar como `is_internal_transfer`
+  const isCashflowNeutral = (t: any) => {
+    if (t.is_internal_transfer) return true;
+    if (isInvestmentTx(t)) return true;
+    const cat = (t.category || "").toLowerCase();
+    if (cat.includes("credit card payment") || cat.includes("pagamento de cart")) return true;
+    return false;
+  };
+
+  // Pré-calcula pares espelhados de transferências entre contas próprias que o
+  // Pluggy não marcou (mesmo |amount| no mesmo dia, em contas diferentes do usuário,
+  // categoria começando com "Transfer"). Esses pares são neutros no fluxo.
+  const internalTransferIds = useMemo(() => {
+    const ids = new Set<string>();
+    const buckets = new Map<string, any[]>();
+    txHistory.forEach((t: any) => {
+      if (t.is_internal_transfer) return;
+      const cat = (t.category || "").toLowerCase();
+      if (!cat.startsWith("transfer")) return;
+      const key = `${t.date}|${Math.abs(Number(t.amount)).toFixed(2)}`;
+      const arr = buckets.get(key) ?? [];
+      arr.push(t);
+      buckets.set(key, arr);
+    });
+    buckets.forEach((arr) => {
+      const credits = arr.filter((x) => x.type === "CREDIT");
+      const debits = arr.filter((x) => x.type === "DEBIT");
+      const n = Math.min(credits.length, debits.length);
+      for (let i = 0; i < n; i++) {
+        if (credits[i].pluggy_account_id !== debits[i].pluggy_account_id) {
+          ids.add(credits[i].id);
+          ids.add(debits[i].id);
+        }
+      }
+    });
+    return ids;
+  }, [txHistory]);
+
+
   // ── Chart datasets ──
   // Patrimônio total = saldos liquidos (Pluggy + manual) + investimentos (Pluggy + manual)
   const totalNetWorth = totalBankBalance + totalInvestments;
@@ -478,14 +525,15 @@ export default function FinanceiroDashboard() {
 
     // Pluggy (ignora transferências internas: aplicações, resgates, conta↔conta própria)
     txHistory.forEach((t: any) => {
-      if (t.is_internal_transfer || isInvestmentTx(t)) return;
+      if (isCashflowNeutral(t) || internalTransferIds.has(t.id)) return;
       const day = t.date;
       const signed = t.type === "CREDIT" ? Math.abs(Number(t.amount)) : -Math.abs(Number(t.amount));
       byDay.set(day, (byDay.get(day) || 0) + signed);
     });
 
-    // Manual cash_transactions (últimos 90 dias)
+    // Manual cash_transactions (últimos 90 dias) — ignora transferências entre contas
     manualTx.forEach((t: any) => {
+      if (t.is_internal_transfer) return;
       const day = t.transaction_date;
       const v = Number(t.amount || 0);
       const signed = t.type === "entrada" ? v : -v;
@@ -509,7 +557,7 @@ export default function FinanceiroDashboard() {
       days.push({ date: dailyChanges[i].label, saldo: balances[i] });
     }
     return days.filter((_, idx) => idx % 3 === 0 || idx === days.length - 1);
-  }, [txHistory, manualTx, totalNetWorth]);
+  }, [txHistory, manualTx, totalNetWorth, internalTransferIds]);
 
   const balanceDeltaPct = useMemo(() => {
     if (evolutionData.length < 2) return null;
@@ -576,9 +624,10 @@ export default function FinanceiroDashboard() {
       months.set(format(d, "yyyy-MM"), { entradas: 0, saidas: 0 });
     }
 
-    // Pluggy (exclui transferências internas e investimentos da própria conta)
+    // Pluggy (exclui transferências internas, investimentos, pagamento de fatura
+    // e pares espelhados de Transfer/PIX entre contas próprias)
     txHistory.forEach((t: any) => {
-      if (t.is_internal_transfer || isInvestmentTx(t)) return;
+      if (isCashflowNeutral(t) || internalTransferIds.has(t.id)) return;
       const key = t.date.slice(0, 7);
       if (!months.has(key)) return;
       const v = Math.abs(Number(t.amount));
@@ -587,8 +636,9 @@ export default function FinanceiroDashboard() {
       else m.saidas += v;
     });
 
-    // Manual
+    // Manual — ignora transferências entre contas próprias
     manualTx.forEach((t: any) => {
+      if (t.is_internal_transfer) return;
       const key = (t.transaction_date || "").slice(0, 7);
       if (!months.has(key)) return;
       const v = Math.abs(Number(t.amount || 0));
@@ -602,7 +652,7 @@ export default function FinanceiroDashboard() {
       entradas: Math.round(v.entradas),
       saidas: Math.round(v.saidas),
     }));
-  }, [txHistory, manualTx]);
+  }, [txHistory, manualTx, internalTransferIds]);
 
   const pendentes = contasPagar?.filter((c) => c.status === "pending") ?? [];
   const vencidas = contasPagar?.filter((c) => c.status === "overdue") ?? [];
