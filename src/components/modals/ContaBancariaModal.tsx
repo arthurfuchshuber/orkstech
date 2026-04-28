@@ -129,6 +129,18 @@ export function ContaBancariaModal({ open, onOpenChange, editingId, onSaved }: C
         <DialogContent>
           <DialogHeader><DialogTitle>{editingId ? "Editar Conta Bancária" : "Nova Conta Bancária"}</DialogTitle></DialogHeader>
           <div className="space-y-4 py-2">
+            {!editingId && (
+              <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 flex items-center gap-3">
+                <div className="w-8 h-8 rounded-md bg-primary/10 flex items-center justify-center flex-shrink-0">
+                  <Link2 className="w-4 h-4 text-primary" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-medium text-foreground">Conectar via Open Finance</p>
+                  <p className="text-[11px] text-muted-foreground">Sincronize saldos e transações automaticamente.</p>
+                </div>
+                <PluggyConnectButton size="sm" />
+              </div>
+            )}
             <div>
               <label className="text-sm font-medium text-foreground mb-1.5 block">Pessoa</label>
               <RadioGroup value={form.pessoa_tipo} onValueChange={(v) => setForm({ ...form, pessoa_tipo: v as "pj" | "pf" })} className="flex gap-4">
