@@ -7,10 +7,11 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Lock } from "lucide-react";
+import { Lock, Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useEmpresa } from "@/hooks/useEmpresa";
 import { toast } from "sonner";
+import { SugestaoCategoriaModal } from "./SugestaoCategoriaModal";
 
 interface Props {
   open: boolean;
