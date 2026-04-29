@@ -494,6 +494,10 @@ export default function ExtratoBancario() {
     new Date(date + "T12:00:00").toLocaleDateString("pt-BR");
 
   const filteredTx = transactions.filter((tx) => {
+    // Filtro por categorização
+    if (categoryFilter === "sem-categoria" && tx.categoria_financeira_id) return false;
+    if (categoryFilter === "com-categoria" && !tx.categoria_financeira_id) return false;
+
     if (searchTerm === "") return true;
     const term = searchTerm.toLowerCase().trim();
     const termDigits = term.replace(/\D/g, "");
