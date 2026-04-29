@@ -7,10 +7,11 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Lock } from "lucide-react";
+import { Lock, Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useEmpresa } from "@/hooks/useEmpresa";
 import { toast } from "sonner";
+import { SugestaoCategoriaModal } from "./SugestaoCategoriaModal";
 
 interface Props {
   open: boolean;
@@ -37,6 +38,8 @@ export function PluggyTransactionEditDialog({ open, onOpenChange, transactionId,
   const [costCenterId, setCostCenterId] = useState<string | null>(null);
   const [paymentMethodId, setPaymentMethodId] = useState<string | null>(null);
   const [notes, setNotes] = useState("");
+  const [sugestaoOpen, setSugestaoOpen] = useState(false);
+  const [autoOfferedFor, setAutoOfferedFor] = useState<string | null>(null);
 
   // Load current values
   const { data: tx } = useQuery({
@@ -62,6 +65,17 @@ export function PluggyTransactionEditDialog({ open, onOpenChange, transactionId,
       setNotes(tx.notes ?? "");
     }
   }, [tx]);
+
+  // Auto-abre sugestão se transação não tem categoria (1x por abertura)
+  useEffect(() => {
+    if (open && tx && transactionId && readOnly?.description && autoOfferedFor !== transactionId) {
+      if (!tx.categoria_financeira_id) {
+        setSugestaoOpen(true);
+      }
+      setAutoOfferedFor(transactionId);
+    }
+    if (!open) setAutoOfferedFor(null);
+  }, [open, tx, transactionId, readOnly, autoOfferedFor]);
 
   const { data: categorias = [] } = useQuery({
     queryKey: ["categorias_financeiras_select", empresaId],
@@ -147,7 +161,21 @@ export function PluggyTransactionEditDialog({ open, onOpenChange, transactionId,
 
         <div className="space-y-4">
           <div>
-            <Label>Subcategoria (DRE)</Label>
+            <div className="flex items-center justify-between mb-1.5">
+              <Label>Subcategoria (DRE)</Label>
+              {readOnly?.description && (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  className="h-7 px-2 text-xs gap-1.5 text-primary hover:text-primary"
+                  onClick={() => setSugestaoOpen(true)}
+                >
+                  <Sparkles className="w-3 h-3" />
+                  Sugestão inteligente
+                </Button>
+              )}
+            </div>
             <Select value={categoriaId ?? "_none"} onValueChange={(v) => setCategoriaId(v === "_none" ? null : v)}>
               <SelectTrigger><SelectValue placeholder="Nenhuma" /></SelectTrigger>
               <SelectContent>
@@ -204,6 +232,20 @@ export function PluggyTransactionEditDialog({ open, onOpenChange, transactionId,
           </Button>
         </DialogFooter>
       </DialogContent>
+
+      {readOnly && (
+        <SugestaoCategoriaModal
+          open={sugestaoOpen}
+          onOpenChange={setSugestaoOpen}
+          description={readOnly.description ?? ""}
+          amount={readOnly.amount}
+          currentCategoriaId={categoriaId}
+          onApply={(catId) => {
+            setCategoriaId(catId);
+            setSugestaoOpen(false);
+          }}
+        />
+      )}
     </Dialog>
   );
 }

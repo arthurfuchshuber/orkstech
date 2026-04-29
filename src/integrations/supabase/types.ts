@@ -3353,6 +3353,17 @@ export type Database = {
       }
       is_super_admin: { Args: never; Returns: boolean }
       normalizar_texto_regra: { Args: { p_texto: string }; Returns: string }
+      preview_regra_dre: {
+        Args: {
+          p_aplicar_em: string
+          p_categoria_destino_id: string
+          p_condicao_logica: string
+          p_condicoes: Json
+          p_empresa_id: string
+          p_user_id: string
+        }
+        Returns: Json
+      }
       processar_automacoes: {
         Args: {
           p_contexto?: Json
@@ -3390,6 +3401,26 @@ export type Database = {
       seed_default_tipos_pagamento: {
         Args: { p_user_id: string }
         Returns: undefined
+      }
+      show_limit: { Args: never; Returns: number }
+      show_trgm: { Args: { "": string }; Returns: string[] }
+      sugerir_categorias_por_historico: {
+        Args: {
+          p_amount?: number
+          p_description: string
+          p_empresa_id: string
+          p_tipo?: string
+          p_user_id: string
+        }
+        Returns: {
+          categoria_financeira_id: string
+          categoria_nome: string
+          common_term: string
+          exact_count: number
+          match_count: number
+          sample_descriptions: string[]
+          similar_count: number
+        }[]
       }
       title_case_ptbr: { Args: { input: string }; Returns: string }
       unaccent: { Args: { "": string }; Returns: string }
