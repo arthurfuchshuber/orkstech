@@ -628,6 +628,8 @@ export default function ExtratoBancario() {
         </TabsContent>
         <TabsContent value="lista" className="space-y-6 mt-4">
 
+      <UncategorizedBanner inline onAction={() => { setCategoryFilter("sem-categoria"); setAllPeriod(true); }} />
+
       {/* Date range filter */}
       <Card className="p-4">
         <div className="flex flex-wrap items-center gap-3">
