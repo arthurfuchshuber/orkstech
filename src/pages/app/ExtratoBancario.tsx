@@ -996,6 +996,8 @@ export default function ExtratoBancario() {
               <SelectItem value="com-categoria">Com categoria</SelectItem>
             </SelectContent>
           </Select>
+        </div>
+      </Card>
 
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div className="flex items-center gap-3">
