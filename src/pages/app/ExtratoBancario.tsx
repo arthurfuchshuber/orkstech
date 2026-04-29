@@ -1,5 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { UncategorizedBanner } from "@/components/financas/UncategorizedBanner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useEmpresa } from "@/hooks/useEmpresa";
@@ -49,6 +51,7 @@ import {
   PiggyBank,
   ChevronDown,
   Plus,
+  Sparkles,
 } from "lucide-react";
 import { format, startOfMonth, endOfMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -173,10 +176,21 @@ export default function ExtratoBancario() {
   const { user } = useAuth();
   const { empresa } = useEmpresa();
   const queryClient = useQueryClient();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [selectedAccount, setSelectedAccount] = useState<string>("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [typeFilter, setTypeFilter] = useState<string>("all");
+  const [categoryFilter, setCategoryFilter] = useState<"all" | "sem-categoria" | "com-categoria">("all");
   const [allPeriod, setAllPeriod] = useState(false);
+
+  // Lê ?filtro=sem-categoria da URL e ativa o filtro + período "todo"
+  useEffect(() => {
+    const f = searchParams.get("filtro");
+    if (f === "sem-categoria") {
+      setCategoryFilter("sem-categoria");
+      setAllPeriod(true);
+    }
+  }, [searchParams]);
   const [cfModalOpen, setCfModalOpen] = useState(false);
   const [manualDialogOpen, setManualDialogOpen] = useState(false);
   const [editingManual, setEditingManual] = useState<any>(null);
@@ -481,6 +495,10 @@ export default function ExtratoBancario() {
     new Date(date + "T12:00:00").toLocaleDateString("pt-BR");
 
   const filteredTx = transactions.filter((tx) => {
+    // Filtro por categorização
+    if (categoryFilter === "sem-categoria" && tx.categoria_financeira_id) return false;
+    if (categoryFilter === "com-categoria" && !tx.categoria_financeira_id) return false;
+
     if (searchTerm === "") return true;
     const term = searchTerm.toLowerCase().trim();
     const termDigits = term.replace(/\D/g, "");
@@ -609,6 +627,8 @@ export default function ExtratoBancario() {
           <ImportsHistoryTargeted target="bank_statement" onDeleted={() => queryClient.invalidateQueries()} />
         </TabsContent>
         <TabsContent value="lista" className="space-y-6 mt-4">
+
+      <UncategorizedBanner inline onAction={() => { setCategoryFilter("sem-categoria"); setAllPeriod(true); }} />
 
       {/* Date range filter */}
       <Card className="p-4">
@@ -965,6 +985,18 @@ export default function ExtratoBancario() {
               <SelectItem value="all">Todos</SelectItem>
               <SelectItem value="CREDIT">Entradas</SelectItem>
               <SelectItem value="DEBIT">Saídas</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Select value={categoryFilter} onValueChange={(v) => setCategoryFilter(v as any)}>
+            <SelectTrigger className="w-full md:w-[180px]">
+              <Sparkles className="mr-2 h-3.5 w-3.5" />
+              <SelectValue placeholder="Categorização" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas categorizações</SelectItem>
+              <SelectItem value="sem-categoria">Sem categoria</SelectItem>
+              <SelectItem value="com-categoria">Com categoria</SelectItem>
             </SelectContent>
           </Select>
         </div>

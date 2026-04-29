@@ -3294,6 +3294,10 @@ export type Database = {
         Returns: string
       }
       cashflow_normalize_text: { Args: { p_text: string }; Returns: string }
+      contar_transacoes_sem_categoria: {
+        Args: { p_user_id: string }
+        Returns: number
+      }
       criar_lancamento_ajuste_fatura: {
         Args: { p_conta_id: string; p_delta: number; p_motivo?: string }
         Returns: Json
@@ -3353,6 +3357,10 @@ export type Database = {
       }
       is_super_admin: { Args: never; Returns: boolean }
       normalizar_texto_regra: { Args: { p_texto: string }; Returns: string }
+      notificar_transacoes_sem_categoria: {
+        Args: { p_user_id: string }
+        Returns: undefined
+      }
       preview_regra_dre: {
         Args: {
           p_aplicar_em: string
