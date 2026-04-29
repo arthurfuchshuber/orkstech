@@ -232,6 +232,20 @@ export function PluggyTransactionEditDialog({ open, onOpenChange, transactionId,
           </Button>
         </DialogFooter>
       </DialogContent>
+
+      {readOnly && (
+        <SugestaoCategoriaModal
+          open={sugestaoOpen}
+          onOpenChange={setSugestaoOpen}
+          description={readOnly.description ?? ""}
+          amount={readOnly.amount}
+          currentCategoriaId={categoriaId}
+          onApply={(catId) => {
+            setCategoriaId(catId);
+            setSugestaoOpen(false);
+          }}
+        />
+      )}
     </Dialog>
   );
 }
