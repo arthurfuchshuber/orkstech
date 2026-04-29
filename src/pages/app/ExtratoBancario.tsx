@@ -1,5 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { UncategorizedBanner } from "@/components/financas/UncategorizedBanner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useEmpresa } from "@/hooks/useEmpresa";
@@ -173,10 +175,21 @@ export default function ExtratoBancario() {
   const { user } = useAuth();
   const { empresa } = useEmpresa();
   const queryClient = useQueryClient();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [selectedAccount, setSelectedAccount] = useState<string>("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [typeFilter, setTypeFilter] = useState<string>("all");
+  const [categoryFilter, setCategoryFilter] = useState<"all" | "sem-categoria" | "com-categoria">("all");
   const [allPeriod, setAllPeriod] = useState(false);
+
+  // Lê ?filtro=sem-categoria da URL e ativa o filtro + período "todo"
+  useEffect(() => {
+    const f = searchParams.get("filtro");
+    if (f === "sem-categoria") {
+      setCategoryFilter("sem-categoria");
+      setAllPeriod(true);
+    }
+  }, [searchParams]);
   const [cfModalOpen, setCfModalOpen] = useState(false);
   const [manualDialogOpen, setManualDialogOpen] = useState(false);
   const [editingManual, setEditingManual] = useState<any>(null);
