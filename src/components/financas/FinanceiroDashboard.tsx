@@ -28,6 +28,7 @@ import { CaixaCharts } from "./caixa/CaixaCharts";
 import { MonthFlowDetailModal, type MonthFlowItem } from "./caixa/MonthFlowDetailModal";
 import { useOrfaosFinanceiros } from "@/hooks/useOrfaosFinanceiros";
 import { RealocarOrfaosDialog } from "./RealocarOrfaosDialog";
+import { UncategorizedBanner } from "./UncategorizedBanner";
 import { TransferenciaContasDialog } from "./TransferenciaContasDialog";
 import { VincularCardFinanceiroDialog, type CardVinculoTipo } from "./VincularCardFinanceiroDialog";
 import { Button } from "@/components/ui/button";
@@ -845,6 +846,9 @@ export default function FinanceiroDashboard() {
             </span>
           </button>
         )}
+
+        {/* Banner de transações sem categorização DRE */}
+        <UncategorizedBanner />
 
         {/* Banner de valores órfãos / vínculos faltando */}
         {orfaos?.temOrfaos && (() => {
