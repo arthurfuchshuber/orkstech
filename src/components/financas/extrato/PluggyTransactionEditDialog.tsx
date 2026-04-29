@@ -161,7 +161,21 @@ export function PluggyTransactionEditDialog({ open, onOpenChange, transactionId,
 
         <div className="space-y-4">
           <div>
-            <Label>Subcategoria (DRE)</Label>
+            <div className="flex items-center justify-between mb-1.5">
+              <Label>Subcategoria (DRE)</Label>
+              {readOnly?.description && (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  className="h-7 px-2 text-xs gap-1.5 text-primary hover:text-primary"
+                  onClick={() => setSugestaoOpen(true)}
+                >
+                  <Sparkles className="w-3 h-3" />
+                  Sugestão inteligente
+                </Button>
+              )}
+            </div>
             <Select value={categoriaId ?? "_none"} onValueChange={(v) => setCategoriaId(v === "_none" ? null : v)}>
               <SelectTrigger><SelectValue placeholder="Nenhuma" /></SelectTrigger>
               <SelectContent>
