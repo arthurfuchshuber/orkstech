@@ -38,6 +38,8 @@ export function PluggyTransactionEditDialog({ open, onOpenChange, transactionId,
   const [costCenterId, setCostCenterId] = useState<string | null>(null);
   const [paymentMethodId, setPaymentMethodId] = useState<string | null>(null);
   const [notes, setNotes] = useState("");
+  const [sugestaoOpen, setSugestaoOpen] = useState(false);
+  const [autoOfferedFor, setAutoOfferedFor] = useState<string | null>(null);
 
   // Load current values
   const { data: tx } = useQuery({
