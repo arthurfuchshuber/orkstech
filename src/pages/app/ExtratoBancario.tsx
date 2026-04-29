@@ -984,8 +984,18 @@ export default function ExtratoBancario() {
               <SelectItem value="DEBIT">Saídas</SelectItem>
             </SelectContent>
           </Select>
-        </div>
-      </Card>
+
+          <Select value={categoryFilter} onValueChange={(v) => setCategoryFilter(v as any)}>
+            <SelectTrigger className="w-full md:w-[180px]">
+              <Sparkles className="mr-2 h-3.5 w-3.5" />
+              <SelectValue placeholder="Categorização" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas categorizações</SelectItem>
+              <SelectItem value="sem-categoria">Sem categoria</SelectItem>
+              <SelectItem value="com-categoria">Com categoria</SelectItem>
+            </SelectContent>
+          </Select>
 
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div className="flex items-center gap-3">
