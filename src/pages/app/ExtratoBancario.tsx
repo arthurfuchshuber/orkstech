@@ -51,6 +51,7 @@ import {
   PiggyBank,
   ChevronDown,
   Plus,
+  Sparkles,
 } from "lucide-react";
 import { format, startOfMonth, endOfMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
