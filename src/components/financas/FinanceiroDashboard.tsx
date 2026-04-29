@@ -94,10 +94,10 @@ export default function FinanceiroDashboard() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("pluggy_connections" as any)
-        .select("pluggy_item_id, connector_name, connector_id, last_sync_at, status")
+        .select("pluggy_item_id, connector_name, last_sync_at, status")
         .eq("user_id", targetUserId!);
       if (error) throw error;
-      return data as unknown as { pluggy_item_id: string; connector_name: string | null; connector_id: number | null; last_sync_at: string | null; status: string | null }[];
+      return data as unknown as { pluggy_item_id: string; connector_name: string | null; last_sync_at: string | null; status: string | null }[];
     },
     enabled: !!user && !!targetUserId,
   });
@@ -144,7 +144,7 @@ export default function FinanceiroDashboard() {
       const fromDate = format(startOfMonth(subMonths(new Date(), 5)), "yyyy-MM-dd");
       let q = supabase
         .from("cash_transactions")
-        .select("id, amount, type, transaction_date, bank_account_id, is_internal_transfer, description, category")
+        .select("id, amount, type, transaction_date, bank_account_id, is_internal_transfer, description, categoria_financeira_id")
         .gte("transaction_date", fromDate);
       if (empresaId) q = q.eq("empresa_id", empresaId);
       else q = q.eq("user_id", targetUserId!);
@@ -333,9 +333,11 @@ export default function FinanceiroDashboard() {
     return conn?.connector_name || "Conta";
   };
 
+  // Identificador do conector usado apenas para agrupar contas do mesmo banco
+  // Como connector_id não está mais no schema, usamos connector_name normalizado
   const getConnectorId = (account: BankAccount) => {
     const conn = connections.find((c) => c.pluggy_item_id === account.pluggy_item_id);
-    return conn?.connector_id ?? null;
+    return conn?.connector_name ?? null;
   };
 
   const getAccountOwner = (account: BankAccount) => {
