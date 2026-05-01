@@ -571,15 +571,40 @@ export default function Landing() {
       </section>
 
       {/* Comparativo */}
-      <section className="py-24 border-t border-border/40">
-        <div className="max-w-5xl mx-auto px-6">
-          <div className="text-center mb-12 max-w-3xl mx-auto">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4 text-foreground">
+      <section className="py-16 sm:py-24 border-t border-border/40">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6">
+          <div className="text-center mb-10 sm:mb-12 max-w-3xl mx-auto">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-4 text-foreground leading-tight">
               Por que migrar para o <span className="gradient-text">Orks?</span>
             </h2>
-            <p className="text-muted-foreground text-lg">Compare e veja a diferença em segundos.</p>
+            <p className="text-muted-foreground text-sm sm:text-lg">Compare e veja a diferença em segundos.</p>
           </div>
-          <div className="rounded-2xl overflow-hidden border border-border/50 bg-card">
+
+          {/* Mobile: cards stacked per row */}
+          <div className="md:hidden space-y-3">
+            {comparison.map((row) => (
+              <div key={row.feature} className="rounded-xl border border-border/50 bg-card p-4">
+                <div className="text-sm font-medium text-foreground mb-3">{row.feature}</div>
+                <div className="grid grid-cols-3 gap-2 text-center">
+                  <div className="flex flex-col items-center gap-1.5 p-2 rounded-lg bg-primary/5 border border-primary/20">
+                    <span className="text-[10px] uppercase tracking-wider text-primary font-semibold">Orks</span>
+                    {row.orks ? <Check className="w-4 h-4 text-success" /> : <X className="w-4 h-4 text-muted-foreground/40" />}
+                  </div>
+                  <div className="flex flex-col items-center gap-1.5 p-2 rounded-lg bg-background/40 border border-border/30">
+                    <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Planilhas</span>
+                    {row.sheets ? <Check className="w-4 h-4 text-muted-foreground" /> : <X className="w-4 h-4 text-muted-foreground/40" />}
+                  </div>
+                  <div className="flex flex-col items-center gap-1.5 p-2 rounded-lg bg-background/40 border border-border/30">
+                    <span className="text-[10px] uppercase tracking-wider text-muted-foreground">ERP</span>
+                    {row.generic ? <Check className="w-4 h-4 text-muted-foreground" /> : <X className="w-4 h-4 text-muted-foreground/40" />}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Desktop: full table */}
+          <div className="hidden md:block rounded-2xl overflow-hidden border border-border/50 bg-card">
             <div className="grid grid-cols-4 bg-card/80 border-b border-border/40">
               <div className="p-4 text-xs uppercase tracking-wider text-muted-foreground">Funcionalidade</div>
               <div className="p-4 text-center text-xs uppercase tracking-wider text-primary font-semibold">Orks</div>
@@ -605,17 +630,17 @@ export default function Landing() {
       </section>
 
       {/* Pricing */}
-      <section id="planos" className="py-24 border-t border-border/40 relative overflow-hidden">
+      <section id="planos" className="py-16 sm:py-24 border-t border-border/40 relative overflow-hidden">
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full bg-primary/[0.04] blur-3xl pointer-events-none" />
-        <div className="max-w-6xl mx-auto px-6 relative z-10">
-          <div className="text-center mb-12 max-w-3xl mx-auto">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-primary/20 bg-primary/5 text-xs text-primary mb-4">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 relative z-10">
+          <div className="text-center mb-10 sm:mb-12 max-w-3xl mx-auto">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-primary/20 bg-primary/5 text-[10px] sm:text-xs text-primary mb-4">
               <Sparkles className="w-3 h-3" /> PLANOS
             </div>
-            <h2 className="text-3xl md:text-5xl font-bold mb-4 text-foreground">
+            <h2 className="text-2xl sm:text-3xl md:text-5xl font-bold mb-4 text-foreground leading-tight">
               Escolha o plano <span className="gradient-text">ideal</span> para sua operação
             </h2>
-            <p className="text-muted-foreground text-lg">
+            <p className="text-muted-foreground text-sm sm:text-lg">
               Comece com 7 dias grátis em qualquer plano. Cancele quando quiser, sem multa.
             </p>
           </div>
@@ -624,19 +649,19 @@ export default function Landing() {
       </section>
 
       {/* FAQ */}
-      <section id="faq" className="py-24 border-t border-border/40">
-        <div className="max-w-3xl mx-auto px-6">
-          <div className="text-center mb-12">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-primary/20 bg-primary/5 text-xs text-primary mb-4">
+      <section id="faq" className="py-16 sm:py-24 border-t border-border/40">
+        <div className="max-w-3xl mx-auto px-4 sm:px-6">
+          <div className="text-center mb-10 sm:mb-12">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-primary/20 bg-primary/5 text-[10px] sm:text-xs text-primary mb-4">
               <HelpCircle className="w-3 h-3" /> FAQ
             </div>
-            <h2 className="text-3xl md:text-4xl font-bold mb-4 text-foreground">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-4 text-foreground leading-tight">
               Perguntas <span className="gradient-text">frequentes</span>
             </h2>
           </div>
           <Accordion type="single" collapsible className="space-y-3">
             {faqs.map((f, i) => (
-              <AccordionItem key={i} value={`item-${i}`} className="rounded-xl border border-border/50 bg-card/60 px-5 data-[state=open]:border-primary/30">
+              <AccordionItem key={i} value={`item-${i}`} className="rounded-xl border border-border/50 bg-card/60 px-4 sm:px-5 data-[state=open]:border-primary/30">
                 <AccordionTrigger className="text-left text-sm font-medium text-foreground hover:no-underline py-4">
                   {f.q}
                 </AccordionTrigger>
@@ -650,28 +675,28 @@ export default function Landing() {
       </section>
 
       {/* CTA Final */}
-      <section className="py-24 border-t border-border/40 relative overflow-hidden">
+      <section className="py-16 sm:py-24 border-t border-border/40 relative overflow-hidden">
         <div className="absolute inset-0" style={{ background: "var(--gradient-glow)" }} />
-        <div className="max-w-4xl mx-auto px-6 relative z-10">
-          <div className="p-10 md:p-14 rounded-3xl bg-gradient-to-br from-card via-card to-primary/[0.08] border border-primary/30 shadow-[0_40px_120px_-30px_hsl(217_100%_30%/0.5)] text-center">
-            <div className="w-20 h-20 mx-auto mb-6 drop-shadow-[0_10px_40px_hsl(var(--primary)/0.55)]">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 relative z-10">
+          <div className="p-7 sm:p-10 md:p-14 rounded-2xl sm:rounded-3xl bg-gradient-to-br from-card via-card to-primary/[0.08] border border-primary/30 shadow-[0_40px_120px_-30px_hsl(217_100%_30%/0.5)] text-center">
+            <div className="w-16 h-16 sm:w-20 sm:h-20 mx-auto mb-5 sm:mb-6 drop-shadow-[0_10px_40px_hsl(var(--primary)/0.55)]">
               <img src={orksLogo} alt="Orks" className="w-full h-full object-contain" />
             </div>
-            <h2 className="text-3xl md:text-5xl font-bold mb-4 text-foreground leading-tight">
+            <h2 className="text-2xl sm:text-3xl md:text-5xl font-bold mb-4 text-foreground leading-tight">
               Pronto para <span className="gradient-text">profissionalizar</span> sua operação?
             </h2>
-            <p className="text-muted-foreground mb-8 text-lg max-w-xl mx-auto">
+            <p className="text-muted-foreground mb-7 sm:mb-8 text-sm sm:text-lg max-w-xl mx-auto">
               Junte-se a empresas que já trocaram o caos por uma gestão 360º de verdade. 7 dias grátis, cancele quando quiser.
             </p>
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-              <Button size="lg" className="glow text-base px-10 h-12 w-full sm:w-auto" onClick={() => navigate("/register")}>
-                Começar agora <ArrowRight className="w-5 h-5 ml-2" />
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3">
+              <Button size="lg" className="glow text-sm sm:text-base px-6 sm:px-10 h-12 w-full sm:w-auto" onClick={() => navigate("/register")}>
+                Começar agora <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 ml-2" />
               </Button>
-              <Button size="lg" variant="outline" className="text-base px-8 h-12 border-border/60 w-full sm:w-auto" onClick={() => navigate("/login")}>
+              <Button size="lg" variant="outline" className="text-sm sm:text-base px-6 sm:px-8 h-12 border-border/60 w-full sm:w-auto" onClick={() => navigate("/login")}>
                 Falar com vendas
               </Button>
             </div>
-            <div className="flex items-center justify-center gap-6 mt-8 text-xs text-muted-foreground">
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-6 mt-7 sm:mt-8 text-[11px] sm:text-xs text-muted-foreground">
               <div className="flex items-center gap-1.5"><CheckCircle2 className="w-3.5 h-3.5 text-success" /> 7 dias grátis</div>
               <div className="flex items-center gap-1.5"><CheckCircle2 className="w-3.5 h-3.5 text-success" /> Cancele quando quiser</div>
               <div className="flex items-center gap-1.5"><CheckCircle2 className="w-3.5 h-3.5 text-success" /> Suporte em português</div>
@@ -681,18 +706,18 @@ export default function Landing() {
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-border/40 py-10 bg-card/20">
-        <div className="max-w-6xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-5">
+      <footer className="border-t border-border/40 py-8 sm:py-10 bg-card/20">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 flex flex-col md:flex-row items-center justify-between gap-5">
           <div className="flex items-center gap-3">
             <OrksWordmark size="text-xl" />
             <span className="text-[10px] text-muted-foreground tracking-[0.25em] uppercase border-l border-border/40 pl-3">Gestão 360º</span>
           </div>
-          <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs text-muted-foreground">
+          <div className="flex flex-wrap items-center justify-center gap-x-5 sm:gap-x-6 gap-y-2 text-[11px] sm:text-xs text-muted-foreground text-center">
             <a href="/termos" className="hover:text-foreground transition-colors">Termos de Uso</a>
             <a href="/privacidade" className="hover:text-foreground transition-colors">Privacidade</a>
             <a href="#planos" className="hover:text-foreground transition-colors">Planos</a>
             <a href="#faq" className="hover:text-foreground transition-colors">FAQ</a>
-            <span>© 2026 Orks · By Anfitrião Sigma</span>
+            <span className="w-full sm:w-auto">© 2026 Orks · By Anfitrião Sigma</span>
           </div>
         </div>
       </footer>
