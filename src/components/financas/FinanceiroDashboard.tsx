@@ -103,6 +103,26 @@ export default function FinanceiroDashboard() {
     enabled: !!user && !!targetUserId,
   });
 
+  // ── Pluggy investments (real source of truth) ──
+  const { data: pluggyInvestmentsTotal = 0 } = useQuery({
+    queryKey: ["pluggy_investments_total", targetUserId],
+    enabled: !!user && !!targetUserId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("pluggy_investments" as any)
+        .select("balance, amount_original, amount_profit, status")
+        .eq("user_id", targetUserId!);
+      if (error) throw error;
+      const rows = (data ?? []) as any[];
+      return rows
+        .filter((r) => (r.status ?? "ACTIVE") === "ACTIVE")
+        .reduce((sum, r) => {
+          const v = Number(r.amount_original ?? 0) + Number(r.amount_profit ?? 0);
+          return sum + (v > 0 ? v : Number(r.balance ?? 0));
+        }, 0);
+    },
+  });
+
   const { data: profileData } = useQuery({
     queryKey: ["profile_name", targetUserId],
     queryFn: async () => {
@@ -256,7 +276,11 @@ export default function FinanceiroDashboard() {
   };
 
   const totalPluggyBalance = bankAccounts.reduce((sum, a) => sum + a.balance, 0);
-  const totalPluggyInvestments = bankAccounts.reduce((sum, a) => sum + getStoredBalance(a), 0);
+  // Soma vinda diretamente da tabela pluggy_investments (fonte real),
+  // com fallback para bank_data.totalInvestments caso a tabela esteja vazia.
+  const totalPluggyInvestments = pluggyInvestmentsTotal > 0
+    ? pluggyInvestmentsTotal
+    : bankAccounts.reduce((sum, a) => sum + getStoredBalance(a), 0);
 
   // ── Derived data: Manual ──
   // Saldo atual de cada conta manual = saldo_inicial + saldo_sincronizado + saldo_ajuste_manual + (entradas - saídas)
