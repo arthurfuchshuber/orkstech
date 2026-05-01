@@ -430,7 +430,7 @@ export default function Landing() {
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
           <div className="text-center mb-10 sm:mb-14 max-w-3xl mx-auto">
             <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-4 text-foreground leading-tight">
-              Feito para <span className="gradient-text">prestadores de serviço</span> de todos os portes
+              Para <span className="gradient-text">prestadores de serviço</span> de todos os portes
             </h2>
           </div>
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
