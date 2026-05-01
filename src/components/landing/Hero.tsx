@@ -22,9 +22,9 @@ export const Hero = () => {
             </span>
           </div>
 
-          <h1 className="font-display text-[1.6rem] sm:text-5xl md:text-7xl font-bold tracking-tight leading-[1.2] sm:leading-[1.05] mb-5 sm:mb-6 text-foreground text-balance">
-            <span className="block">Toda a operação da sua empresa</span>
-            <span className="block gradient-text">em uma única tela.</span>
+          <h1 className="font-display text-[1.4rem] sm:text-5xl md:text-7xl font-bold tracking-tight leading-[1.2] sm:leading-[1.05] mb-5 sm:mb-6 text-foreground">
+            <span className="block whitespace-nowrap">Toda a operação da sua empresa</span>
+            <span className="block gradient-text whitespace-nowrap">em uma única tela.</span>
           </h1>
 
           <p className="text-base sm:text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-8 sm:mb-10 leading-relaxed px-2">
