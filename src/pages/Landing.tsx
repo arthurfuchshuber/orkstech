@@ -157,24 +157,6 @@ const useCases = [
   },
 ];
 
-const testimonials = [
-  {
-    quote: "Substituímos 4 ferramentas (planilha, ERP simples, sistema de cobrança e drive) por uma só. Economia clara e time muito mais produtivo.",
-    author: "Diretora Financeira",
-    role: "Escritório de Advocacia",
-  },
-  {
-    quote: "O scanner de boletos por IA sozinho já paga o plano. Em 30 segundos lanço o que antes levava 5 minutos.",
-    author: "Sócio Administrador",
-    role: "Consultoria de TI",
-  },
-  {
-    quote: "Finalmente vejo o fluxo de caixa em tempo real, sem depender do contador me mandar planilha no fim do mês.",
-    author: "CEO",
-    role: "Agência Digital",
-  },
-];
-
 const comparison = [
   { feature: "Dashboard financeiro 360º em tempo real", orks: true, sheets: false, generic: false },
   { feature: "Open Finance (sync bancário)", orks: true, sheets: false, generic: true },
