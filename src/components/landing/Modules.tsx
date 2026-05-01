@@ -53,7 +53,7 @@ export const Modules = () => {
               <div className="text-xs uppercase tracking-[0.2em] text-foreground mb-3">
                 01 — Financeiro inteligente
               </div>
-              <h3 className="font-display text-2xl md:text-4xl font-bold leading-tight text-balance">
+              <h3 className="font-display text-xl sm:text-2xl md:text-4xl font-bold leading-tight text-balance">
                 Seu dinheiro, <span className="gradient-text">sob controle total.</span>
               </h3>
               <p className="mt-4 text-muted-foreground">
@@ -88,7 +88,7 @@ export const Modules = () => {
               <div className="text-xs uppercase tracking-[0.2em] text-foreground mb-3">
                 02 — Operação 360º
               </div>
-              <h3 className="font-display text-2xl md:text-4xl font-bold leading-tight text-balance">
+              <h3 className="font-display text-xl sm:text-2xl md:text-4xl font-bold leading-tight text-balance">
                 Cliente, contrato e operação{" "}
                 <span className="gradient-text">conversando entre si.</span>
               </h3>
