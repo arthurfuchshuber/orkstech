@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 120" fill="none">
+  <style>
+    .l { font-family: 'Eurostile', 'Bank Gothic', 'Orbitron', 'Arial Black', sans-serif;
+         font-weight: 800; font-size: 96px; letter-spacing: 4px;
+         font-stretch: expanded; }
+  </style>
+  <text x="240" y="92" text-anchor="middle" class="l">
+    <tspan fill="#FFFFFF">OR</tspan><tspan fill="#2563EB">K</tspan><tspan fill="#FFFFFF">S</tspan>
+  </text>
+</svg>
