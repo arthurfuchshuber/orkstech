@@ -16,8 +16,6 @@ import {
   PieChart,
   Workflow,
   Database,
-  MessageSquare,
-  Star,
   HelpCircle,
   X,
   Check,
@@ -156,24 +154,6 @@ const useCases = [
     persona: "PMEs em Crescimento",
     description: "Startups e empresas em escala que precisam profissionalizar.",
     benefits: ["Multi-empresa nativo", "Open Finance + DRE", "Permissões por equipe"],
-  },
-];
-
-const testimonials = [
-  {
-    quote: "Substituímos 4 ferramentas (planilha, ERP simples, sistema de cobrança e drive) por uma só. Economia clara e time muito mais produtivo.",
-    author: "Diretora Financeira",
-    role: "Escritório de Advocacia",
-  },
-  {
-    quote: "O scanner de boletos por IA sozinho já paga o plano. Em 30 segundos lanço o que antes levava 5 minutos.",
-    author: "Sócio Administrador",
-    role: "Consultoria de TI",
-  },
-  {
-    quote: "Finalmente vejo o fluxo de caixa em tempo real, sem depender do contador me mandar planilha no fim do mês.",
-    author: "CEO",
-    role: "Agência Digital",
   },
 ];
 
@@ -357,56 +337,27 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* Dores resolvidas — Financeiro */}
+      {/* Dores resolvidas — bloco único */}
       <section id="dores" className="py-16 sm:py-24">
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
-          <div className="text-center mb-10 sm:mb-16 max-w-3xl mx-auto">
+          <div className="text-center mb-10 sm:mb-14 max-w-3xl mx-auto">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-destructive/20 bg-destructive/5 text-[10px] sm:text-xs text-destructive mb-4">
               <AlertTriangle className="w-3 h-3" /> DORES QUE O ORKS RESOLVE
             </div>
             <h2 className="text-2xl sm:text-3xl md:text-5xl font-bold mb-4 text-foreground leading-tight">
-              Sua área financeira <span className="gradient-text">não precisa ser um caos.</span>
+              Do caos das planilhas à <span className="gradient-text">operação sob controle.</span>
             </h2>
             <p className="text-muted-foreground text-sm sm:text-lg">
-              Substituímos planilhas frágeis, ERPs caros e processos manuais por uma plataforma única, automatizada e inteligente.
-            </p>
-          </div>
-
-          <div className="grid sm:grid-cols-2 gap-4 sm:gap-5 mb-14 sm:mb-20">
-            {financePains.map((p) => (
-              <div key={p.pain} className="group p-5 sm:p-6 rounded-2xl bg-gradient-to-br from-card to-card/40 border border-border/50 hover:border-primary/40 transition-all">
-                <div className="flex items-start gap-3 sm:gap-4">
-                  <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-destructive/10 border border-destructive/20 flex items-center justify-center flex-shrink-0">
-                    <p.icon className="w-4 h-4 sm:w-5 sm:h-5 text-destructive" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm text-muted-foreground line-through mb-2">{p.pain}</p>
-                    <div className="flex items-start gap-2">
-                      <CheckCircle2 className="w-4 h-4 text-success flex-shrink-0 mt-0.5" />
-                      <p className="text-sm text-foreground leading-relaxed">{p.solution}</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Integração de dados */}
-          <div className="text-center mb-10 sm:mb-12 max-w-3xl mx-auto">
-            <h2 className="text-2xl sm:text-3xl md:text-5xl font-bold mb-4 text-foreground leading-tight">
-              Cliente, jurídico e financeiro <span className="gradient-text">finalmente conversam.</span>
-            </h2>
-            <p className="text-muted-foreground text-sm sm:text-lg">
-              Um só histórico, uma só verdade. Tudo conectado — do contrato à última fatura paga.
+              Financeiro, clientes e jurídico em uma só plataforma — automatizada, inteligente e sem retrabalho.
             </p>
           </div>
 
           <div className="grid sm:grid-cols-2 gap-4 sm:gap-5">
-            {integrationPains.map((p) => (
+            {[...financePains, ...integrationPains].map((p, idx) => (
               <div key={p.pain} className="group p-5 sm:p-6 rounded-2xl bg-gradient-to-br from-card to-card/40 border border-border/50 hover:border-primary/40 transition-all">
                 <div className="flex items-start gap-3 sm:gap-4">
-                  <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center flex-shrink-0">
-                    <p.icon className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
+                  <div className={`w-10 h-10 sm:w-11 sm:h-11 rounded-xl flex items-center justify-center flex-shrink-0 ${idx < financePains.length ? "bg-destructive/10 border border-destructive/20" : "bg-primary/10 border border-primary/20"}`}>
+                    <p.icon className={`w-4 h-4 sm:w-5 sm:h-5 ${idx < financePains.length ? "text-destructive" : "text-primary"}`} />
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm text-muted-foreground line-through mb-2">{p.pain}</p>
@@ -459,7 +410,7 @@ export default function Landing() {
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
           <div className="text-center mb-10 sm:mb-14 max-w-3xl mx-auto">
             <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-4 text-foreground leading-tight">
-              Feito para <span className="gradient-text">prestadores de serviço</span> de todos os portes
+              Para <span className="gradient-text">prestadores de serviço</span> de todos os portes
             </h2>
           </div>
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
@@ -475,95 +426,6 @@ export default function Landing() {
                     </li>
                   ))}
                 </ul>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Depoimentos */}
-      <section className="py-16 sm:py-24 border-t border-border/40 bg-card/20">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6">
-          <div className="text-center mb-10 sm:mb-14 max-w-3xl mx-auto">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-warning/20 bg-warning/5 text-[10px] sm:text-xs text-warning mb-4">
-              <Star className="w-3 h-3 fill-current" /> DEPOIMENTOS
-            </div>
-            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-4 text-foreground leading-tight">
-              Quem usa, <span className="gradient-text">recomenda.</span>
-            </h2>
-          </div>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
-            {testimonials.map((t, i) => (
-              <div key={i} className="p-5 sm:p-6 rounded-2xl bg-card border border-border/50 flex flex-col">
-                <div className="flex gap-0.5 mb-4">
-                  {[...Array(5)].map((_, j) => (
-                    <Star key={j} className="w-4 h-4 fill-warning text-warning" />
-                  ))}
-                </div>
-                <MessageSquare className="w-5 h-5 text-primary/40 mb-3" />
-                <p className="text-sm text-foreground/90 leading-relaxed mb-5 flex-1">"{t.quote}"</p>
-                <div className="pt-4 border-t border-border/40">
-                  <div className="text-sm font-semibold text-foreground">{t.author}</div>
-                  <div className="text-xs text-muted-foreground">{t.role}</div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Casos de uso */}
-      <section className="py-24 border-t border-border/40">
-        <div className="max-w-6xl mx-auto px-6">
-          <div className="text-center mb-14 max-w-3xl mx-auto">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4 text-foreground">
-              Feito para <span className="gradient-text">prestadores de serviço</span> de todos os portes
-            </h2>
-          </div>
-          <div className="grid md:grid-cols-3 gap-5">
-            {useCases.map((u) => (
-              <div key={u.persona} className="p-7 rounded-2xl bg-gradient-to-br from-card to-card/30 border border-border/50">
-                <h3 className="text-lg font-semibold text-foreground mb-1">{u.persona}</h3>
-                <p className="text-sm text-muted-foreground mb-5">{u.description}</p>
-                <ul className="space-y-2.5">
-                  {u.benefits.map((b) => (
-                    <li key={b} className="flex items-start gap-2 text-sm text-foreground/90">
-                      <CheckCircle2 className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />
-                      {b}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Depoimentos */}
-      <section className="py-24 border-t border-border/40 bg-card/20">
-        <div className="max-w-6xl mx-auto px-6">
-          <div className="text-center mb-14 max-w-3xl mx-auto">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-warning/20 bg-warning/5 text-xs text-warning mb-4">
-              <Star className="w-3 h-3 fill-current" /> DEPOIMENTOS
-            </div>
-            <h2 className="text-3xl md:text-4xl font-bold mb-4 text-foreground">
-              Quem usa, <span className="gradient-text">recomenda.</span>
-            </h2>
-          </div>
-          <div className="grid md:grid-cols-3 gap-5">
-            {testimonials.map((t, i) => (
-              <div key={i} className="p-6 rounded-2xl bg-card border border-border/50 flex flex-col">
-                <div className="flex gap-0.5 mb-4">
-                  {[...Array(5)].map((_, j) => (
-                    <Star key={j} className="w-4 h-4 fill-warning text-warning" />
-                  ))}
-                </div>
-                <MessageSquare className="w-5 h-5 text-primary/40 mb-3" />
-                <p className="text-sm text-foreground/90 leading-relaxed mb-5 flex-1">"{t.quote}"</p>
-                <div className="pt-4 border-t border-border/40">
-                  <div className="text-sm font-semibold text-foreground">{t.author}</div>
-                  <div className="text-xs text-muted-foreground">{t.role}</div>
-                </div>
               </div>
             ))}
           </div>
