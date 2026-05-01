@@ -166,9 +166,10 @@ serve(async (req) => {
         .from("profiles")
         .select("user_id, nome, cpf, telefone, data_nascimento, nivel_permissao_id, ativo, empresa_id");
 
-      // Filter by empresa (unless Super Admin viewing all)
-      // Also include the empresa owner (user_id on empresas table) who may not have empresa_id on their profile
+      // Owner + members of the empresa
       let empresaOwnerId: string | null = null;
+      let memberUserIds: string[] = [];
+      const memberLevelByUser = new Map<string, string>();
       if (requestEmpresaId) {
         const { data: empresaData } = await supabaseAdmin
           .from("empresas")
@@ -176,15 +177,35 @@ serve(async (req) => {
           .eq("id", requestEmpresaId)
           .single();
         empresaOwnerId = empresaData?.user_id ?? null;
+
+        const { data: membros } = await supabaseAdmin
+          .from("empresa_membros")
+          .select("user_id, nivel_permissao_id")
+          .eq("empresa_id", requestEmpresaId)
+          .eq("ativo", true);
+        for (const m of membros ?? []) {
+          memberUserIds.push(m.user_id);
+          if (m.nivel_permissao_id) memberLevelByUser.set(m.user_id, m.nivel_permissao_id);
+        }
       }
 
       let filteredProfiles = isSuperAdmin && !body.empresa_id
         ? profiles
         : (profiles ?? []).filter((p: any) => {
             if (!requestEmpresaId) return false;
-            // Match by empresa_id on profile OR by being the empresa owner
-            return p.empresa_id === requestEmpresaId || p.user_id === empresaOwnerId;
+            // Match by empresa_membros OR empresa owner OR legacy profile empresa_id
+            return (
+              memberUserIds.includes(p.user_id) ||
+              p.user_id === empresaOwnerId ||
+              p.empresa_id === requestEmpresaId
+            );
           });
+
+      // Override nivel_permissao_id with the per-empresa one when available
+      filteredProfiles = (filteredProfiles ?? []).map((p: any) => {
+        const perEmpresaLevel = memberLevelByUser.get(p.user_id);
+        return perEmpresaLevel ? { ...p, nivel_permissao_id: perEmpresaLevel } : p;
+      });
 
       // Always hide Super Admin users from non-super-admin views
       if (!isSuperAdmin && superAdminLevel?.id) {
