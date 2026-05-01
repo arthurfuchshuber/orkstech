@@ -491,6 +491,7 @@ export default function FinanceiroDashboard() {
     totalCreditAvailable,
     totalCreditBills,
     totalOverdraftAvailable,
+    pluggyInvestmentsTotal,
   ]);
 
   // Helper: identifica transação de investimento (movimentação interna conta↔aplicação)
