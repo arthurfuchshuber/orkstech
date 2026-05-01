@@ -19,11 +19,11 @@ export const FinalCTA = () => {
               7 dias grátis · cancele quando quiser
             </div>
 
-            <h2 className="font-display text-3xl md:text-6xl font-bold tracking-tight text-foreground leading-[1.05]">
+            <h2 className="font-display text-3xl md:text-6xl font-bold tracking-tight text-foreground leading-[1.1] text-balance">
               Sua operação pode estar{" "}
               <span className="gradient-text italic">rendendo mais.</span>
             </h2>
-            <p className="mt-6 text-base md:text-lg text-muted-foreground max-w-xl mx-auto">
+            <p className="mt-6 text-base md:text-lg text-muted-foreground max-w-xl mx-auto text-pretty">
               Comece em menos de 5 minutos. Conecte seu banco, importe sua planilha e veja sua empresa em uma única tela.
             </p>
 

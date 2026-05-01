@@ -274,3 +274,7 @@ html { scroll-behavior: smooth; }
   scrollbar-width: thin;
   scrollbar-color: hsl(var(--muted-foreground) / 0.25) transparent;
 }
+
+/* Headline wrap helpers — keep titles in clean, balanced lines */
+.text-balance { text-wrap: balance; }
+.text-pretty { text-wrap: pretty; }

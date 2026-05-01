@@ -29,15 +29,13 @@ export const PainSolution = () => {
   return (
     <section id="dores" className="py-20 md:py-28 relative">
       <div className="max-w-6xl mx-auto px-4 sm:px-6">
-        <div className="max-w-2xl mx-auto text-center mb-12 reveal">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-destructive/20 bg-destructive/5 text-[11px] text-destructive mb-4">
+        <div className="max-w-3xl mx-auto text-center mb-12 reveal">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-destructive/20 bg-destructive/5 text-[11px] text-destructive mb-4 whitespace-nowrap">
             <AlertTriangle className="w-3 h-3" /> DORES QUE O ORKS RESOLVE
           </div>
-          <h2 className="font-display text-3xl md:text-5xl font-bold tracking-tight">
+          <h2 className="font-display text-3xl md:text-5xl font-bold tracking-tight text-balance leading-[1.15]">
             Está cansado de gerir tudo no{" "}
-            <span className="text-muted-foreground line-through decoration-destructive/60">
-              improviso?
-            </span>
+            <span className="text-muted-foreground line-through decoration-destructive/60">improviso?</span>
           </h2>
           <p className="mt-5 text-muted-foreground text-base md:text-lg">
             Existe um caminho mais profissional, mais previsível e livre de retrabalho.

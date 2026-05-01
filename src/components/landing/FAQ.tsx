@@ -40,7 +40,7 @@ export const FAQ = () => {
           <div className="inline-flex items-center gap-2 glass rounded-full px-4 py-1.5 text-xs font-medium text-muted-foreground mb-5">
             Perguntas frequentes
           </div>
-          <h2 className="font-display text-3xl md:text-5xl font-bold tracking-tight">
+          <h2 className="font-display text-2xl sm:text-3xl md:text-5xl font-bold tracking-tight whitespace-nowrap">
             Tudo que você precisa saber.
           </h2>
         </div>
