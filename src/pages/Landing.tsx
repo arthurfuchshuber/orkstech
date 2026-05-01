@@ -17,7 +17,6 @@ import {
   Workflow,
   Database,
   HelpCircle,
-  HelpCircle,
   X,
   Check,
 } from "lucide-react";
