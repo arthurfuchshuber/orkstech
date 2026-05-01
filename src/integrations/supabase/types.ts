@@ -1639,6 +1639,54 @@ export type Database = {
           },
         ]
       }
+      empresa_membros: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          empresa_id: string
+          id: string
+          invited_by: string | null
+          nivel_permissao_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          empresa_id: string
+          id?: string
+          invited_by?: string | null
+          nivel_permissao_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          empresa_id?: string
+          id?: string
+          invited_by?: string | null
+          nivel_permissao_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "empresa_membros_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "empresa_membros_nivel_permissao_id_fkey"
+            columns: ["nivel_permissao_id"]
+            isOneToOne: false
+            referencedRelation: "niveis_permissao"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       empresa_socios: {
         Row: {
           administrador: boolean
@@ -3432,6 +3480,11 @@ export type Database = {
       }
       title_case_ptbr: { Args: { input: string }; Returns: string }
       unaccent: { Args: { "": string }; Returns: string }
+      user_is_super_admin: { Args: { _uid: string }; Returns: boolean }
+      user_owns_empresa: {
+        Args: { _empresa_id: string; _uid: string }
+        Returns: boolean
+      }
     }
     Enums: {
       cash_transaction_type: "income" | "expense"
