@@ -251,70 +251,70 @@ export default function Landing() {
       </nav>
 
       {/* Hero */}
-      <section className="relative pt-36 pb-24 overflow-hidden">
+      <section className="relative pt-28 sm:pt-36 pb-16 sm:pb-24 overflow-hidden">
         <div className="absolute inset-0" style={{ background: "var(--gradient-hero)" }} />
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[900px] h-[900px] rounded-full bg-primary/[0.04] blur-3xl pointer-events-none" />
-        <div className="max-w-6xl mx-auto px-6 relative z-10">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 relative z-10">
           <div className="text-center max-w-4xl mx-auto animate-slide-up">
-            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-primary/30 bg-primary/[0.08] text-xs text-primary mb-8 backdrop-blur-sm">
-              <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
-              <span className="font-medium tracking-wide">PLATAFORMA DE GESTÃO 360º — FINANCEIRO + CLIENTES + JURÍDICO</span>
+            <div className="inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 rounded-full border border-primary/30 bg-primary/[0.08] text-[10px] sm:text-xs text-primary mb-6 sm:mb-8 backdrop-blur-sm max-w-full">
+              <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse flex-shrink-0" />
+              <span className="font-medium tracking-wide truncate">GESTÃO 360º — FINANCEIRO + CLIENTES + JURÍDICO</span>
             </div>
-            <h1 className="text-5xl md:text-7xl font-bold tracking-tight leading-[1.05] mb-6 text-foreground">
+            <h1 className="text-[2.25rem] leading-[1.1] sm:text-5xl md:text-7xl font-bold tracking-tight md:leading-[1.05] mb-5 sm:mb-6 text-foreground">
               Toda a operação da sua empresa
-              <br />
-              <span className="gradient-text">em uma única tela.</span>
+              <br className="hidden sm:block" />
+              <span className="gradient-text"> em uma única tela.</span>
             </h1>
-            <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-10 leading-relaxed">
+            <p className="text-base sm:text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-8 sm:mb-10 leading-relaxed px-2">
               Financeiro, clientes, contratos e operação integrados. Pare de pular entre planilhas, sistemas e e-mails — o Orks unifica tudo com automação e IA.
             </p>
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-              <Button size="lg" className="glow text-base px-8 h-12 w-full sm:w-auto" onClick={() => navigate("/register")}>
-                Começar grátis por 7 dias <ArrowRight className="w-5 h-5 ml-2" />
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3">
+              <Button size="lg" className="glow text-sm sm:text-base px-6 sm:px-8 h-12 w-full sm:w-auto" onClick={() => navigate("/register")}>
+                Começar grátis por 7 dias <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 ml-2" />
               </Button>
-              <Button size="lg" variant="outline" className="text-base px-8 h-12 border-border/60 w-full sm:w-auto" onClick={() => navigate("/login")}>
-                Já sou cliente <ChevronRight className="w-5 h-5 ml-1" />
+              <Button size="lg" variant="outline" className="text-sm sm:text-base px-6 sm:px-8 h-12 border-border/60 w-full sm:w-auto" onClick={() => navigate("/login")}>
+                Já sou cliente <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 ml-1" />
               </Button>
             </div>
-            <p className="text-xs text-muted-foreground mt-5">7 dias grátis • Cancele quando quiser • Suporte em português</p>
+            <p className="text-[11px] sm:text-xs text-muted-foreground mt-5 px-2">7 dias grátis • Cancele quando quiser • Suporte em português</p>
           </div>
 
           {/* Hero mockup */}
-          <div className="mt-16 relative animate-fade-in">
+          <div className="mt-12 sm:mt-16 relative animate-fade-in">
             <div className="absolute -inset-x-20 -top-10 -bottom-10 bg-primary/5 blur-3xl pointer-events-none" />
-            <div className="relative rounded-2xl overflow-hidden border border-border/50 shadow-[0_40px_120px_-30px_hsl(217_100%_30%/0.6)] glass">
-              <div className="h-9 bg-card/80 border-b border-border/40 flex items-center gap-2 px-4">
-                <div className="w-2.5 h-2.5 rounded-full bg-destructive/60" />
-                <div className="w-2.5 h-2.5 rounded-full bg-warning/60" />
-                <div className="w-2.5 h-2.5 rounded-full bg-success/60" />
-                <div className="ml-3 text-[11px] text-muted-foreground">orks.com.br/app/financas/dashboard</div>
+            <div className="relative rounded-xl sm:rounded-2xl overflow-hidden border border-border/50 shadow-[0_40px_120px_-30px_hsl(217_100%_30%/0.6)] glass">
+              <div className="h-8 sm:h-9 bg-card/80 border-b border-border/40 flex items-center gap-2 px-3 sm:px-4">
+                <div className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-destructive/60" />
+                <div className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-warning/60" />
+                <div className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-success/60" />
+                <div className="ml-2 sm:ml-3 text-[9px] sm:text-[11px] text-muted-foreground truncate">orks.com.br/app/financas/dashboard</div>
               </div>
-              <div className="p-6 md:p-10 bg-gradient-to-br from-card to-background">
-                <div className="grid md:grid-cols-4 gap-3 mb-4">
+              <div className="p-3 sm:p-6 md:p-10 bg-gradient-to-br from-card to-background">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3 mb-3 sm:mb-4">
                   {[
                     { l: "Caixa total", v: "R$ 487.230", c: "text-success" },
                     { l: "A pagar", v: "R$ 92.140", c: "text-warning" },
                     { l: "A receber", v: "R$ 312.890", c: "text-primary" },
                     { l: "Resultado mês", v: "+18.4%", c: "text-success" },
                   ].map((k) => (
-                    <div key={k.l} className="p-4 rounded-lg bg-background/60 border border-border/40">
-                      <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">{k.l}</div>
-                      <div className={`text-xl font-bold ${k.c}`}>{k.v}</div>
+                    <div key={k.l} className="p-2.5 sm:p-4 rounded-lg bg-background/60 border border-border/40">
+                      <div className="text-[9px] sm:text-[10px] text-muted-foreground uppercase tracking-wider mb-1 truncate">{k.l}</div>
+                      <div className={`text-sm sm:text-xl font-bold ${k.c} truncate`}>{k.v}</div>
                     </div>
                   ))}
                 </div>
-                <div className="grid md:grid-cols-3 gap-3">
-                  <div className="md:col-span-2 h-44 rounded-lg bg-background/60 border border-border/40 p-4">
-                    <div className="text-xs text-muted-foreground mb-3">Fluxo de caixa — últimos 6 meses</div>
-                    <div className="flex items-end gap-2 h-28">
+                <div className="grid md:grid-cols-3 gap-2 sm:gap-3">
+                  <div className="md:col-span-2 h-32 sm:h-44 rounded-lg bg-background/60 border border-border/40 p-3 sm:p-4">
+                    <div className="text-[10px] sm:text-xs text-muted-foreground mb-2 sm:mb-3">Fluxo de caixa — últimos 6 meses</div>
+                    <div className="flex items-end gap-1.5 sm:gap-2 h-20 sm:h-28">
                       {[40, 65, 55, 80, 72, 95].map((h, i) => (
                         <div key={i} className="flex-1 rounded-t bg-gradient-to-t from-primary/40 to-primary" style={{ height: `${h}%` }} />
                       ))}
                     </div>
                   </div>
-                  <div className="h-44 rounded-lg bg-background/60 border border-border/40 p-4">
-                    <div className="text-xs text-muted-foreground mb-3">Top categorias DRE</div>
-                    <div className="space-y-2">
+                  <div className="h-auto sm:h-44 rounded-lg bg-background/60 border border-border/40 p-3 sm:p-4">
+                    <div className="text-[10px] sm:text-xs text-muted-foreground mb-2 sm:mb-3">Top categorias DRE</div>
+                    <div className="space-y-1.5 sm:space-y-2">
                       {[
                         { l: "Receita Serviços", v: 92 },
                         { l: "Despesas Op.", v: 64 },
@@ -322,7 +322,7 @@ export default function Landing() {
                         { l: "Impostos", v: 32 },
                       ].map((c) => (
                         <div key={c.l}>
-                          <div className="flex justify-between text-[10px] text-muted-foreground mb-0.5"><span>{c.l}</span><span>{c.v}%</span></div>
+                          <div className="flex justify-between text-[9px] sm:text-[10px] text-muted-foreground mb-0.5"><span className="truncate">{c.l}</span><span>{c.v}%</span></div>
                           <div className="h-1.5 rounded-full bg-muted overflow-hidden">
                             <div className="h-full rounded-full bg-primary" style={{ width: `${c.v}%` }} />
                           </div>
