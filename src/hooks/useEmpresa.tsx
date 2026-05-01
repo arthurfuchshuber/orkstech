@@ -95,7 +95,7 @@ export function EmpresaProvider({ children }: { children: ReactNode }) {
           .select("empresa_id")
           .eq("user_id", targetUserId)
           .eq("ativo", true);
-        const vinculos = (vinculosRaw ?? []) as Array<{ empresa_id: string }>;
+        const vinculos = (vinculosRaw ?? []) as unknown as Array<{ empresa_id: string }>;
         const memberIds = vinculos
           .map((v) => v.empresa_id)
           .filter((id) => !owned.some((e) => e.id === id));
