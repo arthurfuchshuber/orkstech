@@ -42,8 +42,8 @@ export const RoiCompare = () => {
             Comparativo de operação
           </div>
           <h2 className="font-display text-3xl md:text-5xl font-bold tracking-tight text-balance leading-[1.15]">
-            O que sua equipe leva <span className="gradient-text">uma semana</span>{" "}
-            para fechar, o Orks resolve em <span className="gradient-text">horas.</span>
+            <span className="block">O que sua equipe leva <span className="gradient-text">uma semana</span> para fechar,</span>
+            <span className="block">o Orks resolve em <span className="gradient-text">horas.</span></span>
           </h2>
           <p className="mt-5 text-muted-foreground text-base md:text-lg text-pretty">
             Compare lado a lado: rotina financeira em planilhas vs. operação no Orks.
