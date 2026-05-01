@@ -188,10 +188,13 @@ export default function Onboarding() {
     <div className="min-h-screen bg-background flex flex-col">
       <header className="h-14 flex items-center justify-between border-b border-border/30 px-6 bg-background/80 backdrop-blur-lg">
         <div className="flex items-center gap-2.5">
-          <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center">
-            <Zap className="w-3.5 h-3.5 text-primary-foreground" />
+          <div className="w-8 h-8 rounded-lg overflow-hidden ring-1 ring-border/40">
+            <img src={orksLogo} alt="Orks" className="w-full h-full object-cover" />
           </div>
-          <span className="text-sm font-semibold tracking-tight text-foreground">Orks</span>
+          <div className="flex flex-col leading-tight">
+            <span className="text-sm font-bold tracking-tight text-foreground">Orks</span>
+            <span className="text-[10px] text-muted-foreground tracking-wider uppercase">Gestão 360º</span>
+          </div>
         </div>
         <Button variant="ghost" size="sm" onClick={handleLogout} className="text-muted-foreground text-xs">
           Sair
