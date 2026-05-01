@@ -276,7 +276,11 @@ export default function FinanceiroDashboard() {
   };
 
   const totalPluggyBalance = bankAccounts.reduce((sum, a) => sum + a.balance, 0);
-  const totalPluggyInvestments = bankAccounts.reduce((sum, a) => sum + getStoredBalance(a), 0);
+  // Soma vinda diretamente da tabela pluggy_investments (fonte real),
+  // com fallback para bank_data.totalInvestments caso a tabela esteja vazia.
+  const totalPluggyInvestments = pluggyInvestmentsTotal > 0
+    ? pluggyInvestmentsTotal
+    : bankAccounts.reduce((sum, a) => sum + getStoredBalance(a), 0);
 
   // ── Derived data: Manual ──
   // Saldo atual de cada conta manual = saldo_inicial + saldo_sincronizado + saldo_ajuste_manual + (entradas - saídas)
