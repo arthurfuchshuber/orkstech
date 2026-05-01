@@ -87,26 +87,30 @@ export function EmpresaProvider({ children }: { children: ReactNode }) {
         .order("created_at", { ascending: true });
       const owned = (ownedRaw ?? []) as Empresa[];
 
-      // Empresa onde o usuário é MEMBRO (via profiles.empresa_id)
-      let memberEmpresa: Empresa | null = null;
+      // Empresas onde o usuário é MEMBRO (via empresa_membros — N:N)
+      let memberEmpresas: Empresa[] = [];
       try {
-        const { data: profileRow } = await supabase
-          .from("profiles")
+        const { data: vinculosRaw } = await supabase
+          .from("empresa_membros" as any)
           .select("empresa_id")
           .eq("user_id", targetUserId)
-          .maybeSingle();
-        const memberEmpresaId = profileRow?.empresa_id;
-        if (memberEmpresaId && !owned.some((e) => e.id === memberEmpresaId)) {
-          const { data: empRow } = await supabase
+          .eq("ativo", true);
+        const vinculos = (vinculosRaw ?? []) as Array<{ empresa_id: string }>;
+        const memberIds = vinculos
+          .map((v) => v.empresa_id)
+          .filter((id) => !owned.some((e) => e.id === id));
+
+        if (memberIds.length > 0) {
+          const { data: empresasRaw } = await supabase
             .from("empresas")
             .select("*")
-            .eq("id", memberEmpresaId)
-            .maybeSingle();
-          if (empRow) memberEmpresa = empRow as Empresa;
+            .in("id", memberIds)
+            .order("created_at", { ascending: true });
+          memberEmpresas = (empresasRaw ?? []) as Empresa[];
         }
       } catch {}
 
-      list = memberEmpresa ? [...owned, memberEmpresa] : owned;
+      list = [...owned, ...memberEmpresas];
     }
 
     setEmpresas(list);
