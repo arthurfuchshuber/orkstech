@@ -358,28 +358,28 @@ export default function Landing() {
       </section>
 
       {/* Dores resolvidas — Financeiro */}
-      <section id="dores" className="py-24">
-        <div className="max-w-6xl mx-auto px-6">
-          <div className="text-center mb-16 max-w-3xl mx-auto">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-destructive/20 bg-destructive/5 text-xs text-destructive mb-4">
+      <section id="dores" className="py-16 sm:py-24">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6">
+          <div className="text-center mb-10 sm:mb-16 max-w-3xl mx-auto">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-destructive/20 bg-destructive/5 text-[10px] sm:text-xs text-destructive mb-4">
               <AlertTriangle className="w-3 h-3" /> DORES QUE O ORKS RESOLVE
             </div>
-            <h2 className="text-3xl md:text-5xl font-bold mb-4 text-foreground">
+            <h2 className="text-2xl sm:text-3xl md:text-5xl font-bold mb-4 text-foreground leading-tight">
               Sua área financeira <span className="gradient-text">não precisa ser um caos.</span>
             </h2>
-            <p className="text-muted-foreground text-lg">
+            <p className="text-muted-foreground text-sm sm:text-lg">
               Substituímos planilhas frágeis, ERPs caros e processos manuais por uma plataforma única, automatizada e inteligente.
             </p>
           </div>
 
-          <div className="grid md:grid-cols-2 gap-5 mb-20">
+          <div className="grid sm:grid-cols-2 gap-4 sm:gap-5 mb-14 sm:mb-20">
             {financePains.map((p) => (
-              <div key={p.pain} className="group p-6 rounded-2xl bg-gradient-to-br from-card to-card/40 border border-border/50 hover:border-primary/40 transition-all">
-                <div className="flex items-start gap-4">
-                  <div className="w-11 h-11 rounded-xl bg-destructive/10 border border-destructive/20 flex items-center justify-center flex-shrink-0">
-                    <p.icon className="w-5 h-5 text-destructive" />
+              <div key={p.pain} className="group p-5 sm:p-6 rounded-2xl bg-gradient-to-br from-card to-card/40 border border-border/50 hover:border-primary/40 transition-all">
+                <div className="flex items-start gap-3 sm:gap-4">
+                  <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-destructive/10 border border-destructive/20 flex items-center justify-center flex-shrink-0">
+                    <p.icon className="w-4 h-4 sm:w-5 sm:h-5 text-destructive" />
                   </div>
-                  <div className="flex-1">
+                  <div className="flex-1 min-w-0">
                     <p className="text-sm text-muted-foreground line-through mb-2">{p.pain}</p>
                     <div className="flex items-start gap-2">
                       <CheckCircle2 className="w-4 h-4 text-success flex-shrink-0 mt-0.5" />
@@ -392,23 +392,23 @@ export default function Landing() {
           </div>
 
           {/* Integração de dados */}
-          <div className="text-center mb-12 max-w-3xl mx-auto">
-            <h2 className="text-3xl md:text-5xl font-bold mb-4 text-foreground">
+          <div className="text-center mb-10 sm:mb-12 max-w-3xl mx-auto">
+            <h2 className="text-2xl sm:text-3xl md:text-5xl font-bold mb-4 text-foreground leading-tight">
               Cliente, jurídico e financeiro <span className="gradient-text">finalmente conversam.</span>
             </h2>
-            <p className="text-muted-foreground text-lg">
+            <p className="text-muted-foreground text-sm sm:text-lg">
               Um só histórico, uma só verdade. Tudo conectado — do contrato à última fatura paga.
             </p>
           </div>
 
-          <div className="grid md:grid-cols-2 gap-5">
+          <div className="grid sm:grid-cols-2 gap-4 sm:gap-5">
             {integrationPains.map((p) => (
-              <div key={p.pain} className="group p-6 rounded-2xl bg-gradient-to-br from-card to-card/40 border border-border/50 hover:border-primary/40 transition-all">
-                <div className="flex items-start gap-4">
-                  <div className="w-11 h-11 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center flex-shrink-0">
-                    <p.icon className="w-5 h-5 text-primary" />
+              <div key={p.pain} className="group p-5 sm:p-6 rounded-2xl bg-gradient-to-br from-card to-card/40 border border-border/50 hover:border-primary/40 transition-all">
+                <div className="flex items-start gap-3 sm:gap-4">
+                  <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center flex-shrink-0">
+                    <p.icon className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
                   </div>
-                  <div className="flex-1">
+                  <div className="flex-1 min-w-0">
                     <p className="text-sm text-muted-foreground line-through mb-2">{p.pain}</p>
                     <div className="flex items-start gap-2">
                       <CheckCircle2 className="w-4 h-4 text-success flex-shrink-0 mt-0.5" />
