@@ -3391,6 +3391,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_empresa_member: { Args: { _empresa_id: string }; Returns: boolean }
       is_empresa_owner: {
         Args: { p_empresa_id: string; p_user_id: string }
         Returns: boolean
