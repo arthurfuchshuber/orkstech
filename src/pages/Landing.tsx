@@ -32,6 +32,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import orksLogo from "@/assets/orks-icon.png";
+import orksWordmark from "@/assets/orks-wordmark.png";
 
 // ──────────────────────────────────────────────────────────────────────────────
 // Content
@@ -226,15 +227,10 @@ export default function Landing() {
       {/* Nav */}
       <nav className="fixed top-0 left-0 right-0 z-50 backdrop-blur-2xl bg-background/70 border-b border-border/40">
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg overflow-hidden ring-1 ring-border/40">
-              <img src={orksLogo} alt="Orks" className="w-full h-full object-cover" />
-            </div>
-            <div className="flex flex-col leading-tight">
-              <span className="text-sm font-bold tracking-tight text-foreground">Orks</span>
-              <span className="text-[9px] text-muted-foreground tracking-[0.15em] uppercase">Gestão 360º</span>
-            </div>
-          </div>
+          <a href="#" className="flex items-center gap-2 group">
+            <img src={orksWordmark} alt="Orks" className="h-7 w-auto" />
+            <span className="hidden sm:inline text-[10px] text-muted-foreground tracking-[0.2em] uppercase border-l border-border/40 pl-2 ml-0.5">Gestão 360º</span>
+          </a>
           <div className="hidden md:flex items-center gap-7">
             <a href="#dores" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Dores resolvidas</a>
             <a href="#produto" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Produto</a>
@@ -627,14 +623,9 @@ export default function Landing() {
       {/* Footer */}
       <footer className="border-t border-border/40 py-10 bg-card/20">
         <div className="max-w-6xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-5">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg overflow-hidden ring-1 ring-border/40">
-              <img src={orksLogo} alt="Orks" className="w-full h-full object-cover" />
-            </div>
-            <div className="flex flex-col leading-tight">
-              <span className="text-sm font-bold text-foreground">Orks</span>
-              <span className="text-[9px] text-muted-foreground tracking-[0.15em] uppercase">Gestão 360º</span>
-            </div>
+          <div className="flex items-center gap-2">
+            <img src={orksWordmark} alt="Orks" className="h-6 w-auto" />
+            <span className="text-[10px] text-muted-foreground tracking-[0.2em] uppercase border-l border-border/40 pl-2 ml-0.5">Gestão 360º</span>
           </div>
           <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs text-muted-foreground">
             <a href="/termos" className="hover:text-foreground transition-colors">Termos de Uso</a>
