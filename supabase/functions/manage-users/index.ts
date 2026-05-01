@@ -385,6 +385,24 @@ serve(async (req) => {
         }
       }
 
+      // Update per-empresa role in empresa_membros (preferred source of truth)
+      const targetEmpresaIdForRole =
+        body.empresa_id ?? callerEmpresaId ?? (await getTargetEmpresaId(supabaseAdmin, parsed.data.user_id));
+      if (targetEmpresaIdForRole) {
+        await supabaseAdmin
+          .from("empresa_membros")
+          .upsert(
+            {
+              empresa_id: targetEmpresaIdForRole,
+              user_id: parsed.data.user_id,
+              nivel_permissao_id: parsed.data.nivel_permissao_id,
+              ativo: true,
+            },
+            { onConflict: "empresa_id,user_id" }
+          );
+      }
+
+      // Mantém profiles.nivel_permissao_id em sync (legado / Super Admin global)
       const { error } = await supabaseAdmin
         .from("profiles")
         .update({ nivel_permissao_id: parsed.data.nivel_permissao_id })
