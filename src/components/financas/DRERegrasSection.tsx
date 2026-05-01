@@ -410,6 +410,15 @@ interface RegraFormProps {
 }
 
 function RegraForm({ regra, setRegra, categorias, clientes, fornecedores, formasPag }: RegraFormProps) {
+  const qc = useQueryClient();
+  const catFinCrud = useManagedSelect("categorias_financeiras");
+  const [cfModalOpen, setCfModalOpen] = useState(false);
+  const [cfEditingId, setCfEditingId] = useState<string | null>(null);
+
+  // Tipo financeiro derivado da categoria selecionada (ou escolhido manualmente para filtrar)
+  const catSelecionada = categorias.find((c) => c.id === regra.categoria_destino_id);
+  const [tipoFiltro, setTipoFiltro] = useState<string>(catSelecionada?.tipo ?? "");
+
   const upd = (patch: Partial<Regra>) => setRegra({ ...regra, ...patch });
   const updCond = (i: number, patch: Partial<Condicao>) => {
     const next = [...(regra.condicoes ?? [])];
@@ -420,6 +429,12 @@ function RegraForm({ regra, setRegra, categorias, clientes, fornecedores, formas
   const removeCond = (i: number) => upd({ condicoes: (regra.condicoes ?? []).filter((_, idx) => idx !== i) });
 
   const nomeEntidade = (c: any) => c.nome_fantasia || c.razao_social || c.nome_completo || "—";
+
+  // Folhas (não pais) filtradas por tipo
+  const subcatOptions = categorias
+    .filter((c: any) => !tipoFiltro || c.tipo === tipoFiltro)
+    .filter((c: any) => !categorias.some((child: any) => child.categoria_pai_id === c.id))
+    .map((c: any) => ({ value: c.id, label: c.nome }));
 
   return (
     <div className="space-y-4 py-2">
@@ -524,24 +539,57 @@ function RegraForm({ regra, setRegra, categorias, clientes, fornecedores, formas
         </Button>
       </div>
 
-      <div className="space-y-1.5">
+      <div className="space-y-3 rounded-md border border-border/40 p-3">
         <Label className="text-xs font-semibold">ENTÃO classificar como</Label>
-        <Select value={regra.categoria_destino_id} onValueChange={(v) => upd({ categoria_destino_id: v })}>
-          <SelectTrigger className="h-9 text-sm"><SelectValue placeholder="Selecione a categoria de destino" /></SelectTrigger>
-          <SelectContent>
-            {categorias.map((c) => (
-              <SelectItem key={c.id} value={c.id}>
-                {c.nome} <span className="text-muted-foreground text-xs ml-1">({c.tipo})</span>
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+
+        {/* Tipo Financeiro */}
+        <ManagedSelectInput
+          label="Tipo Financeiro (DRE)"
+          value={tipoFiltro}
+          onValueChange={(v) => {
+            setTipoFiltro(v);
+            // Limpa subcategoria se não pertence ao novo tipo
+            if (regra.categoria_destino_id) {
+              const cat = categorias.find((c) => c.id === regra.categoria_destino_id);
+              if (cat?.tipo !== v) upd({ categoria_destino_id: "" });
+            }
+          }}
+          options={tiposFinanceiros}
+          placeholder="Selecione o tipo financeiro..."
+          icon={<BarChart3 className="w-4 h-4" />}
+        />
+
+        {/* Subcategoria */}
+        <ManagedSelectInput
+          label="Subcategoria (Plano de Contas)"
+          value={regra.categoria_destino_id ?? ""}
+          onValueChange={(v) => upd({ categoria_destino_id: v })}
+          options={subcatOptions}
+          placeholder={tipoFiltro ? "Selecione a subcategoria..." : "Selecione o tipo financeiro primeiro..."}
+          icon={<FolderTree className="w-4 h-4" />}
+          onAddModal={() => { setCfEditingId(null); setCfModalOpen(true); }}
+          onEditModal={(id) => { setCfEditingId(id); setCfModalOpen(true); }}
+          onDelete={catFinCrud.onDelete}
+          addLabel="Nova subcategoria"
+          disabled={!tipoFiltro}
+        />
       </div>
 
       <div className="flex items-center gap-2 pt-2">
         <Switch checked={regra.ativo ?? true} onCheckedChange={(v) => upd({ ativo: v })} />
         <Label className="text-xs">Regra ativa</Label>
       </div>
+
+      <CategoriaFinanceiraModal
+        open={cfModalOpen}
+        onOpenChange={setCfModalOpen}
+        editingId={cfEditingId}
+        defaultTipo={(tipoFiltro as any) || "despesa"}
+        onSaved={(id) => {
+          upd({ categoria_destino_id: id });
+          qc.invalidateQueries({ queryKey: ["dre-regras-categorias"] });
+        }}
+      />
     </div>
   );
 }
