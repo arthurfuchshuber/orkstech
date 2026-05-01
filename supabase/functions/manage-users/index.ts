@@ -337,7 +337,7 @@ serve(async (req) => {
             empresa_id: callerEmpresaId,
             user_id: newUser.user.id,
             nivel_permissao_id: nivelPermissaoId,
-            invited_by: callerUserId,
+            invited_by: caller.id,
             ativo: true,
           },
           { onConflict: "empresa_id,user_id" }
