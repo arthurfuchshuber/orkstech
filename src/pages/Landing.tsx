@@ -226,10 +226,10 @@ export default function Landing() {
     <div className="min-h-screen bg-background">
       {/* Nav */}
       <nav className="fixed top-0 left-0 right-0 z-50 backdrop-blur-2xl bg-background/70 border-b border-border/40">
-        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-          <a href="#" className="flex items-center gap-3 group">
-            <OrksWordmark size="text-2xl" />
-            <span className="hidden sm:inline text-[10px] text-muted-foreground tracking-[0.25em] uppercase border-l border-border/40 pl-3">Gestão 360º</span>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-14 sm:h-16 flex items-center justify-between gap-2">
+          <a href="#" className="flex items-center gap-3 group min-w-0">
+            <OrksWordmark size="text-xl sm:text-2xl" />
+            <span className="hidden md:inline text-[10px] text-muted-foreground tracking-[0.25em] uppercase border-l border-border/40 pl-3">Gestão 360º</span>
           </a>
           <div className="hidden md:flex items-center gap-7">
             <a href="#dores" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Dores resolvidas</a>
@@ -237,82 +237,84 @@ export default function Landing() {
             <a href="#planos" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Planos</a>
             <a href="#faq" className="text-sm text-muted-foreground hover:text-foreground transition-colors">FAQ</a>
           </div>
-          <div className="flex items-center gap-2">
-            <Button variant="ghost" size="sm" className="text-muted-foreground" onClick={() => navigate("/login")}>
+          <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
+            <Button variant="ghost" size="sm" className="text-muted-foreground hidden xs:inline-flex sm:inline-flex h-9 px-2.5 sm:px-3" onClick={() => navigate("/login")}>
               Entrar
             </Button>
-            <Button size="sm" className="glow" onClick={() => navigate("/register")}>
-              Começar grátis <ArrowRight className="w-4 h-4 ml-1" />
+            <Button size="sm" className="glow h-9 px-3 sm:px-4 text-xs sm:text-sm" onClick={() => navigate("/register")}>
+              <span className="sm:hidden">Grátis</span>
+              <span className="hidden sm:inline">Começar grátis</span>
+              <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 ml-1" />
             </Button>
           </div>
         </div>
       </nav>
 
       {/* Hero */}
-      <section className="relative pt-36 pb-24 overflow-hidden">
+      <section className="relative pt-28 sm:pt-36 pb-16 sm:pb-24 overflow-hidden">
         <div className="absolute inset-0" style={{ background: "var(--gradient-hero)" }} />
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[900px] h-[900px] rounded-full bg-primary/[0.04] blur-3xl pointer-events-none" />
-        <div className="max-w-6xl mx-auto px-6 relative z-10">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 relative z-10">
           <div className="text-center max-w-4xl mx-auto animate-slide-up">
-            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-primary/30 bg-primary/[0.08] text-xs text-primary mb-8 backdrop-blur-sm">
-              <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
-              <span className="font-medium tracking-wide">PLATAFORMA DE GESTÃO 360º — FINANCEIRO + CLIENTES + JURÍDICO</span>
+            <div className="inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 rounded-full border border-primary/30 bg-primary/[0.08] text-[10px] sm:text-xs text-primary mb-6 sm:mb-8 backdrop-blur-sm max-w-full">
+              <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse flex-shrink-0" />
+              <span className="font-medium tracking-wide truncate">GESTÃO 360º — FINANCEIRO + CLIENTES + JURÍDICO</span>
             </div>
-            <h1 className="text-5xl md:text-7xl font-bold tracking-tight leading-[1.05] mb-6 text-foreground">
+            <h1 className="text-[2.25rem] leading-[1.1] sm:text-5xl md:text-7xl font-bold tracking-tight md:leading-[1.05] mb-5 sm:mb-6 text-foreground">
               Toda a operação da sua empresa
-              <br />
-              <span className="gradient-text">em uma única tela.</span>
+              <br className="hidden sm:block" />
+              <span className="gradient-text"> em uma única tela.</span>
             </h1>
-            <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-10 leading-relaxed">
+            <p className="text-base sm:text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-8 sm:mb-10 leading-relaxed px-2">
               Financeiro, clientes, contratos e operação integrados. Pare de pular entre planilhas, sistemas e e-mails — o Orks unifica tudo com automação e IA.
             </p>
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-              <Button size="lg" className="glow text-base px-8 h-12 w-full sm:w-auto" onClick={() => navigate("/register")}>
-                Começar grátis por 7 dias <ArrowRight className="w-5 h-5 ml-2" />
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3">
+              <Button size="lg" className="glow text-sm sm:text-base px-6 sm:px-8 h-12 w-full sm:w-auto" onClick={() => navigate("/register")}>
+                Começar grátis por 7 dias <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 ml-2" />
               </Button>
-              <Button size="lg" variant="outline" className="text-base px-8 h-12 border-border/60 w-full sm:w-auto" onClick={() => navigate("/login")}>
-                Já sou cliente <ChevronRight className="w-5 h-5 ml-1" />
+              <Button size="lg" variant="outline" className="text-sm sm:text-base px-6 sm:px-8 h-12 border-border/60 w-full sm:w-auto" onClick={() => navigate("/login")}>
+                Já sou cliente <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 ml-1" />
               </Button>
             </div>
-            <p className="text-xs text-muted-foreground mt-5">7 dias grátis • Cancele quando quiser • Suporte em português</p>
+            <p className="text-[11px] sm:text-xs text-muted-foreground mt-5 px-2">7 dias grátis • Cancele quando quiser • Suporte em português</p>
           </div>
 
           {/* Hero mockup */}
-          <div className="mt-16 relative animate-fade-in">
+          <div className="mt-12 sm:mt-16 relative animate-fade-in">
             <div className="absolute -inset-x-20 -top-10 -bottom-10 bg-primary/5 blur-3xl pointer-events-none" />
-            <div className="relative rounded-2xl overflow-hidden border border-border/50 shadow-[0_40px_120px_-30px_hsl(217_100%_30%/0.6)] glass">
-              <div className="h-9 bg-card/80 border-b border-border/40 flex items-center gap-2 px-4">
-                <div className="w-2.5 h-2.5 rounded-full bg-destructive/60" />
-                <div className="w-2.5 h-2.5 rounded-full bg-warning/60" />
-                <div className="w-2.5 h-2.5 rounded-full bg-success/60" />
-                <div className="ml-3 text-[11px] text-muted-foreground">orks.com.br/app/financas/dashboard</div>
+            <div className="relative rounded-xl sm:rounded-2xl overflow-hidden border border-border/50 shadow-[0_40px_120px_-30px_hsl(217_100%_30%/0.6)] glass">
+              <div className="h-8 sm:h-9 bg-card/80 border-b border-border/40 flex items-center gap-2 px-3 sm:px-4">
+                <div className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-destructive/60" />
+                <div className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-warning/60" />
+                <div className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-success/60" />
+                <div className="ml-2 sm:ml-3 text-[9px] sm:text-[11px] text-muted-foreground truncate">orks.com.br/app/financas/dashboard</div>
               </div>
-              <div className="p-6 md:p-10 bg-gradient-to-br from-card to-background">
-                <div className="grid md:grid-cols-4 gap-3 mb-4">
+              <div className="p-3 sm:p-6 md:p-10 bg-gradient-to-br from-card to-background">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3 mb-3 sm:mb-4">
                   {[
                     { l: "Caixa total", v: "R$ 487.230", c: "text-success" },
                     { l: "A pagar", v: "R$ 92.140", c: "text-warning" },
                     { l: "A receber", v: "R$ 312.890", c: "text-primary" },
                     { l: "Resultado mês", v: "+18.4%", c: "text-success" },
                   ].map((k) => (
-                    <div key={k.l} className="p-4 rounded-lg bg-background/60 border border-border/40">
-                      <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">{k.l}</div>
-                      <div className={`text-xl font-bold ${k.c}`}>{k.v}</div>
+                    <div key={k.l} className="p-2.5 sm:p-4 rounded-lg bg-background/60 border border-border/40">
+                      <div className="text-[9px] sm:text-[10px] text-muted-foreground uppercase tracking-wider mb-1 truncate">{k.l}</div>
+                      <div className={`text-sm sm:text-xl font-bold ${k.c} truncate`}>{k.v}</div>
                     </div>
                   ))}
                 </div>
-                <div className="grid md:grid-cols-3 gap-3">
-                  <div className="md:col-span-2 h-44 rounded-lg bg-background/60 border border-border/40 p-4">
-                    <div className="text-xs text-muted-foreground mb-3">Fluxo de caixa — últimos 6 meses</div>
-                    <div className="flex items-end gap-2 h-28">
+                <div className="grid md:grid-cols-3 gap-2 sm:gap-3">
+                  <div className="md:col-span-2 h-32 sm:h-44 rounded-lg bg-background/60 border border-border/40 p-3 sm:p-4">
+                    <div className="text-[10px] sm:text-xs text-muted-foreground mb-2 sm:mb-3">Fluxo de caixa — últimos 6 meses</div>
+                    <div className="flex items-end gap-1.5 sm:gap-2 h-20 sm:h-28">
                       {[40, 65, 55, 80, 72, 95].map((h, i) => (
                         <div key={i} className="flex-1 rounded-t bg-gradient-to-t from-primary/40 to-primary" style={{ height: `${h}%` }} />
                       ))}
                     </div>
                   </div>
-                  <div className="h-44 rounded-lg bg-background/60 border border-border/40 p-4">
-                    <div className="text-xs text-muted-foreground mb-3">Top categorias DRE</div>
-                    <div className="space-y-2">
+                  <div className="h-auto sm:h-44 rounded-lg bg-background/60 border border-border/40 p-3 sm:p-4">
+                    <div className="text-[10px] sm:text-xs text-muted-foreground mb-2 sm:mb-3">Top categorias DRE</div>
+                    <div className="space-y-1.5 sm:space-y-2">
                       {[
                         { l: "Receita Serviços", v: 92 },
                         { l: "Despesas Op.", v: 64 },
@@ -320,7 +322,7 @@ export default function Landing() {
                         { l: "Impostos", v: 32 },
                       ].map((c) => (
                         <div key={c.l}>
-                          <div className="flex justify-between text-[10px] text-muted-foreground mb-0.5"><span>{c.l}</span><span>{c.v}%</span></div>
+                          <div className="flex justify-between text-[9px] sm:text-[10px] text-muted-foreground mb-0.5"><span className="truncate">{c.l}</span><span>{c.v}%</span></div>
                           <div className="h-1.5 rounded-full bg-muted overflow-hidden">
                             <div className="h-full rounded-full bg-primary" style={{ width: `${c.v}%` }} />
                           </div>
@@ -336,19 +338,19 @@ export default function Landing() {
       </section>
 
       {/* Trusted by / Stats */}
-      <section className="py-12 border-y border-border/40 bg-card/30">
-        <div className="max-w-6xl mx-auto px-6">
-          <p className="text-center text-xs uppercase tracking-[0.2em] text-muted-foreground mb-6">Empresas que confiam no Orks</p>
-          <div className="flex flex-wrap items-center justify-center gap-x-10 gap-y-4 mb-12 opacity-60">
+      <section className="py-10 sm:py-12 border-y border-border/40 bg-card/30">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6">
+          <p className="text-center text-[10px] sm:text-xs uppercase tracking-[0.2em] text-muted-foreground mb-5 sm:mb-6">Empresas que confiam no Orks</p>
+          <div className="flex flex-wrap items-center justify-center gap-x-5 sm:gap-x-10 gap-y-2 sm:gap-y-4 mb-10 sm:mb-12 opacity-60">
             {trustedBy.map((name) => (
-              <span key={name} className="text-sm font-semibold tracking-wide text-muted-foreground">{name}</span>
+              <span key={name} className="text-xs sm:text-sm font-semibold tracking-wide text-muted-foreground">{name}</span>
             ))}
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 sm:gap-8">
             {stats.map((s) => (
               <div key={s.label} className="text-center">
-                <div className="text-3xl md:text-4xl font-bold gradient-text mb-1">{s.value}</div>
-                <div className="text-xs text-muted-foreground uppercase tracking-wider">{s.label}</div>
+                <div className="text-2xl sm:text-3xl md:text-4xl font-bold gradient-text mb-1">{s.value}</div>
+                <div className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wider">{s.label}</div>
               </div>
             ))}
           </div>
@@ -356,28 +358,28 @@ export default function Landing() {
       </section>
 
       {/* Dores resolvidas — Financeiro */}
-      <section id="dores" className="py-24">
-        <div className="max-w-6xl mx-auto px-6">
-          <div className="text-center mb-16 max-w-3xl mx-auto">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-destructive/20 bg-destructive/5 text-xs text-destructive mb-4">
+      <section id="dores" className="py-16 sm:py-24">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6">
+          <div className="text-center mb-10 sm:mb-16 max-w-3xl mx-auto">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-destructive/20 bg-destructive/5 text-[10px] sm:text-xs text-destructive mb-4">
               <AlertTriangle className="w-3 h-3" /> DORES QUE O ORKS RESOLVE
             </div>
-            <h2 className="text-3xl md:text-5xl font-bold mb-4 text-foreground">
+            <h2 className="text-2xl sm:text-3xl md:text-5xl font-bold mb-4 text-foreground leading-tight">
               Sua área financeira <span className="gradient-text">não precisa ser um caos.</span>
             </h2>
-            <p className="text-muted-foreground text-lg">
+            <p className="text-muted-foreground text-sm sm:text-lg">
               Substituímos planilhas frágeis, ERPs caros e processos manuais por uma plataforma única, automatizada e inteligente.
             </p>
           </div>
 
-          <div className="grid md:grid-cols-2 gap-5 mb-20">
+          <div className="grid sm:grid-cols-2 gap-4 sm:gap-5 mb-14 sm:mb-20">
             {financePains.map((p) => (
-              <div key={p.pain} className="group p-6 rounded-2xl bg-gradient-to-br from-card to-card/40 border border-border/50 hover:border-primary/40 transition-all">
-                <div className="flex items-start gap-4">
-                  <div className="w-11 h-11 rounded-xl bg-destructive/10 border border-destructive/20 flex items-center justify-center flex-shrink-0">
-                    <p.icon className="w-5 h-5 text-destructive" />
+              <div key={p.pain} className="group p-5 sm:p-6 rounded-2xl bg-gradient-to-br from-card to-card/40 border border-border/50 hover:border-primary/40 transition-all">
+                <div className="flex items-start gap-3 sm:gap-4">
+                  <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-destructive/10 border border-destructive/20 flex items-center justify-center flex-shrink-0">
+                    <p.icon className="w-4 h-4 sm:w-5 sm:h-5 text-destructive" />
                   </div>
-                  <div className="flex-1">
+                  <div className="flex-1 min-w-0">
                     <p className="text-sm text-muted-foreground line-through mb-2">{p.pain}</p>
                     <div className="flex items-start gap-2">
                       <CheckCircle2 className="w-4 h-4 text-success flex-shrink-0 mt-0.5" />
@@ -390,23 +392,23 @@ export default function Landing() {
           </div>
 
           {/* Integração de dados */}
-          <div className="text-center mb-12 max-w-3xl mx-auto">
-            <h2 className="text-3xl md:text-5xl font-bold mb-4 text-foreground">
+          <div className="text-center mb-10 sm:mb-12 max-w-3xl mx-auto">
+            <h2 className="text-2xl sm:text-3xl md:text-5xl font-bold mb-4 text-foreground leading-tight">
               Cliente, jurídico e financeiro <span className="gradient-text">finalmente conversam.</span>
             </h2>
-            <p className="text-muted-foreground text-lg">
+            <p className="text-muted-foreground text-sm sm:text-lg">
               Um só histórico, uma só verdade. Tudo conectado — do contrato à última fatura paga.
             </p>
           </div>
 
-          <div className="grid md:grid-cols-2 gap-5">
+          <div className="grid sm:grid-cols-2 gap-4 sm:gap-5">
             {integrationPains.map((p) => (
-              <div key={p.pain} className="group p-6 rounded-2xl bg-gradient-to-br from-card to-card/40 border border-border/50 hover:border-primary/40 transition-all">
-                <div className="flex items-start gap-4">
-                  <div className="w-11 h-11 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center flex-shrink-0">
-                    <p.icon className="w-5 h-5 text-primary" />
+              <div key={p.pain} className="group p-5 sm:p-6 rounded-2xl bg-gradient-to-br from-card to-card/40 border border-border/50 hover:border-primary/40 transition-all">
+                <div className="flex items-start gap-3 sm:gap-4">
+                  <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center flex-shrink-0">
+                    <p.icon className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
                   </div>
-                  <div className="flex-1">
+                  <div className="flex-1 min-w-0">
                     <p className="text-sm text-muted-foreground line-through mb-2">{p.pain}</p>
                     <div className="flex items-start gap-2">
                       <CheckCircle2 className="w-4 h-4 text-success flex-shrink-0 mt-0.5" />
@@ -421,31 +423,89 @@ export default function Landing() {
       </section>
 
       {/* Produto / Features */}
-      <section id="produto" className="py-24 border-t border-border/40 relative overflow-hidden">
+      <section id="produto" className="py-16 sm:py-24 border-t border-border/40 relative overflow-hidden">
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[700px] h-[400px] bg-primary/[0.04] blur-3xl pointer-events-none" />
-        <div className="max-w-6xl mx-auto px-6 relative z-10">
-          <div className="text-center mb-16 max-w-3xl mx-auto">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-primary/20 bg-primary/5 text-xs text-primary mb-4">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 relative z-10">
+          <div className="text-center mb-10 sm:mb-16 max-w-3xl mx-auto">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-primary/20 bg-primary/5 text-[10px] sm:text-xs text-primary mb-4">
               <Layers className="w-3 h-3" /> PRODUTO
             </div>
-            <h2 className="text-3xl md:text-5xl font-bold mb-4 text-foreground">
+            <h2 className="text-2xl sm:text-3xl md:text-5xl font-bold mb-4 text-foreground leading-tight">
               Tudo que você precisa, <span className="gradient-text">integrado.</span>
             </h2>
-            <p className="text-muted-foreground text-lg">
+            <p className="text-muted-foreground text-sm sm:text-lg">
               Módulos poderosos que trabalham juntos para maximizar a eficiência da sua operação.
             </p>
           </div>
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
             {features.map((f) => (
               <div
                 key={f.title}
-                className="group p-6 rounded-xl bg-card/60 border border-border/40 hover:border-primary/40 hover:bg-card transition-all duration-300"
+                className="group p-5 sm:p-6 rounded-xl bg-card/60 border border-border/40 hover:border-primary/40 hover:bg-card transition-all duration-300"
               >
-                <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center mb-4 group-hover:bg-primary/20 transition-colors">
+                <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center mb-3 sm:mb-4 group-hover:bg-primary/20 transition-colors">
                   <f.icon className="w-5 h-5 text-primary" />
                 </div>
                 <h3 className="text-base font-semibold text-foreground mb-2">{f.title}</h3>
                 <p className="text-sm text-muted-foreground leading-relaxed">{f.description}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Casos de uso */}
+      <section className="py-16 sm:py-24 border-t border-border/40">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6">
+          <div className="text-center mb-10 sm:mb-14 max-w-3xl mx-auto">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-4 text-foreground leading-tight">
+              Feito para <span className="gradient-text">prestadores de serviço</span> de todos os portes
+            </h2>
+          </div>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
+            {useCases.map((u) => (
+              <div key={u.persona} className="p-6 sm:p-7 rounded-2xl bg-gradient-to-br from-card to-card/30 border border-border/50">
+                <h3 className="text-lg font-semibold text-foreground mb-1">{u.persona}</h3>
+                <p className="text-sm text-muted-foreground mb-4 sm:mb-5">{u.description}</p>
+                <ul className="space-y-2.5">
+                  {u.benefits.map((b) => (
+                    <li key={b} className="flex items-start gap-2 text-sm text-foreground/90">
+                      <CheckCircle2 className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />
+                      {b}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Depoimentos */}
+      <section className="py-16 sm:py-24 border-t border-border/40 bg-card/20">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6">
+          <div className="text-center mb-10 sm:mb-14 max-w-3xl mx-auto">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-warning/20 bg-warning/5 text-[10px] sm:text-xs text-warning mb-4">
+              <Star className="w-3 h-3 fill-current" /> DEPOIMENTOS
+            </div>
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-4 text-foreground leading-tight">
+              Quem usa, <span className="gradient-text">recomenda.</span>
+            </h2>
+          </div>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
+            {testimonials.map((t, i) => (
+              <div key={i} className="p-5 sm:p-6 rounded-2xl bg-card border border-border/50 flex flex-col">
+                <div className="flex gap-0.5 mb-4">
+                  {[...Array(5)].map((_, j) => (
+                    <Star key={j} className="w-4 h-4 fill-warning text-warning" />
+                  ))}
+                </div>
+                <MessageSquare className="w-5 h-5 text-primary/40 mb-3" />
+                <p className="text-sm text-foreground/90 leading-relaxed mb-5 flex-1">"{t.quote}"</p>
+                <div className="pt-4 border-t border-border/40">
+                  <div className="text-sm font-semibold text-foreground">{t.author}</div>
+                  <div className="text-xs text-muted-foreground">{t.role}</div>
+                </div>
               </div>
             ))}
           </div>
@@ -511,15 +571,40 @@ export default function Landing() {
       </section>
 
       {/* Comparativo */}
-      <section className="py-24 border-t border-border/40">
-        <div className="max-w-5xl mx-auto px-6">
-          <div className="text-center mb-12 max-w-3xl mx-auto">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4 text-foreground">
+      <section className="py-16 sm:py-24 border-t border-border/40">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6">
+          <div className="text-center mb-10 sm:mb-12 max-w-3xl mx-auto">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-4 text-foreground leading-tight">
               Por que migrar para o <span className="gradient-text">Orks?</span>
             </h2>
-            <p className="text-muted-foreground text-lg">Compare e veja a diferença em segundos.</p>
+            <p className="text-muted-foreground text-sm sm:text-lg">Compare e veja a diferença em segundos.</p>
           </div>
-          <div className="rounded-2xl overflow-hidden border border-border/50 bg-card">
+
+          {/* Mobile: cards stacked per row */}
+          <div className="md:hidden space-y-3">
+            {comparison.map((row) => (
+              <div key={row.feature} className="rounded-xl border border-border/50 bg-card p-4">
+                <div className="text-sm font-medium text-foreground mb-3">{row.feature}</div>
+                <div className="grid grid-cols-3 gap-2 text-center">
+                  <div className="flex flex-col items-center gap-1.5 p-2 rounded-lg bg-primary/5 border border-primary/20">
+                    <span className="text-[10px] uppercase tracking-wider text-primary font-semibold">Orks</span>
+                    {row.orks ? <Check className="w-4 h-4 text-success" /> : <X className="w-4 h-4 text-muted-foreground/40" />}
+                  </div>
+                  <div className="flex flex-col items-center gap-1.5 p-2 rounded-lg bg-background/40 border border-border/30">
+                    <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Planilhas</span>
+                    {row.sheets ? <Check className="w-4 h-4 text-muted-foreground" /> : <X className="w-4 h-4 text-muted-foreground/40" />}
+                  </div>
+                  <div className="flex flex-col items-center gap-1.5 p-2 rounded-lg bg-background/40 border border-border/30">
+                    <span className="text-[10px] uppercase tracking-wider text-muted-foreground">ERP</span>
+                    {row.generic ? <Check className="w-4 h-4 text-muted-foreground" /> : <X className="w-4 h-4 text-muted-foreground/40" />}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Desktop: full table */}
+          <div className="hidden md:block rounded-2xl overflow-hidden border border-border/50 bg-card">
             <div className="grid grid-cols-4 bg-card/80 border-b border-border/40">
               <div className="p-4 text-xs uppercase tracking-wider text-muted-foreground">Funcionalidade</div>
               <div className="p-4 text-center text-xs uppercase tracking-wider text-primary font-semibold">Orks</div>
@@ -545,17 +630,17 @@ export default function Landing() {
       </section>
 
       {/* Pricing */}
-      <section id="planos" className="py-24 border-t border-border/40 relative overflow-hidden">
+      <section id="planos" className="py-16 sm:py-24 border-t border-border/40 relative overflow-hidden">
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full bg-primary/[0.04] blur-3xl pointer-events-none" />
-        <div className="max-w-6xl mx-auto px-6 relative z-10">
-          <div className="text-center mb-12 max-w-3xl mx-auto">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-primary/20 bg-primary/5 text-xs text-primary mb-4">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 relative z-10">
+          <div className="text-center mb-10 sm:mb-12 max-w-3xl mx-auto">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-primary/20 bg-primary/5 text-[10px] sm:text-xs text-primary mb-4">
               <Sparkles className="w-3 h-3" /> PLANOS
             </div>
-            <h2 className="text-3xl md:text-5xl font-bold mb-4 text-foreground">
+            <h2 className="text-2xl sm:text-3xl md:text-5xl font-bold mb-4 text-foreground leading-tight">
               Escolha o plano <span className="gradient-text">ideal</span> para sua operação
             </h2>
-            <p className="text-muted-foreground text-lg">
+            <p className="text-muted-foreground text-sm sm:text-lg">
               Comece com 7 dias grátis em qualquer plano. Cancele quando quiser, sem multa.
             </p>
           </div>
@@ -564,19 +649,19 @@ export default function Landing() {
       </section>
 
       {/* FAQ */}
-      <section id="faq" className="py-24 border-t border-border/40">
-        <div className="max-w-3xl mx-auto px-6">
-          <div className="text-center mb-12">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-primary/20 bg-primary/5 text-xs text-primary mb-4">
+      <section id="faq" className="py-16 sm:py-24 border-t border-border/40">
+        <div className="max-w-3xl mx-auto px-4 sm:px-6">
+          <div className="text-center mb-10 sm:mb-12">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-primary/20 bg-primary/5 text-[10px] sm:text-xs text-primary mb-4">
               <HelpCircle className="w-3 h-3" /> FAQ
             </div>
-            <h2 className="text-3xl md:text-4xl font-bold mb-4 text-foreground">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-4 text-foreground leading-tight">
               Perguntas <span className="gradient-text">frequentes</span>
             </h2>
           </div>
           <Accordion type="single" collapsible className="space-y-3">
             {faqs.map((f, i) => (
-              <AccordionItem key={i} value={`item-${i}`} className="rounded-xl border border-border/50 bg-card/60 px-5 data-[state=open]:border-primary/30">
+              <AccordionItem key={i} value={`item-${i}`} className="rounded-xl border border-border/50 bg-card/60 px-4 sm:px-5 data-[state=open]:border-primary/30">
                 <AccordionTrigger className="text-left text-sm font-medium text-foreground hover:no-underline py-4">
                   {f.q}
                 </AccordionTrigger>
@@ -590,28 +675,28 @@ export default function Landing() {
       </section>
 
       {/* CTA Final */}
-      <section className="py-24 border-t border-border/40 relative overflow-hidden">
+      <section className="py-16 sm:py-24 border-t border-border/40 relative overflow-hidden">
         <div className="absolute inset-0" style={{ background: "var(--gradient-glow)" }} />
-        <div className="max-w-4xl mx-auto px-6 relative z-10">
-          <div className="p-10 md:p-14 rounded-3xl bg-gradient-to-br from-card via-card to-primary/[0.08] border border-primary/30 shadow-[0_40px_120px_-30px_hsl(217_100%_30%/0.5)] text-center">
-            <div className="w-20 h-20 mx-auto mb-6 drop-shadow-[0_10px_40px_hsl(var(--primary)/0.55)]">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 relative z-10">
+          <div className="p-7 sm:p-10 md:p-14 rounded-2xl sm:rounded-3xl bg-gradient-to-br from-card via-card to-primary/[0.08] border border-primary/30 shadow-[0_40px_120px_-30px_hsl(217_100%_30%/0.5)] text-center">
+            <div className="w-16 h-16 sm:w-20 sm:h-20 mx-auto mb-5 sm:mb-6 drop-shadow-[0_10px_40px_hsl(var(--primary)/0.55)]">
               <img src={orksLogo} alt="Orks" className="w-full h-full object-contain" />
             </div>
-            <h2 className="text-3xl md:text-5xl font-bold mb-4 text-foreground leading-tight">
+            <h2 className="text-2xl sm:text-3xl md:text-5xl font-bold mb-4 text-foreground leading-tight">
               Pronto para <span className="gradient-text">profissionalizar</span> sua operação?
             </h2>
-            <p className="text-muted-foreground mb-8 text-lg max-w-xl mx-auto">
+            <p className="text-muted-foreground mb-7 sm:mb-8 text-sm sm:text-lg max-w-xl mx-auto">
               Junte-se a empresas que já trocaram o caos por uma gestão 360º de verdade. 7 dias grátis, cancele quando quiser.
             </p>
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-              <Button size="lg" className="glow text-base px-10 h-12 w-full sm:w-auto" onClick={() => navigate("/register")}>
-                Começar agora <ArrowRight className="w-5 h-5 ml-2" />
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3">
+              <Button size="lg" className="glow text-sm sm:text-base px-6 sm:px-10 h-12 w-full sm:w-auto" onClick={() => navigate("/register")}>
+                Começar agora <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 ml-2" />
               </Button>
-              <Button size="lg" variant="outline" className="text-base px-8 h-12 border-border/60 w-full sm:w-auto" onClick={() => navigate("/login")}>
+              <Button size="lg" variant="outline" className="text-sm sm:text-base px-6 sm:px-8 h-12 border-border/60 w-full sm:w-auto" onClick={() => navigate("/login")}>
                 Falar com vendas
               </Button>
             </div>
-            <div className="flex items-center justify-center gap-6 mt-8 text-xs text-muted-foreground">
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-6 mt-7 sm:mt-8 text-[11px] sm:text-xs text-muted-foreground">
               <div className="flex items-center gap-1.5"><CheckCircle2 className="w-3.5 h-3.5 text-success" /> 7 dias grátis</div>
               <div className="flex items-center gap-1.5"><CheckCircle2 className="w-3.5 h-3.5 text-success" /> Cancele quando quiser</div>
               <div className="flex items-center gap-1.5"><CheckCircle2 className="w-3.5 h-3.5 text-success" /> Suporte em português</div>
@@ -621,18 +706,18 @@ export default function Landing() {
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-border/40 py-10 bg-card/20">
-        <div className="max-w-6xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-5">
+      <footer className="border-t border-border/40 py-8 sm:py-10 bg-card/20">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 flex flex-col md:flex-row items-center justify-between gap-5">
           <div className="flex items-center gap-3">
             <OrksWordmark size="text-xl" />
             <span className="text-[10px] text-muted-foreground tracking-[0.25em] uppercase border-l border-border/40 pl-3">Gestão 360º</span>
           </div>
-          <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs text-muted-foreground">
+          <div className="flex flex-wrap items-center justify-center gap-x-5 sm:gap-x-6 gap-y-2 text-[11px] sm:text-xs text-muted-foreground text-center">
             <a href="/termos" className="hover:text-foreground transition-colors">Termos de Uso</a>
             <a href="/privacidade" className="hover:text-foreground transition-colors">Privacidade</a>
             <a href="#planos" className="hover:text-foreground transition-colors">Planos</a>
             <a href="#faq" className="hover:text-foreground transition-colors">FAQ</a>
-            <span>© 2026 Orks · By Anfitrião Sigma</span>
+            <span className="w-full sm:w-auto">© 2026 Orks · By Anfitrião Sigma</span>
           </div>
         </div>
       </footer>
