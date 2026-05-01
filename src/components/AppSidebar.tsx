@@ -368,8 +368,8 @@ export function AppSidebar() {
     <Sidebar collapsible="icon">
       <SidebarHeader className="px-3 py-4 space-y-3">
         <div className="flex items-center gap-2.5 px-1">
-          <div className="w-9 h-9 rounded-md overflow-hidden flex-shrink-0 ring-1 ring-border/40 shadow-sm">
-            <img src={orksIcon} alt="Orks" className="w-full h-full object-cover" />
+          <div className="w-9 h-9 flex-shrink-0">
+            <img src={orksIcon} alt="Orks" className="w-full h-full object-contain" />
           </div>
           {!collapsed && (
             <div className="flex flex-col leading-tight">

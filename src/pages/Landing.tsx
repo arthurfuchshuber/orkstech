@@ -594,8 +594,8 @@ export default function Landing() {
         <div className="absolute inset-0" style={{ background: "var(--gradient-glow)" }} />
         <div className="max-w-4xl mx-auto px-6 relative z-10">
           <div className="p-10 md:p-14 rounded-3xl bg-gradient-to-br from-card via-card to-primary/[0.08] border border-primary/30 shadow-[0_40px_120px_-30px_hsl(217_100%_30%/0.5)] text-center">
-            <div className="w-16 h-16 rounded-2xl mx-auto mb-6 overflow-hidden ring-1 ring-primary/30 shadow-[0_0_60px_-10px_hsl(var(--primary)/0.6)]">
-              <img src={orksLogo} alt="Orks" className="w-full h-full object-cover" />
+            <div className="w-20 h-20 mx-auto mb-6 drop-shadow-[0_10px_40px_hsl(var(--primary)/0.55)]">
+              <img src={orksLogo} alt="Orks" className="w-full h-full object-contain" />
             </div>
             <h2 className="text-3xl md:text-5xl font-bold mb-4 text-foreground leading-tight">
               Pronto para <span className="gradient-text">profissionalizar</span> sua operação?
