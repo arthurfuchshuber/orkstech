@@ -226,10 +226,10 @@ export default function Landing() {
     <div className="min-h-screen bg-background">
       {/* Nav */}
       <nav className="fixed top-0 left-0 right-0 z-50 backdrop-blur-2xl bg-background/70 border-b border-border/40">
-        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-          <a href="#" className="flex items-center gap-3 group">
-            <OrksWordmark size="text-2xl" />
-            <span className="hidden sm:inline text-[10px] text-muted-foreground tracking-[0.25em] uppercase border-l border-border/40 pl-3">Gestão 360º</span>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-14 sm:h-16 flex items-center justify-between gap-2">
+          <a href="#" className="flex items-center gap-3 group min-w-0">
+            <OrksWordmark size="text-xl sm:text-2xl" />
+            <span className="hidden md:inline text-[10px] text-muted-foreground tracking-[0.25em] uppercase border-l border-border/40 pl-3">Gestão 360º</span>
           </a>
           <div className="hidden md:flex items-center gap-7">
             <a href="#dores" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Dores resolvidas</a>
@@ -237,12 +237,14 @@ export default function Landing() {
             <a href="#planos" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Planos</a>
             <a href="#faq" className="text-sm text-muted-foreground hover:text-foreground transition-colors">FAQ</a>
           </div>
-          <div className="flex items-center gap-2">
-            <Button variant="ghost" size="sm" className="text-muted-foreground" onClick={() => navigate("/login")}>
+          <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
+            <Button variant="ghost" size="sm" className="text-muted-foreground hidden xs:inline-flex sm:inline-flex h-9 px-2.5 sm:px-3" onClick={() => navigate("/login")}>
               Entrar
             </Button>
-            <Button size="sm" className="glow" onClick={() => navigate("/register")}>
-              Começar grátis <ArrowRight className="w-4 h-4 ml-1" />
+            <Button size="sm" className="glow h-9 px-3 sm:px-4 text-xs sm:text-sm" onClick={() => navigate("/register")}>
+              <span className="sm:hidden">Grátis</span>
+              <span className="hidden sm:inline">Começar grátis</span>
+              <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 ml-1" />
             </Button>
           </div>
         </div>
