@@ -3396,6 +3396,7 @@ export type Database = {
         Args: { p_empresa_id: string; p_user_id: string }
         Returns: boolean
       }
+      is_member_of_owner: { Args: { _owner_user_id: string }; Returns: boolean }
       is_pluggy_internal_transfer: {
         Args: {
           p_category: string
