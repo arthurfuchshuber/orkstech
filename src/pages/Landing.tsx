@@ -203,7 +203,7 @@ const faqs = [
   },
   {
     q: "Existe trial gratuito?",
-    a: "Sim. 7 dias gratuitos em qualquer plano, sem cartão de crédito. Após o trial, você escolhe o plano que cabe na sua operação.",
+    a: "Sim. 7 dias gratuitos em qualquer plano. Após o trial, sua assinatura é ativada automaticamente — você pode cancelar quando quiser.",
   },
   {
     q: "Como funciona a segurança e LGPD?",
@@ -274,7 +274,7 @@ export default function Landing() {
                 Já sou cliente <ChevronRight className="w-5 h-5 ml-1" />
               </Button>
             </div>
-            <p className="text-xs text-muted-foreground mt-5">Sem cartão de crédito • Cancele quando quiser • Suporte em português</p>
+            <p className="text-xs text-muted-foreground mt-5">7 dias grátis • Cancele quando quiser • Suporte em português</p>
           </div>
 
           {/* Hero mockup */}
@@ -556,7 +556,7 @@ export default function Landing() {
               Escolha o plano <span className="gradient-text">ideal</span> para sua operação
             </h2>
             <p className="text-muted-foreground text-lg">
-              Comece com 7 dias grátis. Sem cartão de crédito durante o teste. Cancele quando quiser.
+              Comece com 7 dias grátis em qualquer plano. Cancele quando quiser, sem multa.
             </p>
           </div>
           <PricingCards publicMode />
@@ -601,7 +601,7 @@ export default function Landing() {
               Pronto para <span className="gradient-text">profissionalizar</span> sua operação?
             </h2>
             <p className="text-muted-foreground mb-8 text-lg max-w-xl mx-auto">
-              Junte-se a empresas que já trocaram o caos por uma gestão 360º de verdade. 7 dias grátis, sem cartão.
+              Junte-se a empresas que já trocaram o caos por uma gestão 360º de verdade. 7 dias grátis, cancele quando quiser.
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
               <Button size="lg" className="glow text-base px-10 h-12 w-full sm:w-auto" onClick={() => navigate("/register")}>
@@ -612,9 +612,9 @@ export default function Landing() {
               </Button>
             </div>
             <div className="flex items-center justify-center gap-6 mt-8 text-xs text-muted-foreground">
-              <div className="flex items-center gap-1.5"><CheckCircle2 className="w-3.5 h-3.5 text-success" /> Sem cartão</div>
               <div className="flex items-center gap-1.5"><CheckCircle2 className="w-3.5 h-3.5 text-success" /> 7 dias grátis</div>
               <div className="flex items-center gap-1.5"><CheckCircle2 className="w-3.5 h-3.5 text-success" /> Cancele quando quiser</div>
+              <div className="flex items-center gap-1.5"><CheckCircle2 className="w-3.5 h-3.5 text-success" /> Suporte em português</div>
             </div>
           </div>
         </div>
