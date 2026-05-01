@@ -11,7 +11,17 @@ async function getTargetEmpresaId(
   supabaseAdmin: any,
   targetUserId: string
 ): Promise<string | null> {
-  // First check profile empresa_id
+  // Prefer empresa_membros (N:N)
+  const { data: membro } = await supabaseAdmin
+    .from("empresa_membros")
+    .select("empresa_id")
+    .eq("user_id", targetUserId)
+    .eq("ativo", true)
+    .limit(1)
+    .maybeSingle();
+  if (membro?.empresa_id) return membro.empresa_id;
+
+  // Legacy fallback: profile empresa_id
   const { data: profile } = await supabaseAdmin
     .from("profiles")
     .select("empresa_id")
@@ -19,7 +29,7 @@ async function getTargetEmpresaId(
     .single();
   if (profile?.empresa_id) return profile.empresa_id;
 
-  // Fallback: check if user owns an empresa
+  // Owner fallback
   const { data: empresa } = await supabaseAdmin
     .from("empresas")
     .select("id")
