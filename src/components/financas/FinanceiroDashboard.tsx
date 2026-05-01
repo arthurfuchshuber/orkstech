@@ -442,7 +442,12 @@ export default function FinanceiroDashboard() {
     // produzem o valor do card. Se existe ao menos UMA fonte, não há "órfão" a
     // vincular — o número já vem dessas contas.
     const temContaSaldo = bankAccounts.length > 0 || manualAccounts.some((a) => !ehCartaoManual(a));
+    // Considera investimento "coberto pela origem" se:
+    //  - Existe ao menos um registro real em pluggy_investments (integração ativa), OU
+    //  - bank_data.totalInvestments populado em alguma conta Pluggy, OU
+    //  - Alguma conta manual com valor de investimento (sincronizado/ajuste/legado).
     const temContaInvestimento =
+      pluggyInvestmentsTotal > 0 ||
       bankAccounts.some((a) => Number(a.bank_data?.totalInvestments ?? 0) > 0) ||
       manualAccounts.some(
         (a) =>
@@ -486,6 +491,7 @@ export default function FinanceiroDashboard() {
     totalCreditAvailable,
     totalCreditBills,
     totalOverdraftAvailable,
+    pluggyInvestmentsTotal,
   ]);
 
   // Helper: identifica transação de investimento (movimentação interna conta↔aplicação)
