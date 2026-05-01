@@ -415,10 +415,6 @@ function RegraForm({ regra, setRegra, categorias, clientes, fornecedores, formas
   const [cfModalOpen, setCfModalOpen] = useState(false);
   const [cfEditingId, setCfEditingId] = useState<string | null>(null);
 
-  // Tipo financeiro derivado da categoria selecionada (ou escolhido manualmente para filtrar)
-  const catSelecionada = categorias.find((c) => c.id === regra.categoria_destino_id);
-  const [tipoFiltro, setTipoFiltro] = useState<string>(catSelecionada?.tipo ?? "");
-
   const upd = (patch: Partial<Regra>) => setRegra({ ...regra, ...patch });
   const updCond = (i: number, patch: Partial<Condicao>) => {
     const next = [...(regra.condicoes ?? [])];
@@ -430,9 +426,8 @@ function RegraForm({ regra, setRegra, categorias, clientes, fornecedores, formas
 
   const nomeEntidade = (c: any) => c.nome_fantasia || c.razao_social || c.nome_completo || "—";
 
-  // Folhas (não pais) filtradas por tipo
+  // Apenas folhas (subcategorias que não têm filhos)
   const subcatOptions = categorias
-    .filter((c: any) => !tipoFiltro || c.tipo === tipoFiltro)
     .filter((c: any) => !categorias.some((child: any) => child.categoria_pai_id === c.id))
     .map((c: any) => ({ value: c.id, label: c.nome }));
 
@@ -542,36 +537,18 @@ function RegraForm({ regra, setRegra, categorias, clientes, fornecedores, formas
       <div className="space-y-3 rounded-md border border-border/40 p-3">
         <Label className="text-xs font-semibold">ENTÃO classificar como</Label>
 
-        {/* Tipo Financeiro */}
-        <ManagedSelectInput
-          label="Tipo Financeiro (DRE)"
-          value={tipoFiltro}
-          onValueChange={(v) => {
-            setTipoFiltro(v);
-            // Limpa subcategoria se não pertence ao novo tipo
-            if (regra.categoria_destino_id) {
-              const cat = categorias.find((c) => c.id === regra.categoria_destino_id);
-              if (cat?.tipo !== v) upd({ categoria_destino_id: "" });
-            }
-          }}
-          options={tiposFinanceiros}
-          placeholder="Selecione o tipo financeiro..."
-          icon={<BarChart3 className="w-4 h-4" />}
-        />
-
-        {/* Subcategoria */}
+        {/* Subcategoria (Plano de Contas) */}
         <ManagedSelectInput
           label="Subcategoria (Plano de Contas)"
           value={regra.categoria_destino_id ?? ""}
           onValueChange={(v) => upd({ categoria_destino_id: v })}
           options={subcatOptions}
-          placeholder={tipoFiltro ? "Selecione a subcategoria..." : "Selecione o tipo financeiro primeiro..."}
+          placeholder="Selecione a subcategoria..."
           icon={<FolderTree className="w-4 h-4" />}
           onAddModal={() => { setCfEditingId(null); setCfModalOpen(true); }}
           onEditModal={(id) => { setCfEditingId(id); setCfModalOpen(true); }}
           onDelete={catFinCrud.onDelete}
           addLabel="Nova subcategoria"
-          disabled={!tipoFiltro}
         />
       </div>
 
@@ -584,7 +561,7 @@ function RegraForm({ regra, setRegra, categorias, clientes, fornecedores, formas
         open={cfModalOpen}
         onOpenChange={setCfModalOpen}
         editingId={cfEditingId}
-        defaultTipo={(tipoFiltro as any) || "despesa"}
+        defaultTipo="despesa"
         onSaved={(id) => {
           upd({ categoria_destino_id: id });
           qc.invalidateQueries({ queryKey: ["dre-regras-categorias"] });
