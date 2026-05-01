@@ -11,9 +11,23 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Plus, Trash2, Pencil, Wand2, GripVertical, Play, Zap, Eye } from "lucide-react";
+import { Plus, Trash2, Pencil, Wand2, GripVertical, Play, Zap, Eye, BarChart3, FolderTree } from "lucide-react";
 import { DragDropContext, Droppable, Draggable, type DropResult } from "@hello-pangea/dnd";
 import { toast } from "sonner";
+import { ManagedSelectInput } from "@/components/inputs/ManagedSelectInput";
+import { useManagedSelect } from "@/hooks/useManagedSelect";
+import { CategoriaFinanceiraModal } from "@/components/modals/CategoriaFinanceiraModal";
+
+const tiposFinanceiros = [
+  { value: "receita", label: "💰 Receita" },
+  { value: "deducao", label: "➖ Dedução" },
+  { value: "custo", label: "🏭 Custo" },
+  { value: "despesa", label: "💸 Despesa" },
+  { value: "receita_financeira", label: "📈 Rec. Financeira" },
+  { value: "despesa_financeira", label: "📉 Desp. Financeira" },
+  { value: "imposto", label: "🏛️ Imposto" },
+  { value: "ajuste", label: "🔄 Ajuste" },
+];
 
 type Operador = "contains" | "equals" | "starts_with" | "gte" | "lte" | "between";
 type Campo = "description" | "supplier_name" | "amount" | "cliente_id" | "supplier_id" | "payment_method_id";
