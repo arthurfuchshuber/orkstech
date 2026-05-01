@@ -329,6 +329,20 @@ serve(async (req) => {
         })
         .eq("user_id", newUser.user.id);
 
+      // Vincula em empresa_membros (N:N) — nível por empresa
+      await supabaseAdmin
+        .from("empresa_membros")
+        .upsert(
+          {
+            empresa_id: callerEmpresaId,
+            user_id: newUser.user.id,
+            nivel_permissao_id: nivelPermissaoId,
+            invited_by: callerUserId,
+            ativo: true,
+          },
+          { onConflict: "empresa_id,user_id" }
+        );
+
       return new Response(JSON.stringify({ success: true, user_id: newUser.user.id }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
