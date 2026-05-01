@@ -31,7 +31,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import orksLogo from "@/assets/orks-logo.png";
+import orksLogo from "@/assets/orks-icon.png";
 
 // ──────────────────────────────────────────────────────────────────────────────
 // Content

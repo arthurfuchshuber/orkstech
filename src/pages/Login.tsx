@@ -4,7 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Mail, Lock, Loader2, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
-import orksLogo from "@/assets/orks-logo.png";
+import orksLogo from "@/assets/orks-icon.png";
 
 export default function Login() {
   const [email, setEmail] = useState("");

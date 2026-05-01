@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Building2, Loader2, CheckCircle2, AlertCircle, Search } from "lucide-react";
-import orksLogo from "@/assets/orks-logo.png";
+import orksLogo from "@/assets/orks-icon.png";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { TextInput } from "@/components/inputs/TextInput";
