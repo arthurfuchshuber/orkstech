@@ -95,7 +95,7 @@ export const SocialProof = () => {
         {/* Cases */}
         <div className="mt-20 max-w-5xl mx-auto">
           <div className="text-center mb-10 reveal">
-            <h2 className="font-display text-3xl md:text-5xl font-bold tracking-tight">
+            <h2 className="font-display text-3xl md:text-5xl font-bold tracking-tight text-balance">
               Resultados <span className="gradient-text">reais.</span>
             </h2>
           </div>

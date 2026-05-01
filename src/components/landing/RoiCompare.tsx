@@ -36,16 +36,16 @@ export const RoiCompare = () => {
   return (
     <section id="comparativo" className="relative py-20 md:py-28">
       <div className="max-w-6xl mx-auto px-4 sm:px-6">
-        <div className="max-w-2xl mx-auto text-center mb-12 reveal">
-          <div className="inline-flex items-center gap-2 glass rounded-full px-4 py-1.5 text-xs font-medium text-muted-foreground mb-5">
+        <div className="max-w-3xl mx-auto text-center mb-12 reveal">
+          <div className="inline-flex items-center gap-2 glass rounded-full px-4 py-1.5 text-xs font-medium text-muted-foreground mb-5 whitespace-nowrap">
             <TrendingUp className="size-3.5 text-primary" />
             Comparativo de operação
           </div>
-          <h2 className="font-display text-3xl md:text-5xl font-bold tracking-tight">
+          <h2 className="font-display text-3xl md:text-5xl font-bold tracking-tight text-balance leading-[1.15]">
             O que sua equipe leva <span className="gradient-text">uma semana</span>{" "}
             para fechar, o Orks resolve em <span className="gradient-text">horas.</span>
           </h2>
-          <p className="mt-5 text-muted-foreground text-base md:text-lg">
+          <p className="mt-5 text-muted-foreground text-base md:text-lg text-pretty">
             Compare lado a lado: rotina financeira em planilhas vs. operação no Orks.
           </p>
         </div>
@@ -108,15 +108,15 @@ export const RoiCompare = () => {
           <div className="glass-strong rounded-3xl p-7 md:p-10 gradient-border relative overflow-hidden noise">
             <div className="absolute -top-32 -left-20 h-64 w-64 bg-primary/30 blur-3xl rounded-full pointer-events-none" />
             <div className="relative">
-              <div className="flex items-center gap-2 text-xs uppercase tracking-[0.2em] text-muted-foreground mb-3">
-                <span className="size-1.5 rounded-full bg-primary" />
+              <div className="flex items-center gap-2 text-[10px] sm:text-xs uppercase tracking-[0.2em] text-muted-foreground mb-3 whitespace-nowrap">
+                <span className="size-1.5 rounded-full bg-primary shrink-0" />
                 Quanto sua empresa pode economizar
               </div>
-              <h3 className="font-display text-2xl md:text-3xl font-semibold">
+              <h3 className="font-display text-xl sm:text-2xl md:text-3xl font-semibold text-balance leading-[1.2]">
                 Quantas horas/semana sua equipe gasta hoje em{" "}
                 <span className="gradient-text">rotina financeira</span>?
               </h3>
-              <p className="text-muted-foreground mt-2">
+              <p className="text-muted-foreground mt-2 text-pretty">
                 Considere planilhas, conciliação bancária, cobrança, contas a pagar e fechamento.
               </p>
 

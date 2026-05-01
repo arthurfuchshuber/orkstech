@@ -11,10 +11,10 @@ export const Pricing = () => {
             <Sparkles className="size-3.5 text-primary" />
             Planos
           </div>
-          <h2 className="font-display text-3xl md:text-5xl font-bold tracking-tight mb-4">
+          <h2 className="font-display text-3xl md:text-5xl font-bold tracking-tight mb-4 text-balance leading-[1.15]">
             Escolha o plano <span className="gradient-text">ideal</span> para sua operação
           </h2>
-          <p className="text-muted-foreground text-base md:text-lg">
+          <p className="text-muted-foreground text-base md:text-lg text-pretty">
             Comece com 7 dias grátis em qualquer plano. Cancele quando quiser, sem multa.
           </p>
         </div>

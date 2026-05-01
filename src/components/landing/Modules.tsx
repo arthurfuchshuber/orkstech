@@ -35,11 +35,11 @@ export const Modules = () => {
     <section id="produto" className="py-20 md:py-28 relative">
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[700px] h-[400px] bg-primary/[0.04] blur-3xl pointer-events-none" />
       <div className="max-w-6xl mx-auto px-4 sm:px-6 relative z-10">
-        <div className="max-w-2xl mx-auto text-center mb-12 reveal">
-          <div className="inline-flex items-center gap-2 glass rounded-full px-4 py-1.5 text-xs font-medium text-muted-foreground mb-5">
+        <div className="max-w-3xl mx-auto text-center mb-12 reveal">
+          <div className="inline-flex items-center gap-2 glass rounded-full px-4 py-1.5 text-xs font-medium text-muted-foreground mb-5 whitespace-nowrap">
             Dois pilares. Uma plataforma.
           </div>
-          <h2 className="font-display text-3xl md:text-5xl font-bold tracking-tight">
+          <h2 className="font-display text-3xl md:text-5xl font-bold tracking-tight text-balance leading-[1.15]">
             Tudo que você precisa,{" "}
             <span className="gradient-text">de verdade integrado.</span>
           </h2>
@@ -53,9 +53,8 @@ export const Modules = () => {
               <div className="text-xs uppercase tracking-[0.2em] text-foreground mb-3">
                 01 — Financeiro inteligente
               </div>
-              <h3 className="font-display text-2xl md:text-4xl font-bold leading-tight">
-                Seu dinheiro,{" "}
-                <span className="gradient-text">sob controle total.</span>
+              <h3 className="font-display text-2xl md:text-4xl font-bold leading-tight text-balance">
+                Seu dinheiro, <span className="gradient-text">sob controle total.</span>
               </h3>
               <p className="mt-4 text-muted-foreground">
                 Da entrada do extrato até o fechamento do mês: bancos sincronizados, classificação automática e DRE vivo.
@@ -89,7 +88,7 @@ export const Modules = () => {
               <div className="text-xs uppercase tracking-[0.2em] text-foreground mb-3">
                 02 — Operação 360º
               </div>
-              <h3 className="font-display text-2xl md:text-4xl font-bold leading-tight">
+              <h3 className="font-display text-2xl md:text-4xl font-bold leading-tight text-balance">
                 Cliente, contrato e operação{" "}
                 <span className="gradient-text">conversando entre si.</span>
               </h3>
