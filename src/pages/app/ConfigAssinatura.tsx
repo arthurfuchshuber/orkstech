@@ -67,7 +67,7 @@ export default function ConfigAssinatura() {
   const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState<TabId>("planos");
 
-  useEffect(() => { document.title = "Planos e Pagamentos | NexusOS"; }, []);
+  useEffect(() => { document.title = "Planos e Pagamentos | Orks"; }, []);
 
   const hasSubscription = subscribed || !!status;
 

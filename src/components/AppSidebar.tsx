@@ -9,8 +9,9 @@ import { useSuperAdmin } from "@/hooks/useSuperAdmin";
 import { useEmpresa } from "@/hooks/useEmpresa";
 import { usePermissions, getMenuPermissionKey } from "@/hooks/usePermissions";
 import { supabase } from "@/integrations/supabase/client";
-import { ChevronRight, Zap } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import { EmpresaSelector } from "@/components/EmpresaSelector";
+import orksLogo from "@/assets/orks-logo.png";
 import {
   Sidebar,
   SidebarContent,
@@ -367,10 +368,15 @@ export function AppSidebar() {
     <Sidebar collapsible="icon">
       <SidebarHeader className="px-3 py-4 space-y-3">
         <div className="flex items-center gap-2.5 px-1">
-          <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center flex-shrink-0">
-            <Zap className="w-3.5 h-3.5 text-primary-foreground" />
+          <div className="w-8 h-8 rounded-lg overflow-hidden flex-shrink-0 ring-1 ring-border/40 bg-background">
+            <img src={orksLogo} alt="Orks" className="w-full h-full object-cover" />
           </div>
-          {!collapsed && <span className="text-sm font-semibold tracking-tight text-foreground">NexusOS</span>}
+          {!collapsed && (
+            <div className="flex flex-col leading-tight">
+              <span className="text-sm font-bold tracking-tight text-foreground">Orks</span>
+              <span className="text-[10px] text-muted-foreground tracking-wider uppercase">Gestão 360º</span>
+            </div>
+          )}
         </div>
         <EmpresaSelector collapsed={collapsed} />
       </SidebarHeader>

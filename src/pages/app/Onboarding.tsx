@@ -191,7 +191,7 @@ export default function Onboarding() {
           <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center">
             <Zap className="w-3.5 h-3.5 text-primary-foreground" />
           </div>
-          <span className="text-sm font-semibold tracking-tight text-foreground">NexusOS</span>
+          <span className="text-sm font-semibold tracking-tight text-foreground">Orks</span>
         </div>
         <Button variant="ghost" size="sm" onClick={handleLogout} className="text-muted-foreground text-xs">
           Sair
@@ -204,7 +204,7 @@ export default function Onboarding() {
             <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mx-auto mb-4">
               <Building2 className="w-6 h-6 text-primary" />
             </div>
-            <h1 className="text-2xl font-bold text-foreground">Bem-vindo ao NexusOS</h1>
+            <h1 className="text-2xl font-bold text-foreground">Bem-vindo ao Orks</h1>
             <p className="text-muted-foreground text-sm max-w-md mx-auto">
               Para começar, informe o CNPJ da sua empresa. Os dados serão preenchidos automaticamente pela Receita Federal.
             </p>
