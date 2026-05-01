@@ -11,7 +11,17 @@ async function getTargetEmpresaId(
   supabaseAdmin: any,
   targetUserId: string
 ): Promise<string | null> {
-  // First check profile empresa_id
+  // Prefer empresa_membros (N:N)
+  const { data: membro } = await supabaseAdmin
+    .from("empresa_membros")
+    .select("empresa_id")
+    .eq("user_id", targetUserId)
+    .eq("ativo", true)
+    .limit(1)
+    .maybeSingle();
+  if (membro?.empresa_id) return membro.empresa_id;
+
+  // Legacy fallback: profile empresa_id
   const { data: profile } = await supabaseAdmin
     .from("profiles")
     .select("empresa_id")
@@ -19,7 +29,7 @@ async function getTargetEmpresaId(
     .single();
   if (profile?.empresa_id) return profile.empresa_id;
 
-  // Fallback: check if user owns an empresa
+  // Owner fallback
   const { data: empresa } = await supabaseAdmin
     .from("empresas")
     .select("id")
@@ -156,9 +166,10 @@ serve(async (req) => {
         .from("profiles")
         .select("user_id, nome, cpf, telefone, data_nascimento, nivel_permissao_id, ativo, empresa_id");
 
-      // Filter by empresa (unless Super Admin viewing all)
-      // Also include the empresa owner (user_id on empresas table) who may not have empresa_id on their profile
+      // Owner + members of the empresa
       let empresaOwnerId: string | null = null;
+      let memberUserIds: string[] = [];
+      const memberLevelByUser = new Map<string, string>();
       if (requestEmpresaId) {
         const { data: empresaData } = await supabaseAdmin
           .from("empresas")
@@ -166,15 +177,35 @@ serve(async (req) => {
           .eq("id", requestEmpresaId)
           .single();
         empresaOwnerId = empresaData?.user_id ?? null;
+
+        const { data: membros } = await supabaseAdmin
+          .from("empresa_membros")
+          .select("user_id, nivel_permissao_id")
+          .eq("empresa_id", requestEmpresaId)
+          .eq("ativo", true);
+        for (const m of membros ?? []) {
+          memberUserIds.push(m.user_id);
+          if (m.nivel_permissao_id) memberLevelByUser.set(m.user_id, m.nivel_permissao_id);
+        }
       }
 
       let filteredProfiles = isSuperAdmin && !body.empresa_id
         ? profiles
         : (profiles ?? []).filter((p: any) => {
             if (!requestEmpresaId) return false;
-            // Match by empresa_id on profile OR by being the empresa owner
-            return p.empresa_id === requestEmpresaId || p.user_id === empresaOwnerId;
+            // Match by empresa_membros OR empresa owner OR legacy profile empresa_id
+            return (
+              memberUserIds.includes(p.user_id) ||
+              p.user_id === empresaOwnerId ||
+              p.empresa_id === requestEmpresaId
+            );
           });
+
+      // Override nivel_permissao_id with the per-empresa one when available
+      filteredProfiles = (filteredProfiles ?? []).map((p: any) => {
+        const perEmpresaLevel = memberLevelByUser.get(p.user_id);
+        return perEmpresaLevel ? { ...p, nivel_permissao_id: perEmpresaLevel } : p;
+      });
 
       // Always hide Super Admin users from non-super-admin views
       if (!isSuperAdmin && superAdminLevel?.id) {
@@ -298,6 +329,20 @@ serve(async (req) => {
         })
         .eq("user_id", newUser.user.id);
 
+      // Vincula em empresa_membros (N:N) — nível por empresa
+      await supabaseAdmin
+        .from("empresa_membros")
+        .upsert(
+          {
+            empresa_id: callerEmpresaId,
+            user_id: newUser.user.id,
+            nivel_permissao_id: nivelPermissaoId,
+            invited_by: caller.id,
+            ativo: true,
+          },
+          { onConflict: "empresa_id,user_id" }
+        );
+
       return new Response(JSON.stringify({ success: true, user_id: newUser.user.id }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -340,6 +385,24 @@ serve(async (req) => {
         }
       }
 
+      // Update per-empresa role in empresa_membros (preferred source of truth)
+      const targetEmpresaIdForRole =
+        body.empresa_id ?? callerEmpresaId ?? (await getTargetEmpresaId(supabaseAdmin, parsed.data.user_id));
+      if (targetEmpresaIdForRole) {
+        await supabaseAdmin
+          .from("empresa_membros")
+          .upsert(
+            {
+              empresa_id: targetEmpresaIdForRole,
+              user_id: parsed.data.user_id,
+              nivel_permissao_id: parsed.data.nivel_permissao_id,
+              ativo: true,
+            },
+            { onConflict: "empresa_id,user_id" }
+          );
+      }
+
+      // Mantém profiles.nivel_permissao_id em sync (legado / Super Admin global)
       const { error } = await supabaseAdmin
         .from("profiles")
         .update({ nivel_permissao_id: parsed.data.nivel_permissao_id })

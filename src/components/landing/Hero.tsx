@@ -22,11 +22,11 @@ export const Hero = () => {
             </span>
           </div>
 
-          <h1 className="font-display text-[2rem] min-[380px]:text-[2.25rem] sm:text-5xl md:text-7xl font-bold tracking-tight leading-[1.1] sm:leading-[1.05] mb-5 sm:mb-6 text-foreground">
-            <span className="block">
+          <h1 className="font-display text-[2rem] min-[380px]:text-[2.25rem] sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight leading-[1.1] sm:leading-[1.05] mb-5 sm:mb-6 text-foreground">
+            <span className="block whitespace-nowrap">
               Toda a operação da sua
             </span>
-            <span className="block gradient-text">
+            <span className="block gradient-text whitespace-nowrap">
               empresa em uma única tela.
             </span>
           </h1>
