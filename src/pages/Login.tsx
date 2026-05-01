@@ -34,8 +34,8 @@ export default function Login() {
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <div className="w-full max-w-sm space-y-8">
         <div className="text-center space-y-3">
-          <div className="w-14 h-14 rounded-2xl overflow-hidden mx-auto ring-1 ring-border/40 shadow-[0_0_40px_-10px_hsl(var(--primary)/0.5)]">
-            <img src={orksLogo} alt="Orks" className="w-full h-full object-cover" />
+          <div className="w-16 h-16 mx-auto drop-shadow-[0_8px_30px_hsl(var(--primary)/0.4)]">
+            <img src={orksLogo} alt="Orks" className="w-full h-full object-contain" />
           </div>
           <h1 className="text-2xl font-bold tracking-tight text-foreground">Entrar no Orks</h1>
           <p className="text-sm text-muted-foreground">Plataforma de Gestão 360º</p>
