@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 
 export default function Termos() {
   useEffect(() => {
-    document.title = "Termos de Uso | NexusOS";
+    document.title = "Termos de Uso | Orks";
   }, []);
 
   return (
@@ -32,7 +32,7 @@ export default function Termos() {
             <div>
               <h2 className="text-lg font-semibold text-foreground mb-2">1. Aceitação dos Termos</h2>
               <p>
-                Ao criar uma conta e utilizar a plataforma <strong>NexusOS</strong> ("Plataforma", "Serviço"),
+                Ao criar uma conta e utilizar a plataforma <strong>Orks</strong> ("Plataforma", "Serviço"),
                 você ("Usuário") declara que leu, compreendeu e concorda integralmente com estes
                 Termos de Uso, bem como com a nossa{" "}
                 <Link to="/privacidade" className="text-primary hover:underline">Política de Privacidade</Link>.
@@ -43,7 +43,7 @@ export default function Termos() {
             <div>
               <h2 className="text-lg font-semibold text-foreground mb-2">2. Descrição do Serviço</h2>
               <p>
-                O NexusOS é uma plataforma SaaS (Software as a Service) de gestão financeira e operacional
+                O Orks é uma plataforma SaaS (Software as a Service) de gestão financeira e operacional
                 voltada para empresas prestadoras de serviços, oferecendo módulos de Contas a Pagar/Receber,
                 Fluxo de Caixa, DRE, Cadastros, integração com Open Finance e automações.
               </p>
@@ -64,7 +64,7 @@ export default function Termos() {
             <div>
               <h2 className="text-lg font-semibold text-foreground mb-2">4. Planos, Pagamentos e Trial</h2>
               <p>
-                O NexusOS opera em modelo de assinatura recorrente (mensal, semestral ou anual). Todos os
+                O Orks opera em modelo de assinatura recorrente (mensal, semestral ou anual). Todos os
                 novos cadastros incluem <strong>7 dias de teste gratuito</strong>, ao final dos quais a
                 cobrança é automaticamente processada via Stripe no método de pagamento informado.
               </p>
@@ -92,8 +92,8 @@ export default function Termos() {
               <h2 className="text-lg font-semibold text-foreground mb-2">6. Propriedade Intelectual</h2>
               <p>
                 Todo o software, design, marcas, logos e conteúdo da Plataforma são de propriedade exclusiva
-                do NexusOS. Os dados inseridos pelo Usuário (cadastros, lançamentos, documentos) permanecem
-                de propriedade do próprio Usuário, que concede licença limitada para que o NexusOS os
+                do Orks. Os dados inseridos pelo Usuário (cadastros, lançamentos, documentos) permanecem
+                de propriedade do próprio Usuário, que concede licença limitada para que o Orks os
                 processe e armazene exclusivamente para a prestação do Serviço.
               </p>
             </div>
@@ -102,7 +102,7 @@ export default function Termos() {
               <h2 className="text-lg font-semibold text-foreground mb-2">7. Disponibilidade e Limitação de Responsabilidade</h2>
               <p>
                 Buscamos manter a disponibilidade do Serviço em <strong>99,5% mensal</strong>, mas o Serviço
-                é fornecido "no estado em que se encontra". O NexusOS não se responsabiliza por:
+                é fornecido "no estado em que se encontra". O Orks não se responsabiliza por:
               </p>
               <ul className="list-disc pl-6 mt-2 space-y-1">
                 <li>Decisões financeiras tomadas com base nos relatórios da plataforma;</li>
@@ -114,7 +114,7 @@ export default function Termos() {
             <div>
               <h2 className="text-lg font-semibold text-foreground mb-2">8. Cancelamento e Encerramento</h2>
               <p>
-                O Usuário pode cancelar sua assinatura a qualquer momento. O NexusOS reserva-se o direito de
+                O Usuário pode cancelar sua assinatura a qualquer momento. O Orks reserva-se o direito de
                 suspender ou encerrar contas que violem estes Termos, mediante notificação prévia sempre que
                 possível. Após o encerramento, os dados ficam disponíveis para exportação por 30 dias e em
                 seguida são permanentemente excluídos.

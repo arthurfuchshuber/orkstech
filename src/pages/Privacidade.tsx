@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 
 export default function Privacidade() {
   useEffect(() => {
-    document.title = "Política de Privacidade | NexusOS";
+    document.title = "Política de Privacidade | Orks";
   }, []);
 
   return (
@@ -32,7 +32,7 @@ export default function Privacidade() {
             <div>
               <h2 className="text-lg font-semibold text-foreground mb-2">1. Quem somos</h2>
               <p>
-                O <strong>NexusOS</strong> é uma plataforma SaaS de gestão financeira e operacional. Esta
+                O <strong>Orks</strong> é uma plataforma SaaS de gestão financeira e operacional. Esta
                 Política descreve como coletamos, utilizamos, armazenamos e protegemos os dados pessoais e
                 empresariais dos nossos usuários, em conformidade com a{" "}
                 <strong>Lei Geral de Proteção de Dados (Lei 13.709/2018 — LGPD)</strong>.
@@ -150,7 +150,7 @@ export default function Privacidade() {
 
             <div className="pt-6 border-t border-border/40">
               <p className="text-xs text-muted-foreground">
-                Ao utilizar o NexusOS, você confirma ter lido e compreendido esta Política de Privacidade.
+                Ao utilizar o Orks, você confirma ter lido e compreendido esta Política de Privacidade.
               </p>
             </div>
           </section>

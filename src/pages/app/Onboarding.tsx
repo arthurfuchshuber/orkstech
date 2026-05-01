@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Building2, Loader2, Zap, CheckCircle2, AlertCircle, Search } from "lucide-react";
+import { Building2, Loader2, CheckCircle2, AlertCircle, Search } from "lucide-react";
+import orksLogo from "@/assets/orks-logo.png";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { TextInput } from "@/components/inputs/TextInput";
@@ -188,10 +189,13 @@ export default function Onboarding() {
     <div className="min-h-screen bg-background flex flex-col">
       <header className="h-14 flex items-center justify-between border-b border-border/30 px-6 bg-background/80 backdrop-blur-lg">
         <div className="flex items-center gap-2.5">
-          <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center">
-            <Zap className="w-3.5 h-3.5 text-primary-foreground" />
+          <div className="w-8 h-8 rounded-lg overflow-hidden ring-1 ring-border/40">
+            <img src={orksLogo} alt="Orks" className="w-full h-full object-cover" />
           </div>
-          <span className="text-sm font-semibold tracking-tight text-foreground">NexusOS</span>
+          <div className="flex flex-col leading-tight">
+            <span className="text-sm font-bold tracking-tight text-foreground">Orks</span>
+            <span className="text-[10px] text-muted-foreground tracking-wider uppercase">Gestão 360º</span>
+          </div>
         </div>
         <Button variant="ghost" size="sm" onClick={handleLogout} className="text-muted-foreground text-xs">
           Sair
@@ -204,7 +208,7 @@ export default function Onboarding() {
             <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mx-auto mb-4">
               <Building2 className="w-6 h-6 text-primary" />
             </div>
-            <h1 className="text-2xl font-bold text-foreground">Bem-vindo ao NexusOS</h1>
+            <h1 className="text-2xl font-bold text-foreground">Bem-vindo ao Orks</h1>
             <p className="text-muted-foreground text-sm max-w-md mx-auto">
               Para começar, informe o CNPJ da sua empresa. Os dados serão preenchidos automaticamente pela Receita Federal.
             </p>

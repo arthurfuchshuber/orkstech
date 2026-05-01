@@ -2,8 +2,9 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
-import { Zap, Mail, Lock, Loader2, Eye, EyeOff } from "lucide-react";
+import { Mail, Lock, Loader2, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
+import orksLogo from "@/assets/orks-logo.png";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -32,12 +33,12 @@ export default function Login() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <div className="w-full max-w-sm space-y-8">
-        <div className="text-center space-y-2">
-          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center mx-auto">
-            <Zap className="w-6 h-6 text-primary-foreground" />
+        <div className="text-center space-y-3">
+          <div className="w-14 h-14 rounded-2xl overflow-hidden mx-auto ring-1 ring-border/40 shadow-[0_0_40px_-10px_hsl(var(--primary)/0.5)]">
+            <img src={orksLogo} alt="Orks" className="w-full h-full object-cover" />
           </div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">Entrar no NexusOS</h1>
-          <p className="text-sm text-muted-foreground">Acesse sua conta para continuar</p>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">Entrar no Orks</h1>
+          <p className="text-sm text-muted-foreground">Plataforma de Gestão 360º</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
