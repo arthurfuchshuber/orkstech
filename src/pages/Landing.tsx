@@ -338,19 +338,19 @@ export default function Landing() {
       </section>
 
       {/* Trusted by / Stats */}
-      <section className="py-12 border-y border-border/40 bg-card/30">
-        <div className="max-w-6xl mx-auto px-6">
-          <p className="text-center text-xs uppercase tracking-[0.2em] text-muted-foreground mb-6">Empresas que confiam no Orks</p>
-          <div className="flex flex-wrap items-center justify-center gap-x-10 gap-y-4 mb-12 opacity-60">
+      <section className="py-10 sm:py-12 border-y border-border/40 bg-card/30">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6">
+          <p className="text-center text-[10px] sm:text-xs uppercase tracking-[0.2em] text-muted-foreground mb-5 sm:mb-6">Empresas que confiam no Orks</p>
+          <div className="flex flex-wrap items-center justify-center gap-x-5 sm:gap-x-10 gap-y-2 sm:gap-y-4 mb-10 sm:mb-12 opacity-60">
             {trustedBy.map((name) => (
-              <span key={name} className="text-sm font-semibold tracking-wide text-muted-foreground">{name}</span>
+              <span key={name} className="text-xs sm:text-sm font-semibold tracking-wide text-muted-foreground">{name}</span>
             ))}
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 sm:gap-8">
             {stats.map((s) => (
               <div key={s.label} className="text-center">
-                <div className="text-3xl md:text-4xl font-bold gradient-text mb-1">{s.value}</div>
-                <div className="text-xs text-muted-foreground uppercase tracking-wider">{s.label}</div>
+                <div className="text-2xl sm:text-3xl md:text-4xl font-bold gradient-text mb-1">{s.value}</div>
+                <div className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wider">{s.label}</div>
               </div>
             ))}
           </div>
