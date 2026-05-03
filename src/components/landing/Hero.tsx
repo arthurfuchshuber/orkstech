@@ -27,7 +27,11 @@ export const Hero = () => {
               Toda a operação da sua
             </span>
             <span className="block gradient-text whitespace-nowrap">
-              empresa em uma única tela.
+              <span className="sm:hidden">empresa em uma</span>
+              <span className="hidden sm:inline">empresa em uma única tela!</span>
+            </span>
+            <span className="block gradient-text whitespace-nowrap sm:hidden">
+              única tela!
             </span>
           </h1>
 

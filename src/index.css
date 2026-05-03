@@ -278,3 +278,7 @@ html { scroll-behavior: smooth; }
 /* Headline wrap helpers — keep titles in clean, balanced lines */
 .text-balance { text-wrap: balance; }
 .text-pretty { text-wrap: pretty; }
+
+/* Hide scrollbar utility (mobile horizontal carousels) */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
