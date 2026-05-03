@@ -4,6 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Zap, Mail, Loader2, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
+import { translateError } from "@/lib/translate-error";
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState("");
@@ -17,7 +18,7 @@ export default function ForgotPassword() {
     setLoading(true);
     const { error } = await resetPassword(email);
     setLoading(false);
-    if (error) { toast.error(error); } else { setSent(true); }
+    if (error) { toast.error(translateError(error)); } else { setSent(true); }
   };
 
   return (

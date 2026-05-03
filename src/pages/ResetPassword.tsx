@@ -4,6 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Zap, Lock, Loader2, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
+import { translateError } from "@/lib/translate-error";
 
 export default function ResetPassword() {
   const [password, setPassword] = useState("");
@@ -27,7 +28,7 @@ export default function ResetPassword() {
     setLoading(true);
     const { error } = await updatePassword(password);
     setLoading(false);
-    if (error) { toast.error(error); } else {
+    if (error) { toast.error(translateError(error)); } else {
       toast.success("Senha atualizada com sucesso!");
       navigate("/app");
     }

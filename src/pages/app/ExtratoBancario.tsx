@@ -476,7 +476,7 @@ export default function ExtratoBancario() {
 
       if (!res.ok) {
         await res.text();
-        throw new Error("Sync failed");
+        throw new Error("Falha na sincronização");
       }
 
       await res.json();

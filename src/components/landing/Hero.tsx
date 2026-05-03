@@ -66,7 +66,7 @@ export const Hero = () => {
           {/* Mini stats */}
           <div className="grid grid-cols-3 gap-4 max-w-xl mx-auto mt-12 reveal">
             {[
-              { v: "99.9%", l: "Uptime garantido" },
+              { v: "99.9%", l: "Disponibilidade garantida" },
               { v: "3x", l: "Mais produtividade" },
               { v: "<2s", l: "Tempo de resposta" },
             ].map((s) => (

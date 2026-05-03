@@ -72,7 +72,7 @@ export function usePluggyConnections() {
         { headers: { Authorization: `Bearer ${token}` } }
       );
       if (!res.ok) {
-        throw new Error("Sync failed");
+        throw new Error("Falha na sincronização");
       }
       const result = await res.json();
       toast.success(result.message || "Sincronizado com sucesso!");
