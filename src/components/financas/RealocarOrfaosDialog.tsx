@@ -58,13 +58,44 @@ export function RealocarOrfaosDialog({ open, onOpenChange }: Props) {
     queryFn: async () => {
       let q = supabase
         .from("contas_bancarias")
-        .select("id, nome, tipo, banco")
+        .select("id, nome, tipo, banco, pluggy_account_id")
         .eq("ativo", true);
       if (empresaId) q = q.eq("empresa_id", empresaId);
       else q = q.eq("user_id", targetUserId!);
-      const { data, error } = await q;
+      const { data: contasData, error } = await q;
       if (error) throw error;
-      return data ?? [];
+      const lista = contasData ?? [];
+
+      // Enriquecer com dados Pluggy para usar o MESMO nome de Configurações/Extrato
+      const pluggyIds = lista.map((c: any) => c.pluggy_account_id).filter(Boolean);
+      if (pluggyIds.length === 0) return lista;
+
+      const { data: pba } = await supabase
+        .from("pluggy_bank_accounts" as any)
+        .select("pluggy_account_id, pluggy_item_id, subtype, bank_data")
+        .in("pluggy_account_id", pluggyIds);
+
+      const itemIds = Array.from(new Set((pba ?? []).map((p: any) => p.pluggy_item_id).filter(Boolean)));
+      const { data: conns } = itemIds.length
+        ? await supabase
+            .from("pluggy_connections" as any)
+            .select("pluggy_item_id, connector_name")
+            .in("pluggy_item_id", itemIds)
+        : { data: [] as any[] };
+
+      const connByItem = new Map((conns ?? []).map((c: any) => [c.pluggy_item_id, c.connector_name]));
+      const pbaByAcc = new Map((pba ?? []).map((p: any) => [p.pluggy_account_id, p]));
+
+      return lista.map((c: any) => {
+        if (!c.pluggy_account_id) return c;
+        const p: any = pbaByAcc.get(c.pluggy_account_id);
+        const connectorName = p ? connByItem.get(p.pluggy_item_id) : null;
+        if (!connectorName) return c;
+        const isCard = p?.subtype === "CREDIT_CARD";
+        const last4 = isCard ? (p?.bank_data?.number ?? "").toString().slice(-4) : null;
+        const displayName = isCard && last4 ? `${connectorName} •••${last4}` : connectorName;
+        return { ...c, nome: displayName, tipo: isCard ? "cartao_credito" : c.tipo };
+      });
     },
   });
 
