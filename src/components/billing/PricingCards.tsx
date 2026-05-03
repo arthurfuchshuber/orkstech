@@ -126,7 +126,16 @@ export function PricingCards({ publicMode = false }: PricingCardsProps) {
       </div>
 
       {/* Plan cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+      <div className="md:grid md:grid-cols-3 md:gap-5 flex gap-4 overflow-x-auto md:overflow-visible snap-x snap-mandatory -mx-4 px-4 md:mx-0 md:px-0 pb-4 md:pb-0 scroll-smooth no-scrollbar" ref={(el) => {
+        if (!el || (el as any).__scrolled) return;
+        const target = el.querySelector('[data-plan-highlight="true"]') as HTMLElement | null;
+        if (target && window.matchMedia('(max-width: 767px)').matches) {
+          (el as any).__scrolled = true;
+          requestAnimationFrame(() => {
+            el.scrollTo({ left: target.offsetLeft - (el.clientWidth - target.clientWidth) / 2, behavior: 'instant' as ScrollBehavior });
+          });
+        }
+      }}>
         {plans.map((plan) => {
           const Icon = PLAN_ICONS[plan.key] ?? Sparkles;
           const tagline = plan.tagline ?? "";
