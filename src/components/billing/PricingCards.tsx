@@ -174,6 +174,7 @@ export function PricingCards({ publicMode = false }: PricingCardsProps) {
             <Card
               key={plan.key}
               data-plan-key={plan.key}
+              data-plan-highlight={highlight ? "true" : undefined}
               className={cn(
                 "relative p-6 flex flex-col transition-all duration-200 snap-center shrink-0 w-[85%] min-[380px]:w-[80%] sm:w-[70%] md:w-auto",
                 highlight
