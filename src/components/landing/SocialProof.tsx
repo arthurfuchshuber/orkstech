@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Star, Quote } from "lucide-react";
 
 const stats = [
-  { v: 99.9, suffix: "%", l: "Uptime garantido", decimal: true },
+  { v: 99.9, suffix: "%", l: "Disponibilidade garantida", decimal: true },
   { v: 50, suffix: "k+", l: "Transações sincronizadas/dia" },
   { v: 80, suffix: "%", l: "Menos tempo no fechamento" },
   { v: 4.9, suffix: "★", l: "Satisfação dos usuários", decimal: true },
