@@ -88,6 +88,15 @@ export default function Financeiro() {
               />
             )}
 
+            {showContas && (
+              <ReadOnlyWrap readOnly={!editContas}>
+                <CartoesCreditoSection
+                  readOnly={!editContas}
+                  hideOpenFinanceButton={!viewOpenFinance || !editOpenFinance}
+                />
+              </ReadOnlyWrap>
+            )}
+
             {showFormas && (
               <ReadOnlyWrap readOnly={!editFormas}>
                 <FormasPagamentoSection />
