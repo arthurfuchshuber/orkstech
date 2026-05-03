@@ -4,6 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Mail, Lock, Loader2, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
+import { translateError } from "@/lib/translate-error";
 import orksLogo from "@/assets/orks-icon.png";
 
 export default function Login() {
@@ -24,7 +25,7 @@ export default function Login() {
     const { error } = await signIn(email, password);
     setLoading(false);
     if (error) {
-      toast.error(error === "Invalid login credentials" ? "Email ou senha incorretos" : error);
+      toast.error(translateError(error));
     } else {
       navigate("/app");
     }

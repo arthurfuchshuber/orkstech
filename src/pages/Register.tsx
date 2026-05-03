@@ -4,6 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Zap, Mail, Lock, User, Loader2, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
+import { translateError } from "@/lib/translate-error";
 
 export default function Register() {
   const [name, setName] = useState("");
@@ -37,7 +38,7 @@ export default function Register() {
     const { error } = await signUp(email, password, name);
     setLoading(false);
     if (error) {
-      toast.error(error);
+      toast.error(translateError(error));
     } else {
       toast.success("Conta criada com sucesso!");
       navigate("/app");
