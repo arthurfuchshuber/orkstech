@@ -11,6 +11,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { AlertTriangle, Plus, Trash2, Loader2 } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -155,7 +162,7 @@ export function RealocarOrfaosDialog({ open, onOpenChange }: Props) {
   return (
     <>
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto overflow-x-hidden">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <AlertTriangle className="h-5 w-5 text-amber-500" />
@@ -232,28 +239,41 @@ export function RealocarOrfaosDialog({ open, onOpenChange }: Props) {
                 </Button>
               </div>
               {linhas.map((l, i) => (
-                <div key={i} className="flex items-center gap-2">
-                  <select
-                    className="flex-1 h-9 rounded-md border border-input bg-background px-3 text-sm"
-                    value={l.bank_account_id}
-                    onChange={(e) => handleSelectChange(i, e.target.value)}
-                  >
-                    <option value="">Selecione uma conta…</option>
-                    {contas.map((c: any) => {
-                      const tipoLabel = c.tipo === "cartao_credito"
-                        ? "Cartão"
-                        : c.tipo === "corrente" ? "Corrente"
-                        : c.tipo === "poupanca" ? "Poupança"
-                        : c.tipo === "caixa" ? "Caixa"
-                        : c.tipo === "carteira_digital" ? "Carteira" : c.tipo;
-                      return (
-                        <option key={c.id} value={c.id}>
-                          [{tipoLabel}] {c.nome} {c.banco ? `· ${c.banco}` : ""}
-                        </option>
-                      );
-                    })}
-                    <option value={NEW_ACCOUNT_TOKEN}>+ Cadastrar nova conta / cartão…</option>
-                  </select>
+                <div key={i} className="flex items-center gap-2 min-w-0">
+                  <div className="flex-1 min-w-0">
+                    <Select
+                      value={l.bank_account_id}
+                      onValueChange={(v) => handleSelectChange(i, v)}
+                    >
+                      <SelectTrigger className="h-9 w-full">
+                        <SelectValue placeholder="Selecione uma conta…" />
+                      </SelectTrigger>
+                      <SelectContent className="max-w-[var(--radix-select-trigger-width)]">
+                        {contas.map((c: any) => {
+                          const tipoLabel =
+                            c.tipo === "cartao_credito" ? "Cartão"
+                            : c.tipo === "corrente" ? "Corrente"
+                            : c.tipo === "poupanca" ? "Poupança"
+                            : c.tipo === "caixa" ? "Caixa"
+                            : c.tipo === "carteira_digital" ? "Carteira"
+                            : c.tipo;
+                          return (
+                            <SelectItem key={c.id} value={c.id} className="max-w-full">
+                              <span className="flex items-center gap-2 min-w-0">
+                                <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-4 shrink-0">
+                                  {tipoLabel}
+                                </Badge>
+                                <span className="truncate">{c.nome}</span>
+                              </span>
+                            </SelectItem>
+                          );
+                        })}
+                        <SelectItem value={NEW_ACCOUNT_TOKEN} className="text-primary">
+                          + Cadastrar nova conta / cartão…
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                   <Input
                     type="number"
                     step="0.01"
