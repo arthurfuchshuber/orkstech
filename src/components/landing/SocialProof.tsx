@@ -92,42 +92,6 @@ export const SocialProof = () => {
           ))}
         </div>
 
-        {/* Cases */}
-        <div className="mt-20 max-w-5xl mx-auto">
-          <div className="text-center mb-10 reveal">
-            <h2 className="font-display text-3xl md:text-5xl font-bold tracking-tight text-balance">
-              Resultados <span className="gradient-text">reais.</span>
-            </h2>
-          </div>
-          <div className="grid md:grid-cols-3 gap-4">
-            {cases.map((c) => (
-              <div
-                key={c.local}
-                className="rounded-2xl bg-surface border border-border p-6 reveal hover:border-primary/40 transition-colors"
-              >
-                <div className="text-xs text-muted-foreground">{c.local}</div>
-                <div className="mt-4 flex items-baseline justify-between gap-3">
-                  <div>
-                    <div className="text-xs text-muted-foreground">Antes</div>
-                    <div className="font-display text-base font-semibold text-muted-foreground line-through">
-                      {c.before}
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-xs text-primary">Depois</div>
-                    <div className="font-display text-xl font-bold gradient-text">
-                      {c.after}
-                    </div>
-                  </div>
-                </div>
-                <div className="mt-4 inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full bg-primary/10 text-primary font-semibold">
-                  {c.lift}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
         {/* Depoimentos */}
         <div className="mt-20 max-w-6xl mx-auto">
           <div className="grid md:grid-cols-3 gap-5">
