@@ -438,14 +438,17 @@ export default function FinanceiroDashboard() {
   const cardsSemVinculo = useMemo(() => {
     const vinculado = new Set(cardVinculos.map((v) => v.card_tipo));
 
+    // Se existe ao menos uma conexão Open Finance (Pluggy) — independente de
+    // status — todos os valores trazidos pela integração (saldo, investimento,
+    // limite de crédito, fatura, cheque especial) são considerados cobertos
+    // pela origem. NUNCA pedimos vínculo manual de algo que já vem da
+    // integração ativa.
+    const temIntegracaoPluggy = connections.length > 0 || bankAccounts.length > 0 || creditCards.length > 0;
+
     // Origem implícita: contas/cartões já cadastrados (Pluggy ou manuais) que
     // produzem o valor do card. Se existe ao menos UMA fonte, não há "órfão" a
     // vincular — o número já vem dessas contas.
     const temContaSaldo = bankAccounts.length > 0 || manualAccounts.some((a) => !ehCartaoManual(a));
-    // Considera investimento "coberto pela origem" se:
-    //  - Existe ao menos um registro real em pluggy_investments (integração ativa), OU
-    //  - bank_data.totalInvestments populado em alguma conta Pluggy, OU
-    //  - Alguma conta manual com valor de investimento (sincronizado/ajuste/legado).
     const temContaInvestimento =
       pluggyInvestmentsTotal > 0 ||
       bankAccounts.some((a) => Number(a.bank_data?.totalInvestments ?? 0) > 0) ||
@@ -462,11 +465,11 @@ export default function FinanceiroDashboard() {
       manualAccounts.some((a) => Number(a.limite_cheque_especial || 0) > 0);
 
     const cobertoPorOrigem: Record<string, boolean> = {
-      saldo: temContaSaldo,
-      investimento: temContaInvestimento,
-      limite_credito: temCartao,
-      fatura: temCartao,
-      limite_cheque_especial: temChequeEspecial,
+      saldo: temIntegracaoPluggy || temContaSaldo,
+      investimento: temIntegracaoPluggy || temContaInvestimento,
+      limite_credito: temIntegracaoPluggy || temCartao,
+      fatura: temIntegracaoPluggy || temCartao,
+      limite_cheque_especial: temIntegracaoPluggy || temChequeEspecial,
     };
 
     return [
@@ -483,6 +486,7 @@ export default function FinanceiroDashboard() {
     );
   }, [
     cardVinculos,
+    connections,
     bankAccounts,
     manualAccounts,
     creditCards,
