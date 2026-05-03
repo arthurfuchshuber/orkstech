@@ -57,10 +57,8 @@ export function CaixaKpis({
       label: "Saldo em Contas",
       flag: "Contas Correntes",
       value: fmt(totalBalance),
-      sub: balanceDeltaPct != null ? `${balanceDeltaPct >= 0 ? "+" : ""}${balanceDeltaPct.toFixed(1)}% vs mês anterior` : undefined,
-      subColor: balanceDeltaPct == null ? undefined : balanceDeltaPct >= 0 ? "text-success" : "text-destructive",
       tone: "primary",
-      trend: balanceDeltaPct != null ? (balanceDeltaPct >= 0 ? "up" : "down") : null,
+      trend: null,
       ajusteCampo: "saldo",
     },
     {
