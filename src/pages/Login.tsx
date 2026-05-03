@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Mail, Lock, Loader2, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 import { translateError } from "@/lib/translate-error";
-import orksLogo from "@/assets/orks-icon.png";
+import { OrksWordmark } from "@/components/OrksWordmark";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -35,8 +35,8 @@ export default function Login() {
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <div className="w-full max-w-sm space-y-8">
         <div className="text-center space-y-3">
-          <div className="w-16 h-16 mx-auto drop-shadow-[0_8px_30px_hsl(var(--primary)/0.4)]">
-            <img src={orksLogo} alt="Orks" className="w-full h-full object-contain" />
+          <div className="flex justify-center">
+            <OrksWordmark size="text-3xl" />
           </div>
           <h1 className="text-2xl font-bold tracking-tight text-foreground">Entrar no Orks</h1>
           <p className="text-sm text-muted-foreground">Plataforma de Gestão 360º</p>
