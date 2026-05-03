@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Check, Loader2, Sparkles, Zap, Building2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
@@ -131,7 +131,7 @@ export function PricingCards({ publicMode = false }: PricingCardsProps) {
           const Icon = PLAN_ICONS[plan.key] ?? Sparkles;
           const tagline = plan.tagline ?? "";
           const highlight = plan.highlight;
-          const badge = highlight ? "Mais popular" : null;
+          const badge = highlight ? "Mais Contratado" : null;
           const isCurrent = effectiveCurrentPlan === plan.key;
           const price = plan.prices[interval];
           const monthlyPrice = monthlyRef(plan.product_id);
