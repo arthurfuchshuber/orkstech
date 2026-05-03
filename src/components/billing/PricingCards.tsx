@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Check, Loader2, Sparkles, Zap, Building2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
