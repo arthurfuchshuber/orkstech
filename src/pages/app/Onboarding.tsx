@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Building2, Loader2, CheckCircle2, AlertCircle, Search } from "lucide-react";
-import orksLogo from "@/assets/orks-icon.png";
+import { OrksWordmark } from "@/components/OrksWordmark";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { TextInput } from "@/components/inputs/TextInput";
@@ -188,14 +188,11 @@ export default function Onboarding() {
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <header className="h-14 flex items-center justify-between border-b border-border/30 px-6 bg-background/80 backdrop-blur-lg">
-        <div className="flex items-center gap-2.5">
-          <div className="w-9 h-9">
-            <img src={orksLogo} alt="Orks" className="w-full h-full object-contain" />
-          </div>
-          <div className="flex flex-col leading-tight">
-            <span className="text-sm font-bold tracking-tight text-foreground">Orks</span>
-            <span className="text-[10px] text-muted-foreground tracking-wider uppercase">Gestão 360º</span>
-          </div>
+        <div className="flex items-center gap-3">
+          <OrksWordmark size="text-xl" />
+          <span className="text-[10px] text-muted-foreground tracking-[0.25em] uppercase border-l border-border/40 pl-3">
+            Gestão 360º
+          </span>
         </div>
         <Button variant="ghost" size="sm" onClick={handleLogout} className="text-muted-foreground text-xs">
           Sair

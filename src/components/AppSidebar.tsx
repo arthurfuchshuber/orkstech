@@ -11,7 +11,7 @@ import { usePermissions, getMenuPermissionKey } from "@/hooks/usePermissions";
 import { supabase } from "@/integrations/supabase/client";
 import { ChevronRight } from "lucide-react";
 import { EmpresaSelector } from "@/components/EmpresaSelector";
-import orksIcon from "@/assets/orks-icon.png";
+import { OrksWordmark } from "@/components/OrksWordmark";
 import {
   Sidebar,
   SidebarContent,
@@ -368,13 +368,14 @@ export function AppSidebar() {
     <Sidebar collapsible="icon">
       <SidebarHeader className="px-3 py-4 space-y-3">
         <div className="flex items-center gap-2.5 px-1">
-          <div className="w-9 h-9 flex-shrink-0">
-            <img src={orksIcon} alt="Orks" className="w-full h-full object-contain" />
-          </div>
-          {!collapsed && (
-            <div className="flex flex-col leading-tight">
-              <span className="text-sm font-bold tracking-tight text-foreground">Orks</span>
-              <span className="text-[10px] text-muted-foreground tracking-wider uppercase">Gestão 360º</span>
+          {collapsed ? (
+            <OrksWordmark size="text-base" />
+          ) : (
+            <div className="flex items-center gap-3 min-w-0">
+              <OrksWordmark size="text-xl" />
+              <span className="text-[10px] text-muted-foreground tracking-[0.25em] uppercase border-l border-border/40 pl-3">
+                Gestão 360º
+              </span>
             </div>
           )}
         </div>
