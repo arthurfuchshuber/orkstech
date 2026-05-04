@@ -163,13 +163,13 @@ export default function DREMensalView() {
                   <tr className="border-b border-border/40 bg-muted/20">
                     <th className="sticky left-0 z-10 bg-muted/20 text-left font-medium py-2.5 px-3 min-w-[280px]">Conta</th>
                     {visibleMonths.map((m) => (
-                      <>
-                        <th key={`m-${m}`} className="text-right font-medium py-2.5 px-2 min-w-[90px]">
+                      <Fragment key={`h-${m}`}>
+                        <th className="text-right font-medium py-2.5 px-2 min-w-[90px]">
                           {monthLabels[m]}
                         </th>
-                        {showAV && <th key={`av-${m}`} className="text-right font-normal text-muted-foreground py-2.5 px-1 min-w-[44px]">A.V.</th>}
-                        {showAH && <th key={`ah-${m}`} className="text-right font-normal text-muted-foreground py-2.5 px-1 min-w-[44px]">A.H.</th>}
-                      </>
+                        {showAV && <th className="text-right font-normal text-muted-foreground py-2.5 px-1 min-w-[44px]">A.V.</th>}
+                        {showAH && <th className="text-right font-normal text-muted-foreground py-2.5 px-1 min-w-[44px]">A.H.</th>}
+                      </Fragment>
                     ))}
                     <th className="text-right font-semibold py-2.5 px-3 min-w-[110px] bg-muted/30">Total</th>
                   </tr>
