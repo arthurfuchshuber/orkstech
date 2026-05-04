@@ -5,7 +5,7 @@ import { useUncategorizedTransactions } from "@/hooks/useUncategorizedTransactio
 import { useOrfaosFinanceiros } from "@/hooks/useOrfaosFinanceiros";
 
 interface CardSemVinculo {
-  key: string;
+  tipo: string;
   label: string;
   total: number;
 }
@@ -15,7 +15,7 @@ interface Props {
   onCategorizar: () => void;
   onRealocar: () => void;
   onRevisarOrfaos: () => void;
-  onVincularCard: (card: CardSemVinculo) => void;
+  onVincularCard: (card: any) => void;
 }
 
 const fmt = (v: number) =>
