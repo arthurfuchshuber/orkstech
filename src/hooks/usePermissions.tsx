@@ -27,6 +27,11 @@ export const PERMISSION_CATALOG = {
     { key: "menu:fornecedores", label: "Cadastros › Fornecedores" },
     { key: "menu:inventario", label: "Cadastros › Inventário" },
     { key: "menu:cadastros-financeiros", label: "Configurações › Financeiro (Plano de Contas)" },
+    { key: "menu:rh-colaboradores", label: "RH › Colaboradores" },
+    { key: "menu:rh-folha", label: "RH › Folha de Pagamento" },
+    { key: "menu:rh-ausencias", label: "RH › Férias & Ausências" },
+    { key: "menu:rh-equipamentos", label: "RH › Equipamentos" },
+    { key: "menu:rh-cadastros", label: "RH › Cadastros" },
   ],
   system: [
     { key: "system:empresa", label: "Configurações › Empresa" },
