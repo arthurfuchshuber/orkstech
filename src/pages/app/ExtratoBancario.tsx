@@ -728,10 +728,6 @@ export default function ExtratoBancario() {
         </div>
       </Card>
 
-      {(() => {
-        const totalLiquido = bankAccounts.reduce((s, a) => s + a.balance, 0);
-        const totalCaixinhas = bankAccounts.reduce((s, a) => s + getStoredBalance(a), 0);
-        return (
       <div className="grid gap-4 md:grid-cols-4">
         <Card className="p-4">
           <div className="mb-1 flex items-center gap-2">
