@@ -56,6 +56,8 @@ export default function ContasBancarias({
   const qc = useQueryClient();
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [caixinhaTarget, setCaixinhaTarget] = useState<ContaBancaria | null>(null);
+  const [lancTarget, setLancTarget] = useState<ContaBancaria | null>(null);
 
   // Use empresa owner's user_id for Super Admin cross-tenant visibility
   const targetUserId = empresa?.user_id ?? user?.id;
