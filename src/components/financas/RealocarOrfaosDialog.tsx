@@ -248,11 +248,16 @@ export function RealocarOrfaosDialog({ open, onOpenChange }: Props) {
                             : c.tipo;
                           return (
                             <SelectItem key={c.id} value={c.id} className="max-w-full">
-                              <span className="flex items-center gap-2 min-w-0">
-                                <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-4 shrink-0">
+                              <span className="flex items-start gap-2 min-w-0">
+                                <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-4 shrink-0 mt-0.5">
                                   {tipoLabel}
                                 </Badge>
-                                <span className="truncate">{c.nome}</span>
+                                <span className="flex flex-col min-w-0">
+                                  <span className="truncate">{c.primaryLabel}</span>
+                                  {c.secondaryLabel && (
+                                    <span className="text-xs text-muted-foreground truncate">{c.secondaryLabel}</span>
+                                  )}
+                                </span>
                               </span>
                             </SelectItem>
                           );
