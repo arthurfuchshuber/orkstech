@@ -234,12 +234,12 @@ export default function DREMensalView() {
                               </td>
                               {showAV && (
                                 <td className="text-right py-1.5 px-1 text-muted-foreground tabular-nums text-[10px]">
-                                  {line.isPercentual ? "—" : (Math.abs(v) < 0.005 ? "—" : fmtPct(av))}
+                                  {line.isPercentual || Math.abs(v) < 0.005 ? "" : fmtPct(av)}
                                 </td>
                               )}
                               {showAH && (
                                 <td className="text-right py-1.5 px-1 tabular-nums text-[10px]">
-                                  {ah == null || line.isPercentual ? <span className="text-muted-foreground">—</span> : (
+                                  {ah == null || line.isPercentual ? "" : (
                                     <span className={ah >= 0 ? "text-success" : "text-destructive"}>{ah >= 0 ? "+" : ""}{ah.toFixed(0)}%</span>
                                   )}
                                 </td>
