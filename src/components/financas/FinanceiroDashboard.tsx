@@ -932,128 +932,119 @@ export default function FinanceiroDashboard() {
       {/* ═══════════ ABA: Contas a Pagar ═══════════ */}
       <TabsContent value="contas-pagar" className="space-y-4 mt-0">
         {/* KPIs */}
-        <TooltipProvider delayDuration={150}>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {/* 1. Total em Aberto */}
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button
-                  type="button"
-                  onClick={() => navigate("/app/financas/contas-pagar")}
-                  className="text-left"
-                >
-                  <Card className="border-border/50 hover:border-primary/40 hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer">
-                    <CardContent className="p-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center">
-                          <Receipt className="w-4 h-4 text-primary" />
-                        </div>
-                        <div>
-                          <p className="text-xs text-muted-foreground flex items-center gap-1">
-                            Total em Aberto <Info className="w-2.5 h-2.5 opacity-50" />
-                          </p>
-                          <p className="text-xl font-bold text-foreground tabular-nums">{fmt(totalPendente + totalVencido)}</p>
-                          <span className="text-[10px] text-muted-foreground">{pendentes.length + vencidas.length} título(s)</span>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </button>
-              </TooltipTrigger>
-              <TooltipContent side="bottom" className="max-w-[220px] text-xs">
-                Soma de todas as contas pendentes e vencidas. Clique para abrir Contas a Pagar.
-              </TooltipContent>
-            </Tooltip>
-
-            {/* 2. Vencendo em 7 Dias */}
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button
-                  type="button"
-                  onClick={() => navigate("/app/financas/contas-pagar")}
-                  className="text-left"
-                >
-                  <Card className="border-border/50 hover:border-warning/40 hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer">
-                    <CardContent className="p-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-lg bg-warning/10 flex items-center justify-center">
-                          <Clock className="w-4 h-4 text-warning" />
-                        </div>
-                        <div>
-                          <p className="text-xs text-muted-foreground flex items-center gap-1">
-                            Vencendo em 7 dias <Info className="w-2.5 h-2.5 opacity-50" />
-                          </p>
-                          <p className="text-xl font-bold text-foreground tabular-nums">{fmt(proximasVencer.reduce((s, c) => s + Number(c.amount), 0))}</p>
-                          <span className="text-[10px] text-muted-foreground">{proximasVencer.length} título(s)</span>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </button>
-              </TooltipTrigger>
-              <TooltipContent side="bottom" className="max-w-[220px] text-xs">
-                Contas com vencimento nos próximos 7 dias. Priorize esses pagamentos.
-              </TooltipContent>
-            </Tooltip>
-
-            {/* 3. Juros/Multa */}
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <div>
-                  <Card className="border-border/50 hover:border-border transition-colors">
-                    <CardContent className="p-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-lg bg-warning/10 flex items-center justify-center">
-                          <Receipt className="w-4 h-4 text-warning" />
-                        </div>
-                        <div>
-                          <p className="text-xs text-muted-foreground flex items-center gap-1">
-                            Juros/Multa <Info className="w-2.5 h-2.5 opacity-50" />
-                          </p>
-                          <p className="text-xl font-bold text-foreground tabular-nums">{fmt(jurosMultaTotal)}</p>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {/* 1. Total em Aberto */}
+          <KpiHoverCard
+            title="Total em Aberto"
+            subtitle="Soma de pendentes + vencidas"
+            details={[
+              { label: "Pendentes", value: fmt(totalPendente) },
+              { label: "Vencidas", value: fmt(totalVencido) },
+              { label: "Total em aberto", value: fmt(totalPendente + totalVencido), highlight: true },
+              { label: "Quantidade", value: `${pendentes.length + vencidas.length} título(s)` },
+            ]}
+            onOpen={() => navigate("/app/financas/contas-pagar")}
+            openLabel="Abrir Contas a Pagar"
+            readOnlyReason="Calculado a partir dos títulos cadastrados"
+          >
+            <KpiCardShell>
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <Receipt className="w-4 h-4 text-primary" />
                 </div>
-              </TooltipTrigger>
-              <TooltipContent side="bottom" className="max-w-[220px] text-xs">
-                Total acumulado de juros e multas pagos por atraso em contas já quitadas.
-              </TooltipContent>
-            </Tooltip>
+                <div>
+                  <p className="text-xs text-muted-foreground flex items-center gap-1">
+                    Total em Aberto <Info className="w-2.5 h-2.5 opacity-50" />
+                  </p>
+                  <p className="text-xl font-bold text-foreground tabular-nums">{fmt(totalPendente + totalVencido)}</p>
+                  <span className="text-[10px] text-muted-foreground">{pendentes.length + vencidas.length} título(s)</span>
+                </div>
+              </div>
+            </KpiCardShell>
+          </KpiHoverCard>
 
-            {/* 4. Vencidas */}
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button
-                  type="button"
-                  onClick={() => navigate("/app/financas/contas-pagar")}
-                  className="text-left"
-                >
-                  <Card className="border-border/50 hover:border-destructive/40 hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer">
-                    <CardContent className="p-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-lg bg-destructive/10 flex items-center justify-center">
-                          <AlertTriangle className="w-4 h-4 text-destructive" />
-                        </div>
-                        <div>
-                          <p className="text-xs text-muted-foreground flex items-center gap-1">
-                            Vencidas <Info className="w-2.5 h-2.5 opacity-50" />
-                          </p>
-                          <p className="text-xl font-bold text-foreground tabular-nums">{fmt(totalVencido)}</p>
-                          <span className="text-[10px] text-muted-foreground">{vencidas.length} título(s)</span>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </button>
-              </TooltipTrigger>
-              <TooltipContent side="bottom" className="max-w-[220px] text-xs">
-                Contas com prazo expirado. Atenção: podem gerar juros e bloqueios. Clique para revisar.
-              </TooltipContent>
-            </Tooltip>
-          </div>
-        </TooltipProvider>
+          {/* 2. Vencendo em 7 Dias */}
+          <KpiHoverCard
+            title="Vencendo em 7 dias"
+            subtitle="Priorize esses pagamentos para evitar juros"
+            details={[
+              { label: "Total a vencer (7 dias)", value: fmt(proximasVencer.reduce((s, c) => s + Number(c.amount), 0)), highlight: true },
+              { label: "Quantidade", value: `${proximasVencer.length} título(s)` },
+            ]}
+            onOpen={() => navigate("/app/financas/contas-pagar")}
+            openLabel="Abrir Contas a Pagar"
+            readOnlyReason="Calculado pelas datas de vencimento"
+          >
+            <KpiCardShell>
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-lg bg-warning/10 flex items-center justify-center">
+                  <Clock className="w-4 h-4 text-warning" />
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground flex items-center gap-1">
+                    Vencendo em 7 dias <Info className="w-2.5 h-2.5 opacity-50" />
+                  </p>
+                  <p className="text-xl font-bold text-foreground tabular-nums">{fmt(proximasVencer.reduce((s, c) => s + Number(c.amount), 0))}</p>
+                  <span className="text-[10px] text-muted-foreground">{proximasVencer.length} título(s)</span>
+                </div>
+              </div>
+            </KpiCardShell>
+          </KpiHoverCard>
+
+          {/* 3. Juros/Multa */}
+          <KpiHoverCard
+            title="Juros / Multa Acumulados"
+            subtitle="Valor já pago em juros e multas por atraso"
+            details={[
+              { label: "Total juros + multa", value: fmt(jurosMultaTotal), highlight: true },
+            ]}
+            onOpen={() => navigate("/app/financas/contas-pagar")}
+            openLabel="Ver títulos pagos"
+            readOnlyReason="Calculado dos pagamentos efetuados"
+          >
+            <KpiCardShell>
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-lg bg-warning/10 flex items-center justify-center">
+                  <Receipt className="w-4 h-4 text-warning" />
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground flex items-center gap-1">
+                    Juros/Multa <Info className="w-2.5 h-2.5 opacity-50" />
+                  </p>
+                  <p className="text-xl font-bold text-foreground tabular-nums">{fmt(jurosMultaTotal)}</p>
+                </div>
+              </div>
+            </KpiCardShell>
+          </KpiHoverCard>
+
+          {/* 4. Vencidas */}
+          <KpiHoverCard
+            title="Contas Vencidas"
+            subtitle="Prazo expirado — risco de juros e bloqueios"
+            details={[
+              { label: "Total vencido", value: fmt(totalVencido), highlight: true },
+              { label: "Quantidade", value: `${vencidas.length} título(s)` },
+            ]}
+            onOpen={() => navigate("/app/financas/contas-pagar")}
+            openLabel="Revisar vencidas"
+            readOnlyReason="Calculado pelas datas de vencimento"
+          >
+            <KpiCardShell>
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-lg bg-destructive/10 flex items-center justify-center">
+                  <AlertTriangle className="w-4 h-4 text-destructive" />
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground flex items-center gap-1">
+                    Vencidas <Info className="w-2.5 h-2.5 opacity-50" />
+                  </p>
+                  <p className="text-xl font-bold text-foreground tabular-nums">{fmt(totalVencido)}</p>
+                  <span className="text-[10px] text-muted-foreground">{vencidas.length} título(s)</span>
+                </div>
+              </div>
+            </KpiCardShell>
+          </KpiHoverCard>
+        </div>
 
         {/* Gráfico + Próximas a vencer */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
