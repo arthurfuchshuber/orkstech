@@ -856,15 +856,12 @@ export default function FinanceiroDashboard() {
   return (
     <>
     <Tabs defaultValue="caixa" className="space-y-4 animate-fade-in">
-      <TabsList>
-        <TabsTrigger value="caixa">Caixa da Empresa</TabsTrigger>
-        <TabsTrigger value="contas-pagar">Contas a Pagar</TabsTrigger>
-      </TabsList>
-
-      {/* ═══════════ ABA: Caixa da Empresa ═══════════ */}
-      <TabsContent value="caixa" className="space-y-5">
-        {/* Barra de ações: transferência + indicador de pendências (canto direito, acima dos cards) */}
-        <div className="flex justify-end items-center gap-2">
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <TabsList>
+          <TabsTrigger value="caixa">Caixa da Empresa</TabsTrigger>
+          <TabsTrigger value="contas-pagar">Contas a Pagar</TabsTrigger>
+        </TabsList>
+        <div className="flex items-center gap-2">
           <Button
             variant="outline"
             size="sm"
@@ -894,6 +891,10 @@ export default function FinanceiroDashboard() {
             onVincularCard={(c) => setVincularCard(c)}
           />
         </div>
+      </div>
+
+      {/* ═══════════ ABA: Caixa da Empresa ═══════════ */}
+      <TabsContent value="caixa" className="space-y-4 mt-0">
 
         {/* KPIs aprimorados */}
         <CaixaKpis
@@ -929,7 +930,7 @@ export default function FinanceiroDashboard() {
 
 
       {/* ═══════════ ABA: Contas a Pagar ═══════════ */}
-      <TabsContent value="contas-pagar" className="space-y-6">
+      <TabsContent value="contas-pagar" className="space-y-4 mt-0">
         {/* KPIs */}
         <TooltipProvider delayDuration={150}>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
