@@ -726,7 +726,7 @@ export async function fetchBankBalance(empresaId?: string, userId?: string): Pro
     ? saldoInvestTabela
     : pluggyBank.reduce((sum, r: any) => sum + Number(r.bank_data?.totalInvestments ?? 0), 0);
 
-  return saldoManualContas + saldoManualInvestimentos + saldoContasPluggy + saldoInvestPluggy;
+  return saldoManualContas + saldoManualInvestimentos + saldoContasPluggy + saldoCaixinhas + saldoInvestPluggy;
 }
 
 /**
