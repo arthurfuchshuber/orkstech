@@ -9,9 +9,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ContaBancariaModal } from "@/components/modals/ContaBancariaModal";
-import { Plus, Pencil, Trash2, Power, Landmark, Wallet, PiggyBank, Banknote, ChevronDown } from "lucide-react";
+import { Plus, Pencil, Trash2, Power, Landmark, Wallet, PiggyBank, Banknote, ChevronDown, ArrowLeftRight, Receipt } from "lucide-react";
 import { PluggyConnectButton, PluggyConnectionsList, usePluggyConnections } from "@/components/PluggyConnectButton";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
+import { CaixinhaMoveDialog } from "@/components/financas/conta/CaixinhaMoveDialog";
+import { LancamentoManualContaDialog } from "@/components/financas/conta/LancamentoManualContaDialog";
 
 type TipoConta = "corrente" | "poupanca" | "caixa" | "carteira_digital";
 
