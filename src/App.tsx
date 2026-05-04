@@ -40,6 +40,12 @@ import ConfigAssinatura from "./pages/app/ConfigAssinatura";
 import ConfigIntegracoes from "./pages/app/ConfigIntegracoes";
 import { SuperAdminRoute } from "./components/SuperAdminRoute";
 import AdminPanel from "./pages/app/admin/AdminPanel";
+import RHColaboradores from "./pages/app/rh/RHColaboradores";
+import RHColaboradorWorkspace from "./pages/app/rh/RHColaboradorWorkspace";
+import RHFolha from "./pages/app/rh/RHFolha";
+import RHAusencias from "./pages/app/rh/RHAusencias";
+import RHEquipamentos from "./pages/app/rh/RHEquipamentos";
+import RHCadastros from "./pages/app/rh/RHCadastros";
 
 const queryClient = new QueryClient();
 
@@ -94,6 +100,13 @@ const App = () => (
                 <Route path="config/assinatura" element={<ConfigAssinatura />} />
                 <Route path="config/menus" element={<GerenciarMenu />} />
                 <Route path="config/integracoes" element={<ConfigIntegracoes />} />
+                <Route path="rh" element={<Navigate to="/app/rh/colaboradores" replace />} />
+                <Route path="rh/colaboradores" element={<RHColaboradores />} />
+                <Route path="rh/colaboradores/:id" element={<RHColaboradorWorkspace />} />
+                <Route path="rh/folha" element={<RHFolha />} />
+                <Route path="rh/ausencias" element={<RHAusencias />} />
+                <Route path="rh/equipamentos" element={<RHEquipamentos />} />
+                <Route path="rh/cadastros" element={<RHCadastros />} />
                 <Route path="admin" element={<SuperAdminRoute><AdminPanel /></SuperAdminRoute>} />
               </Route>
               <Route path="*" element={<NotFound />} />
