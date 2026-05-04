@@ -39,20 +39,7 @@ const CARD_LABEL: Record<CardVinculoTipo, string> = {
   contas_receber: "Contas a Receber",
 };
 
-const shortName = (raw?: string | null) => {
-  const s = (raw || "").trim();
-  if (!s) return "";
-  const lower = s.toLowerCase();
-  if (lower.includes("nu pagamentos") || lower.includes("nubank")) return "Nubank";
-  if (lower.includes("btg")) return "BTG";
-  if (lower.includes("itau") || lower.includes("itaú")) return "Itaú";
-  if (lower.includes("bradesco")) return "Bradesco";
-  if (lower.includes("santander")) return "Santander";
-  if (lower.includes("inter")) return "Banco Inter";
-  if (lower.includes("banco do brasil") || /\bbb\b/.test(lower)) return "Banco do Brasil";
-  const cut = s.split(/\s+(?:S\.?A\.?|S\/A|LTDA|ME|EIRELI)\b|[-–·(]/i)[0].trim();
-  return cut.length > 34 ? `${cut.slice(0, 34)}…` : cut;
-};
+// shortName removido — dropdowns devem refletir 100% o cadastro de origem (mem://ui/dropdown-source-of-truth).
 
 const isCardField = (cardTipo: CardVinculoTipo) => cardTipo === "limite_credito" || cardTipo === "fatura";
 const isAccountOnlyField = (cardTipo: CardVinculoTipo) => ["saldo", "investimento", "limite_cheque_especial"].includes(cardTipo);
