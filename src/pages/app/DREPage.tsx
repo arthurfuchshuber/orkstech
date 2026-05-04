@@ -26,6 +26,8 @@ import { cn } from "@/lib/utils";
 import { PlanoDeContasSection } from "@/components/financas/PlanoDeContasSection";
 import { DRERegrasSection } from "@/components/financas/DRERegrasSection";
 import { useBankAccountOptions } from "@/hooks/useBankAccountOptions";
+import DREMensalView from "@/components/financas/DREMensalView";
+import { CalendarDays } from "lucide-react";
 
 const fmt = (v: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
@@ -156,17 +158,25 @@ export default function DREPage() {
         </Button>
       </div>
 
-      <Tabs defaultValue="dre" className="w-full">
+      <Tabs defaultValue="mensal" className="w-full">
         <TabsList>
+          <TabsTrigger value="mensal" className="gap-1.5">
+            <CalendarDays className="w-3.5 h-3.5" />
+            DRE Mensal
+          </TabsTrigger>
           <TabsTrigger value="dre" className="gap-1.5">
             <FileText className="w-3.5 h-3.5" />
-            DRE
+            DRE Período
           </TabsTrigger>
           <TabsTrigger value="personalizar" className="gap-1.5">
             <Settings2 className="w-3.5 h-3.5" />
             Personalize seu DRE
           </TabsTrigger>
         </TabsList>
+
+        <TabsContent value="mensal" className="mt-4">
+          <DREMensalView />
+        </TabsContent>
 
         <TabsContent value="dre" className="mt-4 space-y-4">
           {/* Filters */}
