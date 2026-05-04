@@ -15,7 +15,7 @@ interface Props {
 export function CashflowKpis({ inflow, outflow, startBalance, endBalance }: Props) {
   const net = inflow - outflow;
   const cards = [
-    { icon: Wallet, label: "Saldo Atual", value: fmt(startBalance), tone: "primary", sub: "Contas bancárias ativas" },
+    { icon: Wallet, label: "Saldo Atual", value: fmt(startBalance), tone: "primary", sub: "Contas + caixinhas + investimentos" },
     { icon: ArrowUpRight, label: "Entradas Previstas", value: fmt(inflow), tone: "emerald", sub: "Receitas no período" },
     { icon: ArrowDownRight, label: "Saídas Previstas", value: fmt(outflow), tone: "rose", sub: "Despesas no período" },
     { icon: TrendingUp, label: "Saldo Projetado", value: fmt(endBalance), tone: net >= 0 ? "blue" : "amber", sub: `Resultado líquido: ${fmt(net)}` },
