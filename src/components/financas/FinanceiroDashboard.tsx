@@ -254,19 +254,15 @@ export default function FinanceiroDashboard() {
   const bankAccounts = accounts.filter((a) => a.type !== "CREDIT");
   const creditCards = accounts.filter((a) => a.type === "CREDIT");
 
-  // Saldo de investimentos REAIS da conta (apenas totalInvestments).
-  // automaticallyInvestedBalance NÃO é somado: é uma sub-parcela do `balance` (ex.: caixinha Nubank
-  // que rende sozinha mas continua dentro do saldo da conta corrente). Somá-lo causaria duplicidade.
-  const getStoredBalance = (account: BankAccount) => {
-    return Number(account.bank_data?.totalInvestments ?? 0);
+  // Investimentos = somente "líquido disponível" (caixinhas/reservas que rendem mas
+  // continuam dentro da conta corrente). Usa `automaticallyInvestedBalance` da Pluggy.
+  // CDBs / aplicações de longo prazo NÃO entram aqui — não são dinheiro de uso imediato.
+  const getLiquidInvested = (account: BankAccount) => {
+    return Number(account.bank_data?.automaticallyInvestedBalance ?? 0);
   };
 
   const totalPluggyBalance = bankAccounts.reduce((sum, a) => sum + a.balance, 0);
-  // Soma vinda diretamente da tabela pluggy_investments (fonte real),
-  // com fallback para bank_data.totalInvestments caso a tabela esteja vazia.
-  const totalPluggyInvestments = pluggyInvestmentsTotal > 0
-    ? pluggyInvestmentsTotal
-    : bankAccounts.reduce((sum, a) => sum + getStoredBalance(a), 0);
+  const totalPluggyInvestments = bankAccounts.reduce((sum, a) => sum + getLiquidInvested(a), 0);
 
   // ── Derived data: Manual ──
   // Saldo atual de cada conta manual = saldo_inicial + saldo_sincronizado + saldo_ajuste_manual + (entradas - saídas)
