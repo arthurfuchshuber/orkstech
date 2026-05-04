@@ -34,6 +34,7 @@ import { TransferenciaContasDialog } from "./TransferenciaContasDialog";
 import { VincularCardFinanceiroDialog, type CardVinculoTipo } from "./VincularCardFinanceiroDialog";
 import { Button } from "@/components/ui/button";
 import { ArrowRightLeft } from "lucide-react";
+import { KpiHoverCard, KpiCardShell } from "@/components/financas/KpiHoverCard";
 
 interface BankAccount {
   id: string;
