@@ -35,6 +35,26 @@ const isCard = (c: any) => {
   );
 };
 
+/**
+ * Constrói uma BankAccountOption a partir de um row de `contas_bancarias` + connector_name opcional.
+ * Exportada para permitir testes de consistência sem precisar mockar Supabase.
+ */
+export function buildBankAccountOption(r: any, connector: string | null): BankAccountOption {
+  const primaryLabel = connector || r.nome;
+  let secondaryLabel: string | null = null;
+  if (connector && r.nome && r.nome !== connector) secondaryLabel = r.nome;
+  else if (!connector && r.banco) secondaryLabel = r.banco;
+  return {
+    id: r.id,
+    primaryLabel,
+    secondaryLabel,
+    tipo: r.tipo,
+    isCard: isCard(r),
+    origem: r.origem ?? null,
+    raw: r,
+  };
+}
+
 export interface UseBankAccountOptionsParams {
   /** Filtra para mostrar apenas cartões, apenas contas, ou tudo (default). */
   filter?: "all" | "cards" | "non-cards";
