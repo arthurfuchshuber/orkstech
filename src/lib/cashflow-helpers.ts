@@ -704,13 +704,20 @@ export async function fetchBankBalance(empresaId?: string, userId?: string): Pro
   );
   const saldoContasPluggy = pluggyBank.reduce((sum, r: any) => sum + Number(r.balance ?? 0), 0);
 
-  // 3) Investimentos Pluggy: usa SOMENTE bank_data.totalInvestments.
-  //    NÃO somar automaticallyInvestedBalance (geralmente já incluso no `balance`
-  //    da conta corrente, ex.: caixinha do Nubank) — somá-lo gera duplicidade.
-  const saldoInvestPluggy = pluggyBank.reduce((sum, r: any) => {
-    const bd = r.bank_data ?? {};
-    return sum + Number(bd.totalInvestments ?? 0);
-  }, 0);
+  // 3) Investimentos Pluggy: usa pluggy_investments (fonte real, com ajuste manual)
+  //    com fallback para bank_data.totalInvestments quando a tabela está vazia.
+  let invQ = supabase
+    .from("pluggy_investments")
+    .select("balance, ajuste_manual");
+  if (userId) invQ = invQ.eq("user_id", userId);
+  const { data: invs } = await invQ;
+  const saldoInvestTabela = (invs ?? []).reduce(
+    (s, r: any) => s + Number(r.balance ?? 0) + Number(r.ajuste_manual ?? 0),
+    0,
+  );
+  const saldoInvestPluggy = saldoInvestTabela > 0
+    ? saldoInvestTabela
+    : pluggyBank.reduce((sum, r: any) => sum + Number(r.bank_data?.totalInvestments ?? 0), 0);
 
   return saldoManualContas + saldoManualInvestimentos + saldoContasPluggy + saldoInvestPluggy;
 }
