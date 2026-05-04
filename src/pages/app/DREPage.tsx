@@ -84,7 +84,12 @@ export default function DREPage() {
     queryKey: ["dre-bank-accounts", targetUserId],
     enabled: !!user && !!targetUserId,
     queryFn: async () => {
-      const { data } = await supabase.from("contas_bancarias").select("id, nome").eq("ativo", true).eq("user_id", targetUserId!);
+      const { data } = await supabase
+        .from("contas_bancarias")
+        .select("id, nome, banco, tipo")
+        .eq("ativo", true)
+        .eq("user_id", targetUserId!)
+        .order("nome");
       return data ?? [];
     },
   });
@@ -202,10 +207,17 @@ export default function DREPage() {
               </Button>
             )}
             <Select value={filters.bankAccountId || "all"} onValueChange={(v) => setFilters((f) => ({ ...f, bankAccountId: v === "all" ? undefined : v }))}>
-              <SelectTrigger className="w-[170px] h-9 text-sm"><SelectValue placeholder="Conta bancária" /></SelectTrigger>
+              <SelectTrigger className="w-[260px] h-9 text-sm"><SelectValue placeholder="Conta bancária" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todas as contas</SelectItem>
-                {bankAccounts.map((b) => <SelectItem key={b.id} value={b.id}>{b.nome}</SelectItem>)}
+                {bankAccounts.map((b: any) => (
+                  <SelectItem key={b.id} value={b.id}>
+                    <div className="flex flex-col leading-tight">
+                      <span className="text-sm">{b.nome}</span>
+                      {b.banco && <span className="text-[10px] text-muted-foreground">{b.banco}</span>}
+                    </div>
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
             <Select value={filters.costCenterId || "all"} onValueChange={(v) => setFilters((f) => ({ ...f, costCenterId: v === "all" ? undefined : v }))}>
