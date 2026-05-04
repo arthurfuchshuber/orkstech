@@ -37,6 +37,7 @@ interface ContaBancaria {
   banco: string | null;
   tipo: TipoConta;
   saldo_inicial: number;
+  saldo_investimento: number;
   ativo: boolean;
 }
 
