@@ -35,6 +35,7 @@ const ROUTE_REDIRECTS: Record<string, string> = {
   "/app/financas/extrato": "/app/extrato-bancario",
   "/app/automacoes/workflows": "/app/automacoes/config",
   "/app/config/permissoes": "/app/config/conta",
+  "/app/rh": "/app/rh/colaboradores",
 };
 
 function resolveRoute(route: string | null): string | null {
