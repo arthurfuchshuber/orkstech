@@ -331,7 +331,7 @@ export function ManualBankTransactionDialog({ open, onOpenChange, editing }: Pro
               onValueChange={(v) => update("bank_account_id", v)}
               options={bankAccounts.map((b: any) => ({
                 value: b.id,
-                label: b.banco ? `${b.nome} - ${b.banco}` : b.nome,
+                label: b.secondaryLabel ? `${b.primaryLabel} — ${b.secondaryLabel}` : b.primaryLabel,
               }))}
               placeholder="Selecione a conta..."
               icon={<Landmark className="w-4 h-4" />}
