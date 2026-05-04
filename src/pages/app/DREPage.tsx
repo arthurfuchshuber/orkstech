@@ -81,45 +81,7 @@ export default function DREPage() {
   }, [lines]);
 
 
-  const { data: bankAccounts = [] } = useQuery({
-    queryKey: ["dre-bank-accounts", targetUserId],
-    enabled: !!user && !!targetUserId,
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("contas_bancarias")
-        .select("id, nome, banco, tipo, pluggy_account_id")
-        .eq("ativo", true)
-        .eq("user_id", targetUserId!)
-        .order("nome");
-      const rows = data ?? [];
-      // Para contas Pluggy, buscar o connector_name (BTGPactual Empresas, Nubank Empresas, etc.)
-      // que é o rótulo "amigável" exibido na página de Cadastro de Contas Bancárias.
-      const pluggyIds = rows.map((r: any) => r.pluggy_account_id).filter(Boolean);
-      let connectorByAccount = new Map<string, string>();
-      if (pluggyIds.length) {
-        const { data: pba } = await supabase
-          .from("pluggy_bank_accounts" as any)
-          .select("pluggy_account_id, connection_id")
-          .in("pluggy_account_id", pluggyIds);
-        const connIds = Array.from(new Set((pba ?? []).map((x: any) => x.connection_id)));
-        const { data: conns } = connIds.length
-          ? await supabase
-              .from("pluggy_connections" as any)
-              .select("id, connector_name")
-              .in("id", connIds)
-          : { data: [] as any };
-        const nameById = new Map<string, string>((conns ?? []).map((c: any) => [c.id, c.connector_name]));
-        for (const a of pba ?? []) {
-          const cn = nameById.get((a as any).connection_id);
-          if (cn) connectorByAccount.set((a as any).pluggy_account_id, cn);
-        }
-      }
-      return rows.map((r: any) => ({
-        ...r,
-        connector_name: r.pluggy_account_id ? connectorByAccount.get(r.pluggy_account_id) ?? null : null,
-      }));
-    },
-  });
+  const { options: bankAccounts } = useBankAccountOptions();
 
   const { data: costCenters = [] } = useQuery({
     queryKey: ["dre-cost-centers", targetUserId],
