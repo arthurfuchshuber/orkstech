@@ -226,23 +226,23 @@ export default function DREMensalView() {
                           const ah = prev !== 0 ? ((v - prev) / Math.abs(prev)) * 100 : null;
                           const av = receitaTotalMonthly[m] > 0 ? (v / receitaTotalMonthly[m]) * 100 : 0;
                           return (
-                            <>
-                              <td key={`v-${line.id}-${m}`} className={cn("text-right py-1.5 px-2 tabular-nums", valueColor(v))}>
+                            <Fragment key={`c-${line.id}-${m}`}>
+                              <td className={cn("text-right py-1.5 px-2 tabular-nums", valueColor(v))}>
                                 {line.isPercentual ? fmtPct(v) : fmtBRL(v)}
                               </td>
                               {showAV && (
-                                <td key={`av-${line.id}-${m}`} className="text-right py-1.5 px-1 text-muted-foreground tabular-nums text-[10px]">
+                                <td className="text-right py-1.5 px-1 text-muted-foreground tabular-nums text-[10px]">
                                   {line.isPercentual ? "—" : (Math.abs(v) < 0.005 ? "—" : fmtPct(av))}
                                 </td>
                               )}
                               {showAH && (
-                                <td key={`ah-${line.id}-${m}`} className="text-right py-1.5 px-1 tabular-nums text-[10px]">
+                                <td className="text-right py-1.5 px-1 tabular-nums text-[10px]">
                                   {ah == null || line.isPercentual ? <span className="text-muted-foreground">—</span> : (
                                     <span className={ah >= 0 ? "text-success" : "text-destructive"}>{ah >= 0 ? "+" : ""}{ah.toFixed(0)}%</span>
                                   )}
                                 </td>
                               )}
-                            </>
+                            </Fragment>
                           );
                         })}
                         <td className={cn("text-right py-1.5 px-3 font-semibold tabular-nums bg-muted/20", valueColor(line.total))}>
