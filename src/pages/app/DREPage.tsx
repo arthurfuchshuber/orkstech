@@ -25,6 +25,7 @@ import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { PlanoDeContasSection } from "@/components/financas/PlanoDeContasSection";
 import { DRERegrasSection } from "@/components/financas/DRERegrasSection";
+import { useBankAccountOptions } from "@/hooks/useBankAccountOptions";
 
 const fmt = (v: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
@@ -80,45 +81,7 @@ export default function DREPage() {
   }, [lines]);
 
 
-  const { data: bankAccounts = [] } = useQuery({
-    queryKey: ["dre-bank-accounts", targetUserId],
-    enabled: !!user && !!targetUserId,
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("contas_bancarias")
-        .select("id, nome, banco, tipo, pluggy_account_id")
-        .eq("ativo", true)
-        .eq("user_id", targetUserId!)
-        .order("nome");
-      const rows = data ?? [];
-      // Para contas Pluggy, buscar o connector_name (BTGPactual Empresas, Nubank Empresas, etc.)
-      // que é o rótulo "amigável" exibido na página de Cadastro de Contas Bancárias.
-      const pluggyIds = rows.map((r: any) => r.pluggy_account_id).filter(Boolean);
-      let connectorByAccount = new Map<string, string>();
-      if (pluggyIds.length) {
-        const { data: pba } = await supabase
-          .from("pluggy_bank_accounts" as any)
-          .select("pluggy_account_id, connection_id")
-          .in("pluggy_account_id", pluggyIds);
-        const connIds = Array.from(new Set((pba ?? []).map((x: any) => x.connection_id)));
-        const { data: conns } = connIds.length
-          ? await supabase
-              .from("pluggy_connections" as any)
-              .select("id, connector_name")
-              .in("id", connIds)
-          : { data: [] as any };
-        const nameById = new Map<string, string>((conns ?? []).map((c: any) => [c.id, c.connector_name]));
-        for (const a of pba ?? []) {
-          const cn = nameById.get((a as any).connection_id);
-          if (cn) connectorByAccount.set((a as any).pluggy_account_id, cn);
-        }
-      }
-      return rows.map((r: any) => ({
-        ...r,
-        connector_name: r.pluggy_account_id ? connectorByAccount.get(r.pluggy_account_id) ?? null : null,
-      }));
-    },
-  });
+  const { options: bankAccounts } = useBankAccountOptions();
 
   const { data: costCenters = [] } = useQuery({
     queryKey: ["dre-cost-centers", targetUserId],
@@ -236,20 +199,16 @@ export default function DREPage() {
               <SelectTrigger className="w-[260px] h-9 text-sm"><SelectValue placeholder="Conta bancária" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todas as contas</SelectItem>
-                {bankAccounts.map((b: any) => {
-                  const principal = b.connector_name || b.nome;
-                  const secundario = b.connector_name ? b.nome : b.banco;
-                  return (
-                    <SelectItem key={b.id} value={b.id}>
-                      <div className="flex flex-col leading-tight">
-                        <span className="text-sm">{principal}</span>
-                        {secundario && secundario !== principal && (
-                          <span className="text-[10px] text-muted-foreground">{secundario}</span>
-                        )}
-                      </div>
-                    </SelectItem>
-                  );
-                })}
+                {bankAccounts.map((b) => (
+                  <SelectItem key={b.id} value={b.id}>
+                    <div className="flex flex-col leading-tight">
+                      <span className="text-sm">{b.primaryLabel}</span>
+                      {b.secondaryLabel && (
+                        <span className="text-[10px] text-muted-foreground">{b.secondaryLabel}</span>
+                      )}
+                    </div>
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
             <Select value={filters.costCenterId || "all"} onValueChange={(v) => setFilters((f) => ({ ...f, costCenterId: v === "all" ? undefined : v }))}>

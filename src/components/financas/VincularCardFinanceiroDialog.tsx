@@ -14,6 +14,7 @@ import { useEmpresa } from "@/hooks/useEmpresa";
 import { refreshQueries } from "@/lib/query-refresh";
 import { Link2, Loader2, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import { useBankAccountOptions } from "@/hooks/useBankAccountOptions";
 
 export type CardVinculoTipo = "saldo" | "investimento" | "limite_credito" | "fatura" | "limite_cheque_especial" | "contas_pagar" | "contas_receber";
 
@@ -39,20 +40,7 @@ const CARD_LABEL: Record<CardVinculoTipo, string> = {
   contas_receber: "Contas a Receber",
 };
 
-const shortName = (raw?: string | null) => {
-  const s = (raw || "").trim();
-  if (!s) return "";
-  const lower = s.toLowerCase();
-  if (lower.includes("nu pagamentos") || lower.includes("nubank")) return "Nubank";
-  if (lower.includes("btg")) return "BTG";
-  if (lower.includes("itau") || lower.includes("itaú")) return "Itaú";
-  if (lower.includes("bradesco")) return "Bradesco";
-  if (lower.includes("santander")) return "Santander";
-  if (lower.includes("inter")) return "Banco Inter";
-  if (lower.includes("banco do brasil") || /\bbb\b/.test(lower)) return "Banco do Brasil";
-  const cut = s.split(/\s+(?:S\.?A\.?|S\/A|LTDA|ME|EIRELI)\b|[-–·(]/i)[0].trim();
-  return cut.length > 34 ? `${cut.slice(0, 34)}…` : cut;
-};
+// shortName removido — dropdowns devem refletir 100% o cadastro de origem (mem://ui/dropdown-source-of-truth).
 
 const isCardField = (cardTipo: CardVinculoTipo) => cardTipo === "limite_credito" || cardTipo === "fatura";
 const isAccountOnlyField = (cardTipo: CardVinculoTipo) => ["saldo", "investimento", "limite_cheque_especial"].includes(cardTipo);
@@ -79,34 +67,21 @@ export function VincularCardFinanceiroDialog({ open, onOpenChange, cardTipo, tot
     setLinhaPendenteIdx(null);
   }, [open, total, cardTipo]);
 
-  const { data: contas = [], refetch: refetchContas } = useQuery({
-    queryKey: ["vincular-card-contas", targetUserId, empresaId, cardTipo],
-    enabled: open && !!targetUserId,
-    queryFn: async () => {
-      let q = supabase.from("contas_bancarias").select("id, nome, tipo, banco").eq("ativo", true).order("nome");
-      if (empresaId) q = q.eq("empresa_id", empresaId);
-      else q = q.eq("user_id", targetUserId!);
-      const { data, error } = await q;
-      if (error) throw error;
-      return (data ?? []).filter((c: any) => {
-        const ehCartao = c.tipo === "cartao_credito";
-        if (isCardField(cardTipo)) return ehCartao;
-        if (isAccountOnlyField(cardTipo)) return !ehCartao;
-        return true;
-      });
-    },
+  const { options: allOptions } = useBankAccountOptions({
+    filter: isCardField(cardTipo) ? "cards" : isAccountOnlyField(cardTipo) ? "non-cards" : "all",
   });
 
   const options = useMemo(
-    () => contas.map((c: any) => {
-      const nome = shortName(c.nome) || "Conta";
-      const banco = shortName(c.banco);
-      const tipo = c.tipo === "cartao_credito" ? "Cartão" : "Conta";
-      const label = banco && banco !== nome ? `${tipo} · ${nome} · ${banco}` : `${tipo} · ${nome}`;
-      return { value: c.id, label, tooltip: `${c.nome}${c.banco ? ` · ${c.banco}` : ""}` };
-    }),
-    [contas]
+    () =>
+      allOptions.map((o) => ({
+        value: o.id,
+        label: o.secondaryLabel ? `${o.primaryLabel} · ${o.secondaryLabel}` : o.primaryLabel,
+        tooltip: o.secondaryLabel ? `${o.primaryLabel} · ${o.secondaryLabel}` : o.primaryLabel,
+      })),
+    [allOptions]
   );
+  // refetch é tratado pelo cache do React Query do hook
+  const refetchContas = async () => {};
 
   const totalAlocado = useMemo(() => linhas.reduce((s, l) => s + Number(l.valor || 0), 0), [linhas]);
   const diff = Math.abs(total || 0) - totalAlocado;
