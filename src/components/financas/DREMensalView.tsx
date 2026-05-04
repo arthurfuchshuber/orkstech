@@ -195,14 +195,16 @@ export default function DREMensalView() {
                       ? "text-foreground"
                       : "text-muted-foreground";
 
+                    const isResult = isSummary || line.isPercentual || line.id?.startsWith("lucro-") || line.id?.startsWith("resultado-") || line.id?.startsWith("ebitda") || line.id === "receita-liquida" || line.id?.startsWith("margem-");
+
                     const valueColor = (v: number) => {
                       if (Math.abs(v) < 0.005) return "text-muted-foreground/50";
-                      if (line.isPercentual) return v >= 0 ? "text-success" : "text-destructive";
-                      if (isSummary || line.id?.startsWith("lucro-") || line.id?.startsWith("resultado-") || line.id?.startsWith("ebitda") || line.id === "receita-liquida") {
-                        return v > 0 ? "text-success" : "text-destructive";
-                      }
+                      // Resultados (lucros, margens, EBITDA, etc): verde se positivo, laranja se negativo
+                      if (isResult) return v >= 0 ? "text-success" : "text-orange-500";
+                      // Entradas de dinheiro: verde
                       if (line.tipo === "receita" || line.tipo === "receita_financeira") return "text-success";
-                      if (line.tipo === "despesa" || line.tipo === "custo" || line.tipo === "deducao" || line.tipo === "despesa_financeira" || line.tipo === "imposto") return "text-destructive";
+                      // Saídas de dinheiro: amarelo
+                      if (line.tipo === "despesa" || line.tipo === "custo" || line.tipo === "deducao" || line.tipo === "despesa_financeira" || line.tipo === "imposto") return "text-warning";
                       return "text-foreground";
                     };
 
