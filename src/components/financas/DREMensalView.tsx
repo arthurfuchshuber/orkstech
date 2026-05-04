@@ -157,7 +157,7 @@ export default function DREMensalView() {
           {isLoading ? (
             <div className="py-12 text-center text-muted-foreground text-sm">Carregando...</div>
           ) : (
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto custom-scrollbar">
               <table className="w-full text-xs border-collapse">
                 <thead>
                   <tr className="border-b border-border/40 bg-muted/20">
