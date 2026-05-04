@@ -930,7 +930,7 @@ export default function FinanceiroDashboard() {
 
 
       {/* ═══════════ ABA: Contas a Pagar ═══════════ */}
-      <TabsContent value="contas-pagar" className="space-y-6">
+      <TabsContent value="contas-pagar" className="space-y-4 mt-0">
         {/* KPIs */}
         <TooltipProvider delayDuration={150}>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
