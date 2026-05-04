@@ -103,29 +103,11 @@ export default function FinanceiroDashboard() {
     enabled: !!user && !!targetUserId,
   });
 
-  // ── Pluggy investments (real source of truth) ──
-  const { data: pluggyInvestmentsTotal = 0 } = useQuery({
-    queryKey: ["pluggy_investments_total", targetUserId],
-    enabled: !!user && !!targetUserId,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("pluggy_investments" as any)
-        .select("balance, amount_original, amount_profit, status")
-        .eq("user_id", targetUserId!);
-      if (error) throw error;
-      const rows = (data ?? []) as any[];
-      return rows
-        .filter((r) => (r.status ?? "ACTIVE") === "ACTIVE")
-        .reduce((sum, r) => {
-          // Prioriza `balance` (valor atual de mercado, atualizado pela integração).
-          // Cai para `amount_original + amount_profit` apenas se balance estiver vazio.
-          const balance = Number(r.balance ?? 0);
-          if (balance > 0) return sum + balance;
-          const fallback = Number(r.amount_original ?? 0) + Number(r.amount_profit ?? 0);
-          return sum + fallback;
-        }, 0);
-    },
-  });
+  // Investimentos exibidos no card = somente "líquido disponível" (caixinhas/reservas
+  // que ficam dentro da própria conta — `automaticallyInvestedBalance`).
+  // CDBs / aplicações de prazo (tabela `pluggy_investments`) NÃO entram aqui — são
+  // posições de investimento de longo prazo, não dinheiro disponível para uso imediato.
+  const pluggyInvestmentsTotal = 0;
 
   const { data: profileData } = useQuery({
     queryKey: ["profile_name", targetUserId],
