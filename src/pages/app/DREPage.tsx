@@ -26,6 +26,8 @@ import { cn } from "@/lib/utils";
 import { PlanoDeContasSection } from "@/components/financas/PlanoDeContasSection";
 import { DRERegrasSection } from "@/components/financas/DRERegrasSection";
 import { useBankAccountOptions } from "@/hooks/useBankAccountOptions";
+import DREMensalView from "@/components/financas/DREMensalView";
+import { CalendarDays } from "lucide-react";
 
 const fmt = (v: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
