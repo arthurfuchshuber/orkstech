@@ -66,34 +66,21 @@ export function VincularCardFinanceiroDialog({ open, onOpenChange, cardTipo, tot
     setLinhaPendenteIdx(null);
   }, [open, total, cardTipo]);
 
-  const { data: contas = [], refetch: refetchContas } = useQuery({
-    queryKey: ["vincular-card-contas", targetUserId, empresaId, cardTipo],
-    enabled: open && !!targetUserId,
-    queryFn: async () => {
-      let q = supabase.from("contas_bancarias").select("id, nome, tipo, banco").eq("ativo", true).order("nome");
-      if (empresaId) q = q.eq("empresa_id", empresaId);
-      else q = q.eq("user_id", targetUserId!);
-      const { data, error } = await q;
-      if (error) throw error;
-      return (data ?? []).filter((c: any) => {
-        const ehCartao = c.tipo === "cartao_credito";
-        if (isCardField(cardTipo)) return ehCartao;
-        if (isAccountOnlyField(cardTipo)) return !ehCartao;
-        return true;
-      });
-    },
+  const { options: allOptions } = useBankAccountOptions({
+    filter: isCardField(cardTipo) ? "cards" : isAccountOnlyField(cardTipo) ? "non-cards" : "all",
   });
 
   const options = useMemo(
-    () => contas.map((c: any) => {
-      const nome = shortName(c.nome) || "Conta";
-      const banco = shortName(c.banco);
-      const tipo = c.tipo === "cartao_credito" ? "Cartão" : "Conta";
-      const label = banco && banco !== nome ? `${tipo} · ${nome} · ${banco}` : `${tipo} · ${nome}`;
-      return { value: c.id, label, tooltip: `${c.nome}${c.banco ? ` · ${c.banco}` : ""}` };
-    }),
-    [contas]
+    () =>
+      allOptions.map((o) => ({
+        value: o.id,
+        label: o.secondaryLabel ? `${o.primaryLabel} · ${o.secondaryLabel}` : o.primaryLabel,
+        tooltip: o.secondaryLabel ? `${o.primaryLabel} · ${o.secondaryLabel}` : o.primaryLabel,
+      })),
+    [allOptions]
   );
+  // refetch é tratado pelo cache do React Query do hook
+  const refetchContas = async () => {};
 
   const totalAlocado = useMemo(() => linhas.reduce((s, l) => s + Number(l.valor || 0), 0), [linhas]);
   const diff = Math.abs(total || 0) - totalAlocado;
