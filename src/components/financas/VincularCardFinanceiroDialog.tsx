@@ -14,6 +14,7 @@ import { useEmpresa } from "@/hooks/useEmpresa";
 import { refreshQueries } from "@/lib/query-refresh";
 import { Link2, Loader2, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import { useBankAccountOptions } from "@/hooks/useBankAccountOptions";
 
 export type CardVinculoTipo = "saldo" | "investimento" | "limite_credito" | "fatura" | "limite_cheque_especial" | "contas_pagar" | "contas_receber";
 
