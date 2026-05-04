@@ -704,13 +704,12 @@ export async function fetchBankBalance(empresaId?: string, userId?: string): Pro
   );
   const saldoContasPluggy = pluggyBank.reduce((sum, r: any) => sum + Number(r.balance ?? 0), 0);
 
-  // 3) Investimentos Pluggy: soma totalInvestments + automaticallyInvestedBalance
-  //    (caixinhas/sub-contas de rendimento). Em alguns conectores essas caixinhas
-  //    NÃO estão inclusas no `balance` da conta corrente — somamos para refletir o
-  //    patrimônio líquido total da empresa, igual ao Dashboard 360.
+  // 3) Investimentos Pluggy: usa SOMENTE bank_data.totalInvestments.
+  //    NÃO somar automaticallyInvestedBalance (geralmente já incluso no `balance`
+  //    da conta corrente, ex.: caixinha do Nubank) — somá-lo gera duplicidade.
   const saldoInvestPluggy = pluggyBank.reduce((sum, r: any) => {
     const bd = r.bank_data ?? {};
-    return sum + Number(bd.totalInvestments ?? 0) + Number(bd.automaticallyInvestedBalance ?? 0);
+    return sum + Number(bd.totalInvestments ?? 0);
   }, 0);
 
   return saldoManualContas + saldoManualInvestimentos + saldoContasPluggy + saldoInvestPluggy;
