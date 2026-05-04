@@ -103,11 +103,25 @@ export default function FinanceiroDashboard() {
     enabled: !!user && !!targetUserId,
   });
 
-  // Investimentos exibidos no card = somente "líquido disponível" (caixinhas/reservas
-  // que ficam dentro da própria conta — `automaticallyInvestedBalance`).
-  // CDBs / aplicações de prazo (tabela `pluggy_investments`) NÃO entram aqui — são
-  // posições de investimento de longo prazo, não dinheiro disponível para uso imediato.
-  const pluggyInvestmentsTotal = 0;
+  // ── Pluggy investments (real source of truth) ──
+  const { data: pluggyInvestmentsTotal = 0 } = useQuery({
+    queryKey: ["pluggy_investments_total", targetUserId],
+    enabled: !!user && !!targetUserId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("pluggy_investments" as any)
+        .select("balance, amount_original, amount_profit, status")
+        .eq("user_id", targetUserId!);
+      if (error) throw error;
+      const rows = (data ?? []) as any[];
+      return rows
+        .filter((r) => (r.status ?? "ACTIVE") === "ACTIVE")
+        .reduce((sum, r) => {
+          const v = Number(r.amount_original ?? 0) + Number(r.amount_profit ?? 0);
+          return sum + (v > 0 ? v : Number(r.balance ?? 0));
+        }, 0);
+    },
+  });
 
   const { data: profileData } = useQuery({
     queryKey: ["profile_name", targetUserId],
@@ -254,15 +268,19 @@ export default function FinanceiroDashboard() {
   const bankAccounts = accounts.filter((a) => a.type !== "CREDIT");
   const creditCards = accounts.filter((a) => a.type === "CREDIT");
 
-  // Investimentos = somente "líquido disponível" (caixinhas/reservas que rendem mas
-  // continuam dentro da conta corrente). Usa `automaticallyInvestedBalance` da Pluggy.
-  // CDBs / aplicações de longo prazo NÃO entram aqui — não são dinheiro de uso imediato.
-  const getLiquidInvested = (account: BankAccount) => {
-    return Number(account.bank_data?.automaticallyInvestedBalance ?? 0);
+  // Saldo de investimentos REAIS da conta (apenas totalInvestments).
+  // automaticallyInvestedBalance NÃO é somado: é uma sub-parcela do `balance` (ex.: caixinha Nubank
+  // que rende sozinha mas continua dentro do saldo da conta corrente). Somá-lo causaria duplicidade.
+  const getStoredBalance = (account: BankAccount) => {
+    return Number(account.bank_data?.totalInvestments ?? 0);
   };
 
   const totalPluggyBalance = bankAccounts.reduce((sum, a) => sum + a.balance, 0);
-  const totalPluggyInvestments = bankAccounts.reduce((sum, a) => sum + getLiquidInvested(a), 0);
+  // Soma vinda diretamente da tabela pluggy_investments (fonte real),
+  // com fallback para bank_data.totalInvestments caso a tabela esteja vazia.
+  const totalPluggyInvestments = pluggyInvestmentsTotal > 0
+    ? pluggyInvestmentsTotal
+    : bankAccounts.reduce((sum, a) => sum + getStoredBalance(a), 0);
 
   // ── Derived data: Manual ──
   // Saldo atual de cada conta manual = saldo_inicial + saldo_sincronizado + saldo_ajuste_manual + (entradas - saídas)
@@ -599,7 +617,7 @@ export default function FinanceiroDashboard() {
     // Pluggy: agrupa por connector_name
     bankAccounts.forEach((a) => {
       const key = `pluggy:${getConnectorId(a) ?? getConnectorName(a)}`;
-      const value = Math.max(0, a.balance + getLiquidInvested(a));
+      const value = Math.max(0, a.balance + getStoredBalance(a));
       if (value <= 0) return;
       const existing = byBank.get(key);
       if (existing) {
