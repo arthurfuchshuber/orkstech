@@ -255,6 +255,8 @@ export default function ContasBancarias({
           <div className="col-span-full py-12 text-center text-muted-foreground text-sm">Nenhuma conta cadastrada.</div>
         ) : items.map((item) => {
           const Icon = tipoIcons[item.tipo];
+          const saldoAtual = saldosCalc[item.id] ?? item.saldo_inicial;
+          const caixinha = Number(item.saldo_investimento ?? 0);
           return (
             <Card key={item.id} className={`p-4 space-y-3 ${!item.ativo ? "opacity-50" : ""}`}>
               <div className="flex items-start justify-between">
@@ -269,9 +271,19 @@ export default function ContasBancarias({
                 </div>
                 <Badge variant="outline" className="text-[10px]">{tipoLabels[item.tipo]}</Badge>
               </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Saldo Inicial</p>
-                <p className="text-lg font-bold text-foreground">{formatCurrency(item.saldo_inicial)}</p>
+              <div className="space-y-1">
+                <div>
+                  <p className="text-xs text-muted-foreground">Saldo Atual</p>
+                  <p className="text-lg font-bold text-foreground">{formatCurrency(saldoAtual)}</p>
+                </div>
+                <div className="flex justify-between text-[11px] border-t border-border/40 pt-1.5">
+                  <span className="text-muted-foreground">Saldo inicial</span>
+                  <span className="text-foreground font-medium tabular-nums">{formatCurrency(item.saldo_inicial)}</span>
+                </div>
+                <div className="flex justify-between text-[11px]">
+                  <span className="text-muted-foreground">Caixinha</span>
+                  <span className={`font-medium tabular-nums ${caixinha > 0 ? "text-emerald-500" : "text-foreground"}`}>{formatCurrency(caixinha)}</span>
+                </div>
               </div>
               <div className="flex gap-1 justify-end border-t border-border/50 pt-2">
                 <DropdownMenu>
@@ -281,6 +293,13 @@ export default function ContasBancarias({
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => setLancTarget(item)}>
+                      <Receipt className="w-4 h-4 mr-2" /> Novo lançamento
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setCaixinhaTarget(item)}>
+                      <ArrowLeftRight className="w-4 h-4 mr-2" /> Mover caixinha
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
                     <DropdownMenuItem onClick={() => openEdit(item)}>
                       <Pencil className="w-4 h-4 mr-2" /> Editar
                     </DropdownMenuItem>
@@ -299,6 +318,24 @@ export default function ContasBancarias({
       </div>
 
       <ContaBancariaModal open={modalOpen} onOpenChange={setModalOpen} editingId={editingId} />
+      {caixinhaTarget && (
+        <CaixinhaMoveDialog
+          open={!!caixinhaTarget}
+          onOpenChange={(v) => !v && setCaixinhaTarget(null)}
+          contaId={caixinhaTarget.id}
+          contaNome={caixinhaTarget.nome}
+          saldoConta={saldosCalc[caixinhaTarget.id] ?? caixinhaTarget.saldo_inicial}
+          saldoCaixinha={Number(caixinhaTarget.saldo_investimento ?? 0)}
+        />
+      )}
+      {lancTarget && (
+        <LancamentoManualContaDialog
+          open={!!lancTarget}
+          onOpenChange={(v) => !v && setLancTarget(null)}
+          contaId={lancTarget.id}
+          contaNome={lancTarget.nome}
+        />
+      )}
     </div>
   );
 }
