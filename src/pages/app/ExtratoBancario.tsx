@@ -778,185 +778,145 @@ export default function ExtratoBancario() {
         })()}
       </div>
 
-      {creditCards.length > 0 && (
-        <div className="space-y-3">
-          <h2 className="flex items-center gap-2 text-sm font-semibold text-foreground">
-            <CreditCard className="h-4 w-4" /> Cartões de Crédito
-          </h2>
-
-          <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
-            {creditCards.map((card) => (
-              <Card key={card.id} className="space-y-3 border-l-4 border-l-primary p-4">
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-semibold text-foreground" title={getDisplayName(card)}>
-                      {getShortName(card)}
-                    </p>
-                    {getOwnerLabel(card) && (
-                      <p className="truncate text-[11px] text-muted-foreground" title={getOwnerLabel(card)}>
-                        {getOwnerLabel(card)}
-                      </p>
-                    )}
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-7 w-7 shrink-0"
-                    onClick={() => handleSync(card.pluggy_item_id)}
-                    disabled={syncing === card.pluggy_item_id}
-                  >
-                    <RefreshCw className={cn("h-3.5 w-3.5", syncing === card.pluggy_item_id && "animate-spin")} />
-                  </Button>
-                </div>
-                {(() => {
-                  const conn = connections.find((c) => c.pluggy_item_id === card.pluggy_item_id);
-                  return <PluggyLastSyncBadge lastSyncAt={conn?.last_sync_at} status={conn?.status} />;
-                })()}
-
-                <div className="grid grid-cols-2 gap-3 text-xs">
-                  <div>
-                    <p className="text-muted-foreground">
-                      {card.bank_data?.hasBillData || card.bank_data?.hasOpenBillCalc
-                        ? "Fatura Aberta"
-                        : "Saldo Devedor"}
-                    </p>
-                    <p className="text-base font-bold text-destructive">
-                      {card.credit_bill_amount != null
-                        ? formatCurrency(card.credit_bill_amount)
-                        : "—"}
-                    </p>
-                    {(card.bank_data?.hasBillData || card.bank_data?.hasOpenBillCalc) && (
-                      <p className="text-[10px] text-muted-foreground/70">parcial do ciclo</p>
-                    )}
-                  </div>
-
-                  <div>
-                    <p className="text-muted-foreground">Vencimento</p>
-                    <p className="text-base font-bold text-foreground">
-                      {card.credit_bill_due_date ? formatDate(card.credit_bill_due_date) : "—"}
-                    </p>
-                  </div>
-
-                  <div>
-                    <p className="text-muted-foreground">Limite Total</p>
-                    <p className="font-semibold text-foreground">
-                      {card.credit_limit != null ? formatCurrency(card.credit_limit) : "—"}
-                    </p>
-                  </div>
-
-                  <div>
-                    <p className="text-muted-foreground">Disponível</p>
-                    <p className="font-semibold text-foreground">
-                      {card.credit_available != null
-                        ? formatCurrency(card.credit_available)
-                        : "—"}
-                    </p>
-                  </div>
-                </div>
-              </Card>
-            ))}
+      {(creditCards.length > 0 || bankAccounts.length > 0) && (
+        <Card className="p-4">
+          <div className="mb-3 flex items-center gap-2">
+            <Landmark className="h-4 w-4 text-primary" />
+            <h2 className="text-sm font-semibold text-foreground">Contas & Cartões</h2>
+            <Badge variant="outline" className="ml-1 text-[10px] font-normal">
+              {bankAccounts.length} conta{bankAccounts.length !== 1 ? "s" : ""} · {creditCards.length} cartão{creditCards.length !== 1 ? "ões" : ""}
+            </Badge>
           </div>
-        </div>
-      )}
 
-      {bankAccounts.length > 0 && (
-        <div className="space-y-3">
-          <h2 className="flex items-center gap-2 text-sm font-semibold text-foreground">
-            <Landmark className="h-4 w-4" /> Contas Bancárias
-          </h2>
-
-          <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
             {bankAccounts.map((account) => {
               const stored = getStoredBalance(account);
-              const totals = totalsByAccount[account.pluggy_account_id] ?? {
-                income: 0,
-                expense: 0,
-              };
+              const totals = totalsByAccount[account.pluggy_account_id] ?? { income: 0, expense: 0 };
               const internal = internalByAccount[account.pluggy_account_id] ?? {
-                transfersIn: 0,
-                transfersOut: 0,
-                investIn: 0,
-                investOut: 0,
+                transfersIn: 0, transfersOut: 0, investIn: 0, investOut: 0,
               };
-              const investNet = internal.investOut - internal.investIn; // saldo aplicado no período
-
+              const conn = connections.find((c) => c.pluggy_item_id === account.pluggy_item_id);
+              const totalAccount = getAccountTotalBalance(account);
               return (
-                <Card key={account.id} className="space-y-2 p-3">
-                  <div className="flex items-start justify-between gap-2">
+                <div key={account.id} className="rounded-md border border-border/50 bg-muted/10 p-3 hover:bg-muted/20 transition-colors">
+                  <div className="mb-2 flex items-start justify-between gap-2">
                     <div className="min-w-0 flex-1">
-                      <p
-                        className="truncate text-sm font-semibold text-foreground"
-                        title={getDisplayName(account)}
-                      >
-                        {getShortName(account)}
-                      </p>
+                      <div className="flex items-center gap-1.5">
+                        <Landmark className="h-3 w-3 text-muted-foreground shrink-0" />
+                        <p className="truncate text-xs font-semibold text-foreground" title={getDisplayName(account)}>
+                          {getShortName(account)}
+                        </p>
+                      </div>
                       {getOwnerLabel(account) && (
-                        <p
-                          className="truncate text-[11px] text-muted-foreground"
-                          title={getOwnerLabel(account)}
-                        >
+                        <p className="truncate text-[10px] text-muted-foreground" title={getOwnerLabel(account)}>
                           {getOwnerLabel(account)}
                         </p>
                       )}
                     </div>
-                    {(() => {
-                      const conn = connections.find((c) => c.pluggy_item_id === account.pluggy_item_id);
-                      return (
-                        <div className="shrink-0">
-                          <PluggyLastSyncBadge lastSyncAt={conn?.last_sync_at} status={conn?.status} />
-                        </div>
-                      );
-                    })()}
+                    <PluggyLastSyncBadge lastSyncAt={conn?.last_sync_at} status={conn?.status} />
                   </div>
-                  <p className="text-lg font-bold text-foreground">
-                    {formatCurrency(getAccountTotalBalance(account))}
-                  </p>
-                  <div className="space-y-0.5 border-t border-border pt-1 text-[11px] text-muted-foreground">
-                    <div className="flex justify-between gap-3">
-                      <span>Disponível</span>
-                      <span className={`font-medium ${account.balance > 0 ? "text-emerald-500" : "text-foreground"}`}>
-                        {formatCurrency(account.balance)}
-                      </span>
+
+                  <div className="mb-2">
+                    <p className="text-lg font-bold text-foreground tabular-nums">{formatCurrency(totalAccount)}</p>
+                    <p className="text-[10px] text-muted-foreground">Saldo total (conta + caixinhas)</p>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-x-3 gap-y-0.5 border-t border-border/40 pt-2 text-[10px]">
+                    <div className="flex justify-between text-muted-foreground">
+                      <span>Em conta</span>
+                      <span className={`font-medium tabular-nums ${account.balance > 0 ? "text-emerald-500" : "text-foreground"}`}>{formatCurrency(account.balance)}</span>
                     </div>
-                    <div className="flex justify-between gap-3">
+                    <div className="flex justify-between text-muted-foreground">
+                      <span>Caixinhas</span>
+                      <span className={`font-medium tabular-nums ${stored > 0 ? "text-emerald-500" : "text-foreground"}`}>{formatCurrency(stored)}</span>
+                    </div>
+                    <div className="flex justify-between text-muted-foreground">
                       <span>Entradas</span>
-                      <span className="font-medium text-foreground">
-                        {formatCurrency(totals.income)}
-                      </span>
+                      <span className="font-medium tabular-nums text-emerald-500">{formatCurrency(totals.income)}</span>
                     </div>
-                    <div className="flex justify-between gap-3">
+                    <div className="flex justify-between text-muted-foreground">
                       <span>Saídas</span>
-                      <span className="font-medium text-foreground">
-                        {formatCurrency(totals.expense)}
+                      <span className="font-medium tabular-nums text-warning">{formatCurrency(totals.expense)}</span>
+                    </div>
+                    {(internal.transfersIn > 0 || internal.transfersOut > 0) && (
+                      <>
+                        <div className="flex justify-between text-muted-foreground">
+                          <span>Transf. recebidas</span>
+                          <span className="font-medium tabular-nums text-foreground">{formatCurrency(internal.transfersIn)}</span>
+                        </div>
+                        <div className="flex justify-between text-muted-foreground">
+                          <span>Transf. enviadas</span>
+                          <span className="font-medium tabular-nums text-foreground">{formatCurrency(internal.transfersOut)}</span>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+
+            {creditCards.map((card) => {
+              const conn = connections.find((c) => c.pluggy_item_id === card.pluggy_item_id);
+              const billLabel = card.bank_data?.hasBillData || card.bank_data?.hasOpenBillCalc ? "Fatura aberta" : "Saldo devedor";
+              return (
+                <div key={card.id} className="rounded-md border border-border/50 bg-muted/10 p-3 hover:bg-muted/20 transition-colors">
+                  <div className="mb-2 flex items-start justify-between gap-2">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5">
+                        <CreditCard className="h-3 w-3 text-primary shrink-0" />
+                        <p className="truncate text-xs font-semibold text-foreground" title={getDisplayName(card)}>
+                          {getShortName(card)}
+                        </p>
+                      </div>
+                      {getOwnerLabel(card) && (
+                        <p className="truncate text-[10px] text-muted-foreground" title={getOwnerLabel(card)}>
+                          {getOwnerLabel(card)}
+                        </p>
+                      )}
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-5 w-5 shrink-0"
+                      onClick={() => handleSync(card.pluggy_item_id)}
+                      disabled={syncing === card.pluggy_item_id}
+                    >
+                      <RefreshCw className={cn("h-3 w-3", syncing === card.pluggy_item_id && "animate-spin")} />
+                    </Button>
+                  </div>
+
+                  <div className="mb-2">
+                    <p className="text-lg font-bold text-destructive tabular-nums">
+                      {card.credit_bill_amount != null ? formatCurrency(card.credit_bill_amount) : "—"}
+                    </p>
+                    <p className="text-[10px] text-muted-foreground">
+                      {billLabel}
+                      {card.credit_bill_due_date && ` · vence ${formatDate(card.credit_bill_due_date)}`}
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-x-3 gap-y-0.5 border-t border-border/40 pt-2 text-[10px]">
+                    <div className="flex justify-between text-muted-foreground">
+                      <span>Limite</span>
+                      <span className="font-medium tabular-nums text-foreground">
+                        {card.credit_limit != null ? formatCurrency(card.credit_limit) : "—"}
                       </span>
                     </div>
-                    <div className="flex justify-between gap-3">
-                      <span>Transferências recebidas</span>
-                      <span className="font-medium text-foreground">
-                        {formatCurrency(internal.transfersIn)}
+                    <div className="flex justify-between text-muted-foreground">
+                      <span>Disponível</span>
+                      <span className="font-medium tabular-nums text-emerald-500">
+                        {card.credit_available != null ? formatCurrency(card.credit_available) : "—"}
                       </span>
                     </div>
-                    <div className="flex justify-between gap-3">
-                      <span>Transferências enviadas</span>
-                      <span className="font-medium text-foreground">
-                        {formatCurrency(internal.transfersOut)}
-                      </span>
-                    </div>
-                    <div className="flex justify-between gap-3">
-                      <span>Em Aplicação</span>
-                      <span
-                        className={`font-medium ${stored > 0 ? "text-emerald-500" : "text-foreground"}`}
-                        title={`Saldo atual aplicado em investimentos vinculados à conta`}
-                      >
-                        {formatCurrency(stored)}
-                      </span>
+                    <div className="col-span-2 mt-0.5">
+                      <PluggyLastSyncBadge lastSyncAt={conn?.last_sync_at} status={conn?.status} />
                     </div>
                   </div>
-                </Card>
+                </div>
               );
             })}
           </div>
-        </div>
+        </Card>
       )}
 
       <Card className="p-4">
