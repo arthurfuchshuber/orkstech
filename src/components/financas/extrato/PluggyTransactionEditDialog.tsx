@@ -66,16 +66,10 @@ export function PluggyTransactionEditDialog({ open, onOpenChange, transactionId,
     }
   }, [tx]);
 
-  // Auto-abre sugestão se transação não tem categoria (1x por abertura)
+  // Sugestão de categoria agora é manual: usuário clica no botão "Sugerir categoria".
   useEffect(() => {
-    if (open && tx && transactionId && readOnly?.description && autoOfferedFor !== transactionId) {
-      if (!tx.categoria_financeira_id) {
-        setSugestaoOpen(true);
-      }
-      setAutoOfferedFor(transactionId);
-    }
     if (!open) setAutoOfferedFor(null);
-  }, [open, tx, transactionId, readOnly, autoOfferedFor]);
+  }, [open]);
 
   const { data: categorias = [] } = useQuery({
     queryKey: ["categorias_financeiras_select", empresaId],
