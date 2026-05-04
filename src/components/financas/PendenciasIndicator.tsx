@@ -64,7 +64,7 @@ export function PendenciasIndicator({
 
   cardsSemVinculo.forEach((c) => {
     items.push({
-      key: `card-${c.key}`,
+      key: `card-${c.tipo}`,
       icon: <AlertTriangle className="w-4 h-4 text-warning" />,
       title: `${c.label} sem vínculo`,
       subtitle: `${fmt(c.total)} aguardando vínculo de conta/cartão padrão.`,
