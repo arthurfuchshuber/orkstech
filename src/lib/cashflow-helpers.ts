@@ -703,22 +703,59 @@ export async function fetchBankBalance(empresaId?: string, userId?: string): Pro
     (r: any) => String(r.type ?? "").toUpperCase() !== "CREDIT",
   );
   const saldoContasPluggy = pluggyBank.reduce((sum, r: any) => sum + Number(r.balance ?? 0), 0);
+  // Caixinhas/sub-contas com rendimento automático (ex.: Nubank) — em vários conectores
+  // NÃO estão incluídas no `balance` da conta corrente, então somamos para refletir
+  // o valor líquido total disponível na conta.
+  const saldoCaixinhas = pluggyBank.reduce(
+    (sum, r: any) => sum + Number(r.bank_data?.automaticallyInvestedBalance ?? 0),
+    0,
+  );
 
-  // 3) Investimentos Pluggy: usa SOMENTE bank_data.totalInvestments.
-  //    NÃO somar automaticallyInvestedBalance (já incluso no `balance` da conta corrente,
-  //    p.ex. "caixinha" do Nubank) — somá-lo gera duplicidade no saldo total.
-  const saldoInvestPluggy = pluggyBank.reduce((sum, r: any) => {
-    const bd = r.bank_data ?? {};
-    return sum + Number(bd.totalInvestments ?? 0);
-  }, 0);
+  // 3) Investimentos Pluggy: usa pluggy_investments (fonte real, com ajuste manual)
+  //    com fallback para bank_data.totalInvestments quando a tabela está vazia.
+  let invQ = supabase
+    .from("pluggy_investments")
+    .select("balance, ajuste_manual");
+  if (userId) invQ = invQ.eq("user_id", userId);
+  const { data: invs } = await invQ;
+  const saldoInvestTabela = (invs ?? []).reduce(
+    (s, r: any) => s + Number(r.balance ?? 0) + Number(r.ajuste_manual ?? 0),
+    0,
+  );
+  const saldoInvestPluggy = saldoInvestTabela > 0
+    ? saldoInvestTabela
+    : pluggyBank.reduce((sum, r: any) => sum + Number(r.bank_data?.totalInvestments ?? 0), 0);
 
-  return saldoManualContas + saldoManualInvestimentos + saldoContasPluggy + saldoInvestPluggy;
+  return saldoManualContas + saldoManualInvestimentos + saldoContasPluggy + saldoCaixinhas + saldoInvestPluggy;
 }
 
+/**
+ * Resume entradas/saídas separando o que já foi realizado (extrato bancário,
+ * pagamentos confirmados) do que ainda é previsão (pendente/atrasado/forecast).
+ *
+ * Os KPIs "Entradas Previstas" e "Saídas Previstas" usam apenas o lado FORECAST,
+ * para não inflar com transações Pluggy/cash já liquidadas no período.
+ */
+const REALIZED_STATUSES = new Set(["confirmed", "reconciled", "paid", "received", "settled"]);
+
 export function summarize(rows: ConsolidatedRow[]) {
-  const inflow = rows.filter((r) => r.direction === "inflow").reduce((s, r) => s + Number(r.amount), 0);
-  const outflow = rows.filter((r) => r.direction === "outflow").reduce((s, r) => s + Number(r.amount), 0);
-  return { inflow, outflow, net: inflow - outflow };
+  let inflow = 0, outflow = 0, realizedInflow = 0, realizedOutflow = 0;
+  for (const r of rows) {
+    const amt = Number(r.amount);
+    const realized = REALIZED_STATUSES.has(r.status);
+    if (r.direction === "inflow") {
+      if (realized) realizedInflow += amt; else inflow += amt;
+    } else {
+      if (realized) realizedOutflow += amt; else outflow += amt;
+    }
+  }
+  return {
+    inflow,           // apenas previstos (forecast/pending/overdue)
+    outflow,          // apenas previstos
+    realizedInflow,
+    realizedOutflow,
+    net: inflow - outflow,
+  };
 }
 
 /**
