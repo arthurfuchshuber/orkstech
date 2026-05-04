@@ -1,4 +1,3 @@
-import { Card, CardContent } from "@/components/ui/card";
 import { Landmark, CreditCard, PiggyBank, Receipt, TrendingUp, TrendingDown, Wallet } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PluggyLastSyncBadge } from "@/components/PluggyLastSyncBadge";
@@ -6,6 +5,8 @@ import { AjusteContaTrigger } from "@/components/financas/AjusteContaTrigger";
 import { DivergenciaBadge } from "@/components/financas/DivergenciaBadge";
 import { useSaldoDivergencias } from "@/hooks/useSaldoDivergencias";
 import type { AjusteCampo } from "@/components/financas/AjusteValorDialog";
+import { KpiHoverCard, KpiCardShell } from "@/components/financas/KpiHoverCard";
+import { useNavigate } from "react-router-dom";
 
 const fmt = (v: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
@@ -46,6 +47,7 @@ export function CaixaKpis({
   const odUtilizacao = totalOverdraftLimit > 0 ? (totalOverdraftUsed / totalOverdraftLimit) * 100 : 0;
   const { data: divergencias } = useSaldoDivergencias();
   const divergenciaSaldoTotal = divergencias?.total ?? 0;
+  const navigate = useNavigate();
 
   const cards: Array<{
     icon: any; label: string; flag: string; value: string;
@@ -125,22 +127,37 @@ export function CaixaKpis({
       <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
         {cards.map((c) => {
           const Icon = c.icon;
+          const details = [
+            { label: c.label, value: c.value, highlight: true, fromApi: hasPluggy },
+            ...(c.sub ? [{ label: "Detalhe", value: c.sub }] : []),
+            ...(c.ajusteCampo === "saldo" && divergenciaSaldoTotal !== 0
+              ? [{ label: "Divergência vs extrato", value: fmt(divergenciaSaldoTotal) }]
+              : []),
+          ];
           return (
-            <Card key={c.label} className="border-border/50 hover:border-border transition-colors relative overflow-visible">
-              {c.flag && (
-                <span className={cn(
-                  "absolute -top-2 right-3 text-[9px] uppercase tracking-wider font-medium px-2 py-0.5 rounded border whitespace-nowrap",
-                  flagStyles[c.tone]
-                )}>
-                  {c.flag}
-                </span>
-              )}
-              <CardContent className="p-4">
+            <KpiHoverCard
+              key={c.label}
+              title={c.label}
+              subtitle={c.flag}
+              details={details}
+              onOpen={() => navigate("/app/financas/contas-bancarias")}
+              openLabel="Ver contas"
+              readOnlyReason={hasPluggy ? "Sincronizado via Open Finance — use 'Ajustar' para correção manual" : undefined}
+            >
+              <KpiCardShell className="relative overflow-visible">
+                {c.flag && (
+                  <span className={cn(
+                    "absolute -top-2 right-3 text-[9px] uppercase tracking-wider font-medium px-2 py-0.5 rounded border whitespace-nowrap",
+                    flagStyles[c.tone]
+                  )}>
+                    {c.flag}
+                  </span>
+                )}
                 <div className="flex items-start justify-between mb-3">
                   <div className={cn("w-9 h-9 rounded-lg flex items-center justify-center", toneStyles[c.tone])}>
                     <Icon className="w-4 h-4" />
                   </div>
-                  <div className="flex items-center gap-1">
+                  <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
                     {c.trend && (
                       c.trend === "up"
                         ? <TrendingUp className="w-3.5 h-3.5 text-success" />
@@ -157,8 +174,8 @@ export function CaixaKpis({
                 {c.ajusteCampo === "saldo" && (
                   <div className="mt-2"><DivergenciaBadge delta={divergenciaSaldoTotal} /></div>
                 )}
-              </CardContent>
-            </Card>
+              </KpiCardShell>
+            </KpiHoverCard>
           );
         })}
       </div>
