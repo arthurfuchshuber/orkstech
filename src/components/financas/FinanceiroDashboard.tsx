@@ -279,7 +279,7 @@ export default function FinanceiroDashboard() {
     return Number(account.bank_data?.totalInvestments ?? 0);
   };
 
-  const totalPluggyBalance = bankAccounts.reduce((sum, a) => sum + a.balance, 0);
+  const totalPluggyBalance = bankAccounts.reduce((sum, a) => sum + Number(a.balance ?? 0), 0);
   // Soma vinda diretamente da tabela pluggy_investments (fonte real),
   // com fallback para bank_data.totalInvestments caso a tabela esteja vazia.
   const totalPluggyInvestments = pluggyInvestmentsTotal > 0
