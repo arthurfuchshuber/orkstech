@@ -47,6 +47,7 @@ export function CaixaKpis({
   const odUtilizacao = totalOverdraftLimit > 0 ? (totalOverdraftUsed / totalOverdraftLimit) * 100 : 0;
   const { data: divergencias } = useSaldoDivergencias();
   const divergenciaSaldoTotal = divergencias?.total ?? 0;
+  const navigate = useNavigate();
 
   const cards: Array<{
     icon: any; label: string; flag: string; value: string;
