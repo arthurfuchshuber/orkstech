@@ -735,9 +735,11 @@ export default function ExtratoBancario() {
             <span className="text-xs text-muted-foreground">Saldo Total</span>
           </div>
           <p className="text-xl font-bold text-foreground">{formatCurrency(totalBalance)}</p>
-          <p className="mt-1 text-[11px] text-muted-foreground">
-            {bankAccounts.length} conta(s) conectada(s)
-          </p>
+          <div className="mt-1 flex items-center gap-2 text-[11px] text-muted-foreground">
+            <span>Em conta: <span className="font-medium text-foreground">{formatCurrency(bankAccounts.reduce((s, a) => s + a.balance, 0))}</span></span>
+            <span>·</span>
+            <span>Caixinhas: <span className="font-medium text-emerald-500">{formatCurrency(bankAccounts.reduce((s, a) => s + getStoredBalance(a), 0))}</span></span>
+          </div>
         </Card>
 
         <Card className="p-4">
