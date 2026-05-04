@@ -160,6 +160,8 @@ export default function ContasBancarias({
                 <PluggyConnectionsList />
                 {items.map((item) => {
                   const Icon = tipoIcons[item.tipo];
+                  const saldoAtual = saldosCalc[item.id] ?? item.saldo_inicial;
+                  const caixinha = Number(item.saldo_investimento ?? 0);
                   return (
                     <div
                       key={item.id}
@@ -170,7 +172,12 @@ export default function ContasBancarias({
                         <span className="text-xs font-medium text-foreground truncate block">{item.nome}</span>
                         {item.banco && <span className="text-[10px] text-muted-foreground truncate block">{item.banco}</span>}
                       </div>
-                      <span className="text-xs font-semibold text-foreground whitespace-nowrap">{formatCurrency(item.saldo_inicial)}</span>
+                      <div className="flex flex-col items-end leading-tight">
+                        <span className="text-xs font-semibold text-foreground whitespace-nowrap" title="Saldo atual">{formatCurrency(saldoAtual)}</span>
+                        {caixinha > 0 && (
+                          <span className="text-[10px] text-emerald-500 whitespace-nowrap" title="Caixinha">+ {formatCurrency(caixinha)}</span>
+                        )}
+                      </div>
                       <Badge variant="outline" className="text-[9px] px-1 py-0 leading-4 flex-shrink-0">{tipoLabels[item.tipo]}</Badge>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
@@ -179,6 +186,13 @@ export default function ContasBancarias({
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => setLancTarget(item)}>
+                            <Receipt className="w-4 h-4 mr-2" /> Novo lançamento
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => setCaixinhaTarget(item)}>
+                            <ArrowLeftRight className="w-4 h-4 mr-2" /> Mover caixinha
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
                           <DropdownMenuItem onClick={() => openEdit(item)}>
                             <Pencil className="w-4 h-4 mr-2" /> Editar
                           </DropdownMenuItem>
@@ -199,6 +213,24 @@ export default function ContasBancarias({
         </Card>
 
         <ContaBancariaModal open={modalOpen} onOpenChange={setModalOpen} editingId={editingId} />
+        {caixinhaTarget && (
+          <CaixinhaMoveDialog
+            open={!!caixinhaTarget}
+            onOpenChange={(v) => !v && setCaixinhaTarget(null)}
+            contaId={caixinhaTarget.id}
+            contaNome={caixinhaTarget.nome}
+            saldoConta={saldosCalc[caixinhaTarget.id] ?? caixinhaTarget.saldo_inicial}
+            saldoCaixinha={Number(caixinhaTarget.saldo_investimento ?? 0)}
+          />
+        )}
+        {lancTarget && (
+          <LancamentoManualContaDialog
+            open={!!lancTarget}
+            onOpenChange={(v) => !v && setLancTarget(null)}
+            contaId={lancTarget.id}
+            contaNome={lancTarget.nome}
+          />
+        )}
       </>
     );
   }
