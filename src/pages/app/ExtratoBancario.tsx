@@ -526,11 +526,18 @@ export default function ExtratoBancario() {
     return false;
   });
 
-  // Saldo de investimentos REAIS da conta (somente totalInvestments).
-  // automaticallyInvestedBalance NÃO é somado: já está incluso no `balance` da conta corrente
-  // (ex.: caixinha Nubank). Somá-lo causaria duplicidade no card de saldo total.
+  // Saldo investido por item (caixinhas + CDBs/fundos ativos), agregado por pluggy_item_id.
+  // Usa a tabela pluggy_investments (status ACTIVE) — fonte real do saldo guardado.
+  // automaticallyInvestedBalance NÃO é somado para evitar duplicidade com balance da conta.
+  const investedByItem = (investments ?? []).reduce<Record<string, number>>((acc, inv) => {
+    if (inv.status === "ACTIVE") {
+      acc[inv.pluggy_item_id] = (acc[inv.pluggy_item_id] ?? 0) + Number(inv.balance ?? 0);
+    }
+    return acc;
+  }, {});
+
   const getStoredBalance = (account: BankAccount) => {
-    return Number(account.bank_data?.totalInvestments ?? 0);
+    return investedByItem[account.pluggy_item_id] ?? 0;
   };
 
   const getAccountTotalBalance = (account: BankAccount) =>
