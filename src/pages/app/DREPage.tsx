@@ -236,14 +236,20 @@ export default function DREPage() {
               <SelectTrigger className="w-[260px] h-9 text-sm"><SelectValue placeholder="Conta bancária" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todas as contas</SelectItem>
-                {bankAccounts.map((b: any) => (
-                  <SelectItem key={b.id} value={b.id}>
-                    <div className="flex flex-col leading-tight">
-                      <span className="text-sm">{b.nome}</span>
-                      {b.banco && <span className="text-[10px] text-muted-foreground">{b.banco}</span>}
-                    </div>
-                  </SelectItem>
-                ))}
+                {bankAccounts.map((b: any) => {
+                  const principal = b.connector_name || b.nome;
+                  const secundario = b.connector_name ? b.nome : b.banco;
+                  return (
+                    <SelectItem key={b.id} value={b.id}>
+                      <div className="flex flex-col leading-tight">
+                        <span className="text-sm">{principal}</span>
+                        {secundario && secundario !== principal && (
+                          <span className="text-[10px] text-muted-foreground">{secundario}</span>
+                        )}
+                      </div>
+                    </SelectItem>
+                  );
+                })}
               </SelectContent>
             </Select>
             <Select value={filters.costCenterId || "all"} onValueChange={(v) => setFilters((f) => ({ ...f, costCenterId: v === "all" ? undefined : v }))}>
