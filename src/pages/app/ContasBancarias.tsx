@@ -82,6 +82,20 @@ export default function ContasBancarias({
     enabled: !!user && !!targetUserId,
   });
 
+  // Calcula saldo atual real (saldo_inicial + Σ cash_transactions) para cada conta
+  const { data: saldosCalc = {} } = useQuery({
+    queryKey: ["conta_saldo", items.map((i) => i.id).join(",")],
+    enabled: items.length > 0,
+    queryFn: async () => {
+      const result: Record<string, number> = {};
+      for (const it of items) {
+        const { data } = await supabase.rpc("calcular_saldo_esperado_conta" as any, { p_conta_id: it.id });
+        result[it.id] = Number(data ?? it.saldo_inicial ?? 0);
+      }
+      return result;
+    },
+  });
+
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase.from("contas_bancarias").delete().eq("id", id);
