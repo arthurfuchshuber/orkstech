@@ -599,7 +599,7 @@ export default function FinanceiroDashboard() {
     // Pluggy: agrupa por connector_name
     bankAccounts.forEach((a) => {
       const key = `pluggy:${getConnectorId(a) ?? getConnectorName(a)}`;
-      const value = Math.max(0, a.balance + getStoredBalance(a));
+      const value = Math.max(0, a.balance + getLiquidInvested(a));
       if (value <= 0) return;
       const existing = byBank.get(key);
       if (existing) {
