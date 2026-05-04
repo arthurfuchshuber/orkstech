@@ -863,8 +863,16 @@ export default function FinanceiroDashboard() {
 
       {/* ═══════════ ABA: Caixa da Empresa ═══════════ */}
       <TabsContent value="caixa" className="space-y-5">
-        {/* Indicador compacto de pendências (substitui banners empilhados) */}
-        <div className="flex justify-start">
+        {/* Barra de ações: transferência + indicador de pendências (canto direito, acima dos cards) */}
+        <div className="flex justify-end items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowTransferencia(true)}
+          >
+            <ArrowRightLeft className="w-4 h-4 mr-1" />
+            Transferir entre contas
+          </Button>
           <PendenciasIndicator
             cardsSemVinculo={cardsSemVinculo}
             onCategorizar={() => navigate("/app/financas/extrato?filtro=sem-categoria")}
@@ -885,18 +893,6 @@ export default function FinanceiroDashboard() {
             }}
             onVincularCard={(c) => setVincularCard(c)}
           />
-        </div>
-
-        {/* Ação rápida: Transferir entre contas */}
-        <div className="flex justify-end">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setShowTransferencia(true)}
-          >
-            <ArrowRightLeft className="w-4 h-4 mr-1" />
-            Transferir entre contas
-          </Button>
         </div>
 
         {/* KPIs aprimorados */}
