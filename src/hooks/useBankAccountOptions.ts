@@ -94,24 +94,7 @@ export function useBankAccountOptions({ filter = "all", onlyActive = true }: Use
         }
       }
 
-      return rows.map((r: any): BankAccountOption => {
-        const connector = r.pluggy_account_id ? connectorByAccount.get(r.pluggy_account_id) ?? null : null;
-        const primaryLabel = connector || r.nome;
-        // Linha secundária: se temos connector_name, mostramos o nome técnico do banco.
-        // Caso contrário, mostramos o campo `banco` do cadastro manual.
-        let secondaryLabel: string | null = null;
-        if (connector && r.nome && r.nome !== connector) secondaryLabel = r.nome;
-        else if (!connector && r.banco) secondaryLabel = r.banco;
-        return {
-          id: r.id,
-          primaryLabel,
-          secondaryLabel,
-          tipo: r.tipo,
-          isCard: isCard(r),
-          origem: r.origem ?? null,
-          raw: r,
-        };
-      });
+      return rows.map((r: any) => buildBankAccountOption(r, r.pluggy_account_id ? connectorByAccount.get(r.pluggy_account_id) ?? null : null));
     },
   });
 
