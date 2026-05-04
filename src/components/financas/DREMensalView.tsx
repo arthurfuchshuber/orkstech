@@ -13,13 +13,15 @@ import { useAuth } from "@/hooks/useAuth";
 import { useEmpresa } from "@/hooks/useEmpresa";
 
 const fmtBRL = (v: number) => {
-  if (Math.abs(v) < 0.005) return "—";
+  if (Math.abs(v) < 0.005) return "";
   const sign = v < 0 ? "-" : "";
   const abs = Math.abs(v);
-  if (abs >= 1000) return sign + new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 0 }).format(Math.round(abs));
   return sign + new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 0 }).format(Math.round(abs));
 };
-const fmtPct = (v: number) => `${v >= 0 ? "" : ""}${v.toFixed(0)}%`;
+const fmtPct = (v: number) => {
+  if (Math.abs(v) < 0.05) return "";
+  return `${v.toFixed(0)}%`;
+};
 
 const monthLabels = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
 
@@ -232,12 +234,12 @@ export default function DREMensalView() {
                               </td>
                               {showAV && (
                                 <td className="text-right py-1.5 px-1 text-muted-foreground tabular-nums text-[10px]">
-                                  {line.isPercentual ? "—" : (Math.abs(v) < 0.005 ? "—" : fmtPct(av))}
+                                  {line.isPercentual || Math.abs(v) < 0.005 ? "" : fmtPct(av)}
                                 </td>
                               )}
                               {showAH && (
                                 <td className="text-right py-1.5 px-1 tabular-nums text-[10px]">
-                                  {ah == null || line.isPercentual ? <span className="text-muted-foreground">—</span> : (
+                                  {ah == null || line.isPercentual ? "" : (
                                     <span className={ah >= 0 ? "text-success" : "text-destructive"}>{ah >= 0 ? "+" : ""}{ah.toFixed(0)}%</span>
                                   )}
                                 </td>
