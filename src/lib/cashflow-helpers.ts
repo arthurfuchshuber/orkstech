@@ -650,7 +650,13 @@ export async function fetchConsolidated(
     p_end: end,
   });
   if (error) throw error;
-  return (data ?? []) as ConsolidatedRow[];
+  // Regra global: contas a RECEBER vencidas NÃO contam como previsão futura
+  // (não há garantia de recebimento). São excluídas do fluxo de caixa em
+  // KPIs, gráfico e extrato consolidado. Permanecem visíveis apenas no
+  // módulo "Contas a Receber" para cobrança.
+  return ((data ?? []) as ConsolidatedRow[]).filter(
+    (r) => !(r.source_table === "accounts_receivable" && r.status === "overdue"),
+  );
 }
 
 export async function fetchBankBalance(empresaId?: string, userId?: string): Promise<number> {
