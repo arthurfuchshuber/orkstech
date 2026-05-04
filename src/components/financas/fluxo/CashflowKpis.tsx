@@ -90,14 +90,14 @@ export function CashflowKpis({ inflow, outflow, startBalance, endBalance }: Prop
 
   return (
     <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-      {cards.map((c) => {
+      {cards.map((c: any) => {
         const Icon = c.icon;
         return (
           <KpiHoverCard
             key={c.label}
             title={c.title}
             subtitle={c.subtitle}
-            details={[...c.details]}
+            details={c.details}
             onOpen={c.onOpen}
             openLabel={c.openLabel}
             readOnlyReason={c.readOnlyReason}
