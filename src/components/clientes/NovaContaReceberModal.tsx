@@ -24,6 +24,7 @@ import { FormaPagamentoModal } from "@/components/modals/FormaPagamentoModal";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { refreshQueries } from "@/lib/query-refresh";
+import { useBankAccountOptions } from "@/hooks/useBankAccountOptions";
 import {
   createAccountReceivable, type AccountReceivableInsert,
 } from "@/lib/accounts-receivable-helpers";
@@ -180,16 +181,8 @@ export function NovaContaReceberModal({
     enabled: open,
   });
 
-  const { data: bankAccounts = [] } = useQuery({
-    queryKey: ["contas-bancarias", empresaId],
-    queryFn: async () => {
-      let q = supabase.from("contas_bancarias").select("id, nome, banco").eq("ativo", true).order("nome");
-      if (empresaId) q = q.eq("empresa_id", empresaId);
-      const { data } = await q;
-      return data ?? [];
-    },
-    enabled: open,
-  });
+  // Espelha 100% o cadastro de Contas Bancárias (sem abreviar nomes Pluggy ou bancos)
+  const { options: bankAccounts } = useBankAccountOptions();
 
   const { data: paymentMethods = [] } = useQuery({
     queryKey: ["formas-pagamento", empresaId],
@@ -603,7 +596,7 @@ export function NovaContaReceberModal({
             label="Conta Bancária"
             value={form.bank_account_id}
             onValueChange={(v) => updateField("bank_account_id", v)}
-            options={bankAccounts.map((b: any) => ({ value: b.id, label: `${b.nome}${b.banco ? ` - ${b.banco}` : ""}` }))}
+            options={bankAccounts.map((b: any) => ({ value: b.id, label: b.secondaryLabel ? `${b.primaryLabel} — ${b.secondaryLabel}` : b.primaryLabel }))}
             placeholder="Selecione a conta..."
             icon={<Landmark className="w-4 h-4" />}
             onAddModal={() => { setCbEditingId(null); setCbModalOpen(true); }}

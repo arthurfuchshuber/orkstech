@@ -12,13 +12,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ArrowRightLeft, Loader2 } from "lucide-react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useEmpresa } from "@/hooks/useEmpresa";
 import { toast } from "sonner";
 import { refreshQueries } from "@/lib/query-refresh";
 import { format } from "date-fns";
+import { useBankAccountOptions } from "@/hooks/useBankAccountOptions";
 
 interface Props {
   open: boolean;
@@ -53,53 +54,11 @@ export function TransferenciaContasDialog({ open, onOpenChange, defaultOrigemId 
     }
   }, [open, defaultOrigemId]);
 
-  const { data: contas = [] } = useQuery({
-    queryKey: ["transferencia-contas", targetUserId, empresaId],
-    enabled: open && !!targetUserId,
-    queryFn: async () => {
-      let q = supabase
-        .from("contas_bancarias")
-        .select("id, nome, tipo, banco, saldo_inicial, saldo_sincronizado, saldo_ajuste_manual")
-        .eq("ativo", true)
-        // Cartão de crédito não participa de transferência entre contas
-        .neq("tipo", "cartao_credito");
-      if (empresaId) q = q.eq("empresa_id", empresaId);
-      else q = q.eq("user_id", targetUserId!);
-      const { data, error } = await q;
-      if (error) throw error;
-      return (data ?? []) as any[];
-    },
-  });
+  // Espelha 100% o cadastro de Contas Bancárias (sem abreviar nomes).
+  const { options: contas } = useBankAccountOptions({ filter: "non-cards" });
 
-  // Helper: encurta nomes muito longos / institucionais para exibição no select
-  // Ex.: "Nu Pagamentos S.A. - Instituição de Pagamento · Nu Pagamentos S.A. - Instituição de Pagamento (Conta Pré-paga)"
-  //  → "Nubank"
-  const shortNomeBanco = (raw: string) => {
-    const s = (raw || "").trim();
-    if (!s) return "";
-    const lower = s.toLowerCase();
-    if (lower.includes("nu pagamentos") || lower.includes("nubank")) return "Nubank";
-    if (lower.includes("btg")) return "BTG";
-    if (lower.includes("itau") || lower.includes("itaú")) return "Itaú";
-    if (lower.includes("bradesco")) return "Bradesco";
-    if (lower.includes("santander")) return "Santander";
-    if (lower.includes("inter")) return "Banco Inter";
-    if (lower.includes("caixa")) return "Caixa";
-    if (lower.includes("banco do brasil") || /\bbb\b/.test(lower)) return "Banco do Brasil";
-    if (lower.includes("c6")) return "C6 Bank";
-    if (lower.includes("sicoob")) return "Sicoob";
-    if (lower.includes("sicredi")) return "Sicredi";
-    // Fallback: corta antes de S.A. / Ltda / hífen / parênteses
-    const cut = s.split(/\s+(?:S\.?A\.?|S\/A|LTDA|ME|EIRELI)\b|[-–·(]/i)[0].trim();
-    return cut.length > 28 ? cut.slice(0, 28) + "…" : cut;
-  };
-
-  const labelConta = (c: any) => {
-    const nome = shortNomeBanco(c.nome || "");
-    const banco = shortNomeBanco(c.banco || "");
-    if (!banco || nome === banco || nome.toLowerCase().includes(banco.toLowerCase())) return nome;
-    return `${nome} · ${banco}`;
-  };
+  const labelConta = (c: any) => c.primaryLabel;
+  const secondaryConta = (c: any) => c.secondaryLabel as string | null;
 
   const podeSalvar =
     !!origemId && !!destinoId && origemId !== destinoId && valor > 0;
@@ -155,7 +114,12 @@ export function TransferenciaContasDialog({ open, onOpenChange, defaultOrigemId 
               <SelectContent className="max-w-[--radix-select-trigger-width]">
                 {contas.map((c: any) => (
                   <SelectItem key={c.id} value={c.id} disabled={c.id === destinoId}>
-                    <span className="block truncate max-w-[420px]">{labelConta(c)}</span>
+                    <div className="flex flex-col min-w-0">
+                      <span className="truncate">{labelConta(c)}</span>
+                      {secondaryConta(c) && (
+                        <span className="text-xs text-muted-foreground truncate">{secondaryConta(c)}</span>
+                      )}
+                    </div>
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -171,7 +135,12 @@ export function TransferenciaContasDialog({ open, onOpenChange, defaultOrigemId 
               <SelectContent className="max-w-[--radix-select-trigger-width]">
                 {contas.map((c: any) => (
                   <SelectItem key={c.id} value={c.id} disabled={c.id === origemId}>
-                    <span className="block truncate max-w-[420px]">{labelConta(c)}</span>
+                    <div className="flex flex-col min-w-0">
+                      <span className="truncate">{labelConta(c)}</span>
+                      {secondaryConta(c) && (
+                        <span className="text-xs text-muted-foreground truncate">{secondaryConta(c)}</span>
+                      )}
+                    </div>
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -212,9 +181,9 @@ export function TransferenciaContasDialog({ open, onOpenChange, defaultOrigemId 
           {podeSalvar && (
             <div className="rounded-md border border-border bg-muted/30 p-3 text-sm">
               Será debitado <span className="font-semibold">{fmt(valor)}</span> de{" "}
-              <span className="font-semibold">{contas.find((c: any) => c.id === origemId)?.nome}</span>{" "}
+              <span className="font-semibold">{contas.find((c: any) => c.id === origemId)?.primaryLabel}</span>{" "}
               e creditado o mesmo valor em{" "}
-              <span className="font-semibold">{contas.find((c: any) => c.id === destinoId)?.nome}</span>.
+              <span className="font-semibold">{contas.find((c: any) => c.id === destinoId)?.primaryLabel}</span>.
             </div>
           )}
         </div>
