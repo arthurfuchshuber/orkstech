@@ -703,6 +703,13 @@ export async function fetchBankBalance(empresaId?: string, userId?: string): Pro
     (r: any) => String(r.type ?? "").toUpperCase() !== "CREDIT",
   );
   const saldoContasPluggy = pluggyBank.reduce((sum, r: any) => sum + Number(r.balance ?? 0), 0);
+  // Caixinhas/sub-contas com rendimento automático (ex.: Nubank) — em vários conectores
+  // NÃO estão incluídas no `balance` da conta corrente, então somamos para refletir
+  // o valor líquido total disponível na conta.
+  const saldoCaixinhas = pluggyBank.reduce(
+    (sum, r: any) => sum + Number(r.bank_data?.automaticallyInvestedBalance ?? 0),
+    0,
+  );
 
   // 3) Investimentos Pluggy: usa pluggy_investments (fonte real, com ajuste manual)
   //    com fallback para bank_data.totalInvestments quando a tabela está vazia.
