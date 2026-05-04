@@ -84,7 +84,12 @@ export default function DREPage() {
     queryKey: ["dre-bank-accounts", targetUserId],
     enabled: !!user && !!targetUserId,
     queryFn: async () => {
-      const { data } = await supabase.from("contas_bancarias").select("id, nome").eq("ativo", true).eq("user_id", targetUserId!);
+      const { data } = await supabase
+        .from("contas_bancarias")
+        .select("id, nome, banco, tipo")
+        .eq("ativo", true)
+        .eq("user_id", targetUserId!)
+        .order("nome");
       return data ?? [];
     },
   });
