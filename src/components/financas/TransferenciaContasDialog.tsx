@@ -181,9 +181,9 @@ export function TransferenciaContasDialog({ open, onOpenChange, defaultOrigemId 
           {podeSalvar && (
             <div className="rounded-md border border-border bg-muted/30 p-3 text-sm">
               Será debitado <span className="font-semibold">{fmt(valor)}</span> de{" "}
-              <span className="font-semibold">{contas.find((c: any) => c.id === origemId)?.nome}</span>{" "}
+              <span className="font-semibold">{contas.find((c: any) => c.id === origemId)?.primaryLabel}</span>{" "}
               e creditado o mesmo valor em{" "}
-              <span className="font-semibold">{contas.find((c: any) => c.id === destinoId)?.nome}</span>.
+              <span className="font-semibold">{contas.find((c: any) => c.id === destinoId)?.primaryLabel}</span>.
             </div>
           )}
         </div>
