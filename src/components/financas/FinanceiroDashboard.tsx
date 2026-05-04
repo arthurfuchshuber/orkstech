@@ -117,8 +117,12 @@ export default function FinanceiroDashboard() {
       return rows
         .filter((r) => (r.status ?? "ACTIVE") === "ACTIVE")
         .reduce((sum, r) => {
+          // `balance` reflete o valor de mercado atual (principal + rendimento já apurado).
+          // Usamos como fonte primária; só caímos em amount_original+profit se balance for 0.
+          const bal = Number(r.balance ?? 0);
+          if (bal > 0) return sum + bal;
           const v = Number(r.amount_original ?? 0) + Number(r.amount_profit ?? 0);
-          return sum + (v > 0 ? v : Number(r.balance ?? 0));
+          return sum + v;
         }, 0);
     },
   });
