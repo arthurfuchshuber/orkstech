@@ -682,6 +682,7 @@ export type Database = {
           description: string | null
           empresa_id: string | null
           id: string
+          is_caixinha_movement: boolean
           is_internal_transfer: boolean
           transaction_date: string
           transfer_pair_id: string | null
@@ -698,6 +699,7 @@ export type Database = {
           description?: string | null
           empresa_id?: string | null
           id?: string
+          is_caixinha_movement?: boolean
           is_internal_transfer?: boolean
           transaction_date?: string
           transfer_pair_id?: string | null
@@ -714,6 +716,7 @@ export type Database = {
           description?: string | null
           empresa_id?: string | null
           id?: string
+          is_caixinha_movement?: boolean
           is_internal_transfer?: boolean
           transaction_date?: string
           transfer_pair_id?: string | null
@@ -4234,7 +4237,16 @@ export type Database = {
         Returns: Json
       }
       delete_import_cascade: { Args: { p_import_id: string }; Returns: Json }
+      get_conta_saldos: { Args: { p_conta_id: string }; Returns: Json }
       get_or_create_ajuste_saldo_categoria: {
+        Args: {
+          p_empresa_id: string
+          p_tipo: Database["public"]["Enums"]["tipo_financeiro"]
+          p_user_id: string
+        }
+        Returns: string
+      }
+      get_or_create_caixinha_categoria: {
         Args: {
           p_empresa_id: string
           p_tipo: Database["public"]["Enums"]["tipo_financeiro"]
@@ -4275,6 +4287,15 @@ export type Database = {
         Returns: boolean
       }
       is_super_admin: { Args: never; Returns: boolean }
+      mover_caixinha_conta: {
+        Args: {
+          p_amount: number
+          p_conta_id: string
+          p_descricao?: string
+          p_direcao: string
+        }
+        Returns: string
+      }
       normalizar_texto_regra: { Args: { p_texto: string }; Returns: string }
       notificar_transacoes_sem_categoria: {
         Args: { p_user_id: string }
