@@ -836,22 +836,7 @@ export default function FinanceiroDashboard() {
   const [vincularCard, setVincularCard] = useState<typeof cardsSemVinculo[number] | null>(null);
   const [monthDetail, setMonthDetail] = useState<{ label: string; monthKey: string; items: MonthFlowItem[] } | null>(null);
 
-  // Popup automático na 1ª visita por sessão — só quando há valor a realocar
-  useEffect(() => {
-    if (cardsSemVinculo.length === 0) return;
-    const flagKey = `card-vinculo-popup-shown:${targetUserId}:${empresaId ?? "no-emp"}`;
-    if (sessionStorage.getItem(flagKey)) return;
-    sessionStorage.setItem(flagKey, "1");
-    setVincularCard(cardsSemVinculo[0]);
-  }, [cardsSemVinculo, targetUserId, empresaId]);
-
-  useEffect(() => {
-    if (!orfaos?.temValorRealocavel || cardsSemVinculo.length > 0) return;
-    const flagKey = `orfaos-popup-shown:${targetUserId}:${empresaId ?? "no-emp"}`;
-    if (sessionStorage.getItem(flagKey)) return;
-    sessionStorage.setItem(flagKey, "1");
-    setShowRealocar(true);
-  }, [orfaos?.temValorRealocavel, cardsSemVinculo.length, targetUserId, empresaId]);
+  // Pop-ups automáticos removidos — pendências ficam acessíveis pelo botão de alerta (PendenciasIndicator).
 
   return (
     <>
