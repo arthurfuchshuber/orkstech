@@ -40,6 +40,7 @@ export function ContaBancariaModal({ open, onOpenChange, editingId, onSaved, def
     fatura_aberto: "0",
     dia_fechamento_fatura: "",
     dia_vencimento_fatura: "",
+    divergencia_alerta_limite: "1.00",
   });
   const [bancoModalOpen, setBancoModalOpen] = useState(false);
   const [bancoEditingId, setBancoEditingId] = useState<string | null>(null);
