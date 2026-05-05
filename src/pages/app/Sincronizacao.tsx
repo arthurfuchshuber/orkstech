@@ -167,7 +167,7 @@ export default function Sincronizacao() {
         {/* RECONCILIAÇÃO */}
         <TabsContent value="reconciliacao" className="mt-3">
           <Card className="overflow-hidden">
-            <Table>
+            <Table className="min-w-0 table-fixed">
               <TableHeader>
                 <TableRow className="bg-muted/30 hover:bg-muted/30">
                   <TableHead className="h-9 text-xs w-[24%]">Conta</TableHead>
@@ -236,7 +236,7 @@ export default function Sincronizacao() {
         {/* LOGS */}
         <TabsContent value="logs" className="mt-3">
           <Card className="overflow-hidden">
-            <Table>
+            <Table className="min-w-0 table-fixed">
               <TableHeader>
                 <TableRow className="bg-muted/30 hover:bg-muted/30">
                   <TableHead className="h-9 text-xs w-[14%]">Quando</TableHead>
