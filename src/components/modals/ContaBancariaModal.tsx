@@ -12,7 +12,7 @@ import { ManagedSelectInput } from "@/components/inputs/ManagedSelectInput";
 import { BancoModal } from "./BancoModal";
 import { useManagedSelect } from "@/hooks/useManagedSelect";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Landmark, Link2 } from "lucide-react";
+import { Landmark, Link2, PencilLine, ArrowLeft } from "lucide-react";
 import { PluggyConnectButton } from "@/components/PluggyConnectButton";
 
 type TipoConta = "corrente" | "poupanca" | "caixa" | "carteira_digital" | "cartao_credito";
