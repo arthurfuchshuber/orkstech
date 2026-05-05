@@ -24,6 +24,7 @@ interface StepDef {
   title: string;
   why: string;
   cta: string;
+  page?: string; // página onde o usuário deveria estar (para coach mark futuro)
   action: () => void;
 }
 
