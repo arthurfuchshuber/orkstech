@@ -388,12 +388,60 @@ Deno.serve(async (req) => {
       .eq('pluggy_item_id', itemId)
       .eq('user_id', ownerUserId)
 
+    // Resolve empresa_id (primeira empresa do owner) para logs
+    const { data: empresaRow } = await supabaseAdmin
+      .from('empresas')
+      .select('id')
+      .eq('user_id', ownerUserId)
+      .order('created_at', { ascending: true })
+      .limit(1)
+      .maybeSingle()
+
+    // Grava log de sincronização (auditoria)
+    const durationMs = Date.now() - syncStartedAt
+    await supabaseAdmin.from('pluggy_sync_logs').insert({
+      user_id: ownerUserId,
+      empresa_id: empresaRow?.id || null,
+      pluggy_item_id: itemId,
+      connector_name: item.connector?.name || null,
+      source: 'pluggy',
+      value_type: 'liquido', // SEMPRE balance (líquido/resgatável)
+      status: 'success',
+      accounts_count: savedAccounts,
+      transactions_count: savedTransactions,
+      investments_count: savedInvestments,
+      total_investments: totalInvestments,
+      duration_ms: durationMs,
+      metadata: { action, itemStatus: item.status },
+    })
+
+    // Reconcilia automaticamente todas as contas vinculadas a este item
+    const { data: contasItem } = await supabaseAdmin
+      .from('contas_bancarias')
+      .select('id')
+      .eq('user_id', ownerUserId)
+      .in('pluggy_account_id', accounts.map((a: any) => a.id).filter(Boolean))
+
+    let reconciled = 0
+    for (const c of contasItem || []) {
+      try {
+        await supabaseAdmin.rpc('reconciliar_investimentos_conta', { p_conta_id: c.id })
+        reconciled++
+      } catch (e) {
+        console.error('reconcile error', c.id, e)
+      }
+    }
+
     const result = {
       item: { id: item.id, status: item.status, connector: item.connector },
       accounts: accounts.length,
       savedAccounts,
       savedTransactions,
-      message: `Sincronizado: ${savedAccounts} contas, ${savedTransactions} transações, ${savedInvestments} investimentos`,
+      savedInvestments,
+      totalInvestments,
+      reconciled,
+      durationMs,
+      message: `Sincronizado: ${savedAccounts} contas, ${savedTransactions} transações, ${savedInvestments} investimentos (líquido R$ ${totalInvestments.toFixed(2)}). ${reconciled} reconciliação(ões) gravada(s).`,
     }
 
     return new Response(JSON.stringify(result), {
