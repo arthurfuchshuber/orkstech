@@ -94,7 +94,7 @@ export default function Sincronizacao() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("pluggy_bank_accounts" as any)
-        .select("pluggy_account_id, pluggy_item_id")
+        .select("pluggy_account_id, pluggy_item_id, connection_id")
         .eq("user_id", targetUserId!)
         .in("pluggy_account_id", pluggyAccountIds);
       if (error) throw error;
@@ -102,16 +102,50 @@ export default function Sincronizacao() {
     },
   });
 
+  const connectionIds = useMemo(
+    () => Array.from(new Set(pluggyAccounts.map((a: any) => a.connection_id).filter(Boolean))),
+    [pluggyAccounts]
+  );
+
+  const { data: connections = [] } = useQuery({
+    queryKey: ["sincronizacao_connection_names", targetUserId, connectionIds.join("|")],
+    enabled: !!targetUserId && connectionIds.length > 0,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("pluggy_connections" as any)
+        .select("id, connector_name")
+        .eq("user_id", targetUserId!)
+        .in("id", connectionIds);
+      if (error) throw error;
+      return (data as any[]) || [];
+    },
+  });
+
+  const accountDisplayById = useMemo(() => {
+    const pluggyByAccount = new Map(pluggyAccounts.map((a: any) => [a.pluggy_account_id, a]));
+    const connectionNameById = new Map(connections.map((c: any) => [c.id, c.connector_name]));
+    const map: Record<string, { primary: string; secondary: string | null }> = {};
+    for (const c of contas as any[]) {
+      const pluggyAccount = pluggyByAccount.get(c.pluggy_account_id);
+      const connectorName = pluggyAccount ? connectionNameById.get(pluggyAccount.connection_id) : null;
+      const primary = connectorName || c.nome || "Conta";
+      const secondary = connectorName && c.nome && c.nome !== connectorName ? c.nome : c.banco || null;
+      map[c.id] = { primary, secondary };
+    }
+    return map;
+  }, [contas, pluggyAccounts, connections]);
+
   const officialAccountNamesByItem = useMemo(() => {
     const itemByAccount = new Map(pluggyAccounts.map((a: any) => [a.pluggy_account_id, a.pluggy_item_id]));
     const grouped: Record<string, string[]> = {};
     for (const c of contas as any[]) {
       const itemId = itemByAccount.get(c.pluggy_account_id);
-      if (!itemId || !c.nome) continue;
-      grouped[itemId] = [...(grouped[itemId] || []), c.nome];
+      const displayName = accountDisplayById[c.id]?.primary;
+      if (!itemId || !displayName) continue;
+      grouped[itemId] = [...(grouped[itemId] || []), displayName];
     }
     return grouped;
-  }, [contas, pluggyAccounts]);
+  }, [contas, pluggyAccounts, accountDisplayById]);
 
   const latestByConta = useMemo(() => {
     const map: Record<string, any> = {};
