@@ -338,6 +338,30 @@ export function PermissionsModal({ userId, userEmail, isOwner, open, onOpenChang
           </div>
         )}
 
+        {!isOwner && !isLoading && missingKeys.length > 0 && (
+          <div className="mx-6 mt-3 flex items-center gap-3 rounded-md border border-primary/30 bg-primary/5 px-3 py-2.5 text-xs">
+            <Sparkles className="w-4 h-4 text-primary flex-shrink-0" />
+            <div className="flex-1 min-w-0">
+              <p className="text-foreground font-medium">
+                {missingKeys.length} {missingKeys.length === 1 ? "nova permissão detectada" : "novas permissões detectadas"}
+              </p>
+              <p className="text-muted-foreground">
+                Módulos novos foram adicionados. Sincronize para que todos os membros desta empresa apareçam aqui sem bloqueios silenciosos.
+              </p>
+            </div>
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-7 text-xs"
+              disabled={backfill.isPending}
+              onClick={() => backfill.mutate()}
+            >
+              {backfill.isPending ? <Loader2 className="w-3 h-3 mr-1.5 animate-spin" /> : null}
+              Sincronizar
+            </Button>
+          </div>
+        )}
+
         {isLoading ? (
           <div className="py-16 text-center text-sm text-muted-foreground">
             <Loader2 className="w-5 h-5 animate-spin mx-auto mb-2" />
