@@ -59,7 +59,6 @@ export function CaixaKpis({
       value: fmt(totalBalance),
       tone: "primary",
       trend: null,
-      ajusteCampo: "saldo",
     },
     {
       icon: PiggyBank,
@@ -75,7 +74,6 @@ export function CaixaKpis({
       value: fmt(totalCreditAvailable),
       sub: totalCreditLimit > 0 ? `${utilizacao.toFixed(0)}% utilizado de ${fmt(totalCreditLimit)}` : "Nenhum cartão",
       tone: "blue",
-      ajusteCampo: "limite_credito",
     },
     {
       icon: Receipt,
@@ -83,7 +81,6 @@ export function CaixaKpis({
       flag: "Cartões de Crédito",
       value: fmt(totalCreditBills),
       tone: "amber",
-      ajusteCampo: "fatura",
     },
     {
       icon: Wallet,
@@ -94,7 +91,6 @@ export function CaixaKpis({
         ? `${odUtilizacao.toFixed(0)}% utilizado de ${fmt(totalOverdraftLimit)}`
         : "Nenhum limite contratado",
       tone: "violet",
-      ajusteCampo: "limite_cheque_especial",
     },
   ];
 
