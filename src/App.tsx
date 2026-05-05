@@ -33,6 +33,7 @@ import Fluxo from "./pages/app/Fluxo";
 import NotFound from "./pages/NotFound";
 import ExtratoBancario from "./pages/app/ExtratoBancario";
 import Conciliacao from "./pages/app/Conciliacao";
+import Sincronizacao from "./pages/app/Sincronizacao";
 import DREPage from "./pages/app/DREPage";
 import ConfigConta from "./pages/app/ConfigConta";
 import ConfigPlanos from "./pages/app/ConfigPlanos";
@@ -87,6 +88,7 @@ const App = () => (
                 <Route path="extrato-bancario" element={<ExtratoBancario />} />
                 <Route path="financas/extrato" element={<Navigate to="/app/extrato-bancario" replace />} />
                 <Route path="financas/conciliacao" element={<Conciliacao />} />
+                <Route path="financas/sincronizacao" element={<Sincronizacao />} />
                 <Route path="automacoes/config" element={<Automacoes />} />
                 <Route path="automacoes/workflows" element={<Navigate to="/app/automacoes/config" replace />} />
                 <Route path="automacoes/integracoes" element={<PlaceholderPage />} />

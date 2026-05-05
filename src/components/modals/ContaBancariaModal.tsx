@@ -40,6 +40,7 @@ export function ContaBancariaModal({ open, onOpenChange, editingId, onSaved, def
     fatura_aberto: "0",
     dia_fechamento_fatura: "",
     dia_vencimento_fatura: "",
+    divergencia_alerta_limite: "1.00",
   });
   const [bancoModalOpen, setBancoModalOpen] = useState(false);
   const [bancoEditingId, setBancoEditingId] = useState<string | null>(null);
@@ -96,9 +97,10 @@ export function ContaBancariaModal({ open, onOpenChange, editingId, onSaved, def
         fatura_aberto: String((existing as any).fatura_aberto_ajuste_manual ?? 0),
         dia_fechamento_fatura: (existing as any).dia_fechamento_fatura ? String((existing as any).dia_fechamento_fatura) : "",
         dia_vencimento_fatura: (existing as any).dia_vencimento_fatura ? String((existing as any).dia_vencimento_fatura) : "",
+        divergencia_alerta_limite: String((existing as any).divergencia_alerta_limite ?? 1),
       });
     } else if (!editingId && open) {
-      setForm({ nome: "", banco_id: "", tipo: defaultTipo, saldo_inicial: "0", saldo_investimento: "0", pessoa_tipo: "pj", limite_credito_total: "0", fatura_aberto: "0", dia_fechamento_fatura: "", dia_vencimento_fatura: "" });
+      setForm({ nome: "", banco_id: "", tipo: defaultTipo, saldo_inicial: "0", saldo_investimento: "0", pessoa_tipo: "pj", limite_credito_total: "0", fatura_aberto: "0", dia_fechamento_fatura: "", dia_vencimento_fatura: "", divergencia_alerta_limite: "1.00" });
     }
   }, [existing, editingId, open, defaultTipo]);
 
@@ -123,6 +125,7 @@ export function ContaBancariaModal({ open, onOpenChange, editingId, onSaved, def
           : 0,
         dia_fechamento_fatura: cartao && form.dia_fechamento_fatura ? Math.min(31, Math.max(1, parseInt(form.dia_fechamento_fatura))) : null,
         dia_vencimento_fatura: cartao && form.dia_vencimento_fatura ? Math.min(31, Math.max(1, parseInt(form.dia_vencimento_fatura))) : null,
+        divergencia_alerta_limite: Math.max(0, parseFloat(form.divergencia_alerta_limite) || 1),
       };
       if (editingId) {
         const { error } = await supabase.from("contas_bancarias").update(payload).eq("id", editingId);
@@ -209,6 +212,11 @@ export function ContaBancariaModal({ open, onOpenChange, editingId, onSaved, def
                   <label className="text-sm font-medium text-foreground mb-1.5 block">Saldo de Investimento (R$)</label>
                   <Input type="number" step="0.01" value={form.saldo_investimento} onChange={(e) => setForm({ ...form, saldo_investimento: e.target.value })} placeholder="0,00" />
                   <p className="text-[11px] text-muted-foreground mt-1">Valor aplicado em investimentos vinculado a esta conta (CDB, Tesouro, Poupança, etc.)</p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-foreground mb-1.5 block">Limite de alerta de divergência (R$)</label>
+                  <Input type="number" step="0.01" min="0" value={form.divergencia_alerta_limite} onChange={(e) => setForm({ ...form, divergencia_alerta_limite: e.target.value })} placeholder="1,00" />
+                  <p className="text-[11px] text-muted-foreground mt-1">A reconciliação automática alerta quando a diferença entre saldo agregado e soma dos investimentos detalhados exceder este valor.</p>
                 </div>
               </>
             )}

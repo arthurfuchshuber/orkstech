@@ -1557,6 +1557,7 @@ export type Database = {
           created_at: string
           dia_fechamento_fatura: number | null
           dia_vencimento_fatura: number | null
+          divergencia_alerta_limite: number
           empresa_id: string | null
           fatura_aberto_ajuste_manual: number
           fatura_aberto_sincronizada: number
@@ -1591,6 +1592,7 @@ export type Database = {
           created_at?: string
           dia_fechamento_fatura?: number | null
           dia_vencimento_fatura?: number | null
+          divergencia_alerta_limite?: number
           empresa_id?: string | null
           fatura_aberto_ajuste_manual?: number
           fatura_aberto_sincronizada?: number
@@ -1625,6 +1627,7 @@ export type Database = {
           created_at?: string
           dia_fechamento_fatura?: number | null
           dia_vencimento_fatura?: number | null
+          divergencia_alerta_limite?: number
           empresa_id?: string | null
           fatura_aberto_ajuste_manual?: number
           fatura_aberto_sincronizada?: number
@@ -2883,6 +2886,63 @@ export type Database = {
           },
         ]
       }
+      pluggy_sync_logs: {
+        Row: {
+          accounts_count: number
+          connector_name: string | null
+          created_at: string
+          duration_ms: number | null
+          empresa_id: string | null
+          error_message: string | null
+          id: string
+          investments_count: number
+          metadata: Json
+          pluggy_item_id: string
+          source: string
+          status: string
+          total_investments: number
+          transactions_count: number
+          user_id: string
+          value_type: string
+        }
+        Insert: {
+          accounts_count?: number
+          connector_name?: string | null
+          created_at?: string
+          duration_ms?: number | null
+          empresa_id?: string | null
+          error_message?: string | null
+          id?: string
+          investments_count?: number
+          metadata?: Json
+          pluggy_item_id: string
+          source?: string
+          status?: string
+          total_investments?: number
+          transactions_count?: number
+          user_id: string
+          value_type?: string
+        }
+        Update: {
+          accounts_count?: number
+          connector_name?: string | null
+          created_at?: string
+          duration_ms?: number | null
+          empresa_id?: string | null
+          error_message?: string | null
+          id?: string
+          investments_count?: number
+          metadata?: Json
+          pluggy_item_id?: string
+          source?: string
+          status?: string
+          total_investments?: number
+          transactions_count?: number
+          user_id?: string
+          value_type?: string
+        }
+        Relationships: []
+      }
       pluggy_transactions: {
         Row: {
           ajustada_manualmente: boolean
@@ -3144,6 +3204,56 @@ export type Database = {
             columns: ["nivel_permissao_id"]
             isOneToOne: false
             referencedRelation: "niveis_permissao"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reconciliacoes_investimento: {
+        Row: {
+          conta_id: string
+          created_at: string
+          detalhes: Json
+          divergencia: number
+          empresa_id: string | null
+          id: string
+          limite_configurado: number
+          saldo_agregado: number
+          soma_detalhada: number
+          status: string
+          user_id: string
+        }
+        Insert: {
+          conta_id: string
+          created_at?: string
+          detalhes?: Json
+          divergencia?: number
+          empresa_id?: string | null
+          id?: string
+          limite_configurado?: number
+          saldo_agregado?: number
+          soma_detalhada?: number
+          status?: string
+          user_id: string
+        }
+        Update: {
+          conta_id?: string
+          created_at?: string
+          detalhes?: Json
+          divergencia?: number
+          empresa_id?: string | null
+          id?: string
+          limite_configurado?: number
+          saldo_agregado?: number
+          soma_detalhada?: number
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reconciliacoes_investimento_conta_id_fkey"
+            columns: ["conta_id"]
+            isOneToOne: false
+            referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
         ]
@@ -4324,6 +4434,10 @@ export type Database = {
       }
       realocar_lancamentos_orfaos: {
         Args: { p_alocacoes: Json; p_motivo?: string }
+        Returns: Json
+      }
+      reconciliar_investimentos_conta: {
+        Args: { p_conta_id: string }
         Returns: Json
       }
       resolver_categoria_por_regras: {
