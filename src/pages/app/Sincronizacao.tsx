@@ -262,11 +262,12 @@ export default function Sincronizacao() {
                   const r = latestByConta[c.id];
                   const status = r?.status || (c.pluggy_account_id ? "pendente" : "sem_dados");
                   const div = r ? Number(r.divergencia) : 0;
+                  const display = accountDisplayById[c.id] || { primary: c.nome, secondary: c.banco || null };
                   return (
                     <TableRow key={c.id} className="text-xs">
                       <TableCell className="py-2">
-                        <div className="font-medium text-foreground">{c.nome}</div>
-                        <div className="text-[10px] text-muted-foreground">{c.banco || "—"}</div>
+                        <div className="font-medium text-foreground truncate" title={display.primary}>{display.primary}</div>
+                        <div className="text-[10px] text-muted-foreground truncate" title={display.secondary || undefined}>{display.secondary || "—"}</div>
                       </TableCell>
                       <TableCell className="py-2 text-right tabular-nums">{fmtBRL(r?.saldo_agregado ?? c.investimento_sincronizado ?? 0)}</TableCell>
                       <TableCell className="py-2 text-right tabular-nums">{r ? fmtBRL(r.soma_detalhada) : "—"}</TableCell>
@@ -290,7 +291,7 @@ export default function Sincronizacao() {
                           </Button>
                           {r && (
                             <Button size="sm" variant="ghost" className="h-7 w-7 p-0" title="Ver relatório"
-                              onClick={() => setReportOpen({ id: c.id, nome: c.nome })}>
+                              onClick={() => setReportOpen({ id: c.id, nome: display.primary })}>
                               <FileText className="h-3.5 w-3.5" />
                             </Button>
                           )}
