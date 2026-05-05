@@ -12,7 +12,7 @@ import { ManagedSelectInput } from "@/components/inputs/ManagedSelectInput";
 import { BancoModal } from "./BancoModal";
 import { useManagedSelect } from "@/hooks/useManagedSelect";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Landmark, Link2 } from "lucide-react";
+import { Landmark, Link2, PencilLine, ArrowLeft } from "lucide-react";
 import { PluggyConnectButton } from "@/components/PluggyConnectButton";
 
 type TipoConta = "corrente" | "poupanca" | "caixa" | "carteira_digital" | "cartao_credito";
@@ -44,6 +44,7 @@ export function ContaBancariaModal({ open, onOpenChange, editingId, onSaved, def
   });
   const [bancoModalOpen, setBancoModalOpen] = useState(false);
   const [bancoEditingId, setBancoEditingId] = useState<string | null>(null);
+  const [mode, setMode] = useState<"choice" | "manual">("choice");
 
   const bancosCrud = useManagedSelect("bancos");
 
@@ -101,7 +102,9 @@ export function ContaBancariaModal({ open, onOpenChange, editingId, onSaved, def
       });
     } else if (!editingId && open) {
       setForm({ nome: "", banco_id: "", tipo: defaultTipo, saldo_inicial: "0", saldo_investimento: "0", pessoa_tipo: "pj", limite_credito_total: "0", fatura_aberto: "0", dia_fechamento_fatura: "", dia_vencimento_fatura: "", divergencia_alerta_limite: "1.00" });
+      setMode("choice");
     }
+    if (editingId && open) setMode("manual");
   }, [existing, editingId, open, defaultTipo]);
 
   const saveMutation = useMutation({
@@ -151,107 +154,139 @@ export function ContaBancariaModal({ open, onOpenChange, editingId, onSaved, def
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent>
-          <DialogHeader><DialogTitle>{editingId ? "Editar Conta Bancária" : "Nova Conta Bancária"}</DialogTitle></DialogHeader>
-          <div className="space-y-4 py-2">
-            {!editingId && (
-              <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 flex items-center gap-3">
-                <div className="w-8 h-8 rounded-md bg-primary/10 flex items-center justify-center flex-shrink-0">
-                  <Link2 className="w-4 h-4 text-primary" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-medium text-foreground">Conectar via Open Finance</p>
-                  <p className="text-[11px] text-muted-foreground">Sincronize saldos e transações automaticamente.</p>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              {!editingId && mode === "manual" && (
+                <button onClick={() => setMode("choice")} className="text-muted-foreground hover:text-foreground transition-colors">
+                  <ArrowLeft className="w-4 h-4" />
+                </button>
+              )}
+              {editingId ? "Editar Conta Bancária" : mode === "choice" ? "Adicionar Conta" : "Nova Conta Bancária (Manual)"}
+            </DialogTitle>
+          </DialogHeader>
+
+          {!editingId && mode === "choice" ? (
+            <div className="py-4 space-y-3">
+              <p className="text-sm text-muted-foreground mb-4">Como você deseja adicionar esta conta?</p>
+              <div className="rounded-lg border border-primary/30 bg-primary/5 p-4 hover:border-primary/60 hover:bg-primary/10 transition-colors">
+                <div className="flex items-start gap-3 mb-3">
+                  <div className="w-10 h-10 rounded-lg bg-primary/15 flex items-center justify-center flex-shrink-0">
+                    <Link2 className="w-5 h-5 text-primary" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-foreground">Conectar via Open Finance</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">Sincronização automática de saldos e transações. Recomendado.</p>
+                  </div>
                 </div>
                 <PluggyConnectButton size="sm" />
               </div>
-            )}
-            <div>
-              <label className="text-sm font-medium text-foreground mb-1.5 block">Pessoa</label>
-              <RadioGroup value={form.pessoa_tipo} onValueChange={(v) => setForm({ ...form, pessoa_tipo: v as "pj" | "pf" })} className="flex gap-4">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <RadioGroupItem value="pj" />
-                  <span className="text-sm">Pessoa Jurídica (PJ)</span>
-                </label>
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <RadioGroupItem value="pf" />
-                  <span className="text-sm">Pessoa Física (PF)</span>
-                </label>
-              </RadioGroup>
+              <button
+                onClick={() => setMode("manual")}
+                className="w-full text-left rounded-lg border border-border bg-card p-4 hover:border-primary/40 hover:bg-accent/30 transition-colors"
+              >
+                <div className="flex items-start gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
+                    <PencilLine className="w-5 h-5 text-muted-foreground" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-foreground">Cadastrar Manualmente</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">Você preenche os dados e o saldo manualmente.</p>
+                  </div>
+                </div>
+              </button>
             </div>
-            <div>
-              <label className="text-sm font-medium text-foreground mb-1.5 block">Nome da Conta</label>
-              <Input value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} placeholder="Ex: Conta Principal" maxLength={60} />
-            </div>
-            <ManagedSelectInput
-              label="Banco"
-              value={form.banco_id}
-              onValueChange={(v) => setForm({ ...form, banco_id: v })}
-              options={bancos.map((b: any) => ({ value: b.id, label: b.codigo ? `${b.codigo} - ${b.nome}` : b.nome }))}
-              placeholder="Selecione o banco..."
-              icon={<Landmark className="w-4 h-4" />}
-              onAddModal={() => { setBancoEditingId(null); setBancoModalOpen(true); }}
-              onEditModal={(id) => { setBancoEditingId(id); setBancoModalOpen(true); }}
-              onDelete={bancosCrud.onDelete}
-              onReorder={bancosCrud.onReorder}
-              addLabel="Novo banco"
-            />
-            <ManagedSelectInput
-              label="Tipo"
-              value={form.tipo}
-              onValueChange={(v) => setForm({ ...form, tipo: v as TipoConta })}
-              options={tipoContaOptions}
-              placeholder="Selecione o tipo..."
-            />
-            {!ehCartao && (
-              <>
+          ) : (
+            <>
+              <div className="space-y-4 py-2">
                 <div>
-                  <label className="text-sm font-medium text-foreground mb-1.5 block">Saldo Inicial (R$)</label>
-                  <Input type="number" step="0.01" value={form.saldo_inicial} onChange={(e) => setForm({ ...form, saldo_inicial: e.target.value })} />
+                  <label className="text-sm font-medium text-foreground mb-1.5 block">Pessoa</label>
+                  <RadioGroup value={form.pessoa_tipo} onValueChange={(v) => setForm({ ...form, pessoa_tipo: v as "pj" | "pf" })} className="flex gap-4">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <RadioGroupItem value="pj" />
+                      <span className="text-sm">Pessoa Jurídica (PJ)</span>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <RadioGroupItem value="pf" />
+                      <span className="text-sm">Pessoa Física (PF)</span>
+                    </label>
+                  </RadioGroup>
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-foreground mb-1.5 block">Saldo de Investimento (R$)</label>
-                  <Input type="number" step="0.01" value={form.saldo_investimento} onChange={(e) => setForm({ ...form, saldo_investimento: e.target.value })} placeholder="0,00" />
-                  <p className="text-[11px] text-muted-foreground mt-1">Valor aplicado em investimentos vinculado a esta conta (CDB, Tesouro, Poupança, etc.)</p>
+                  <label className="text-sm font-medium text-foreground mb-1.5 block">Nome da Conta</label>
+                  <Input value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} placeholder="Ex: Conta Principal" maxLength={60} />
                 </div>
-                <div>
-                  <label className="text-sm font-medium text-foreground mb-1.5 block">Limite de alerta de divergência (R$)</label>
-                  <Input type="number" step="0.01" min="0" value={form.divergencia_alerta_limite} onChange={(e) => setForm({ ...form, divergencia_alerta_limite: e.target.value })} placeholder="1,00" />
-                  <p className="text-[11px] text-muted-foreground mt-1">A reconciliação automática alerta quando a diferença entre saldo agregado e soma dos investimentos detalhados exceder este valor.</p>
-                </div>
-              </>
-            )}
+                <ManagedSelectInput
+                  label="Banco"
+                  value={form.banco_id}
+                  onValueChange={(v) => setForm({ ...form, banco_id: v })}
+                  options={bancos.map((b: any) => ({ value: b.id, label: b.codigo ? `${b.codigo} - ${b.nome}` : b.nome }))}
+                  placeholder="Selecione o banco..."
+                  icon={<Landmark className="w-4 h-4" />}
+                  onAddModal={() => { setBancoEditingId(null); setBancoModalOpen(true); }}
+                  onEditModal={(id) => { setBancoEditingId(id); setBancoModalOpen(true); }}
+                  onDelete={bancosCrud.onDelete}
+                  onReorder={bancosCrud.onReorder}
+                  addLabel="Novo banco"
+                />
+                <ManagedSelectInput
+                  label="Tipo"
+                  value={form.tipo}
+                  onValueChange={(v) => setForm({ ...form, tipo: v as TipoConta })}
+                  options={tipoContaOptions}
+                  placeholder="Selecione o tipo..."
+                />
+                {!ehCartao && (
+                  <>
+                    <div>
+                      <label className="text-sm font-medium text-foreground mb-1.5 block">Saldo Inicial (R$)</label>
+                      <Input type="number" step="0.01" value={form.saldo_inicial} onChange={(e) => setForm({ ...form, saldo_inicial: e.target.value })} />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-foreground mb-1.5 block">Saldo de Investimento (R$)</label>
+                      <Input type="number" step="0.01" value={form.saldo_investimento} onChange={(e) => setForm({ ...form, saldo_investimento: e.target.value })} placeholder="0,00" />
+                      <p className="text-[11px] text-muted-foreground mt-1">Valor aplicado em investimentos vinculado a esta conta (CDB, Tesouro, Poupança, etc.)</p>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-foreground mb-1.5 block">Limite de alerta de divergência (R$)</label>
+                      <Input type="number" step="0.01" min="0" value={form.divergencia_alerta_limite} onChange={(e) => setForm({ ...form, divergencia_alerta_limite: e.target.value })} placeholder="1,00" />
+                      <p className="text-[11px] text-muted-foreground mt-1">A reconciliação automática alerta quando a diferença entre saldo agregado e soma dos investimentos detalhados exceder este valor.</p>
+                    </div>
+                  </>
+                )}
 
-            {ehCartao && (
-              <>
-                <div>
-                  <label className="text-sm font-medium text-foreground mb-1.5 block">Limite Total Contratado (R$)</label>
-                  <Input type="number" step="0.01" value={form.limite_credito_total} onChange={(e) => setForm({ ...form, limite_credito_total: e.target.value })} placeholder="0,00" />
-                  <p className="text-[11px] text-muted-foreground mt-1">Limite total que o banco disponibiliza neste cartão.</p>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-foreground mb-1.5 block">Fatura em Aberto Atual (R$)</label>
-                  <Input type="number" step="0.01" value={form.fatura_aberto} onChange={(e) => setForm({ ...form, fatura_aberto: e.target.value })} placeholder="0,00" />
-                  <p className="text-[11px] text-muted-foreground mt-1">O limite disponível será calculado automaticamente: Total − Fatura.</p>
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="text-sm font-medium text-foreground mb-1.5 block">Dia de Fechamento</label>
-                    <Input type="number" min="1" max="31" value={form.dia_fechamento_fatura} onChange={(e) => setForm({ ...form, dia_fechamento_fatura: e.target.value })} placeholder="Ex: 25" />
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-foreground mb-1.5 block">Dia de Vencimento</label>
-                    <Input type="number" min="1" max="31" value={form.dia_vencimento_fatura} onChange={(e) => setForm({ ...form, dia_vencimento_fatura: e.target.value })} placeholder="Ex: 5" />
-                  </div>
-                </div>
-              </>
-            )}
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-            <Button onClick={() => saveMutation.mutate()} disabled={!form.nome.trim() || saveMutation.isPending}>
-              {saveMutation.isPending ? "Salvando..." : "Salvar"}
-            </Button>
-          </DialogFooter>
+                {ehCartao && (
+                  <>
+                    <div>
+                      <label className="text-sm font-medium text-foreground mb-1.5 block">Limite Total Contratado (R$)</label>
+                      <Input type="number" step="0.01" value={form.limite_credito_total} onChange={(e) => setForm({ ...form, limite_credito_total: e.target.value })} placeholder="0,00" />
+                      <p className="text-[11px] text-muted-foreground mt-1">Limite total que o banco disponibiliza neste cartão.</p>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-foreground mb-1.5 block">Fatura em Aberto Atual (R$)</label>
+                      <Input type="number" step="0.01" value={form.fatura_aberto} onChange={(e) => setForm({ ...form, fatura_aberto: e.target.value })} placeholder="0,00" />
+                      <p className="text-[11px] text-muted-foreground mt-1">O limite disponível será calculado automaticamente: Total − Fatura.</p>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-sm font-medium text-foreground mb-1.5 block">Dia de Fechamento</label>
+                        <Input type="number" min="1" max="31" value={form.dia_fechamento_fatura} onChange={(e) => setForm({ ...form, dia_fechamento_fatura: e.target.value })} placeholder="Ex: 25" />
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-foreground mb-1.5 block">Dia de Vencimento</label>
+                        <Input type="number" min="1" max="31" value={form.dia_vencimento_fatura} onChange={(e) => setForm({ ...form, dia_vencimento_fatura: e.target.value })} placeholder="Ex: 5" />
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
+                <Button onClick={() => saveMutation.mutate()} disabled={!form.nome.trim() || saveMutation.isPending}>
+                  {saveMutation.isPending ? "Salvando..." : "Salvar"}
+                </Button>
+              </DialogFooter>
+            </>
+          )}
         </DialogContent>
       </Dialog>
 
