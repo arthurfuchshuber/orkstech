@@ -129,6 +129,46 @@ export function PermissionsModal({ userId, userEmail, isOwner, open, onOpenChang
     };
   }, [state]);
 
+  // Detecta chaves do catálogo que ainda não existem no banco para esta empresa
+  // (módulos novos adicionados depois que o membro foi cadastrado).
+  const { data: empresaKnownKeys } = useQuery({
+    queryKey: ["empresa-known-permission-keys", empresaId],
+    enabled: open && !!empresaId && !isOwner,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("user_permissions")
+        .select("action_key")
+        .eq("empresa_id", empresaId!);
+      if (error) throw error;
+      return Array.from(new Set((data ?? []).map((r) => r.action_key)));
+    },
+  });
+
+  const missingKeys = useMemo(() => {
+    if (!empresaKnownKeys) return [];
+    const known = new Set(empresaKnownKeys);
+    return ALL_PERMISSION_KEYS.filter((k) => !known.has(k));
+  }, [empresaKnownKeys]);
+
+  const backfill = useMutation({
+    mutationFn: async () => {
+      if (!empresaId || missingKeys.length === 0) return;
+      const { error } = await supabase.rpc("backfill_permissions_empresa" as any, {
+        p_empresa_id: empresaId,
+        p_action_keys: missingKeys,
+        p_default_view: false,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success(`${missingKeys.length} permissão(ões) sincronizada(s) para todos os membros`);
+      qc.invalidateQueries({ queryKey: ["empresa-known-permission-keys"] });
+      qc.invalidateQueries({ queryKey: ["user-permissions"] });
+      qc.invalidateQueries({ queryKey: ["user-permissions-edit"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const renderRow = (item: { key: string; label: string; alwaysOn?: boolean }) => {
     const current = state[item.key] ?? "none";
     const locked = isOwner;
