@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useEmpresa } from "@/hooks/useEmpresa";
-import { PERMISSION_CATALOG } from "@/hooks/usePermissions";
+import { ALL_PERMISSION_KEYS, PERMISSION_CATALOG } from "@/hooks/usePermissions";
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import {
   ShieldCheck, Loader2, Lock, Search, EyeOff, Eye, Pencil,
-  LayoutGrid, Settings2, CheckCheck, XCircle, Wallet,
+  LayoutGrid, Settings2, CheckCheck, XCircle, Wallet, Sparkles,
 } from "lucide-react";
 import { toast } from "sonner";
 
