@@ -1,8 +1,9 @@
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  Sparkles, CheckCircle2, Circle, X, ChevronRight, Building2,
+  Sparkles, CheckCircle2, Circle, ChevronRight, Building2,
   Wallet, Coins, Layers, Tags, Users, Truck, Receipt, Rocket,
+  CreditCard, BookOpen,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -12,6 +13,7 @@ import { useOnboarding, type OnboardingStepKey } from "@/hooks/useOnboarding";
 import { ContaBancariaModal } from "@/components/modals/ContaBancariaModal";
 import { CentroCustoModal } from "@/components/modals/CentroCustoModal";
 import { CategoriaFinanceiraModal } from "@/components/modals/CategoriaFinanceiraModal";
+import { FormaPagamentoModal } from "@/components/modals/FormaPagamentoModal";
 import { ClienteModal } from "@/components/modals/ClienteModal";
 import { FornecedorModal } from "@/components/modals/FornecedorModal";
 import { cn } from "@/lib/utils";
