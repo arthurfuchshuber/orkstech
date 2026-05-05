@@ -9,6 +9,7 @@ export type OnboardingStepKey =
   | "saldo"
   | "centro_custo"
   | "categoria"
+  | "forma_pagamento"
   | "cliente"
   | "fornecedor"
   | "lancamento";
