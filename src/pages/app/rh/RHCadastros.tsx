@@ -33,13 +33,13 @@ export default function RHCadastros() {
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="space-y-2">
-        <h1 className="text-xl font-bold tracking-tight text-foreground">Cadastros RH</h1>
+        <h1 className="text-xl font-bold tracking-tight text-foreground">Recursos Humanos</h1>
         <p className="text-sm text-muted-foreground">
           Bancos de dados que alimentam todos os dropdowns do módulo Recursos Humanos. Crie, edite e desative entradas — todas as telas refletem automaticamente.
         </p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-5">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         <SimpleRegistrySection
           table="rh_departamentos" queryKey="rh_departamentos"
           title="Departamentos" subtitle="Estrutura organizacional vinculada a centro de custo"
