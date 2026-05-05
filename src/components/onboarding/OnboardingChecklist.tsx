@@ -1,8 +1,9 @@
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  Sparkles, CheckCircle2, Circle, X, ChevronRight, Building2,
+  Sparkles, CheckCircle2, Circle, ChevronRight, Building2,
   Wallet, Coins, Layers, Tags, Users, Truck, Receipt, Rocket,
+  CreditCard, BookOpen,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -12,6 +13,7 @@ import { useOnboarding, type OnboardingStepKey } from "@/hooks/useOnboarding";
 import { ContaBancariaModal } from "@/components/modals/ContaBancariaModal";
 import { CentroCustoModal } from "@/components/modals/CentroCustoModal";
 import { CategoriaFinanceiraModal } from "@/components/modals/CategoriaFinanceiraModal";
+import { FormaPagamentoModal } from "@/components/modals/FormaPagamentoModal";
 import { ClienteModal } from "@/components/modals/ClienteModal";
 import { FornecedorModal } from "@/components/modals/FornecedorModal";
 import { cn } from "@/lib/utils";
@@ -22,6 +24,7 @@ interface StepDef {
   title: string;
   why: string;
   cta: string;
+  page?: string; // página onde o usuário deveria estar (para coach mark futuro)
   action: () => void;
 }
 
@@ -36,50 +39,64 @@ export function OnboardingChecklist() {
   const { status, steps, progress, doneSteps, totalSteps, isComplete, isDismissed, dismissChecklist, refetch } =
     useOnboarding();
   const [open, setOpen] = useState(false);
-  const [modal, setModal] = useState<null | "conta" | "centro" | "categoria" | "cliente" | "fornecedor">(null);
+  const [modal, setModal] = useState<null | "conta" | "centro" | "categoria" | "forma" | "cliente" | "fornecedor">(null);
 
   const groups: Group[] = useMemo(
     () => [
       {
-        title: "Estrutura financeira",
-        description: "A base que conecta todo o seu fluxo de caixa.",
+        title: "1. Conta bancária & saldo",
+        description: "Comece pelo coração do financeiro: onde o dinheiro entra e sai.",
         steps: [
           {
             key: "conta",
             icon: Wallet,
             title: "Cadastrar uma conta bancária",
-            why: "Sem conta, não há como registrar entradas e saídas. Você pode conectar via Open Finance ou criar manualmente.",
+            why: "Sem conta, não há como registrar entradas e saídas. Conecte via Open Finance (sincroniza tudo automaticamente) ou crie manualmente.",
             cta: "Adicionar conta",
             action: () => setModal("conta"),
           },
           {
             key: "saldo",
             icon: Coins,
-            title: "Informar o saldo inicial",
-            why: "Garante que seu caixa parta de um valor real e que os relatórios sejam precisos desde o primeiro dia.",
+            title: "Informar o saldo inicial da conta",
+            why: "Garante que seu caixa parta de um valor real. Sem isso, todos os relatórios começam zerados e ficam imprecisos.",
             cta: "Definir saldo",
-            action: () => navigate("/app/configuracoes/financeiro/contas-bancarias"),
-          },
-          {
-            key: "centro_custo",
-            icon: Layers,
-            title: "Criar pelo menos 1 centro de custo",
-            why: "Organiza seus gastos por área (Marketing, Vendas, Operações). Desbloqueia análises por departamento.",
-            cta: "Criar centro de custo",
-            action: () => setModal("centro"),
-          },
-          {
-            key: "categoria",
-            icon: Tags,
-            title: "Criar categorias financeiras",
-            why: "Categorias classificam suas movimentações e alimentam o DRE automaticamente.",
-            cta: "Criar categoria",
-            action: () => setModal("categoria"),
+            action: () => navigate("/app/financas/cadastros"),
           },
         ],
       },
       {
-        title: "Cadastros operacionais",
+        title: "2. Estrutura financeira (Configurações)",
+        description: "Em Financeiro → Cadastros você define como tudo será classificado.",
+        steps: [
+          {
+            key: "centro_custo",
+            icon: Layers,
+            title: "Criar centros de custo",
+            why: "Organiza gastos por área (Marketing, Vendas, Operações). Desbloqueia análises por departamento e filtros no DRE.",
+            cta: "Abrir centros de custo",
+            action: () => setModal("centro"),
+          },
+          {
+            key: "categoria",
+            icon: BookOpen,
+            title: "Montar o plano de contas",
+            why: "Categorias hierárquicas (Receitas, Despesas, Custos…) classificam cada lançamento e alimentam o DRE automaticamente.",
+            cta: "Abrir plano de contas",
+            action: () => navigate("/app/financas/cadastros"),
+          },
+          {
+            key: "forma_pagamento",
+            icon: CreditCard,
+            title: "Cadastrar formas de pagamento",
+            why: "Pix, boleto, cartão, transferência… definir as formas usadas agiliza o lançamento de contas e a conciliação.",
+            cta: "Adicionar forma de pagamento",
+            action: () => setModal("forma"),
+          },
+        ],
+      },
+      {
+        title: "3. Cadastros operacionais",
         description: "Quem paga e quem recebe — para você lançar contas em segundos.",
         steps: [
           {
@@ -94,22 +111,22 @@ export function OnboardingChecklist() {
             key: "fornecedor",
             icon: Truck,
             title: "Cadastrar o primeiro fornecedor",
-            why: "Necessário para registrar contas a pagar e acompanhar o histórico por fornecedor.",
+            why: "Necessário para registrar contas a pagar e acompanhar histórico, recorrências e vencimentos por fornecedor.",
             cta: "Cadastrar fornecedor",
             action: () => setModal("fornecedor"),
           },
         ],
       },
       {
-        title: "Primeiros passos & equipe",
-        description: "Coloque o sistema para trabalhar e traga seu time.",
+        title: "4. Coloque o sistema para trabalhar",
+        description: "Com a base pronta, faça o primeiro lançamento e veja a mágica acontecer.",
         steps: [
           {
             key: "lancamento",
             icon: Receipt,
             title: "Registrar o primeiro lançamento",
-            why: "É aqui que a mágica acontece: você verá o caixa, DRE e dashboards reagindo em tempo real.",
-            cta: "Lançar agora",
+            why: "Caixa, DRE, fluxo de caixa e dashboards reagem em tempo real. É aqui que você sente o valor da plataforma.",
+            cta: "Ir para Contas a Pagar",
             action: () => navigate("/app/financas/pagar"),
           },
         ],
@@ -119,7 +136,7 @@ export function OnboardingChecklist() {
   );
 
   // Empresa step is implicit — sempre verdadeiro nesse ponto (chega aqui só com empresa criada)
-  const inviteAction = () => navigate("/app/configuracoes/empresa?tab=permissoes");
+  const inviteAction = () => navigate("/app/config/conta?tab=usuarios");
 
   if (!status || isDismissed || isComplete) {
     // Mostra apenas o botão flutuante de "Concluído" se 100%; caso dispensado, esconde.
@@ -285,6 +302,14 @@ export function OnboardingChecklist() {
         open={modal === "categoria"}
         onOpenChange={(o) => !o && setModal(null)}
         defaultTipo="despesa"
+        onSaved={() => {
+          setModal(null);
+          refetch();
+        }}
+      />
+      <FormaPagamentoModal
+        open={modal === "forma"}
+        onOpenChange={(o) => !o && setModal(null)}
         onSaved={() => {
           setModal(null);
           refetch();
