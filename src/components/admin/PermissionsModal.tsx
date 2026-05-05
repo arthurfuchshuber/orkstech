@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useEmpresa } from "@/hooks/useEmpresa";
-import { PERMISSION_CATALOG } from "@/hooks/usePermissions";
+import { ALL_PERMISSION_KEYS, PERMISSION_CATALOG } from "@/hooks/usePermissions";
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import {
   ShieldCheck, Loader2, Lock, Search, EyeOff, Eye, Pencil,
-  LayoutGrid, Settings2, CheckCheck, XCircle, Wallet,
+  LayoutGrid, Settings2, CheckCheck, XCircle, Wallet, Sparkles,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -128,6 +128,46 @@ export function PermissionsModal({ userId, userEmail, isOwner, open, onOpenChang
       total: values.length,
     };
   }, [state]);
+
+  // Detecta chaves do catálogo que ainda não existem no banco para esta empresa
+  // (módulos novos adicionados depois que o membro foi cadastrado).
+  const { data: empresaKnownKeys } = useQuery({
+    queryKey: ["empresa-known-permission-keys", empresaId],
+    enabled: open && !!empresaId && !isOwner,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("user_permissions")
+        .select("action_key")
+        .eq("empresa_id", empresaId!);
+      if (error) throw error;
+      return Array.from(new Set((data ?? []).map((r) => r.action_key)));
+    },
+  });
+
+  const missingKeys = useMemo(() => {
+    if (!empresaKnownKeys) return [];
+    const known = new Set(empresaKnownKeys);
+    return ALL_PERMISSION_KEYS.filter((k) => !known.has(k));
+  }, [empresaKnownKeys]);
+
+  const backfill = useMutation({
+    mutationFn: async () => {
+      if (!empresaId || missingKeys.length === 0) return;
+      const { error } = await supabase.rpc("backfill_permissions_empresa" as any, {
+        p_empresa_id: empresaId,
+        p_action_keys: missingKeys,
+        p_default_view: false,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success(`${missingKeys.length} permissão(ões) sincronizada(s) para todos os membros`);
+      qc.invalidateQueries({ queryKey: ["empresa-known-permission-keys"] });
+      qc.invalidateQueries({ queryKey: ["user-permissions"] });
+      qc.invalidateQueries({ queryKey: ["user-permissions-edit"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
 
   const renderRow = (item: { key: string; label: string; alwaysOn?: boolean }) => {
     const current = state[item.key] ?? "none";
@@ -295,6 +335,30 @@ export function PermissionsModal({ userId, userEmail, isOwner, open, onOpenChang
                 className="h-8 pl-8 text-xs"
               />
             </div>
+          </div>
+        )}
+
+        {!isOwner && !isLoading && missingKeys.length > 0 && (
+          <div className="mx-6 mt-3 flex items-center gap-3 rounded-md border border-primary/30 bg-primary/5 px-3 py-2.5 text-xs">
+            <Sparkles className="w-4 h-4 text-primary flex-shrink-0" />
+            <div className="flex-1 min-w-0">
+              <p className="text-foreground font-medium">
+                {missingKeys.length} {missingKeys.length === 1 ? "nova permissão detectada" : "novas permissões detectadas"}
+              </p>
+              <p className="text-muted-foreground">
+                Módulos novos foram adicionados. Sincronize para que todos os membros desta empresa apareçam aqui sem bloqueios silenciosos.
+              </p>
+            </div>
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-7 text-xs"
+              disabled={backfill.isPending}
+              onClick={() => backfill.mutate()}
+            >
+              {backfill.isPending ? <Loader2 className="w-3 h-3 mr-1.5 animate-spin" /> : null}
+              Sincronizar
+            </Button>
           </div>
         )}
 
