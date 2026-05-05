@@ -4284,6 +4284,14 @@ export type Database = {
         }
         Returns: boolean
       }
+      backfill_permissions_empresa: {
+        Args: {
+          p_action_keys: string[]
+          p_default_view?: boolean
+          p_empresa_id: string
+        }
+        Returns: Json
+      }
       calcular_saldo_esperado_conta: {
         Args: { p_conta_id: string }
         Returns: number
