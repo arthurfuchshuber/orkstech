@@ -125,6 +125,7 @@ export function ContaBancariaModal({ open, onOpenChange, editingId, onSaved, def
           : 0,
         dia_fechamento_fatura: cartao && form.dia_fechamento_fatura ? Math.min(31, Math.max(1, parseInt(form.dia_fechamento_fatura))) : null,
         dia_vencimento_fatura: cartao && form.dia_vencimento_fatura ? Math.min(31, Math.max(1, parseInt(form.dia_vencimento_fatura))) : null,
+        divergencia_alerta_limite: Math.max(0, parseFloat(form.divergencia_alerta_limite) || 1),
       };
       if (editingId) {
         const { error } = await supabase.from("contas_bancarias").update(payload).eq("id", editingId);
