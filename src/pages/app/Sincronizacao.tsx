@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useEmpresa } from "@/hooks/useEmpresa";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -28,50 +29,123 @@ const fmtDate = (s?: string | null) => {
 
 export default function Sincronizacao() {
   const { user } = useAuth();
+  const { empresa } = useEmpresa();
   const qc = useQueryClient();
   const [reportOpen, setReportOpen] = useState<{ id: string; nome: string } | null>(null);
+  const empresaId = empresa?.id;
+  const targetUserId = empresa?.user_id ?? user?.id;
 
   const { data: logs = [], isLoading: loadingLogs } = useQuery({
-    queryKey: ["pluggy_sync_logs", user?.id],
-    enabled: !!user,
+    queryKey: ["pluggy_sync_logs", empresaId, targetUserId],
+    enabled: !!targetUserId,
     queryFn: async () => {
-      const { data, error } = await supabase
+      let q = supabase
         .from("pluggy_sync_logs" as any)
         .select("*")
         .order("created_at", { ascending: false })
         .limit(200);
+      q = empresaId ? q.eq("empresa_id", empresaId) : q.eq("user_id", targetUserId!);
+      const { data, error } = await q;
       if (error) throw error;
       return (data as any[]) || [];
     },
   });
 
   const { data: contas = [] } = useQuery({
-    queryKey: ["sincronizacao_contas", user?.id],
-    enabled: !!user,
+    queryKey: ["sincronizacao_contas", empresaId, targetUserId],
+    enabled: !!targetUserId,
     queryFn: async () => {
-      const { data, error } = await supabase
+      let q = supabase
         .from("contas_bancarias")
-        .select("id, nome, banco, pluggy_account_id, investimento_sincronizado, divergencia_alerta_limite, ultima_sync_at, ativo")
+        .select("id, user_id, empresa_id, nome, banco, pluggy_account_id, investimento_sincronizado, divergencia_alerta_limite, ultima_sync_at, ativo")
         .eq("ativo", true)
         .order("nome");
+      q = empresaId ? q.eq("empresa_id", empresaId) : q.eq("user_id", targetUserId!);
+      const { data, error } = await q;
       if (error) throw error;
       return data || [];
     },
   });
 
   const { data: reconciliations = [] } = useQuery({
-    queryKey: ["recon_latest", user?.id],
-    enabled: !!user,
+    queryKey: ["recon_latest", empresaId, targetUserId],
+    enabled: !!targetUserId,
     queryFn: async () => {
-      const { data, error } = await supabase
+      let q = supabase
         .from("reconciliacoes_investimento" as any)
         .select("*")
         .order("created_at", { ascending: false })
         .limit(500);
+      q = empresaId ? q.eq("empresa_id", empresaId) : q.eq("user_id", targetUserId!);
+      const { data, error } = await q;
       if (error) throw error;
       return (data as any[]) || [];
     },
   });
+
+  const pluggyAccountIds = useMemo(
+    () => contas.map((c: any) => c.pluggy_account_id).filter(Boolean),
+    [contas]
+  );
+
+  const { data: pluggyAccounts = [] } = useQuery({
+    queryKey: ["sincronizacao_pluggy_accounts", targetUserId, pluggyAccountIds.join("|")],
+    enabled: !!targetUserId && pluggyAccountIds.length > 0,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("pluggy_bank_accounts" as any)
+        .select("pluggy_account_id, pluggy_item_id, connection_id")
+        .eq("user_id", targetUserId!)
+        .in("pluggy_account_id", pluggyAccountIds);
+      if (error) throw error;
+      return (data as any[]) || [];
+    },
+  });
+
+  const connectionIds = useMemo(
+    () => Array.from(new Set(pluggyAccounts.map((a: any) => a.connection_id).filter(Boolean))),
+    [pluggyAccounts]
+  );
+
+  const { data: connections = [] } = useQuery({
+    queryKey: ["sincronizacao_connection_names", targetUserId, connectionIds.join("|")],
+    enabled: !!targetUserId && connectionIds.length > 0,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("pluggy_connections" as any)
+        .select("id, connector_name")
+        .eq("user_id", targetUserId!)
+        .in("id", connectionIds);
+      if (error) throw error;
+      return (data as any[]) || [];
+    },
+  });
+
+  const accountDisplayById = useMemo(() => {
+    const pluggyByAccount = new Map(pluggyAccounts.map((a: any) => [a.pluggy_account_id, a]));
+    const connectionNameById = new Map(connections.map((c: any) => [c.id, c.connector_name]));
+    const map: Record<string, { primary: string; secondary: string | null }> = {};
+    for (const c of contas as any[]) {
+      const pluggyAccount = pluggyByAccount.get(c.pluggy_account_id);
+      const connectorName = pluggyAccount ? connectionNameById.get(pluggyAccount.connection_id) : null;
+      const primary = connectorName || c.nome || "Conta";
+      const secondary = connectorName && c.nome && c.nome !== connectorName ? c.nome : c.banco || null;
+      map[c.id] = { primary, secondary };
+    }
+    return map;
+  }, [contas, pluggyAccounts, connections]);
+
+  const officialAccountNamesByItem = useMemo(() => {
+    const itemByAccount = new Map(pluggyAccounts.map((a: any) => [a.pluggy_account_id, a.pluggy_item_id]));
+    const grouped: Record<string, string[]> = {};
+    for (const c of contas as any[]) {
+      const itemId = itemByAccount.get(c.pluggy_account_id);
+      const displayName = accountDisplayById[c.id]?.primary;
+      if (!itemId || !displayName) continue;
+      grouped[itemId] = [...(grouped[itemId] || []), displayName];
+    }
+    return grouped;
+  }, [contas, pluggyAccounts, accountDisplayById]);
 
   const latestByConta = useMemo(() => {
     const map: Record<string, any> = {};
@@ -188,11 +262,12 @@ export default function Sincronizacao() {
                   const r = latestByConta[c.id];
                   const status = r?.status || (c.pluggy_account_id ? "pendente" : "sem_dados");
                   const div = r ? Number(r.divergencia) : 0;
+                  const display = accountDisplayById[c.id] || { primary: c.nome, secondary: c.banco || null };
                   return (
                     <TableRow key={c.id} className="text-xs">
                       <TableCell className="py-2">
-                        <div className="font-medium text-foreground">{c.nome}</div>
-                        <div className="text-[10px] text-muted-foreground">{c.banco || "—"}</div>
+                        <div className="font-medium text-foreground truncate" title={display.primary}>{display.primary}</div>
+                        <div className="text-[10px] text-muted-foreground truncate" title={display.secondary || undefined}>{display.secondary || "—"}</div>
                       </TableCell>
                       <TableCell className="py-2 text-right tabular-nums">{fmtBRL(r?.saldo_agregado ?? c.investimento_sincronizado ?? 0)}</TableCell>
                       <TableCell className="py-2 text-right tabular-nums">{r ? fmtBRL(r.soma_detalhada) : "—"}</TableCell>
@@ -216,7 +291,7 @@ export default function Sincronizacao() {
                           </Button>
                           {r && (
                             <Button size="sm" variant="ghost" className="h-7 w-7 p-0" title="Ver relatório"
-                              onClick={() => setReportOpen({ id: c.id, nome: c.nome })}>
+                              onClick={() => setReportOpen({ id: c.id, nome: display.primary })}>
                               <FileText className="h-3.5 w-3.5" />
                             </Button>
                           )}
@@ -261,7 +336,16 @@ export default function Sincronizacao() {
                 {logs.map((l: any) => (
                   <TableRow key={l.id} className="text-xs">
                     <TableCell className="py-2 text-[11px] text-muted-foreground">{fmtDate(l.created_at)}</TableCell>
-                    <TableCell className="py-2">{l.connector_name || "—"}</TableCell>
+                    <TableCell className="py-2">
+                      <div className="font-medium text-foreground truncate" title={(officialAccountNamesByItem[l.pluggy_item_id] || []).join(" · ") || undefined}>
+                        {(officialAccountNamesByItem[l.pluggy_item_id] || [])[0] || l.connector_name || "—"}
+                      </div>
+                      {officialAccountNamesByItem[l.pluggy_item_id]?.length > 1 && (
+                        <div className="text-[10px] text-muted-foreground truncate">
+                          +{officialAccountNamesByItem[l.pluggy_item_id].length - 1} conta{officialAccountNamesByItem[l.pluggy_item_id].length > 2 ? "s" : ""} cadastrada{officialAccountNamesByItem[l.pluggy_item_id].length > 2 ? "s" : ""}
+                        </div>
+                      )}
+                    </TableCell>
                     <TableCell className="py-2"><Badge variant="outline" className="text-[9px] px-1.5 py-0 h-4 font-normal">{l.source}</Badge></TableCell>
                     <TableCell className="py-2">
                       <Badge variant={l.value_type === "liquido" ? "default" : "secondary"} className="text-[9px] px-1.5 py-0 h-4 font-normal">
