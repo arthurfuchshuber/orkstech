@@ -7,6 +7,8 @@ import { EmpresaCnpjGuard } from "@/components/EmpresaCnpjGuard";
 import { SubscriptionGuard } from "@/components/SubscriptionGuard";
 import { SubscriptionStatusBanner } from "@/components/SubscriptionStatusBanner";
 import { IntegrationFailureBanner } from "@/components/integrations/IntegrationFailureBanner";
+import { OnboardingChecklist } from "@/components/onboarding/OnboardingChecklist";
+import { OnboardingWelcomeWizard } from "@/components/onboarding/OnboardingWelcomeWizard";
 import { useAuth } from "@/hooks/useAuth";
 import { useBankNotifications } from "@/hooks/useBankNotifications";
 import { toast } from "sonner";
@@ -57,6 +59,8 @@ export default function AppLayout() {
         </div>
         <EmpresaCnpjGuard>{null}</EmpresaCnpjGuard>
         <SubscriptionGuard>{null}</SubscriptionGuard>
+        <OnboardingWelcomeWizard />
+        <OnboardingChecklist />
       </div>
     </SidebarProvider>
   );

@@ -4161,6 +4161,39 @@ export type Database = {
           },
         ]
       }
+      user_onboarding: {
+        Row: {
+          checklist_dismissed: boolean
+          completed_steps: Json
+          created_at: string
+          empresa_id: string
+          id: string
+          updated_at: string
+          user_id: string
+          wizard_completed_at: string | null
+        }
+        Insert: {
+          checklist_dismissed?: boolean
+          completed_steps?: Json
+          created_at?: string
+          empresa_id: string
+          id?: string
+          updated_at?: string
+          user_id: string
+          wizard_completed_at?: string | null
+        }
+        Update: {
+          checklist_dismissed?: boolean
+          completed_steps?: Json
+          created_at?: string
+          empresa_id?: string
+          id?: string
+          updated_at?: string
+          user_id?: string
+          wizard_completed_at?: string | null
+        }
+        Relationships: []
+      }
       user_permissions: {
         Row: {
           action_key: string
@@ -4347,7 +4380,12 @@ export type Database = {
         Returns: Json
       }
       delete_import_cascade: { Args: { p_import_id: string }; Returns: Json }
+      dispensar_checklist_onboarding: {
+        Args: { _dismiss?: boolean; _empresa_id: string }
+        Returns: undefined
+      }
       get_conta_saldos: { Args: { p_conta_id: string }; Returns: Json }
+      get_onboarding_status: { Args: { _empresa_id: string }; Returns: Json }
       get_or_create_ajuste_saldo_categoria: {
         Args: {
           p_empresa_id: string
@@ -4397,6 +4435,10 @@ export type Database = {
         Returns: boolean
       }
       is_super_admin: { Args: never; Returns: boolean }
+      marcar_wizard_concluido: {
+        Args: { _empresa_id: string }
+        Returns: undefined
+      }
       mover_caixinha_conta: {
         Args: {
           p_amount: number
