@@ -12,6 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { ChevronRight } from "lucide-react";
 import { EmpresaSelector } from "@/components/EmpresaSelector";
 import { OrksWordmark } from "@/components/OrksWordmark";
+import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import {
   Sidebar,
   SidebarContent,
@@ -58,16 +59,15 @@ function findFirstRoute(item: MenuItem): string | null {
   return null;
 }
 
+/* ---------- EXPANDED ---------- */
 function MenuItemNode({
   item,
-  collapsed,
   depth = 0,
   pathname,
   openMap,
   onToggle,
 }: {
   item: MenuItem;
-  collapsed: boolean;
   depth?: number;
   pathname: string;
   openMap: Record<string, boolean>;
@@ -82,24 +82,6 @@ function MenuItemNode({
   const isChildActive = hasActiveDescendant(item, pathname) && !isActive;
 
   if (hasChildren && !item.route) {
-    if (collapsed) {
-      return (
-        <>
-          {item.children!.map((child) => (
-            <MenuItemNode
-              key={child.id}
-              item={child}
-              collapsed={collapsed}
-              depth={depth}
-              pathname={pathname}
-              openMap={openMap}
-              onToggle={onToggle}
-            />
-          ))}
-        </>
-      );
-    }
-
     return (
       <div className="py-0.5">
         <SidebarMenuItem>
@@ -127,7 +109,6 @@ function MenuItemNode({
                 <MenuItemNode
                   key={child.id}
                   item={child}
-                  collapsed={collapsed}
                   depth={depth + 1}
                   pathname={pathname}
                   openMap={openMap}
@@ -164,27 +145,24 @@ function MenuItemNode({
                   name={item.icon}
                   className={`w-[15px] h-[15px] flex-shrink-0 ${isActive ? "text-primary" : ""}`}
                 />
-                {!collapsed && <span>{item.name}</span>}
+                <span>{item.name}</span>
               </NavLink>
-              {!collapsed && (
-                <button onClick={() => onToggle(item.id, item.parent_id)} className="p-1">
-                  <ChevronRight
-                    className={`w-3 h-3 transition-transform duration-200 ${
-                      isOpen ? "rotate-90 text-foreground/60" : "text-muted-foreground/30"
-                    }`}
-                  />
-                </button>
-              )}
+              <button onClick={() => onToggle(item.id, item.parent_id)} className="p-1">
+                <ChevronRight
+                  className={`w-3 h-3 transition-transform duration-200 ${
+                    isOpen ? "rotate-90 text-foreground/60" : "text-muted-foreground/30"
+                  }`}
+                />
+              </button>
             </div>
           </SidebarMenuButton>
         </SidebarMenuItem>
-        {isOpen && !collapsed && (
+        {isOpen && (
           <SidebarMenu>
             {item.children!.map((child) => (
               <MenuItemNode
                 key={child.id}
                 item={child}
-                collapsed={collapsed}
                 depth={depth + 1}
                 pathname={pathname}
                 openMap={openMap}
@@ -219,10 +197,128 @@ function MenuItemNode({
             name={item.icon}
             className={`w-[15px] h-[15px] flex-shrink-0 ${isActive ? "text-primary" : ""}`}
           />
-          {!collapsed && <span>{item.name}</span>}
+          <span>{item.name}</span>
         </NavLink>
       </SidebarMenuButton>
     </SidebarMenuItem>
+  );
+}
+
+/* ---------- COLLAPSED: only root icon + popover with children on hover ---------- */
+function CollapsedItem({ item, pathname }: { item: MenuItem; pathname: string }) {
+  const navigate = useNavigate();
+  if (!item.is_visible || !item.is_active) return null;
+
+  const hasChildren = !!item.children?.length;
+  const resolvedRoute = resolveRoute(item.route);
+  const isActive = resolvedRoute ? pathname === resolvedRoute : false;
+  const isChildActive = hasActiveDescendant(item, pathname);
+
+  const handleClick = () => {
+    if (item.route) {
+      navigate(item.route);
+    } else {
+      const first = findFirstRoute(item);
+      if (first) navigate(first);
+    }
+  };
+
+  const trigger = (
+    <button
+      onClick={handleClick}
+      className={`relative w-10 h-10 mx-auto flex items-center justify-center rounded-lg transition-all duration-200 ${
+        isActive || isChildActive
+          ? "text-primary bg-primary/[0.10]"
+          : "text-muted-foreground/70 hover:text-foreground hover:bg-muted/40"
+      }`}
+      title={item.name}
+    >
+      {(isActive || isChildActive) && (
+        <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[2px] h-5 rounded-full bg-primary" />
+      )}
+      <DynamicIcon name={item.icon} className="w-[18px] h-[18px]" />
+    </button>
+  );
+
+  if (!hasChildren) {
+    return <div className="px-1 py-0.5">{trigger}</div>;
+  }
+
+  return (
+    <div className="px-1 py-0.5">
+      <HoverCard openDelay={80} closeDelay={120}>
+        <HoverCardTrigger asChild>{trigger}</HoverCardTrigger>
+        <HoverCardContent
+          side="right"
+          align="start"
+          sideOffset={8}
+          className="w-60 p-2 bg-popover/95 backdrop-blur-xl border-border/40"
+        >
+          <div className="px-2 pb-2 mb-1 border-b border-border/40">
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+              {item.name}
+            </p>
+          </div>
+          <div className="space-y-0.5">
+            {item.children!.map((child) => (
+              <CollapsedChildLink key={child.id} item={child} pathname={pathname} depth={0} />
+            ))}
+          </div>
+        </HoverCardContent>
+      </HoverCard>
+    </div>
+  );
+}
+
+function CollapsedChildLink({
+  item,
+  pathname,
+  depth,
+}: {
+  item: MenuItem;
+  pathname: string;
+  depth: number;
+}) {
+  if (!item.is_visible || !item.is_active) return null;
+  const hasChildren = !!item.children?.length;
+  const resolvedRoute = resolveRoute(item.route);
+  const isActive = resolvedRoute ? pathname === resolvedRoute : false;
+
+  if (hasChildren && !item.route) {
+    return (
+      <div>
+        <div
+          className="flex items-center gap-2 px-2 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/80"
+          style={{ paddingLeft: `${8 + depth * 10}px` }}
+        >
+          <DynamicIcon name={item.icon} className="w-3.5 h-3.5" />
+          {item.name}
+        </div>
+        <div className="space-y-0.5">
+          {item.children!.map((child) => (
+            <CollapsedChildLink key={child.id} item={child} pathname={pathname} depth={depth + 1} />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (!item.route) return null;
+
+  return (
+    <NavLink
+      to={item.route}
+      className={`flex items-center gap-2.5 px-2 py-1.5 rounded-md text-[13px] transition-colors ${
+        isActive
+          ? "text-primary bg-primary/[0.10] font-medium"
+          : "text-foreground/80 hover:text-foreground hover:bg-muted/50"
+      }`}
+      activeClassName=""
+      style={{ paddingLeft: `${8 + depth * 10}px` }}
+    >
+      <DynamicIcon name={item.icon} className="w-[14px] h-[14px] flex-shrink-0" />
+      <span className="truncate">{item.name}</span>
+    </NavLink>
   );
 }
 
@@ -259,12 +355,7 @@ export function AppSidebar() {
     },
   });
 
-  // Filter tree by:
-  // 1. Hide "extrato-bancario" if no open finance connections
-  // 2. Hide menus the user has no view permission for
   const filteredTree = useMemo(() => {
-    // Para o item "Configurações › Financeiro": além da permissão do menu em si,
-    // ele só faz sentido se o usuário puder visualizar pelo menos uma das seções internas.
     const hasAnyFinanceConfigPermission =
       canView("finance:plano-contas") ||
       canView("finance:centros-custo") ||
@@ -279,15 +370,12 @@ export function AppSidebar() {
           if (item.slug === "cadastros-financeiros" && !hasAnyFinanceConfigPermission) return false;
           const permissionKey = getMenuPermissionKey(item.slug);
           if (permissionKey) return canView(permissionKey);
-          // Apenas filtra por permissão se o slug existir no catálogo de permissões.
-          // Grupos (sem rota / não catalogados) passam — serão removidos depois se ficarem sem filhos.
           return true;
         })
         .map((item) => ({
           ...item,
           children: item.children ? filterItems(item.children) : [],
         }))
-        // Remove pais que ficaram sem filhos visíveis (a menos que tenham rota própria)
         .filter((item) => item.route || (item.children && item.children.length > 0));
     return filterItems(tree);
   }, [tree, hasOpenFinance, canView]);
@@ -309,7 +397,6 @@ export function AppSidebar() {
 
   useEffect(() => {
     const ids = findActiveIds(filteredTree, location.pathname);
-    // Mantém aberto apenas o caminho ancestral da rota ativa; os demais grupos colapsam.
     setOpenMap(() => {
       const next: Record<string, boolean> = {};
       ids.forEach((id) => {
@@ -350,7 +437,6 @@ export function AppSidebar() {
       if (menuItem) {
         const firstRoute = findFirstRoute(menuItem);
         if (firstRoute && firstRoute !== location.pathname) {
-          // Open all ancestors in the path to the first route
           const pathIds = findActiveIds(filteredTree, firstRoute);
           pathIds.forEach((pid) => {
             next[pid] = true;
@@ -364,13 +450,20 @@ export function AppSidebar() {
   };
 
   const showRegularMenus = !!empresa;
+  const isAdminActive = location.pathname.startsWith("/app/admin");
 
   return (
     <Sidebar collapsible="icon">
-      <SidebarHeader className="px-3 py-4 space-y-3">
-        <div className="flex items-center gap-2.5 px-1">
+      <SidebarHeader className={collapsed ? "px-0 py-3 space-y-2" : "px-3 py-4 space-y-3"}>
+        <div className={`flex items-center ${collapsed ? "justify-center" : "gap-2.5 px-1"}`}>
           {collapsed ? (
-            <OrksWordmark size="text-base" />
+            <div
+              className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center font-black text-primary leading-none"
+              style={{ fontFamily: "'Orbitron', 'Inter', sans-serif", fontSize: "15px" }}
+              title="Orks · Gestão 360º"
+            >
+              O
+            </div>
           ) : (
             <div className="flex items-center gap-3 min-w-0">
               <OrksWordmark size="text-xl" />
@@ -383,31 +476,38 @@ export function AppSidebar() {
         <EmpresaSelector collapsed={collapsed} />
       </SidebarHeader>
 
-      <SidebarContent className="px-2">
+      <SidebarContent className={collapsed ? "px-0" : "px-2"}>
         {/* Regular menus - only when an empresa is selected */}
         {showRegularMenus && (
           <>
             {isLoading ? (
-              <div className="space-y-2 p-3">
+              <div className={`space-y-2 ${collapsed ? "px-1.5" : "p-3"}`}>
                 {[1, 2, 3, 4, 5].map((i) => (
-                  <Skeleton key={i} className="h-6 w-full" />
+                  <Skeleton key={i} className={collapsed ? "h-9 w-9 mx-auto rounded-lg" : "h-6 w-full"} />
                 ))}
               </div>
             ) : (
               <SidebarGroup className="py-0.5">
                 <SidebarGroupContent>
-                  <SidebarMenu>
-                    {filteredTree.map((item) => (
-                      <MenuItemNode
-                        key={item.id}
-                        item={item}
-                        collapsed={collapsed}
-                        pathname={location.pathname}
-                        openMap={openMap}
-                        onToggle={handleToggle}
-                      />
-                    ))}
-                  </SidebarMenu>
+                  {collapsed ? (
+                    <div className="space-y-0.5">
+                      {filteredTree.map((item) => (
+                        <CollapsedItem key={item.id} item={item} pathname={location.pathname} />
+                      ))}
+                    </div>
+                  ) : (
+                    <SidebarMenu>
+                      {filteredTree.map((item) => (
+                        <MenuItemNode
+                          key={item.id}
+                          item={item}
+                          pathname={location.pathname}
+                          openMap={openMap}
+                          onToggle={handleToggle}
+                        />
+                      ))}
+                    </SidebarMenu>
+                  )}
                 </SidebarGroupContent>
               </SidebarGroup>
             )}
@@ -418,34 +518,54 @@ export function AppSidebar() {
         {isSuperAdmin && (
           <SidebarGroup className={`py-0.5 ${showRegularMenus ? "mt-2 border-t border-border/30 pt-2" : ""}`}>
             <SidebarGroupContent>
-              <SidebarMenu>
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild>
-                    <NavLink
-                      to="/app/admin"
-                      className={`relative flex items-center gap-2.5 px-3 py-1.5 rounded-md text-[13px] transition-all duration-200 ${
-                        location.pathname.startsWith("/app/admin")
-                          ? "text-primary font-medium bg-primary/[0.08]"
-                          : "text-muted-foreground/70 hover:text-foreground hover:bg-muted/40"
-                      }`}
-                      activeClassName=""
-                    >
-                      {location.pathname.startsWith("/app/admin") && (
-                        <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[2px] h-4 rounded-full bg-primary" />
-                      )}
-                      <DynamicIcon
-                        name="ShieldCheck"
-                        className={`w-[15px] h-[15px] flex-shrink-0 ${location.pathname.startsWith("/app/admin") ? "text-primary" : ""}`}
-                      />
-                      {!collapsed && <span>Administrador</span>}
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              </SidebarMenu>
+              {collapsed ? (
+                <div className="px-1 py-0.5">
+                  <button
+                    onClick={() => navigate("/app/admin")}
+                    className={`relative w-10 h-10 mx-auto flex items-center justify-center rounded-lg transition-all duration-200 ${
+                      isAdminActive
+                        ? "text-primary bg-primary/[0.10]"
+                        : "text-muted-foreground/70 hover:text-foreground hover:bg-muted/40"
+                    }`}
+                    title="Administrador"
+                  >
+                    {isAdminActive && (
+                      <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[2px] h-5 rounded-full bg-primary" />
+                    )}
+                    <DynamicIcon name="ShieldCheck" className="w-[18px] h-[18px]" />
+                  </button>
+                </div>
+              ) : (
+                <SidebarMenu>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild>
+                      <NavLink
+                        to="/app/admin"
+                        className={`relative flex items-center gap-2.5 px-3 py-1.5 rounded-md text-[13px] transition-all duration-200 ${
+                          isAdminActive
+                            ? "text-primary font-medium bg-primary/[0.08]"
+                            : "text-muted-foreground/70 hover:text-foreground hover:bg-muted/40"
+                        }`}
+                        activeClassName=""
+                      >
+                        {isAdminActive && (
+                          <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[2px] h-4 rounded-full bg-primary" />
+                        )}
+                        <DynamicIcon
+                          name="ShieldCheck"
+                          className={`w-[15px] h-[15px] flex-shrink-0 ${isAdminActive ? "text-primary" : ""}`}
+                        />
+                        <span>Administrador</span>
+                      </NavLink>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                </SidebarMenu>
+              )}
             </SidebarGroupContent>
           </SidebarGroup>
         )}
       </SidebarContent>
+
     </Sidebar>
   );
 }

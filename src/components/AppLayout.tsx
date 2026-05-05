@@ -58,6 +58,14 @@ export default function AppLayout() {
           <main key={empresa?.id ?? "no-empresa"} className="flex-1 p-6 overflow-auto">
             <Outlet />
           </main>
+          <footer className="py-2 px-4 border-t border-border/20 bg-background/60 backdrop-blur-sm">
+            <p
+              className="text-center text-[10px] tracking-[0.2em] uppercase font-medium"
+              style={{ color: "hsl(280 70% 75%)" }}
+            >
+              by Anfitrião Sigma
+            </p>
+          </footer>
         </div>
         <EmpresaCnpjGuard>{null}</EmpresaCnpjGuard>
         <SubscriptionGuard>{null}</SubscriptionGuard>
