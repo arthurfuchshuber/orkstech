@@ -67,7 +67,6 @@ export function CaixaKpis({
       flag: "Aplicações",
       value: fmt(totalInvestments),
       tone: "emerald",
-      ajusteCampo: "investimento",
     },
     {
       icon: CreditCard,

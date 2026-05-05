@@ -862,14 +862,6 @@ export default function FinanceiroDashboard() {
           <TabsTrigger value="contas-pagar">Contas a Pagar</TabsTrigger>
         </TabsList>
         <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setShowTransferencia(true)}
-          >
-            <ArrowRightLeft className="w-4 h-4 mr-1" />
-            Transferir entre contas
-          </Button>
           <PendenciasIndicator
             cardsSemVinculo={cardsSemVinculo}
             onCategorizar={() => navigate("/app/financas/extrato?filtro=sem-categoria")}
