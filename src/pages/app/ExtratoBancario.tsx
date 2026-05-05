@@ -927,6 +927,7 @@ export default function ExtratoBancario() {
               );
             })}
           </div>
+          )}
         </Card>
       )}
 
