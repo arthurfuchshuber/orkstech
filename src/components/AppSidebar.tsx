@@ -13,6 +13,8 @@ import { ChevronRight } from "lucide-react";
 import { EmpresaSelector } from "@/components/EmpresaSelector";
 import { OrksWordmark } from "@/components/OrksWordmark";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import orksLogoMark from "@/assets/orks-logo-mark.png";
 import {
   Sidebar,
   SidebarContent,
@@ -241,7 +243,16 @@ function CollapsedItem({ item, pathname }: { item: MenuItem; pathname: string })
   );
 
   if (!hasChildren) {
-    return <div className="px-1 py-0.5">{trigger}</div>;
+    return (
+      <div className="px-1 py-0.5">
+        <Tooltip>
+          <TooltipTrigger asChild>{trigger}</TooltipTrigger>
+          <TooltipContent side="right" sideOffset={8} className="text-xs">
+            {item.name}
+          </TooltipContent>
+        </Tooltip>
+      </div>
+    );
   }
 
   return (
@@ -457,13 +468,12 @@ export function AppSidebar() {
       <SidebarHeader className={collapsed ? "px-0 py-3 space-y-2" : "px-3 py-4 space-y-3"}>
         <div className={`flex items-center ${collapsed ? "justify-center" : "gap-2.5 px-1"}`}>
           {collapsed ? (
-            <div
-              className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center font-black text-primary leading-none"
-              style={{ fontFamily: "'Orbitron', 'Inter', sans-serif", fontSize: "15px" }}
+            <img
+              src={orksLogoMark}
+              alt="Orks"
+              className="w-10 h-10 object-contain"
               title="Orks · Gestão 360º"
-            >
-              O
-            </div>
+            />
           ) : (
             <div className="flex items-center gap-3 min-w-0">
               <OrksWordmark size="text-xl" />
@@ -520,20 +530,26 @@ export function AppSidebar() {
             <SidebarGroupContent>
               {collapsed ? (
                 <div className="px-1 py-0.5">
-                  <button
-                    onClick={() => navigate("/app/admin")}
-                    className={`relative w-10 h-10 mx-auto flex items-center justify-center rounded-lg transition-all duration-200 ${
-                      isAdminActive
-                        ? "text-primary bg-primary/[0.10]"
-                        : "text-muted-foreground/70 hover:text-foreground hover:bg-muted/40"
-                    }`}
-                    title="Administrador"
-                  >
-                    {isAdminActive && (
-                      <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[2px] h-5 rounded-full bg-primary" />
-                    )}
-                    <DynamicIcon name="ShieldCheck" className="w-[18px] h-[18px]" />
-                  </button>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        onClick={() => navigate("/app/admin")}
+                        className={`relative w-10 h-10 mx-auto flex items-center justify-center rounded-lg transition-all duration-200 ${
+                          isAdminActive
+                            ? "text-primary bg-primary/[0.10]"
+                            : "text-muted-foreground/70 hover:text-foreground hover:bg-muted/40"
+                        }`}
+                      >
+                        {isAdminActive && (
+                          <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[2px] h-5 rounded-full bg-primary" />
+                        )}
+                        <DynamicIcon name="ShieldCheck" className="w-[18px] h-[18px]" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent side="right" sideOffset={8} className="text-xs">
+                      Administrador
+                    </TooltipContent>
+                  </Tooltip>
                 </div>
               ) : (
                 <SidebarMenu>
