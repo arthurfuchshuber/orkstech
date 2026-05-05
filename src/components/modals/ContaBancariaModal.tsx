@@ -102,7 +102,9 @@ export function ContaBancariaModal({ open, onOpenChange, editingId, onSaved, def
       });
     } else if (!editingId && open) {
       setForm({ nome: "", banco_id: "", tipo: defaultTipo, saldo_inicial: "0", saldo_investimento: "0", pessoa_tipo: "pj", limite_credito_total: "0", fatura_aberto: "0", dia_fechamento_fatura: "", dia_vencimento_fatura: "", divergencia_alerta_limite: "1.00" });
+      setMode("choice");
     }
+    if (editingId && open) setMode("manual");
   }, [existing, editingId, open, defaultTipo]);
 
   const saveMutation = useMutation({
