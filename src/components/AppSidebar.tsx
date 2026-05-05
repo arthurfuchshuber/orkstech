@@ -243,7 +243,16 @@ function CollapsedItem({ item, pathname }: { item: MenuItem; pathname: string })
   );
 
   if (!hasChildren) {
-    return <div className="px-1 py-0.5">{trigger}</div>;
+    return (
+      <div className="px-1 py-0.5">
+        <Tooltip>
+          <TooltipTrigger asChild>{trigger}</TooltipTrigger>
+          <TooltipContent side="right" sideOffset={8} className="text-xs">
+            {item.name}
+          </TooltipContent>
+        </Tooltip>
+      </div>
+    );
   }
 
   return (
