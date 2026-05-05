@@ -196,6 +196,7 @@ export default function ExtratoBancario() {
   const [editingManual, setEditingManual] = useState<any>(null);
   const [batchSelection, setBatchSelection] = useState<Set<string>>(new Set());
   const [pluggyEditTx, setPluggyEditTx] = useState<{ id: string; description: string | null; amount: number; date: string } | null>(null);
+  const [contasCardsExpanded, setContasCardsExpanded] = useState(false);
 
   // Date range filter — default to current month
   const now = new Date();
