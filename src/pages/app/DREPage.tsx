@@ -164,10 +164,6 @@ export default function DREPage() {
             <CalendarDays className="w-3.5 h-3.5" />
             DRE Mensal
           </TabsTrigger>
-          <TabsTrigger value="dre" className="gap-1.5">
-            <FileText className="w-3.5 h-3.5" />
-            DRE Período
-          </TabsTrigger>
           <TabsTrigger value="personalizar" className="gap-1.5">
             <Settings2 className="w-3.5 h-3.5" />
             Personalize seu DRE
