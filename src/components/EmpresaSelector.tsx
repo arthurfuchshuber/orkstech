@@ -91,7 +91,6 @@ export function EmpresaSelector({ collapsed }: { collapsed: boolean }) {
     return (
       <>
         <DropdownMenu onOpenChange={(open) => { if (!open) setSearch(""); }}>
-          <DropdownMenuTrigger asChild>
           <Tooltip>
             <TooltipTrigger asChild>
               <DropdownMenuTrigger asChild>
@@ -104,7 +103,6 @@ export function EmpresaSelector({ collapsed }: { collapsed: boolean }) {
               Empresas
             </TooltipContent>
           </Tooltip>
-          </DropdownMenuTrigger>
           <DropdownMenuContent side="right" align="start" className="w-72">
             {isSuperAdminMode && (
               <>
