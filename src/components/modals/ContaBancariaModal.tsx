@@ -213,6 +213,11 @@ export function ContaBancariaModal({ open, onOpenChange, editingId, onSaved, def
                   <Input type="number" step="0.01" value={form.saldo_investimento} onChange={(e) => setForm({ ...form, saldo_investimento: e.target.value })} placeholder="0,00" />
                   <p className="text-[11px] text-muted-foreground mt-1">Valor aplicado em investimentos vinculado a esta conta (CDB, Tesouro, Poupança, etc.)</p>
                 </div>
+                <div>
+                  <label className="text-sm font-medium text-foreground mb-1.5 block">Limite de alerta de divergência (R$)</label>
+                  <Input type="number" step="0.01" min="0" value={form.divergencia_alerta_limite} onChange={(e) => setForm({ ...form, divergencia_alerta_limite: e.target.value })} placeholder="1,00" />
+                  <p className="text-[11px] text-muted-foreground mt-1">A reconciliação automática alerta quando a diferença entre saldo agregado e soma dos investimentos detalhados exceder este valor.</p>
+                </div>
               </>
             )}
 
