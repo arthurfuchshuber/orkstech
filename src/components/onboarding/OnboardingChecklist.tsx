@@ -307,6 +307,14 @@ export function OnboardingChecklist() {
           refetch();
         }}
       />
+      <FormaPagamentoModal
+        open={modal === "forma"}
+        onOpenChange={(o) => !o && setModal(null)}
+        onSaved={() => {
+          setModal(null);
+          refetch();
+        }}
+      />
       <ClienteModal
         open={modal === "cliente"}
         onOpenChange={(o) => !o && setModal(null)}
