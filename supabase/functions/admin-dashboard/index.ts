@@ -827,6 +827,14 @@ serve(async (req) => {
         }
       }
 
+      // PROTEÇÃO: desvincular o profile do próprio caller ANTES do cascade,
+      // para que o Super Admin não perca seu próprio profile (e seu nível) ao excluir uma empresa.
+      await supabaseAdmin
+        .from("profiles")
+        .update({ empresa_id: null })
+        .eq("user_id", caller.id)
+        .eq("empresa_id", empresa_id);
+
       // 2b) Cascade delete de todas as tabelas que referenciam empresa_id
       const dependentTables = [
         "cash_transactions",
@@ -859,14 +867,16 @@ serve(async (req) => {
         "historico_sistema",
         "integracoes_credenciais",
         "user_permissions",
-        "menu_permissions",
         "menus",
         "profiles",
       ];
 
       for (const tbl of dependentTables) {
-        const { error: delErr } = await supabaseAdmin.from(tbl).delete().eq("empresa_id", empresa_id);
-        if (delErr && delErr.code !== "42P01") {
+        let q = supabaseAdmin.from(tbl).delete().eq("empresa_id", empresa_id);
+        // Nunca apagar o profile do próprio caller (Super Admin)
+        if (tbl === "profiles") q = q.neq("user_id", caller.id);
+        const { error: delErr } = await q;
+        if (delErr && delErr.code !== "42P01" && delErr.code !== "42703") {
           console.error(`Erro ao limpar ${tbl}:`, delErr);
         }
       }
