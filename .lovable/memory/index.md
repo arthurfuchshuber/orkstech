@@ -1,0 +1,1 @@
+- [Default Menu Layout](mem://architecture/default-menu-layout) — Layout oficial da sidebar: "Recursos Humanos" (cadastros operacionais) vive dentro de Cadastros, não em RH
