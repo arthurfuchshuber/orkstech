@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useEmpresa } from "@/hooks/useEmpresa";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -28,50 +29,89 @@ const fmtDate = (s?: string | null) => {
 
 export default function Sincronizacao() {
   const { user } = useAuth();
+  const { empresa } = useEmpresa();
   const qc = useQueryClient();
   const [reportOpen, setReportOpen] = useState<{ id: string; nome: string } | null>(null);
+  const empresaId = empresa?.id;
+  const targetUserId = empresa?.user_id ?? user?.id;
 
   const { data: logs = [], isLoading: loadingLogs } = useQuery({
-    queryKey: ["pluggy_sync_logs", user?.id],
-    enabled: !!user,
+    queryKey: ["pluggy_sync_logs", empresaId, targetUserId],
+    enabled: !!targetUserId,
     queryFn: async () => {
-      const { data, error } = await supabase
+      let q = supabase
         .from("pluggy_sync_logs" as any)
         .select("*")
         .order("created_at", { ascending: false })
         .limit(200);
+      q = empresaId ? q.eq("empresa_id", empresaId) : q.eq("user_id", targetUserId!);
+      const { data, error } = await q;
       if (error) throw error;
       return (data as any[]) || [];
     },
   });
 
   const { data: contas = [] } = useQuery({
-    queryKey: ["sincronizacao_contas", user?.id],
-    enabled: !!user,
+    queryKey: ["sincronizacao_contas", empresaId, targetUserId],
+    enabled: !!targetUserId,
     queryFn: async () => {
-      const { data, error } = await supabase
+      let q = supabase
         .from("contas_bancarias")
-        .select("id, nome, banco, pluggy_account_id, investimento_sincronizado, divergencia_alerta_limite, ultima_sync_at, ativo")
+        .select("id, user_id, empresa_id, nome, banco, pluggy_account_id, investimento_sincronizado, divergencia_alerta_limite, ultima_sync_at, ativo")
         .eq("ativo", true)
         .order("nome");
+      q = empresaId ? q.eq("empresa_id", empresaId) : q.eq("user_id", targetUserId!);
+      const { data, error } = await q;
       if (error) throw error;
       return data || [];
     },
   });
 
   const { data: reconciliations = [] } = useQuery({
-    queryKey: ["recon_latest", user?.id],
-    enabled: !!user,
+    queryKey: ["recon_latest", empresaId, targetUserId],
+    enabled: !!targetUserId,
     queryFn: async () => {
-      const { data, error } = await supabase
+      let q = supabase
         .from("reconciliacoes_investimento" as any)
         .select("*")
         .order("created_at", { ascending: false })
         .limit(500);
+      q = empresaId ? q.eq("empresa_id", empresaId) : q.eq("user_id", targetUserId!);
+      const { data, error } = await q;
       if (error) throw error;
       return (data as any[]) || [];
     },
   });
+
+  const pluggyAccountIds = useMemo(
+    () => contas.map((c: any) => c.pluggy_account_id).filter(Boolean),
+    [contas]
+  );
+
+  const { data: pluggyAccounts = [] } = useQuery({
+    queryKey: ["sincronizacao_pluggy_accounts", targetUserId, pluggyAccountIds.join("|")],
+    enabled: !!targetUserId && pluggyAccountIds.length > 0,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("pluggy_bank_accounts" as any)
+        .select("pluggy_account_id, pluggy_item_id")
+        .eq("user_id", targetUserId!)
+        .in("pluggy_account_id", pluggyAccountIds);
+      if (error) throw error;
+      return (data as any[]) || [];
+    },
+  });
+
+  const officialAccountNamesByItem = useMemo(() => {
+    const itemByAccount = new Map(pluggyAccounts.map((a: any) => [a.pluggy_account_id, a.pluggy_item_id]));
+    const grouped: Record<string, string[]> = {};
+    for (const c of contas as any[]) {
+      const itemId = itemByAccount.get(c.pluggy_account_id);
+      if (!itemId || !c.nome) continue;
+      grouped[itemId] = [...(grouped[itemId] || []), c.nome];
+    }
+    return grouped;
+  }, [contas, pluggyAccounts]);
 
   const latestByConta = useMemo(() => {
     const map: Record<string, any> = {};
