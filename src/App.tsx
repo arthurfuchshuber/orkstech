@@ -33,6 +33,7 @@ import Fluxo from "./pages/app/Fluxo";
 import NotFound from "./pages/NotFound";
 import ExtratoBancario from "./pages/app/ExtratoBancario";
 import Conciliacao from "./pages/app/Conciliacao";
+import Sincronizacao from "./pages/app/Sincronizacao";
 import DREPage from "./pages/app/DREPage";
 import ConfigConta from "./pages/app/ConfigConta";
 import ConfigPlanos from "./pages/app/ConfigPlanos";
