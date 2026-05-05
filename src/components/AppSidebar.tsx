@@ -13,6 +13,8 @@ import { ChevronRight } from "lucide-react";
 import { EmpresaSelector } from "@/components/EmpresaSelector";
 import { OrksWordmark } from "@/components/OrksWordmark";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import orksLogoMark from "@/assets/orks-logo-mark.png";
 import {
   Sidebar,
   SidebarContent,
