@@ -567,15 +567,6 @@ export function AppSidebar() {
         )}
       </SidebarContent>
 
-      <SidebarFooter className={collapsed ? "px-0 py-2" : "px-3 py-3"}>
-        <div
-          className="text-center text-[10px] tracking-[0.15em] uppercase font-medium leading-tight"
-          style={{ color: "hsl(280 70% 75%)" }}
-          title="by Anfitrião Sigma"
-        >
-          {collapsed ? "AS" : "by Anfitrião Sigma"}
-        </div>
-      </SidebarFooter>
     </Sidebar>
   );
 }
