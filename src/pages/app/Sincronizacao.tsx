@@ -301,7 +301,16 @@ export default function Sincronizacao() {
                 {logs.map((l: any) => (
                   <TableRow key={l.id} className="text-xs">
                     <TableCell className="py-2 text-[11px] text-muted-foreground">{fmtDate(l.created_at)}</TableCell>
-                    <TableCell className="py-2">{l.connector_name || "—"}</TableCell>
+                    <TableCell className="py-2">
+                      <div className="font-medium text-foreground truncate" title={(officialAccountNamesByItem[l.pluggy_item_id] || []).join(" · ") || undefined}>
+                        {(officialAccountNamesByItem[l.pluggy_item_id] || [])[0] || l.connector_name || "—"}
+                      </div>
+                      {officialAccountNamesByItem[l.pluggy_item_id]?.length > 1 && (
+                        <div className="text-[10px] text-muted-foreground truncate">
+                          +{officialAccountNamesByItem[l.pluggy_item_id].length - 1} conta{officialAccountNamesByItem[l.pluggy_item_id].length > 2 ? "s" : ""} cadastrada{officialAccountNamesByItem[l.pluggy_item_id].length > 2 ? "s" : ""}
+                        </div>
+                      )}
+                    </TableCell>
                     <TableCell className="py-2"><Badge variant="outline" className="text-[9px] px-1.5 py-0 h-4 font-normal">{l.source}</Badge></TableCell>
                     <TableCell className="py-2">
                       <Badge variant={l.value_type === "liquido" ? "default" : "secondary"} className="text-[9px] px-1.5 py-0 h-4 font-normal">
