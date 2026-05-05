@@ -92,16 +92,18 @@ export function EmpresaSelector({ collapsed }: { collapsed: boolean }) {
       <>
         <DropdownMenu onOpenChange={(open) => { if (!open) setSearch(""); }}>
           <DropdownMenuTrigger asChild>
-            <Tooltip>
-              <TooltipTrigger asChild>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <DropdownMenuTrigger asChild>
                 <button className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-[11px] font-bold text-primary hover:bg-primary/20 transition-colors mx-auto">
                   {isSuperAdminMode ? <Shield className="w-4 h-4" /> : initials}
                 </button>
-              </TooltipTrigger>
-              <TooltipContent side="right" sideOffset={8} className="text-xs">
-                {isSuperAdminMode ? "Super Admin — Empresas" : (empresa?.nome_fantasia || empresa?.razao_social || "Empresas")}
-              </TooltipContent>
-            </Tooltip>
+              </DropdownMenuTrigger>
+            </TooltipTrigger>
+            <TooltipContent side="right" sideOffset={8} className="text-xs">
+              Empresas
+            </TooltipContent>
+          </Tooltip>
           </DropdownMenuTrigger>
           <DropdownMenuContent side="right" align="start" className="w-72">
             {isSuperAdminMode && (
