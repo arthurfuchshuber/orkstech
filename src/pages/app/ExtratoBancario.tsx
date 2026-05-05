@@ -781,15 +781,25 @@ export default function ExtratoBancario() {
 
       {(creditCards.length > 0 || bankAccounts.length > 0) && (
         <Card className="p-4">
-          <div className="mb-3 flex items-center gap-2">
+          <div className="flex items-center gap-2">
             <Landmark className="h-4 w-4 text-primary" />
             <h2 className="text-sm font-semibold text-foreground">Contas & Cartões</h2>
             <Badge variant="outline" className="ml-1 text-[10px] font-normal">
               {bankAccounts.length} conta{bankAccounts.length !== 1 ? "s" : ""} · {creditCards.length} cartão{creditCards.length !== 1 ? "ões" : ""}
             </Badge>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="ml-auto h-7 w-7"
+              onClick={() => setContasCardsExpanded((v) => !v)}
+              aria-label={contasCardsExpanded ? "Recolher" : "Expandir"}
+            >
+              <ChevronDown className={cn("h-4 w-4 transition-transform", contasCardsExpanded && "rotate-180")} />
+            </Button>
           </div>
 
-          <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+          {contasCardsExpanded && (
+          <div className="mt-3 grid gap-2 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
             {bankAccounts.map((account) => {
               const stored = getStoredBalance(account);
               const totals = totalsByAccount[account.pluggy_account_id] ?? { income: 0, expense: 0 };
