@@ -459,13 +459,12 @@ export function AppSidebar() {
       <SidebarHeader className={collapsed ? "px-0 py-3 space-y-2" : "px-3 py-4 space-y-3"}>
         <div className={`flex items-center ${collapsed ? "justify-center" : "gap-2.5 px-1"}`}>
           {collapsed ? (
-            <div
-              className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center font-black text-primary leading-none"
-              style={{ fontFamily: "'Orbitron', 'Inter', sans-serif", fontSize: "15px" }}
+            <img
+              src={orksLogoMark}
+              alt="Orks"
+              className="w-10 h-10 object-contain"
               title="Orks · Gestão 360º"
-            >
-              O
-            </div>
+            />
           ) : (
             <div className="flex items-center gap-3 min-w-0">
               <OrksWordmark size="text-xl" />
