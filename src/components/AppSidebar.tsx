@@ -530,20 +530,26 @@ export function AppSidebar() {
             <SidebarGroupContent>
               {collapsed ? (
                 <div className="px-1 py-0.5">
-                  <button
-                    onClick={() => navigate("/app/admin")}
-                    className={`relative w-10 h-10 mx-auto flex items-center justify-center rounded-lg transition-all duration-200 ${
-                      isAdminActive
-                        ? "text-primary bg-primary/[0.10]"
-                        : "text-muted-foreground/70 hover:text-foreground hover:bg-muted/40"
-                    }`}
-                    title="Administrador"
-                  >
-                    {isAdminActive && (
-                      <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[2px] h-5 rounded-full bg-primary" />
-                    )}
-                    <DynamicIcon name="ShieldCheck" className="w-[18px] h-[18px]" />
-                  </button>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        onClick={() => navigate("/app/admin")}
+                        className={`relative w-10 h-10 mx-auto flex items-center justify-center rounded-lg transition-all duration-200 ${
+                          isAdminActive
+                            ? "text-primary bg-primary/[0.10]"
+                            : "text-muted-foreground/70 hover:text-foreground hover:bg-muted/40"
+                        }`}
+                      >
+                        {isAdminActive && (
+                          <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[2px] h-5 rounded-full bg-primary" />
+                        )}
+                        <DynamicIcon name="ShieldCheck" className="w-[18px] h-[18px]" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent side="right" sideOffset={8} className="text-xs">
+                      Administrador
+                    </TooltipContent>
+                  </Tooltip>
                 </div>
               ) : (
                 <SidebarMenu>
