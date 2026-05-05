@@ -10,6 +10,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 import { UpgradeDialog } from "@/components/UpgradeDialog";
 import { NovaEmpresaModal } from "@/components/NovaEmpresaModal";
