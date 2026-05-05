@@ -136,7 +136,7 @@ export function OnboardingChecklist() {
   );
 
   // Empresa step is implicit — sempre verdadeiro nesse ponto (chega aqui só com empresa criada)
-  const inviteAction = () => navigate("/app/configuracoes/empresa?tab=permissoes");
+  const inviteAction = () => navigate("/app/config/conta?tab=usuarios");
 
   if (!status || isDismissed || isComplete) {
     // Mostra apenas o botão flutuante de "Concluído" se 100%; caso dispensado, esconde.
