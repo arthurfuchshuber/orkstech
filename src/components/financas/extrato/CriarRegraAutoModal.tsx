@@ -12,6 +12,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useEmpresa } from "@/hooks/useEmpresa";
 import { toast } from "sonner";
+import { ManagedSelectInput } from "@/components/inputs/ManagedSelectInput";
+import { CategoriaFinanceiraModal } from "@/components/modals/CategoriaFinanceiraModal";
 
 interface Props {
   open: boolean;
