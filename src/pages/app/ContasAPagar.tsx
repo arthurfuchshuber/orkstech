@@ -696,12 +696,29 @@ export default function ContasAPagar() {
   const handleBulkUpdate = async (data: Record<string, any>) => {
     const ids = Array.from(selectedIds);
     if (ids.length === 0) return;
+    // Captura descrições antes de limpar a seleção (para oferta de regra)
+    const selecionadas = filtered.filter((p: any) => ids.includes(p.id));
     for (const id of ids) {
       await updateAccountPayable(id, data);
     }
     setSelectedIds(new Set());
     await refreshQueries(queryClient, [["accounts-payable"], ["accounts-payable-counts"]]);
     toast.success(`${ids.length} conta(s) atualizada(s)!`);
+
+    // Se foi categorização em massa de 2+ itens, oferece criar regra
+    if (
+      Object.prototype.hasOwnProperty.call(data, "categoria_financeira_id") &&
+      data.categoria_financeira_id &&
+      selecionadas.length >= 2
+    ) {
+      const cat = categoriasFinanceiras.find((c: any) => c.id === data.categoria_financeira_id);
+      setOfertaRegra({
+        open: true,
+        descricoes: selecionadas.map((p: any) => p.description || "").filter(Boolean),
+        categoriaId: data.categoria_financeira_id,
+        categoriaNome: cat?.nome,
+      });
+    }
   };
 
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
