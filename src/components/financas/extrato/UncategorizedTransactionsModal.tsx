@@ -11,10 +11,17 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
 import { enhancePluggyDescription, type PluggyTxLike } from "@/lib/pluggy-description";
+import { classifyInternalSubtype } from "@/lib/internal-tx-subtype";
 import { useRegraConflitoDetector } from "@/hooks/useRegraConflitoDetector";
 import { RegraConflitoModal } from "@/components/financas/dre/RegraConflitoModal";
 import { OfertaCriarRegraModal } from "./OfertaCriarRegraModal";
 import { DescricaoComRegra } from "./DescricaoComRegra";
+
+/** Remove o prefixo "Tipo |" mantendo só a contraparte. */
+const stripTypePrefix = (s: string) => {
+  const idx = s.indexOf("|");
+  return idx >= 0 ? s.slice(idx + 1).trim() : s.trim();
+};
 
 interface Props {
   open: boolean;
@@ -27,6 +34,8 @@ interface Tx extends PluggyTxLike {
   date: string;
   pluggy_account_id: string;
   categoria_financeira_id: string | null;
+  category?: string | null;
+  is_internal_transfer?: boolean | null;
 }
 
 const fmt = (v: number) =>
@@ -76,7 +85,7 @@ export function UncategorizedTransactionsModal({ open, onOpenChange }: Props) {
         const { data, error } = await supabase
           .from("pluggy_transactions" as any)
           .select(
-            "id, description, amount, date, type, pluggy_account_id, categoria_financeira_id, payment_data"
+            "id, description, amount, date, type, pluggy_account_id, categoria_financeira_id, payment_data, category, is_internal_transfer"
           )
           .eq("user_id", targetUserId!)
           .is("categoria_financeira_id", null)
@@ -173,8 +182,13 @@ export function UncategorizedTransactionsModal({ open, onOpenChange }: Props) {
     onError: (err: any) => toast.error(err?.message || "Erro ao salvar"),
   });
 
+  // Filtra movimentações internas (transferências, pagamento de fatura, aplicações/resgates)
+  // que não precisam de categorização DRE — só sobram movimentações reais.
   const enhancedTransactions = useMemo(
-    () => transactions.map((tx) => ({ ...tx, _pretty: enhancePluggyDescription(tx) })),
+    () =>
+      transactions
+        .filter((tx) => classifyInternalSubtype(tx as any) === null)
+        .map((tx) => ({ ...tx, _pretty: stripTypePrefix(enhancePluggyDescription(tx)) })),
     [transactions]
   );
 
