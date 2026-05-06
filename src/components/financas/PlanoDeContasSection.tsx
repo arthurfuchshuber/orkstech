@@ -30,6 +30,7 @@ interface Categoria {
   categoria_pai_id: string | null;
   ordem: number;
   ativo: boolean;
+  origem_socio_id?: string | null;
   children?: Categoria[];
 }
 
