@@ -570,8 +570,8 @@ export default function ExtratoBancario() {
     account.balance + getStoredBalance(account);
 
   // Filter out internal transactions (caixinhas/investments) for totals
-  const externalTransactions = allTransactions.filter((tx) => !isInternalTransaction(tx));
-  const internalTransactions = allTransactions.filter((tx) => isInternalTransaction(tx));
+  const externalTransactions = allTransactions.filter((tx) => !isInternalTransaction(tx, creditAccountIds));
+  const internalTransactions = allTransactions.filter((tx) => isInternalTransaction(tx, creditAccountIds));
 
   const totalsByAccount = externalTransactions.reduce<
     Record<string, { income: number; expense: number }>
