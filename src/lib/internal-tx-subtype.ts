@@ -72,7 +72,11 @@ export function classifyInternalSubtype(
   }
   // Pagamento da fatura visto pelo lado do banco (descrição/categoria)
   const c = (tx.category || "").toLowerCase();
-  if (c.includes("credit card payment") || c.includes("fatura")) {
+  if (
+    c.includes("credit card payment") ||
+    c.includes("fatura") ||
+    isCreditCardPaymentDescription(tx.description)
+  ) {
     return "pagamento_fatura";
   }
   // Transferências entre contas próprias
