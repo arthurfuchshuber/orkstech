@@ -34,6 +34,8 @@ interface Tx extends PluggyTxLike {
   date: string;
   pluggy_account_id: string;
   categoria_financeira_id: string | null;
+  category?: string | null;
+  is_internal_transfer?: boolean | null;
 }
 
 const fmt = (v: number) =>
