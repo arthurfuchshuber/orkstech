@@ -669,11 +669,11 @@ export default function ExtratoBancario() {
   );
 
   const totalIncome = externalTransactions
-    .filter((tx) => tx.type === "CREDIT" || tx.amount > 0)
+    .filter((tx) => isInflow(tx))
     .reduce((sum, tx) => sum + Math.abs(tx.amount), 0);
 
   const totalExpense = externalTransactions
-    .filter((tx) => tx.type === "DEBIT" || tx.amount < 0)
+    .filter((tx) => !isInflow(tx))
     .reduce((sum, tx) => sum + Math.abs(tx.amount), 0);
 
   const resultado = totalIncome - totalExpense;
