@@ -341,37 +341,46 @@ export function PlanoDeContasSection() {
                             <span className="text-[10px] font-mono text-muted-foreground flex-shrink-0 min-w-[2rem]">{item.number}</span>
                             <span className="text-xs font-medium text-foreground flex-1 truncate">{node.nome}</span>
                             <Badge variant="outline" className={`text-[9px] px-1 py-0 leading-4 ${tipoColors[node.tipo]}`}>{tipoLabels[node.tipo]}</Badge>
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon" className="h-5 w-5 opacity-0 group-hover:opacity-100 transition-opacity">
-                                  <ChevronDown className="w-3 h-3" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
-                                <DropdownMenuItem onClick={() => openNew(node.id, node.tipo)}>
-                                  <Plus className="w-4 h-4 mr-2" /> Adicionar Sub
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => openEdit(node)}>
-                                  <Pencil className="w-4 h-4 mr-2" /> Editar
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => openMoveModal(node)}>
-                                  <MoveRight className="w-4 h-4 mr-2" /> Mover para
-                                </DropdownMenuItem>
-                                {node.categoria_pai_id && (
-                                  <DropdownMenuItem onClick={() => handlePromoteToRoot(node)}>
-                                    <ChevronRight className="w-4 h-4 mr-2 rotate-[-90deg]" /> Promover para raiz
-                                  </DropdownMenuItem>
-                                )}
-                                <DropdownMenuItem onClick={() => toggleMutation.mutate({ id: node.id, ativo: !node.ativo })}>
-                                  <Power className={`w-4 h-4 mr-2 ${node.ativo ? "text-emerald-400" : "text-muted-foreground"}`} /> {node.ativo ? "Desativar" : "Ativar"}
-                                </DropdownMenuItem>
-                                {!hasChildren && (
-                                  <DropdownMenuItem onClick={() => deleteMutation.mutate(node.id)} className="text-destructive">
-                                    <Trash2 className="w-4 h-4 mr-2" /> Excluir
-                                  </DropdownMenuItem>
-                                )}
-                              </DropdownMenuContent>
-                            </DropdownMenu>
+                            {(() => {
+                              const isProtected = node.tipo === "distribuicao_lucros" && !node.categoria_pai_id;
+                              return (
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="h-5 w-5 opacity-0 group-hover:opacity-100 transition-opacity">
+                                      <ChevronDown className="w-3 h-3" />
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end">
+                                    <DropdownMenuItem onClick={() => openNew(node.id, node.tipo)}>
+                                      <Plus className="w-4 h-4 mr-2" /> Adicionar Sub
+                                    </DropdownMenuItem>
+                                    {!isProtected && (
+                                      <>
+                                        <DropdownMenuItem onClick={() => openEdit(node)}>
+                                          <Pencil className="w-4 h-4 mr-2" /> Editar
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem onClick={() => openMoveModal(node)}>
+                                          <MoveRight className="w-4 h-4 mr-2" /> Mover para
+                                        </DropdownMenuItem>
+                                        {node.categoria_pai_id && (
+                                          <DropdownMenuItem onClick={() => handlePromoteToRoot(node)}>
+                                            <ChevronRight className="w-4 h-4 mr-2 rotate-[-90deg]" /> Promover para raiz
+                                          </DropdownMenuItem>
+                                        )}
+                                        <DropdownMenuItem onClick={() => toggleMutation.mutate({ id: node.id, ativo: !node.ativo })}>
+                                          <Power className={`w-4 h-4 mr-2 ${node.ativo ? "text-emerald-400" : "text-muted-foreground"}`} /> {node.ativo ? "Desativar" : "Ativar"}
+                                        </DropdownMenuItem>
+                                        {!hasChildren && (
+                                          <DropdownMenuItem onClick={() => deleteMutation.mutate(node.id)} className="text-destructive">
+                                            <Trash2 className="w-4 h-4 mr-2" /> Excluir
+                                          </DropdownMenuItem>
+                                        )}
+                                      </>
+                                    )}
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              );
+                            })()}
                           </div>
                         )}
                       </Draggable>
