@@ -198,6 +198,7 @@ export default function ExtratoBancario() {
   const [searchTerm, setSearchTerm] = useState("");
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [categoryFilter, setCategoryFilter] = useState<"all" | "sem-categoria" | "com-categoria">("all");
+  const [uncatModalOpen, setUncatModalOpen] = useState(false);
   const [internoFilter, setInternoFilter] = useState<"all" | "ocultar" | "somente" | InternalSubtype>("all");
   const [allPeriod, setAllPeriod] = useState(false);
 
