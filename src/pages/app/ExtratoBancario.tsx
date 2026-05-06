@@ -37,6 +37,7 @@ import { ImportsHistoryTargeted } from "@/components/financas/importacoes/Import
 import { ManualBankTransactionDialog } from "@/components/financas/extrato/ManualBankTransactionDialog";
 import { PluggyTransactionEditDialog } from "@/components/financas/extrato/PluggyTransactionEditDialog";
 import { OfertaCriarRegraModal } from "@/components/financas/extrato/OfertaCriarRegraModal";
+import { DescricaoComRegra } from "@/components/financas/extrato/DescricaoComRegra";
 import {
   ArrowDownLeft,
   ArrowUpRight,
