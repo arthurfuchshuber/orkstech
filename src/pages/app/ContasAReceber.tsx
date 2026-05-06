@@ -128,6 +128,12 @@ export default function ContasAReceber() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<ReceivableForm>(initialForm);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [ofertaRegra, setOfertaRegra] = useState<{
+    open: boolean;
+    descricoes: string[];
+    categoriaId: string;
+    categoriaNome?: string;
+  }>({ open: false, descricoes: [], categoriaId: "" });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState<string>("open");
