@@ -1309,6 +1309,8 @@ export default function ExtratoBancario() {
         categoriaNome={ofertaRegra.categoriaNome}
         tipoSugerido={ofertaRegra.tipoSugerido}
       />
+
+      <RegraConflitoModal conflito={conflito} onClose={() => setConflito(null)} />
     </div>
   );
 }
