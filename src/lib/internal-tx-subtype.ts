@@ -10,7 +10,7 @@ export type InternalSubtype =
 
 export const INTERNAL_SUBTYPE_LABEL: Record<InternalSubtype, string> = {
   transferencia_entre_contas: "Transferência entre contas",
-  pagamento_fatura: "Pagamento de fatura",
+  pagamento_fatura: "Pagamento de Fatura de Cartão",
   aplicacao_investimento: "Aplicação",
   resgate_investimento: "Resgate",
   interno_outros: "Movimento interno",
