@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { PendenciasIndicator } from "@/components/financas/PendenciasIndicator";
+import { UncategorizedTransactionsModal } from "@/components/financas/extrato/UncategorizedTransactionsModal";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useEmpresa } from "@/hooks/useEmpresa";
@@ -197,6 +198,7 @@ export default function ExtratoBancario() {
   const [searchTerm, setSearchTerm] = useState("");
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [categoryFilter, setCategoryFilter] = useState<"all" | "sem-categoria" | "com-categoria">("all");
+  const [uncatModalOpen, setUncatModalOpen] = useState(false);
   const [internoFilter, setInternoFilter] = useState<"all" | "ocultar" | "somente" | InternalSubtype>("all");
   const [allPeriod, setAllPeriod] = useState(false);
 
@@ -727,7 +729,7 @@ export default function ExtratoBancario() {
           </TabsList>
           <PendenciasIndicator
             cardsSemVinculo={[]}
-            onCategorizar={() => { setCategoryFilter("sem-categoria"); setAllPeriod(true); }}
+            onCategorizar={() => setUncatModalOpen(true)}
             onRealocar={() => {}}
             onRevisarOrfaos={() => {}}
             onVincularCard={() => {}}
@@ -1400,6 +1402,8 @@ export default function ExtratoBancario() {
       />
 
       <RegraConflitoModal conflito={conflito} onClose={() => setConflito(null)} />
+
+      <UncategorizedTransactionsModal open={uncatModalOpen} onOpenChange={setUncatModalOpen} />
     </div>
   );
 }
