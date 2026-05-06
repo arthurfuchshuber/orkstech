@@ -262,8 +262,8 @@ export function UncategorizedTransactionsModal({ open, onOpenChange }: Props) {
               <SelectContent>
                 <SelectItem value="all">Todas as contas</SelectItem>
                 {accounts.map((a: any) => (
-                  <SelectItem key={a.pluggy_id} value={a.pluggy_id}>
-                    {a.marketing_name || a.name}
+                  <SelectItem key={a.pluggy_account_id} value={a.pluggy_account_id}>
+                    {a.name}
                   </SelectItem>
                 ))}
               </SelectContent>
