@@ -133,6 +133,7 @@ export function PluggyConnectButton({
       toast.error("Erro ao salvar conexão");
     } else {
       toast.success(`${item.connector?.name || "Banco"} conectado! Sincronizando dados...`);
+      onConnected?.({ pluggyItemId: item.id, connectorName: item.connector?.name || "Banco conectado" });
       qc.invalidateQueries({ queryKey: ["pluggy_connections"] });
       qc.invalidateQueries({ queryKey: ["pluggy_connections_exist"] });
 
