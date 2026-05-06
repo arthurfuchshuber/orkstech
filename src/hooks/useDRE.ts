@@ -321,17 +321,18 @@ export function useDRE(filters: DREFilters) {
     const lines: DRELine[] = [];
     const totals = {
       receita: 0, deducao: 0, custo: 0, despesa: 0,
-      receita_fin: 0, despesa_fin: 0, imposto: 0,
+      receita_fin: 0, despesa_fin: 0, imposto: 0, distribuicao: 0,
     };
     const totalsPrev = {
       receita: 0, deducao: 0, custo: 0, despesa: 0,
-      receita_fin: 0, despesa_fin: 0, imposto: 0,
+      receita_fin: 0, despesa_fin: 0, imposto: 0, distribuicao: 0,
     };
 
     const accumulate = (root: CatNode, line: DRELine, prev: number) => {
       const map: Record<string, keyof typeof totals> = {
         receita: "receita", deducao: "deducao", custo: "custo", despesa: "despesa",
         receita_financeira: "receita_fin", despesa_financeira: "despesa_fin", imposto: "imposto",
+        distribuicao_lucros: "distribuicao",
       };
       const key = map[root.tipo as string];
       if (key) {
