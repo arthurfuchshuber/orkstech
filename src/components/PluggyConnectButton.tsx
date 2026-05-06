@@ -88,7 +88,13 @@ export function usePluggyConnections() {
   return { connections, deleteMutation, handleSync };
 }
 
-export function PluggyConnectButton({ size = "default" }: { size?: "default" | "sm" }) {
+export function PluggyConnectButton({
+  size = "default",
+  onConnected,
+}: {
+  size?: "default" | "sm";
+  onConnected?: (info: { pluggyItemId: string; connectorName: string }) => void;
+}) {
   const { user } = useAuth();
   const qc = useQueryClient();
   const [loading, setLoading] = useState(false);
@@ -127,6 +133,7 @@ export function PluggyConnectButton({ size = "default" }: { size?: "default" | "
       toast.error("Erro ao salvar conexão");
     } else {
       toast.success(`${item.connector?.name || "Banco"} conectado! Sincronizando dados...`);
+      onConnected?.({ pluggyItemId: item.id, connectorName: item.connector?.name || "Banco conectado" });
       qc.invalidateQueries({ queryKey: ["pluggy_connections"] });
       qc.invalidateQueries({ queryKey: ["pluggy_connections_exist"] });
 

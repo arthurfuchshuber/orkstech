@@ -12,7 +12,7 @@ import { ManagedSelectInput } from "@/components/inputs/ManagedSelectInput";
 import { BancoModal } from "./BancoModal";
 import { useManagedSelect } from "@/hooks/useManagedSelect";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Landmark, Link2, PencilLine, ArrowLeft } from "lucide-react";
+import { Landmark, Link2, PencilLine, ArrowLeft, CheckCircle2, Loader2 } from "lucide-react";
 import { PluggyConnectButton } from "@/components/PluggyConnectButton";
 
 type TipoConta = "corrente" | "poupanca" | "caixa" | "carteira_digital" | "cartao_credito";
@@ -44,7 +44,9 @@ export function ContaBancariaModal({ open, onOpenChange, editingId, onSaved, def
   });
   const [bancoModalOpen, setBancoModalOpen] = useState(false);
   const [bancoEditingId, setBancoEditingId] = useState<string | null>(null);
-  const [mode, setMode] = useState<"choice" | "manual">("choice");
+  const [mode, setMode] = useState<"choice" | "manual" | "connected">("choice");
+  const [connectedItemId, setConnectedItemId] = useState<string | null>(null);
+  const [connectedName, setConnectedName] = useState<string>("");
 
   const bancosCrud = useManagedSelect("bancos");
 
@@ -161,7 +163,13 @@ export function ContaBancariaModal({ open, onOpenChange, editingId, onSaved, def
                   <ArrowLeft className="w-4 h-4" />
                 </button>
               )}
-              {editingId ? "Editar Conta Bancária" : mode === "choice" ? "Adicionar Conta" : "Nova Conta Bancária (Manual)"}
+              {editingId
+                ? "Editar Conta Bancária"
+                : mode === "choice"
+                ? "Adicionar Conta"
+                : mode === "connected"
+                ? "Conexão Concluída"
+                : "Nova Conta Bancária (Manual)"}
             </DialogTitle>
           </DialogHeader>
 
@@ -178,7 +186,14 @@ export function ContaBancariaModal({ open, onOpenChange, editingId, onSaved, def
                     <p className="text-xs text-muted-foreground mt-0.5">Sincronização automática de saldos e transações. Recomendado.</p>
                   </div>
                 </div>
-                <PluggyConnectButton size="sm" />
+                <PluggyConnectButton
+                  size="sm"
+                  onConnected={({ pluggyItemId, connectorName }) => {
+                    setConnectedItemId(pluggyItemId);
+                    setConnectedName(connectorName);
+                    setMode("connected");
+                  }}
+                />
               </div>
               <button
                 onClick={() => setMode("manual")}
@@ -195,6 +210,12 @@ export function ContaBancariaModal({ open, onOpenChange, editingId, onSaved, def
                 </div>
               </button>
             </div>
+          ) : !editingId && mode === "connected" ? (
+            <ConnectedSummary
+              pluggyItemId={connectedItemId!}
+              connectorName={connectedName}
+              onDone={() => onOpenChange(false)}
+            />
           ) : (
             <>
               <div className="space-y-4 py-2">
@@ -297,5 +318,95 @@ export function ContaBancariaModal({ open, onOpenChange, editingId, onSaved, def
         onSaved={(id) => setForm((prev) => ({ ...prev, banco_id: id }))}
       />
     </>
+  );
+}
+
+function ConnectedSummary({
+  pluggyItemId,
+  connectorName,
+  onDone,
+}: {
+  pluggyItemId: string;
+  connectorName: string;
+  onDone: () => void;
+}) {
+  const fmtBRL = (v: number | null | undefined) =>
+    new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(v ?? 0));
+
+  // Polling: a sincronização é em background, então buscamos a cada 3s até aparecerem contas (max ~30s)
+  const { data: accounts = [], isLoading } = useQuery({
+    queryKey: ["pluggy_bank_accounts_connected", pluggyItemId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("pluggy_bank_accounts" as any)
+        .select("id, name, type, subtype, balance, credit_limit, credit_available, currency_code")
+        .eq("pluggy_item_id", pluggyItemId)
+        .order("created_at", { ascending: true });
+      if (error) throw error;
+      return (data ?? []) as any[];
+    },
+    refetchInterval: (q) => ((q.state.data as any[] | undefined)?.length ? false : 3000),
+    refetchIntervalInBackground: false,
+  });
+
+  return (
+    <div className="py-4 space-y-4">
+      <div className="flex flex-col items-center text-center gap-2">
+        <div className="w-12 h-12 rounded-full bg-green-500/15 flex items-center justify-center ring-1 ring-green-500/30">
+          <CheckCircle2 className="w-6 h-6 text-green-500" />
+        </div>
+        <p className="text-sm font-semibold text-foreground">{connectorName} conectado!</p>
+        <p className="text-xs text-muted-foreground max-w-sm">
+          {accounts.length > 0
+            ? "Encontramos as contas abaixo. Os saldos e transações continuarão sincronizando automaticamente em segundo plano."
+            : "Estamos buscando suas contas e saldos no banco. Isso leva alguns segundos..."}
+        </p>
+      </div>
+
+      {isLoading || accounts.length === 0 ? (
+        <div className="flex items-center justify-center gap-2 py-6 text-xs text-muted-foreground">
+          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+          Buscando contas...
+        </div>
+      ) : (
+        <div className="space-y-2 max-h-[40vh] overflow-y-auto">
+          {accounts.map((acc) => {
+            const isCard = (acc.type || "").toUpperCase() === "CREDIT" || (acc.subtype || "").toUpperCase().includes("CREDIT");
+            return (
+              <div key={acc.id} className="rounded-lg border border-border/60 bg-card/50 p-3 flex items-center gap-3">
+                <div className="w-9 h-9 rounded-md bg-primary/10 flex items-center justify-center flex-shrink-0">
+                  <Landmark className="w-4 h-4 text-primary" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-foreground truncate">{acc.name || "Conta"}</p>
+                  <p className="text-[11px] text-muted-foreground uppercase tracking-wide">
+                    {acc.subtype || acc.type || "—"}
+                  </p>
+                </div>
+                <div className="text-right">
+                  {isCard ? (
+                    <>
+                      <p className="text-[10px] text-muted-foreground uppercase">Limite disp.</p>
+                      <p className="text-sm font-semibold text-foreground">{fmtBRL(acc.credit_available)}</p>
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-[10px] text-muted-foreground uppercase">Saldo</p>
+                      <p className="text-sm font-semibold text-foreground">{fmtBRL(acc.balance)}</p>
+                    </>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      <DialogFooter>
+        <Button onClick={onDone} className="w-full">
+          Concluir
+        </Button>
+      </DialogFooter>
+    </div>
   );
 }
