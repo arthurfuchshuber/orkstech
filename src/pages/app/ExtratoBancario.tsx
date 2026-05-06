@@ -36,6 +36,7 @@ import { GenericImporter } from "@/components/financas/importacoes/GenericImport
 import { ImportsHistoryTargeted } from "@/components/financas/importacoes/ImportsHistoryTargeted";
 import { ManualBankTransactionDialog } from "@/components/financas/extrato/ManualBankTransactionDialog";
 import { PluggyTransactionEditDialog } from "@/components/financas/extrato/PluggyTransactionEditDialog";
+import { OfertaCriarRegraModal } from "@/components/financas/extrato/OfertaCriarRegraModal";
 import {
   ArrowDownLeft,
   ArrowUpRight,
@@ -206,6 +207,13 @@ export default function ExtratoBancario() {
   const [manualDialogOpen, setManualDialogOpen] = useState(false);
   const [editingManual, setEditingManual] = useState<any>(null);
   const [batchSelection, setBatchSelection] = useState<Set<string>>(new Set());
+  const [ofertaRegra, setOfertaRegra] = useState<{
+    open: boolean;
+    descricoes: string[];
+    categoriaId: string;
+    categoriaNome?: string;
+    tipoSugerido: "pagar" | "receber";
+  }>({ open: false, descricoes: [], categoriaId: "", tipoSugerido: "pagar" });
   const [pluggyEditTx, setPluggyEditTx] = useState<{ id: string; description: string | null; amount: number; date: string } | null>(null);
   const [contasCardsExpanded, setContasCardsExpanded] = useState(false);
 
@@ -459,18 +467,33 @@ export default function ExtratoBancario() {
   });
 
   const batchUpdateCategoriaMutation = useMutation({
-    mutationFn: async ({ ids, categoria_financeira_id }: { ids: string[]; categoria_financeira_id: string | null }) => {
+    mutationFn: async ({ ids, categoria_financeira_id }: { ids: string[]; categoria_financeira_id: string | null; categoriaNome?: string }) => {
       const { data, error } = await supabase
         .from("pluggy_transactions" as any)
         .update({ categoria_financeira_id })
         .in("id", ids)
-        .select("id");
+        .select("id, description, amount");
       if (error) throw error;
-      return data;
+      return data as any[];
     },
-    onSuccess: (data) => {
+    onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["pluggy_transactions"] });
       toast.success(`${data?.length ?? 0} transação(ões) atualizada(s)`);
+      const ids = new Set(variables.ids);
+      const selecionadas = (data ?? []).filter((t: any) => ids.has(t.id));
+      // Se categorizou 2+ itens com uma categoria real, oferece criar regra
+      if (variables.categoria_financeira_id && selecionadas.length >= 2) {
+        const negativos = selecionadas.filter((t: any) => Number(t.amount) < 0).length;
+        const tipoSugerido: "pagar" | "receber" =
+          negativos >= selecionadas.length / 2 ? "pagar" : "receber";
+        setOfertaRegra({
+          open: true,
+          descricoes: selecionadas.map((t: any) => t.description || "").filter(Boolean),
+          categoriaId: variables.categoria_financeira_id,
+          categoriaNome: variables.categoriaNome,
+          tipoSugerido,
+        });
+      }
       setBatchSelection(new Set());
     },
     onError: (err: any) => {
@@ -1051,6 +1074,7 @@ export default function ExtratoBancario() {
                           batchUpdateCategoriaMutation.mutate({
                             ids: Array.from(batchSelection),
                             categoria_financeira_id: c.id,
+                            categoriaNome: c.nome,
                           })
                         }
                       >
@@ -1268,6 +1292,15 @@ export default function ExtratoBancario() {
         onOpenChange={(v) => !v && setPluggyEditTx(null)}
         transactionId={pluggyEditTx?.id ?? null}
         readOnly={pluggyEditTx ? { description: pluggyEditTx.description, amount: pluggyEditTx.amount, date: pluggyEditTx.date } : null}
+      />
+
+      <OfertaCriarRegraModal
+        open={ofertaRegra.open}
+        onOpenChange={(v) => setOfertaRegra((p) => ({ ...p, open: v }))}
+        descricoes={ofertaRegra.descricoes}
+        categoriaId={ofertaRegra.categoriaId}
+        categoriaNome={ofertaRegra.categoriaNome}
+        tipoSugerido={ofertaRegra.tipoSugerido}
       />
     </div>
   );
