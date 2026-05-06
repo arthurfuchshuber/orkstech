@@ -423,34 +423,29 @@ export function CategoriaFinanceiraModal({ open, onOpenChange, editingId, defaul
                 onAddModal={() => setParentModalOpen(true)}
               />
               {selectedParent ? (
-                <div className="mt-1.5 flex items-center gap-1.5">
-                  <span className="text-[11px] text-muted-foreground">Tipo herdado:</span>
-                  <Badge variant="outline" className={`text-[9px] px-1 py-0 leading-4 ${tipoColors[effectiveTipo]}`}>
-                    {tipoLabels[effectiveTipo]}
-                  </Badge>
-                </div>
+                <p className="mt-1.5 text-[11px] text-muted-foreground">
+                  Tipo padrão herdado de <strong>{selectedParent.nome}</strong>. Pode ser alterado abaixo.
+                </p>
               ) : (
                 <p className="mt-1.5 text-[11px] text-muted-foreground">
                   Sem categoria pai = será uma categoria <strong>raiz</strong>. Defina o tipo abaixo.
                 </p>
               )}
             </div>
-            {!selectedParent && (
-              <div>
-                <ManagedSelectInput
-                  label="Tipo (DRE)"
-                  value={form.tipo}
-                  onValueChange={(v) => setForm({ ...form, tipo: v as TipoFinanceiro })}
-                  placeholder="Selecione o tipo"
-                  options={tipoOptions}
-                />
-                <div className="mt-1.5">
-                  <Badge variant="outline" className={`text-[9px] px-1 py-0 leading-4 ${tipoColors[form.tipo]}`}>
-                    {tipoLabels[form.tipo]}
-                  </Badge>
-                </div>
+            <div>
+              <ManagedSelectInput
+                label="Tipo (DRE)"
+                value={form.tipo}
+                onValueChange={(v) => setForm({ ...form, tipo: v as TipoFinanceiro })}
+                placeholder="Selecione o tipo"
+                options={tipoOptions}
+              />
+              <div className="mt-1.5">
+                <Badge variant="outline" className={`text-[9px] px-1 py-0 leading-4 ${tipoColors[form.tipo]}`}>
+                  {tipoLabels[form.tipo]}
+                </Badge>
               </div>
-            )}
+            </div>
           </div>
           <DialogFooter className="sm:justify-between gap-2">
             <DREPreviewPopover
