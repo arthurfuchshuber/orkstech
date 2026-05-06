@@ -40,6 +40,7 @@ import { OfertaCriarRegraModal } from "@/components/financas/extrato/OfertaCriar
 import { DescricaoComRegra } from "@/components/financas/extrato/DescricaoComRegra";
 import { useRegraConflitoDetector } from "@/hooks/useRegraConflitoDetector";
 import { RegraConflitoModal } from "@/components/financas/dre/RegraConflitoModal";
+import { classifyInternalSubtype, INTERNAL_SUBTYPE_LABEL, type InternalSubtype } from "@/lib/internal-tx-subtype";
 import {
   ArrowDownLeft,
   ArrowUpRight,
