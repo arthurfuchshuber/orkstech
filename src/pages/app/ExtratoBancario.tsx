@@ -905,7 +905,7 @@ export default function ExtratoBancario() {
 
                   <div className="mb-2">
                     <p className="text-lg font-bold text-foreground tabular-nums">{formatCurrency(totalAccount)}</p>
-                    <p className="text-[10px] text-muted-foreground">Saldo total (conta + caixinhas)</p>
+                    <p className="text-[10px] text-muted-foreground">Saldo total (conta + aplicações)</p>
                   </div>
 
                   <div className="grid grid-cols-2 gap-x-3 gap-y-0.5 border-t border-border/40 pt-2 text-[10px]">
@@ -914,7 +914,7 @@ export default function ExtratoBancario() {
                       <span className={`font-medium tabular-nums ${account.balance > 0 ? "text-emerald-500" : "text-foreground"}`}>{formatCurrency(account.balance)}</span>
                     </div>
                     <div className="flex justify-between text-muted-foreground">
-                      <span>Caixinhas</span>
+                      <span>Aplicações</span>
                       <span className={`font-medium tabular-nums ${stored > 0 ? "text-emerald-500" : "text-foreground"}`}>{formatCurrency(stored)}</span>
                     </div>
                     <div className="flex justify-between text-muted-foreground">
@@ -935,6 +935,28 @@ export default function ExtratoBancario() {
                           <span>Transf. enviadas</span>
                           <span className="font-medium tabular-nums text-foreground">{formatCurrency(internal.transfersOut)}</span>
                         </div>
+                      </>
+                    )}
+                    {internal.faturaPaga > 0 && (
+                      <div className="col-span-2 flex justify-between text-muted-foreground">
+                        <span>Pagamento de fatura</span>
+                        <span className="font-medium tabular-nums text-foreground">{formatCurrency(internal.faturaPaga)}</span>
+                      </div>
+                    )}
+                    {(internal.investIn > 0 || internal.investOut > 0) && (
+                      <>
+                        {internal.investOut > 0 && (
+                          <div className="flex justify-between text-muted-foreground">
+                            <span>Aplicação</span>
+                            <span className="font-medium tabular-nums text-foreground">{formatCurrency(internal.investOut)}</span>
+                          </div>
+                        )}
+                        {internal.investIn > 0 && (
+                          <div className="flex justify-between text-muted-foreground">
+                            <span>Resgate</span>
+                            <span className="font-medium tabular-nums text-foreground">{formatCurrency(internal.investIn)}</span>
+                          </div>
+                        )}
                       </>
                     )}
                   </div>
