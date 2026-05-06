@@ -211,19 +211,28 @@ export default function DREMensalView() {
                     };
 
                     return (
-                      <tr key={line.id} className={cn("group border-b border-border/15 transition-colors hover:bg-primary/10", rowClass)}>
+                      <tr key={line.id} className={cn("group border-b border-border/15 transition-colors hover:bg-primary/15", rowClass)}>
                         <td className={cn("sticky left-0 z-10 py-1.5 px-3 transition-colors group-hover:bg-primary/15", isSummary ? "bg-muted/40" : "bg-card")}>
                           <div
-                            className="flex items-center gap-1.5 cursor-pointer select-none"
+                            className={cn(
+                              "flex items-center gap-1.5 select-none",
+                              (hasChildren || (line.categoryId && !isIndicator)) && "cursor-pointer",
+                            )}
                             style={{ paddingLeft: `${line.depth * 16}px` }}
-                            onClick={() => hasChildren && toggle(line.id)}
+                            onClick={() => {
+                              if (hasChildren) {
+                                toggle(line.id);
+                              } else if (line.categoryId && !isIndicator) {
+                                setMovModal({ open: true, categoryId: line.categoryId, label: line.label });
+                              }
+                            }}
                           >
                             {hasChildren ? (
                               isOpen ? <ChevronDown className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" /> : <ChevronRight className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
                             ) : (
                               <span className="w-3.5 flex-shrink-0" />
                             )}
-                            <span className={cn("text-xs", labelColor)}>{line.label}</span>
+                            <span className={cn("text-xs", labelColor, line.categoryId && !isIndicator && "hover:text-primary transition-colors")}>{line.label}</span>
                           </div>
                         </td>
                         {visibleMonths.map((m) => {
