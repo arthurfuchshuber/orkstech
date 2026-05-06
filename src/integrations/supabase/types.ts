@@ -954,6 +954,7 @@ export type Database = {
           id: string
           nome: string
           ordem: number
+          origem_socio_id: string | null
           tipo: Database["public"]["Enums"]["tipo_financeiro"]
           updated_at: string
           user_id: string
@@ -967,6 +968,7 @@ export type Database = {
           id?: string
           nome: string
           ordem?: number
+          origem_socio_id?: string | null
           tipo: Database["public"]["Enums"]["tipo_financeiro"]
           updated_at?: string
           user_id: string
@@ -980,6 +982,7 @@ export type Database = {
           id?: string
           nome?: string
           ordem?: number
+          origem_socio_id?: string | null
           tipo?: Database["public"]["Enums"]["tipo_financeiro"]
           updated_at?: string
           user_id?: string
@@ -997,6 +1000,13 @@ export type Database = {
             columns: ["empresa_id"]
             isOneToOne: false
             referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "categorias_financeiras_origem_socio_id_fkey"
+            columns: ["origem_socio_id"]
+            isOneToOne: false
+            referencedRelation: "empresa_socios"
             referencedColumns: ["id"]
           },
         ]
