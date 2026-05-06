@@ -197,7 +197,12 @@ export function CriarRegraAutoModal({
 
   const totalImpacto = preview?.total ?? 0;
   const canSave =
-    !!termo.trim() && !!categoriaId && !!nome.trim() && !regraExistente && !saveMut.isPending;
+    !!termo.trim() &&
+    !!categoriaId &&
+    !!nome.trim() &&
+    !regraExistente &&
+    !regraConflito &&
+    !saveMut.isPending;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -213,12 +218,27 @@ export function CriarRegraAutoModal({
         </DialogHeader>
 
         <div className="space-y-4">
-          {/* Aviso de regra duplicada */}
+          {/* Aviso de regra idêntica */}
           {regraExistente && (
             <div className="rounded-md border border-amber-500/30 bg-amber-500/10 p-3 text-xs">
-              <strong className="text-amber-500">Já existe uma regra parecida:</strong>{" "}
+              <strong className="text-amber-500">Já existe uma regra idêntica:</strong>{" "}
               <span className="text-foreground">"{(regraExistente as any).nome}"</span>. Edite o
               termo abaixo ou cancele.
+            </div>
+          )}
+
+          {/* Aviso de conflito (mesmo termo apontando para outra categoria) */}
+          {regraConflito && !regraExistente && (
+            <div className="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-xs space-y-1">
+              <strong className="text-destructive">Conflito de regra:</strong>{" "}
+              <span className="text-foreground">
+                já existe a regra "{(regraConflito as any).nome}" usando este mesmo termo, mas
+                apontando para outra categoria.
+              </span>
+              <p className="text-muted-foreground">
+                Edite o termo, troque a categoria de destino, ou ajuste a regra anterior em
+                DRE & Analytics → Regras.
+              </p>
             </div>
           )}
 
