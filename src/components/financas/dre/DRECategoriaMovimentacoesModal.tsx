@@ -282,9 +282,9 @@ export function DRECategoriaMovimentacoesModal({
               </div>
             </div>
           )}
-        </ScrollArea>
+        </div>
 
-        <div className="flex justify-end pt-2">
+        <div className="flex justify-end gap-2 px-6 py-4 border-t border-border/40 flex-shrink-0">
           <Button variant="outline" onClick={() => onOpenChange(false)}>Fechar</Button>
         </div>
       </DialogContent>
