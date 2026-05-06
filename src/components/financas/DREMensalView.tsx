@@ -209,8 +209,8 @@ export default function DREMensalView() {
                     };
 
                     return (
-                      <tr key={line.id} className={cn("border-b border-border/15 hover:bg-muted/10 transition-colors", rowClass)}>
-                        <td className={cn("sticky left-0 z-10 py-1.5 px-3", isSummary ? "bg-muted/40" : "bg-card")}>
+                      <tr key={line.id} className={cn("group border-b border-border/15 transition-colors hover:bg-primary/10", rowClass)}>
+                        <td className={cn("sticky left-0 z-10 py-1.5 px-3 transition-colors group-hover:bg-primary/15", isSummary ? "bg-muted/40" : "bg-card")}>
                           <div
                             className="flex items-center gap-1.5 cursor-pointer select-none"
                             style={{ paddingLeft: `${line.depth * 16}px` }}
@@ -249,10 +249,11 @@ export default function DREMensalView() {
                             </Fragment>
                           );
                         })}
-                        <td className={cn("text-right py-1.5 px-3 font-semibold tabular-nums bg-muted/20", valueColor(line.total))}>
+                        <td className={cn("text-right py-1.5 px-3 font-semibold tabular-nums bg-muted/20 transition-colors group-hover:bg-primary/15", valueColor(line.total))}>
                           {line.isPercentual ? fmtPct(line.total) : fmtBRL(line.total)}
                         </td>
                       </tr>
+
                     );
                   })}
                 </tbody>
