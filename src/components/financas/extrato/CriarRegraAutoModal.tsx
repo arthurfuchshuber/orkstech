@@ -87,7 +87,15 @@ export function CriarRegraAutoModal({
 
   const categoriasFiltradas = useMemo(() => {
     if (aplicarEm === "receber") return categorias.filter((c: any) => c.tipo === "receita");
-    if (aplicarEm === "pagar") return categorias.filter((c: any) => c.tipo === "despesa" || c.tipo === "custo");
+    if (aplicarEm === "pagar")
+      return categorias.filter(
+        (c: any) =>
+          c.tipo === "despesa" ||
+          c.tipo === "custo" ||
+          c.tipo === "distribuicao_lucros" ||
+          c.tipo === "imposto" ||
+          c.tipo === "investimento"
+      );
     return categorias;
   }, [categorias, aplicarEm]);
 
