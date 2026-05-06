@@ -639,30 +639,31 @@ export default function ExtratoBancario() {
     return accumulator;
   }, {});
 
-  // Movimentações internas — separadas em:
-  //   • transfers: transferências entre contas próprias (Same person transfer)
-  //   • investments: aplicações/resgates (Investments, Mutual funds)
-  // Ambas com sentido in/out. NÃO contam como Entrada/Saída (não impactam DRE).
-  const isInvestmentCategory = (cat?: string | null) => {
-    const c = (cat || "").toLowerCase();
-    return c.includes("investment") || c.includes("mutual fund") || c.includes("aplicac");
-  };
-
+  // Movimentações internas — separadas por subtipo via classifyInternalSubtype
+  // (transferência, pagamento de fatura, aplicação, resgate). NÃO contam no DRE.
   const internalByAccount = internalTransactions.reduce<
     Record<
       string,
-      { transfersIn: number; transfersOut: number; investIn: number; investOut: number }
+      {
+        transfersIn: number; transfersOut: number;
+        investIn: number; investOut: number;
+        faturaPaga: number;
+      }
     >
   >((acc, tx) => {
     const current =
-      acc[tx.pluggy_account_id] ?? { transfersIn: 0, transfersOut: 0, investIn: 0, investOut: 0 };
+      acc[tx.pluggy_account_id] ?? {
+        transfersIn: 0, transfersOut: 0, investIn: 0, investOut: 0, faturaPaga: 0,
+      };
     const isIn = tx.type === "CREDIT" || tx.amount > 0;
     const amt = Math.abs(tx.amount);
-    if (isInvestmentCategory(tx.category)) {
-      // Aplicação: saída de caixa → entrada em investimento (out)
-      // Resgate: entrada de caixa ← saída de investimento (in)
-      if (isIn) current.investIn += amt;
-      else current.investOut += amt;
+    const subtype = classifyInternalSubtype(tx, creditAccountIds);
+    if (subtype === "pagamento_fatura") {
+      current.faturaPaga += amt;
+    } else if (subtype === "aplicacao_investimento") {
+      current.investOut += amt;
+    } else if (subtype === "resgate_investimento") {
+      current.investIn += amt;
     } else {
       if (isIn) current.transfersIn += amt;
       else current.transfersOut += amt;
