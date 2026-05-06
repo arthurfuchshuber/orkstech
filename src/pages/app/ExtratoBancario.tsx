@@ -720,17 +720,24 @@ export default function ExtratoBancario() {
       </div>
 
       <Tabs defaultValue="lista">
-        <TabsList>
-          <TabsTrigger value="lista">Lista</TabsTrigger>
-          <TabsTrigger value="importacoes">Importações</TabsTrigger>
-        </TabsList>
+        <div className="flex items-center justify-between gap-2 flex-wrap">
+          <TabsList>
+            <TabsTrigger value="lista">Lista</TabsTrigger>
+            <TabsTrigger value="importacoes">Importações</TabsTrigger>
+          </TabsList>
+          <PendenciasIndicator
+            cardsSemVinculo={[]}
+            onCategorizar={() => { setCategoryFilter("sem-categoria"); setAllPeriod(true); }}
+            onRealocar={() => {}}
+            onRevisarOrfaos={() => {}}
+            onVincularCard={() => {}}
+          />
+        </div>
         <TabsContent value="importacoes" className="mt-4 space-y-4">
           <GenericImporter target="bank_statement" onImported={() => queryClient.invalidateQueries()} />
           <ImportsHistoryTargeted target="bank_statement" onDeleted={() => queryClient.invalidateQueries()} />
         </TabsContent>
         <TabsContent value="lista" className="space-y-6 mt-4">
-
-      <UncategorizedBanner inline onAction={() => { setCategoryFilter("sem-categoria"); setAllPeriod(true); }} />
 
       {/* Date range filter */}
       <Card className="p-4">
