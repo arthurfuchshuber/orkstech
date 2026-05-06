@@ -197,6 +197,7 @@ export default function ExtratoBancario() {
   const [searchTerm, setSearchTerm] = useState("");
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [categoryFilter, setCategoryFilter] = useState<"all" | "sem-categoria" | "com-categoria">("all");
+  const [internoFilter, setInternoFilter] = useState<"all" | "ocultar" | "somente" | InternalSubtype>("all");
   const [allPeriod, setAllPeriod] = useState(false);
 
   // Lê ?filtro=sem-categoria da URL e ativa o filtro + período "todo"
