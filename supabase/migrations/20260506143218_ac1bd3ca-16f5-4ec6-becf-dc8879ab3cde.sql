@@ -1,0 +1,1 @@
+ALTER TYPE tipo_financeiro ADD VALUE IF NOT EXISTS 'distribuicao_lucros';
