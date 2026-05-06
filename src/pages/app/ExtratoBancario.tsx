@@ -1055,6 +1055,22 @@ export default function ExtratoBancario() {
               <SelectItem value="com-categoria">Com categoria</SelectItem>
             </SelectContent>
           </Select>
+
+          <Select value={internoFilter} onValueChange={(v) => setInternoFilter(v as any)}>
+            <SelectTrigger className="w-full md:w-[200px]">
+              <Filter className="mr-2 h-3.5 w-3.5" />
+              <SelectValue placeholder="Movimentos internos" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas as movimentações</SelectItem>
+              <SelectItem value="ocultar">Ocultar internas</SelectItem>
+              <SelectItem value="somente">Somente internas</SelectItem>
+              <SelectItem value="transferencia_entre_contas">{INTERNAL_SUBTYPE_LABEL.transferencia_entre_contas}</SelectItem>
+              <SelectItem value="pagamento_fatura">{INTERNAL_SUBTYPE_LABEL.pagamento_fatura}</SelectItem>
+              <SelectItem value="aplicacao_investimento">{INTERNAL_SUBTYPE_LABEL.aplicacao_investimento}</SelectItem>
+              <SelectItem value="resgate_investimento">{INTERNAL_SUBTYPE_LABEL.resgate_investimento}</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       </Card>
 
