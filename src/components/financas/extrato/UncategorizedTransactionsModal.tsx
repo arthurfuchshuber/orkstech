@@ -305,16 +305,29 @@ export function UncategorizedTransactionsModal({ open, onOpenChange }: Props) {
                       {format(new Date(tx.date), "dd/MM/yy", { locale: ptBR })}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <DescricaoComRegra
-                        description={tx._pretty}
-                        categoriaId={tx.categoria_financeira_id}
-                        tipoSugerido={tx.amount < 0 ? "pagar" : "receber"}
-                        className="block"
-                      >
-                        <p className="text-sm text-foreground truncate" title={tx._pretty}>
-                          {tx._pretty}
-                        </p>
-                      </DescricaoComRegra>
+                      <div className="flex items-center gap-2 min-w-0">
+                        <DescricaoComRegra
+                          description={tx._pretty}
+                          categoriaId={tx.categoria_financeira_id}
+                          tipoSugerido={tx.amount < 0 ? "pagar" : "receber"}
+                          className="block min-w-0 flex-1"
+                        >
+                          <p className="text-sm text-foreground truncate" title={tx._pretty}>
+                            {tx._pretty}
+                          </p>
+                        </DescricaoComRegra>
+                        <Badge
+                          variant="outline"
+                          className={cn(
+                            "shrink-0 text-[10px] gap-1",
+                            isCreditCardAccount(tx.pluggy_account_id)
+                              ? "border-purple-500/40 bg-purple-500/10 text-purple-300"
+                              : "border-sky-500/40 bg-sky-500/10 text-sky-300"
+                          )}
+                        >
+                          {isCreditCardAccount(tx.pluggy_account_id) ? "Cartão" : "Conta Corrente"}
+                        </Badge>
+                      </div>
                       {accountLabel(tx.pluggy_account_id) !== "—" && (
                         <p className="text-[11px] text-muted-foreground truncate">
                           {accountLabel(tx.pluggy_account_id)}
