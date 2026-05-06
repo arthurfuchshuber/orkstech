@@ -61,7 +61,7 @@ export function CaixinhaMoveDialog({ open, onOpenChange, contaId, contaNome, sal
       <DialogContent>
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <PiggyBank className="w-5 h-5 text-primary" /> Mover Caixinha — {contaNome}
+            <PiggyBank className="w-5 h-5 text-primary" /> Mover Aplicação — {contaNome}
           </DialogTitle>
         </DialogHeader>
         <div className="space-y-4 py-2">
@@ -71,7 +71,7 @@ export function CaixinhaMoveDialog({ open, onOpenChange, contaId, contaNome, sal
               <p className="font-semibold text-foreground">{fmt(saldoConta)}</p>
             </div>
             <div className="rounded-md border border-border/50 bg-muted/20 p-2">
-              <p className="text-muted-foreground">Caixinha</p>
+              <p className="text-muted-foreground">Aplicação</p>
               <p className="font-semibold text-emerald-500">{fmt(saldoCaixinha)}</p>
             </div>
           </div>
@@ -87,7 +87,7 @@ export function CaixinhaMoveDialog({ open, onOpenChange, contaId, contaNome, sal
               <label className="flex items-center gap-2 rounded-md border border-border/50 p-2.5 cursor-pointer hover:bg-muted/30">
                 <RadioGroupItem value="aplicar" />
                 <ArrowUpFromLine className="w-4 h-4 text-warning" />
-                <span className="text-sm">Aplicar na caixinha</span>
+                <span className="text-sm">Aplicar</span>
               </label>
             </RadioGroup>
           </div>
