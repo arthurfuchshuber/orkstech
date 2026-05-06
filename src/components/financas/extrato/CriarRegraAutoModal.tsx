@@ -306,7 +306,7 @@ export function CriarRegraAutoModal({
           </div>
 
           {/* Preview de impacto */}
-          {!regraExistente && (
+          {!regraExistente && !regraConflito && (
             <div className="rounded-md border border-primary/20 bg-primary/5 p-3 space-y-2">
               <div className="flex items-center gap-2 text-xs font-medium">
                 <Wand2 className="w-3.5 h-3.5 text-primary" />
