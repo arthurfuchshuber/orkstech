@@ -1096,7 +1096,7 @@ export default function ExtratoBancario() {
 
             <div className="divide-y divide-border/30">
               {filteredTx.map((tx) => {
-                const isCredit = tx.type === "CREDIT" || tx.amount > 0;
+                const isCredit = isInflow(tx);
                 const isInternal = isInternalTransaction(tx);
                 const catFin = categoriasFinanceiras.find((c: any) => c.id === tx.categoria_financeira_id);
 
