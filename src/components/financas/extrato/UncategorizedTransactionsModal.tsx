@@ -294,9 +294,11 @@ export function UncategorizedTransactionsModal({ open, onOpenChange }: Props) {
                           {tx._pretty}
                         </p>
                       </DescricaoComRegra>
-                      <p className="text-[11px] text-muted-foreground truncate">
-                        {accountLabel(tx.pluggy_account_id)}
-                      </p>
+                      {accountLabel(tx.pluggy_account_id) !== "—" && (
+                        <p className="text-[11px] text-muted-foreground truncate">
+                          {accountLabel(tx.pluggy_account_id)}
+                        </p>
+                      )}
                     </div>
                     <div
                       className={`w-28 shrink-0 text-right text-sm font-semibold tabular-nums ${
