@@ -1176,6 +1176,7 @@ export default function ExtratoBancario() {
               {filteredTx.map((tx) => {
                 const isCredit = isInflow(tx);
                 const isInternal = isInternalTransaction(tx, creditAccountIds);
+                const internalSubtype = classifyInternalSubtype(tx, creditAccountIds);
                 const catFin = categoriasFinanceiras.find((c: any) => c.id === tx.categoria_financeira_id);
 
                 // Filtra por tipo financeiro pertinente ao fluxo (entrada x saída) e mostra apenas folhas finais
