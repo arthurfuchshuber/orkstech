@@ -342,6 +342,11 @@ export function PlanoDeContasSection() {
                             <span className="text-[10px] font-mono text-muted-foreground flex-shrink-0 min-w-[2rem]">{item.number}</span>
                             <span className="text-xs font-medium text-foreground flex-1 truncate">{node.nome}</span>
                             <Badge variant="outline" className={`text-[9px] px-1 py-0 leading-4 ${tipoColors[node.tipo]}`}>{tipoLabels[node.tipo]}</Badge>
+                            {!!node.origem_socio_id && (
+                              <Badge variant="outline" className="text-[9px] px-1 py-0 leading-4 bg-muted/50 text-muted-foreground border-border" title="Sincronizado automaticamente do Quadro Societário">
+                                Sócio
+                              </Badge>
+                            )}
                             {(() => {
                               const isProtected = (node.tipo === "distribuicao_lucros" && !node.categoria_pai_id) || !!node.origem_socio_id;
                               const isAutoSocio = !!node.origem_socio_id;
@@ -353,9 +358,11 @@ export function PlanoDeContasSection() {
                                     </Button>
                                   </DropdownMenuTrigger>
                                   <DropdownMenuContent align="end">
-                                    <DropdownMenuItem onClick={() => openNew(node.id, node.tipo)}>
-                                      <Plus className="w-4 h-4 mr-2" /> Adicionar Sub
-                                    </DropdownMenuItem>
+                                    {!isAutoSocio && (
+                                      <DropdownMenuItem onClick={() => openNew(node.id, node.tipo)}>
+                                        <Plus className="w-4 h-4 mr-2" /> Adicionar Sub
+                                      </DropdownMenuItem>
+                                    )}
                                     {!isProtected && (
                                       <>
                                         <DropdownMenuItem onClick={() => openEdit(node)}>
