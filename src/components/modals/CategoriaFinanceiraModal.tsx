@@ -20,12 +20,12 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Plus, BarChart3, Eye } from "lucide-react";
 
-type TipoFinanceiro = "receita" | "despesa" | "custo" | "deducao" | "imposto" | "receita_financeira" | "despesa_financeira" | "ajuste";
+type TipoFinanceiro = "receita" | "despesa" | "custo" | "deducao" | "imposto" | "receita_financeira" | "despesa_financeira" | "distribuicao_lucros" | "ajuste";
 
 const tipoLabels: Record<TipoFinanceiro, string> = {
   receita: "Receita", deducao: "Dedução", custo: "Custo", despesa: "Despesa",
   receita_financeira: "Rec. Financeira", despesa_financeira: "Desp. Financeira",
-  imposto: "Imposto", ajuste: "Ajuste",
+  imposto: "Imposto", distribuicao_lucros: "Distribuição de Lucros", ajuste: "Ajuste",
 };
 
 const tipoColors: Record<TipoFinanceiro, string> = {
@@ -36,6 +36,7 @@ const tipoColors: Record<TipoFinanceiro, string> = {
   receita_financeira: "bg-teal-500/10 text-teal-400 border-teal-500/20",
   despesa_financeira: "bg-pink-500/10 text-pink-400 border-pink-500/20",
   imposto: "bg-purple-500/10 text-purple-400 border-purple-500/20",
+  distribuicao_lucros: "bg-indigo-500/10 text-indigo-400 border-indigo-500/20",
   ajuste: "bg-blue-500/10 text-blue-400 border-blue-500/20",
 };
 
