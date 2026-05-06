@@ -1232,9 +1232,9 @@ export default function ExtratoBancario() {
                               {enhancedDesc}
                             </p>
                           </DescricaoComRegra>
-                          {isInternal && (
-                            <Badge variant="outline" className="gap-1 text-[10px] border-muted-foreground/30">
-                              Interno
+                          {internalSubtype && (
+                            <Badge variant="outline" className="gap-1 text-[10px] border-muted-foreground/30 text-muted-foreground">
+                              {INTERNAL_SUBTYPE_LABEL[internalSubtype]}
                             </Badge>
                           )}
                           {tx.reconciled && (
