@@ -163,7 +163,13 @@ export function ContaBancariaModal({ open, onOpenChange, editingId, onSaved, def
                   <ArrowLeft className="w-4 h-4" />
                 </button>
               )}
-              {editingId ? "Editar Conta Bancária" : mode === "choice" ? "Adicionar Conta" : "Nova Conta Bancária (Manual)"}
+              {editingId
+                ? "Editar Conta Bancária"
+                : mode === "choice"
+                ? "Adicionar Conta"
+                : mode === "connected"
+                ? "Conexão Concluída"
+                : "Nova Conta Bancária (Manual)"}
             </DialogTitle>
           </DialogHeader>
 
@@ -180,7 +186,14 @@ export function ContaBancariaModal({ open, onOpenChange, editingId, onSaved, def
                     <p className="text-xs text-muted-foreground mt-0.5">Sincronização automática de saldos e transações. Recomendado.</p>
                   </div>
                 </div>
-                <PluggyConnectButton size="sm" />
+                <PluggyConnectButton
+                  size="sm"
+                  onConnected={({ pluggyItemId, connectorName }) => {
+                    setConnectedItemId(pluggyItemId);
+                    setConnectedName(connectorName);
+                    setMode("connected");
+                  }}
+                />
               </div>
               <button
                 onClick={() => setMode("manual")}
@@ -197,7 +210,12 @@ export function ContaBancariaModal({ open, onOpenChange, editingId, onSaved, def
                 </div>
               </button>
             </div>
-          ) : (
+          ) : !editingId && mode === "connected" ? (
+            <ConnectedSummary
+              pluggyItemId={connectedItemId!}
+              connectorName={connectedName}
+              onDone={() => onOpenChange(false)}
+            />
             <>
               <div className="space-y-4 py-2">
                 <div>
