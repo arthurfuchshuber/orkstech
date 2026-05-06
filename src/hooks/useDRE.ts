@@ -409,6 +409,8 @@ export function useDRE(filters: DREFilters) {
       makeIndicator("impostos", "(-) Impostos", totals.imposto, totalsPrev.imposto),
       makeIndicator("lucro-liquido", "(=) Lucro Líquido", lucroLiquido, lucroLiquidoPrev),
       { ...makeIndicator("margem-liquida", "(%) Margem Líquida", margemLiquidaPct, margemLiquidaPctPrev), isPercentual: true },
+      makeIndicator("distribuicao-lucros", "(-) Distribuição de Lucros", totals.distribuicao, totalsPrev.distribuicao),
+      makeIndicator("lucro-retido", "(=) Lucro Retido", lucroRetido, lucroRetidoPrev),
     ];
 
     return {
