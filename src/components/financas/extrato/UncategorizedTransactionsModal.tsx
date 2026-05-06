@@ -182,8 +182,13 @@ export function UncategorizedTransactionsModal({ open, onOpenChange }: Props) {
     onError: (err: any) => toast.error(err?.message || "Erro ao salvar"),
   });
 
+  // Filtra movimentações internas (transferências, pagamento de fatura, aplicações/resgates)
+  // que não precisam de categorização DRE — só sobram movimentações reais.
   const enhancedTransactions = useMemo(
-    () => transactions.map((tx) => ({ ...tx, _pretty: enhancePluggyDescription(tx) })),
+    () =>
+      transactions
+        .filter((tx) => classifyInternalSubtype(tx as any) === null)
+        .map((tx) => ({ ...tx, _pretty: stripTypePrefix(enhancePluggyDescription(tx)) })),
     [transactions]
   );
 
