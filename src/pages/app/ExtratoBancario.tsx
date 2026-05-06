@@ -335,6 +335,20 @@ export default function ExtratoBancario() {
 
   const creditCards = accounts.filter((account) => account.type === "CREDIT");
   const bankAccounts = accounts.filter((account) => account.type !== "CREDIT");
+  const creditAccountIds = new Set(creditCards.map((c) => c.pluggy_account_id));
+
+  // Em contas de cartão de crédito, o Pluggy inverte a convenção de sinal:
+  // compras vêm com amount > 0 (débito no cartão) e pagamentos com amount < 0.
+  // Esta função normaliza: retorna true quando é entrada de caixa para o titular.
+  const isInflow = (tx: { type: string; amount: number; pluggy_account_id: string }) => {
+    const isCreditCard = creditAccountIds.has(tx.pluggy_account_id);
+    if (isCreditCard) {
+      // Cartão: amount negativo = pagamento da fatura (entrada/redução de dívida);
+      // amount positivo = compra (saída).
+      return tx.amount < 0;
+    }
+    return tx.type === "CREDIT" || tx.amount > 0;
+  };
 
   const bankAccountIds = bankAccounts.map((a) => a.pluggy_account_id);
 
