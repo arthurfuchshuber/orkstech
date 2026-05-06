@@ -189,6 +189,12 @@ const enhanceDescription = (tx: Transaction): string => {
   return counterparty ? `${typeLabel} | ${counterparty}` : typeLabel || raw;
 };
 
+/** Remove o prefixo "Tipo |" mantendo só a contraparte para exibição limpa. */
+const stripTypePrefix = (s: string) => {
+  const idx = s.indexOf("|");
+  return idx >= 0 ? s.slice(idx + 1).trim() : s.trim();
+};
+
 export default function ExtratoBancario() {
   const { user } = useAuth();
   const { empresa } = useEmpresa();
@@ -1246,7 +1252,8 @@ export default function ExtratoBancario() {
                   .filter((c: any) => allowedTipos.includes(c.tipo))
                   .filter((c: any) => !categoriasFinanceiras.some((child: any) => child.categoria_pai_id === c.id));
 
-                const enhancedDesc = enhanceDescription(tx);
+                const enhancedDesc = stripTypePrefix(enhanceDescription(tx));
+                const isCreditCardTx = creditAccountIds.has(tx.pluggy_account_id);
 
                 return (
                   <div
@@ -1296,6 +1303,17 @@ export default function ExtratoBancario() {
                               {INTERNAL_SUBTYPE_LABEL[internalSubtype]}
                             </Badge>
                           )}
+                          <Badge
+                            variant="outline"
+                            className={cn(
+                              "gap-1 text-[10px]",
+                              isCreditCardTx
+                                ? "border-purple-500/40 bg-purple-500/10 text-purple-300"
+                                : "border-sky-500/40 bg-sky-500/10 text-sky-300"
+                            )}
+                          >
+                            {isCreditCardTx ? "Cartão de Crédito" : "Conta Corrente"}
+                          </Badge>
                           {tx.reconciled && (
                             <Badge variant="outline" className="gap-1 text-[10px]">
                               <CheckCircle2 className="h-3 w-3" />
