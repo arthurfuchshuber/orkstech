@@ -1293,6 +1293,15 @@ export default function ExtratoBancario() {
         transactionId={pluggyEditTx?.id ?? null}
         readOnly={pluggyEditTx ? { description: pluggyEditTx.description, amount: pluggyEditTx.amount, date: pluggyEditTx.date } : null}
       />
+
+      <OfertaCriarRegraModal
+        open={ofertaRegra.open}
+        onOpenChange={(v) => setOfertaRegra((p) => ({ ...p, open: v }))}
+        descricoes={ofertaRegra.descricoes}
+        categoriaId={ofertaRegra.categoriaId}
+        categoriaNome={ofertaRegra.categoriaNome}
+        tipoSugerido={ofertaRegra.tipoSugerido}
+      />
     </div>
   );
 }
