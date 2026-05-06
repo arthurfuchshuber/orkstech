@@ -175,7 +175,7 @@ export default function ContasBancarias({
                       <div className="flex flex-col items-end leading-tight">
                         <span className="text-xs font-semibold text-foreground whitespace-nowrap" title="Saldo atual">{formatCurrency(saldoAtual)}</span>
                         {caixinha > 0 && (
-                          <span className="text-[10px] text-emerald-500 whitespace-nowrap" title="Caixinha">+ {formatCurrency(caixinha)}</span>
+                          <span className="text-[10px] text-emerald-500 whitespace-nowrap" title="Aplicação">+ {formatCurrency(caixinha)}</span>
                         )}
                       </div>
                       <Badge variant="outline" className="text-[9px] px-1 py-0 leading-4 flex-shrink-0">{tipoLabels[item.tipo]}</Badge>
@@ -190,7 +190,7 @@ export default function ContasBancarias({
                             <Receipt className="w-4 h-4 mr-2" /> Novo lançamento
                           </DropdownMenuItem>
                           <DropdownMenuItem onClick={() => setCaixinhaTarget(item)}>
-                            <ArrowLeftRight className="w-4 h-4 mr-2" /> Mover caixinha
+                            <ArrowLeftRight className="w-4 h-4 mr-2" /> Mover aplicação
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem onClick={() => openEdit(item)}>
@@ -281,7 +281,7 @@ export default function ContasBancarias({
                   <span className="text-foreground font-medium tabular-nums">{formatCurrency(item.saldo_inicial)}</span>
                 </div>
                 <div className="flex justify-between text-[11px]">
-                  <span className="text-muted-foreground">Caixinha</span>
+                  <span className="text-muted-foreground">Aplicação</span>
                   <span className={`font-medium tabular-nums ${caixinha > 0 ? "text-emerald-500" : "text-foreground"}`}>{formatCurrency(caixinha)}</span>
                 </div>
               </div>
@@ -297,7 +297,7 @@ export default function ContasBancarias({
                       <Receipt className="w-4 h-4 mr-2" /> Novo lançamento
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => setCaixinhaTarget(item)}>
-                      <ArrowLeftRight className="w-4 h-4 mr-2" /> Mover caixinha
+                      <ArrowLeftRight className="w-4 h-4 mr-2" /> Mover aplicação
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem onClick={() => openEdit(item)}>
