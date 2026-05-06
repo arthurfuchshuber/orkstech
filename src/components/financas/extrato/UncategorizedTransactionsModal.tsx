@@ -11,10 +11,17 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
 import { enhancePluggyDescription, type PluggyTxLike } from "@/lib/pluggy-description";
+import { classifyInternalSubtype } from "@/lib/internal-tx-subtype";
 import { useRegraConflitoDetector } from "@/hooks/useRegraConflitoDetector";
 import { RegraConflitoModal } from "@/components/financas/dre/RegraConflitoModal";
 import { OfertaCriarRegraModal } from "./OfertaCriarRegraModal";
 import { DescricaoComRegra } from "./DescricaoComRegra";
+
+/** Remove o prefixo "Tipo |" mantendo só a contraparte. */
+const stripTypePrefix = (s: string) => {
+  const idx = s.indexOf("|");
+  return idx >= 0 ? s.slice(idx + 1).trim() : s.trim();
+};
 
 interface Props {
   open: boolean;
