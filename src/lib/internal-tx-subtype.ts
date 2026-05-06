@@ -20,9 +20,24 @@ interface ClassifyInput {
   is_internal_transfer?: boolean | null;
   amount: number;
   category?: string | null;
+  description?: string | null;
   pluggy_account_id?: string;
   type?: string;
 }
+
+const isCreditCardPaymentDescription = (desc?: string | null) => {
+  const d = (desc || "").toLowerCase();
+  return (
+    d.includes("fatura") ||
+    d.includes("pagto cartao") ||
+    d.includes("pagto cartão") ||
+    d.includes("pagamento cartao") ||
+    d.includes("pagamento cartão") ||
+    d.includes("pagamento de cartao") ||
+    d.includes("pagamento de cartão") ||
+    d.includes("credit card payment")
+  );
+};
 
 const isInvestmentCategory = (cat?: string | null) => {
   const c = (cat || "").toLowerCase();
