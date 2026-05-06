@@ -26,6 +26,7 @@ const tiposFinanceiros = [
   { value: "receita_financeira", label: "📈 Rec. Financeira" },
   { value: "despesa_financeira", label: "📉 Desp. Financeira" },
   { value: "imposto", label: "🏛️ Imposto" },
+  { value: "distribuicao_lucros", label: "👥 Distribuição de Lucros" },
   { value: "ajuste", label: "🔄 Ajuste" },
 ];
 
