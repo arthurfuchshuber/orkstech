@@ -1402,6 +1402,8 @@ export default function ExtratoBancario() {
       />
 
       <RegraConflitoModal conflito={conflito} onClose={() => setConflito(null)} />
+
+      <UncategorizedTransactionsModal open={uncatModalOpen} onOpenChange={setUncatModalOpen} />
     </div>
   );
 }
