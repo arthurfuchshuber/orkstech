@@ -373,14 +373,17 @@ export default function ExtratoBancario() {
   };
 
   const bankAccountIds = bankAccounts.map((a) => a.pluggy_account_id);
+  // IDs de TODAS as contas (incluindo cartões) — usado para somar Entradas/Saídas
+  // dos cards do topo, que devem refletir tudo que aparece na lista de lançamentos.
+  const allAccountIds = accounts.map((a) => a.pluggy_account_id);
 
-  // Fetch ALL bank account transactions (paginated) filtered by date range
+  // Fetch ALL transactions (paginated) filtered by date range — inclui cartões
   const { data: allTransactions = [] } = useQuery({
-    queryKey: ["pluggy_transactions_summary", targetUserId, bankAccountIds.join(","), dateFromStr, dateToStr],
+    queryKey: ["pluggy_transactions_summary", targetUserId, allAccountIds.join(","), dateFromStr, dateToStr],
     queryFn: async () => {
-      if (bankAccountIds.length === 0) return [];
+      if (allAccountIds.length === 0) return [];
       const allResults: Transaction[] = [];
-      for (const accId of bankAccountIds) {
+      for (const accId of allAccountIds) {
         let from = 0;
         const pageSize = 1000;
         while (true) {
@@ -401,7 +404,7 @@ export default function ExtratoBancario() {
       }
       return allResults;
     },
-    enabled: !!user && !!targetUserId && bankAccountIds.length > 0,
+    enabled: !!user && !!targetUserId && allAccountIds.length > 0,
   });
 
   const { data: transactions = [], isLoading: loadingTx } = useQuery({
@@ -666,11 +669,11 @@ export default function ExtratoBancario() {
   );
 
   const totalIncome = externalTransactions
-    .filter((tx) => tx.type === "CREDIT" || tx.amount > 0)
+    .filter((tx) => isInflow(tx))
     .reduce((sum, tx) => sum + Math.abs(tx.amount), 0);
 
   const totalExpense = externalTransactions
-    .filter((tx) => tx.type === "DEBIT" || tx.amount < 0)
+    .filter((tx) => !isInflow(tx))
     .reduce((sum, tx) => sum + Math.abs(tx.amount), 0);
 
   const resultado = totalIncome - totalExpense;
