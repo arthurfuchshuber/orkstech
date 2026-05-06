@@ -61,8 +61,19 @@ import { PluggyLastSyncBadge } from "@/components/PluggyLastSyncBadge";
 
 // Movimentos internos (aplicações/resgates/transferências entre contas próprias)
 // são identificados centralmente pela flag is_internal_transfer no banco.
-const isInternalTransaction = (tx: { is_internal_transfer?: boolean | null }) =>
-  tx.is_internal_transfer === true;
+// Pagamentos de fatura em conta CREDIT (amount < 0) também são contrapartes da
+// saída do banco — marcamos como interno para evitar duplicidade no extrato.
+const isInternalTransaction = (
+  tx: { is_internal_transfer?: boolean | null; amount?: number; pluggy_account_id?: string },
+  creditAccountIds?: Set<string>,
+) => {
+  if (tx.is_internal_transfer === true) return true;
+  if (creditAccountIds && tx.pluggy_account_id && creditAccountIds.has(tx.pluggy_account_id)) {
+    // Pagamento da fatura no cartão (entrada): contraparte da saída no banco
+    if (typeof tx.amount === "number" && tx.amount < 0) return true;
+  }
+  return false;
+};
 
 interface BankAccount {
   id: string;
