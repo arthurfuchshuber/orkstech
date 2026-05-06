@@ -1073,6 +1073,7 @@ export default function ExtratoBancario() {
                           batchUpdateCategoriaMutation.mutate({
                             ids: Array.from(batchSelection),
                             categoria_financeira_id: c.id,
+                            categoriaNome: c.nome,
                           })
                         }
                       >
