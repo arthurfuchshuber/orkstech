@@ -404,39 +404,46 @@ export function CategoriaFinanceiraModal({ open, onOpenChange, editingId, defaul
               />
             </div>
             <div>
-              <label className="text-sm font-medium text-foreground mb-1.5 block">Categoria Pai (opcional)</label>
-              <Select
+              <ManagedSelectInput
+                label="Categoria Pai (opcional)"
                 value={form.categoria_pai_id || "__none__"}
-                onValueChange={(v) => {
-                  if (v === NEW_PARENT_VALUE) {
-                    setParentModalOpen(true);
-                    return;
-                  }
-                  setForm({ ...form, categoria_pai_id: v === "__none__" ? null : v });
-                }}
-              >
-                <SelectTrigger><SelectValue placeholder="Nenhuma (raiz)" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__none__">Nenhuma (raiz)</SelectItem>
-                  {parentOptions.map((c) => (
-                    <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
-                  ))}
-                  <SelectItem value={NEW_PARENT_VALUE} className="text-primary font-medium">
-                    <span className="flex items-center gap-2">
-                      <Plus className="h-3.5 w-3.5" /> Criar nova categoria pai…
-                    </span>
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-              {selectedParent && (
+                onValueChange={(v) =>
+                  setForm({ ...form, categoria_pai_id: v === "__none__" ? null : v })
+                }
+                placeholder="Nenhuma (raiz)"
+                options={parentManagedOptions}
+                addLabel="Criar nova categoria pai…"
+                onAddModal={() => setParentModalOpen(true)}
+              />
+              {selectedParent ? (
                 <div className="mt-1.5 flex items-center gap-1.5">
                   <span className="text-[11px] text-muted-foreground">Tipo herdado:</span>
                   <Badge variant="outline" className={`text-[9px] px-1 py-0 leading-4 ${tipoColors[effectiveTipo]}`}>
                     {tipoLabels[effectiveTipo]}
                   </Badge>
                 </div>
+              ) : (
+                <p className="mt-1.5 text-[11px] text-muted-foreground">
+                  Sem categoria pai = será uma categoria <strong>raiz</strong>. Defina o tipo abaixo.
+                </p>
               )}
             </div>
+            {!selectedParent && (
+              <div>
+                <ManagedSelectInput
+                  label="Tipo (DRE)"
+                  value={form.tipo}
+                  onValueChange={(v) => setForm({ ...form, tipo: v as TipoFinanceiro })}
+                  placeholder="Selecione o tipo"
+                  options={tipoOptions}
+                />
+                <div className="mt-1.5">
+                  <Badge variant="outline" className={`text-[9px] px-1 py-0 leading-4 ${tipoColors[form.tipo]}`}>
+                    {tipoLabels[form.tipo]}
+                  </Badge>
+                </div>
+              </div>
+            )}
           </div>
           <DialogFooter className="sm:justify-between gap-2">
             <DREPreviewPopover
