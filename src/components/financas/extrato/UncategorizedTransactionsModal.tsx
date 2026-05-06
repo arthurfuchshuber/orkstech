@@ -301,7 +301,8 @@ export function UncategorizedTransactionsModal({ open, onOpenChange }: Props) {
               </div>
             ) : (
               filtered.map((tx) => {
-                const isIn = tx.amount > 0;
+                const isIn = isInflow(tx);
+                const signed = isIn ? Math.abs(tx.amount) : -Math.abs(tx.amount);
                 return (
                   <div
                     key={tx.id}
@@ -322,7 +323,7 @@ export function UncategorizedTransactionsModal({ open, onOpenChange }: Props) {
                         <DescricaoComRegra
                           description={tx._pretty}
                           categoriaId={tx.categoria_financeira_id}
-                          tipoSugerido={tx.amount < 0 ? "pagar" : "receber"}
+                          tipoSugerido={isIn ? "receber" : "pagar"}
                           className="block min-w-0 flex-1"
                         >
                           <p className="text-sm text-foreground truncate" title={tx._pretty}>
@@ -352,7 +353,7 @@ export function UncategorizedTransactionsModal({ open, onOpenChange }: Props) {
                         isIn ? "text-success" : "text-destructive"
                       }`}
                     >
-                      {fmt(tx.amount)}
+                      {fmt(signed)}
                     </div>
                     <div className="w-56 shrink-0">
                       <Select
