@@ -133,6 +133,11 @@ export function UncategorizedTransactionsModal({ open, onOpenChange }: Props) {
     return a?.marketing_name || a?.name || "—";
   };
 
+  const isCreditCardAccount = (id: string) => {
+    const a = accounts.find((x: any) => x.pluggy_id === id);
+    return a?.type === "CREDIT";
+  };
+
   const updateMutation = useMutation({
     mutationFn: async (vars: {
       id: string;
