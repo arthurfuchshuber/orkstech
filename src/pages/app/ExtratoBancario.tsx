@@ -520,7 +520,22 @@ export default function ExtratoBancario() {
   const formatDate = (date: string) =>
     new Date(date + "T12:00:00").toLocaleDateString("pt-BR");
 
+  // IDs das contas de cartão de crédito — usado para ocultar a linha "Pagamento"
+  // do lado do cartão (contraparte da Fatura no banco), evitando duplicidade visual.
+  const creditAccountIdsForFilter = new Set(
+    accounts.filter((a) => a.type === "CREDIT").map((a) => a.pluggy_account_id),
+  );
+
   const filteredTx = transactions.filter((tx) => {
+    // Oculta o "Pagamento" do lado do cartão (já representado pela Fatura no banco)
+    if (
+      creditAccountIdsForFilter.has(tx.pluggy_account_id) &&
+      tx.amount < 0 &&
+      (tx.category || "").toLowerCase().includes("credit card payment")
+    ) {
+      return false;
+    }
+
     // Filtro por categorização
     if (categoryFilter === "sem-categoria" && tx.categoria_financeira_id) return false;
     if (categoryFilter === "com-categoria" && !tx.categoria_financeira_id) return false;
