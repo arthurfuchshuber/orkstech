@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/select";
 import {
   ChevronRight, ChevronDown, Plus, Pencil, Trash2, Power,
-  FolderTree, TrendingUp, TrendingDown, Minus, RefreshCw, GripVertical, MoveRight,
+  FolderTree, TrendingUp, TrendingDown, Minus, RefreshCw, GripVertical, MoveRight, Eye,
 } from "lucide-react";
 import { DragDropContext, Droppable, Draggable, type DropResult } from "@hello-pangea/dnd";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -111,6 +111,7 @@ export function PlanoDeContasSection() {
   const [moveModalOpen, setMoveModalOpen] = useState(false);
   const [movingNode, setMovingNode] = useState<Categoria | null>(null);
   const [moveTargetId, setMoveTargetId] = useState<string | null>(null);
+  const [previewOpen, setPreviewOpen] = useState(false);
 
   const targetUserId = empresa?.user_id ?? user?.id;
 
@@ -295,9 +296,14 @@ export function PlanoDeContasSection() {
             <p className="text-[11px] text-muted-foreground mt-0.5">Arraste para reordenar ou mover entre níveis</p>
           </div>
         </div>
-        <Button onClick={() => openNew()} size="sm" variant="outline" className="h-7 text-xs gap-1.5 rounded-md">
-          <Plus className="w-3 h-3" /> Nova
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button onClick={() => setPreviewOpen(true)} size="sm" variant="outline" className="h-7 text-xs gap-1.5 rounded-md" title="Pré-visualizar DRE com base na estrutura">
+            <Eye className="w-3 h-3" /> Prévia DRE
+          </Button>
+          <Button onClick={() => openNew()} size="sm" variant="outline" className="h-7 text-xs gap-1.5 rounded-md">
+            <Plus className="w-3 h-3" /> Nova
+          </Button>
+        </div>
       </CardHeader>
 
       <CardContent className="px-2 pb-3 flex-1 overflow-auto">
@@ -444,6 +450,92 @@ export function PlanoDeContasSection() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <DREPreviewDialog
+        open={previewOpen}
+        onOpenChange={setPreviewOpen}
+        tree={tree}
+      />
     </Card>
+  );
+}
+
+// ============ DRE Preview ============
+function DREPreviewDialog({ open, onOpenChange, tree }: { open: boolean; onOpenChange: (v: boolean) => void; tree: Categoria[] }) {
+  // Group active roots by tipo
+  const byTipo = (t: TipoFinanceiro) => tree.filter((n) => n.ativo && n.tipo === t);
+  const renderNode = (n: Categoria, depth: number, prefix: string, idx: number): JSX.Element[] => {
+    const num = prefix ? `${prefix}${idx + 1}.` : `${idx + 1}.`;
+    const lines: JSX.Element[] = [
+      <div key={n.id} className="flex items-center gap-2 py-1 text-xs" style={{ paddingLeft: `${depth * 16}px` }}>
+        <span className="font-mono text-[10px] text-muted-foreground min-w-[2.5rem]">{num}</span>
+        <span className="flex-1 text-foreground">{n.nome}</span>
+        <Badge variant="outline" className={`text-[9px] px-1 py-0 leading-4 ${tipoColors[n.tipo]}`}>{tipoLabels[n.tipo]}</Badge>
+      </div>,
+    ];
+    (n.children ?? []).forEach((c, i) => lines.push(...renderNode(c, depth + 1, num, i)));
+    return lines;
+  };
+
+  const indicatorRow = (label: string, formula?: string, highlight = false) => (
+    <div key={label} className={`flex items-center gap-2 py-1.5 px-2 rounded-md text-xs border-l-2 ${highlight ? "bg-primary/5 border-primary font-semibold text-foreground" : "bg-muted/20 border-muted-foreground/30 text-foreground/80"}`}>
+      <span className="flex-1">{label}</span>
+      {formula && <span className="text-[10px] font-mono text-muted-foreground">{formula}</span>}
+    </div>
+  );
+
+  const section = (title: string, tipo: TipoFinanceiro) => {
+    const items = byTipo(tipo);
+    if (items.length === 0) return null;
+    return (
+      <div className="space-y-0.5">
+        <div className="text-[10px] uppercase tracking-wide text-muted-foreground font-semibold mt-2">{title}</div>
+        {items.flatMap((n, i) => renderNode(n, 0, "", i))}
+      </div>
+    );
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-2xl max-h-[85vh] overflow-auto">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2"><Eye className="w-4 h-4" /> Prévia da DRE</DialogTitle>
+          <p className="text-xs text-muted-foreground mt-1">
+            Visualize como sua DRE será estruturada com base no plano de contas atual. Os valores serão preenchidos automaticamente conforme os lançamentos.
+          </p>
+        </DialogHeader>
+        <div className="space-y-3 py-2">
+          {tree.length === 0 ? (
+            <div className="py-12 text-center text-sm text-muted-foreground">
+              Nenhuma categoria cadastrada ainda. Adicione categorias no Plano de Contas para ver a prévia da DRE.
+            </div>
+          ) : (
+            <>
+              {section("Receitas", "receita")}
+              {section("(-) Deduções", "deducao")}
+              {indicatorRow("(=) Receita Líquida", "Receitas - Deduções", true)}
+              {section("(-) Custos", "custo")}
+              {indicatorRow("(=) Lucro Bruto", "Receita Líquida - Custos", true)}
+              {indicatorRow("(%) Margem Bruta", "Lucro Bruto / Receita")}
+              {section("(-) Despesas Operacionais", "despesa")}
+              {indicatorRow("(=) Resultado Operacional", "Lucro Bruto - Despesas", true)}
+              {indicatorRow("(%) Margem Operacional", "Resultado Op. / Receita")}
+              {indicatorRow("(=) EBITDA")}
+              {indicatorRow("(%) Margem EBITDA")}
+              {section("(+) Receitas Financeiras", "receita_financeira")}
+              {section("(-) Despesas Financeiras", "despesa_financeira")}
+              {indicatorRow("(+/-) Resultado Financeiro", "Rec. Fin. - Desp. Fin.")}
+              {indicatorRow("(=) Resultado antes dos Impostos", "Resultado Op. + Resultado Fin.", true)}
+              {section("(-) Impostos", "imposto")}
+              {indicatorRow("(=) Lucro Líquido", "Resultado A.I. - Impostos", true)}
+              {indicatorRow("(%) Margem Líquida", "Lucro Líquido / Receita")}
+            </>
+          )}
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Fechar</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
