@@ -88,7 +88,13 @@ export function usePluggyConnections() {
   return { connections, deleteMutation, handleSync };
 }
 
-export function PluggyConnectButton({ size = "default" }: { size?: "default" | "sm" }) {
+export function PluggyConnectButton({
+  size = "default",
+  onConnected,
+}: {
+  size?: "default" | "sm";
+  onConnected?: (info: { pluggyItemId: string; connectorName: string }) => void;
+}) {
   const { user } = useAuth();
   const qc = useQueryClient();
   const [loading, setLoading] = useState(false);
