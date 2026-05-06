@@ -325,8 +325,16 @@ export function CategoriaFinanceiraModal({ open, onOpenChange, editingId, defaul
 
   const parentOptions = allCategories.filter((c) => c.id !== editingId);
   const selectedParent = allCategories.find((c) => c.id === form.categoria_pai_id);
-  // Tipo herdado da pai quando há pai; senão usa o tipo escolhido pelo usuário
-  const effectiveTipo = (selectedParent?.tipo ?? form.tipo) as TipoFinanceiro;
+  // Tipo: por padrão herda da pai, mas o usuário pode override-ar pelo seletor.
+  const effectiveTipo = form.tipo as TipoFinanceiro;
+
+  // Quando troca a pai e o usuário ainda não tocou no tipo, sincroniza com o tipo herdado.
+  useEffect(() => {
+    if (selectedParent?.tipo) {
+      setForm((f) => ({ ...f, tipo: selectedParent.tipo as TipoFinanceiro }));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedParent?.id]);
 
   const saveMutation = useMutation({
     mutationFn: async () => {
