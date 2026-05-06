@@ -333,7 +333,7 @@ export function CategoriaFinanceiraModal({ open, onOpenChange, editingId, defaul
         const { data, error } = await supabase.from("categorias_financeiras")
           .insert({
             nome: form.nome,
-            tipo: effectiveTipo as "receita" | "despesa" | "custo" | "ajuste",
+            tipo: effectiveTipo as any,
             categoria_pai_id: form.categoria_pai_id,
             ordem,
             user_id: targetUserId!,
