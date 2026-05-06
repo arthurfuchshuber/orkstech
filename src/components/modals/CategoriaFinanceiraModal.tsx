@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Plus, BarChart3, Eye } from "lucide-react";
+import { ManagedSelectInput } from "@/components/inputs/ManagedSelectInput";
 
 type TipoFinanceiro = "receita" | "despesa" | "custo" | "deducao" | "imposto" | "receita_financeira" | "despesa_financeira" | "distribuicao_lucros" | "ajuste";
 
