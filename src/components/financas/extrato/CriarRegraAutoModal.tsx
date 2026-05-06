@@ -392,6 +392,17 @@ export function CriarRegraAutoModal({
           </Button>
         </DialogFooter>
       </DialogContent>
+      <CategoriaFinanceiraModal
+        open={catModal.open}
+        onOpenChange={(v) => setCatModal({ open: v, editingId: catModal.editingId })}
+        editingId={catModal.editingId}
+        defaultTipo={aplicarEm === "receber" ? "receita" : "despesa"}
+        onSaved={(id) => {
+          qc.invalidateQueries({ queryKey: ["dre-regras-cats-auto"] });
+          if (id) setCategoriaId(id);
+          setCatModal({ open: false });
+        }}
+      />
     </Dialog>
   );
 }
