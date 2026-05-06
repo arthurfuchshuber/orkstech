@@ -296,9 +296,14 @@ export function PlanoDeContasSection() {
             <p className="text-[11px] text-muted-foreground mt-0.5">Arraste para reordenar ou mover entre níveis</p>
           </div>
         </div>
-        <Button onClick={() => openNew()} size="sm" variant="outline" className="h-7 text-xs gap-1.5 rounded-md">
-          <Plus className="w-3 h-3" /> Nova
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button onClick={() => setPreviewOpen(true)} size="sm" variant="outline" className="h-7 text-xs gap-1.5 rounded-md" title="Pré-visualizar DRE com base na estrutura">
+            <Eye className="w-3 h-3" /> Prévia DRE
+          </Button>
+          <Button onClick={() => openNew()} size="sm" variant="outline" className="h-7 text-xs gap-1.5 rounded-md">
+            <Plus className="w-3 h-3" /> Nova
+          </Button>
+        </div>
       </CardHeader>
 
       <CardContent className="px-2 pb-3 flex-1 overflow-auto">
