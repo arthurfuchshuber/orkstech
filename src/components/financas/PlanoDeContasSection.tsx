@@ -531,6 +531,8 @@ function DREPreviewDialog({ open, onOpenChange, tree }: { open: boolean; onOpenC
               {section("(-) Impostos", "imposto")}
               {indicatorRow("(=) Lucro Líquido", "Resultado A.I. - Impostos", true)}
               {indicatorRow("(%) Margem Líquida", "Lucro Líquido / Receita")}
+              {section("(-) Distribuição de Lucros", "distribuicao_lucros")}
+              {indicatorRow("(=) Lucro Retido", "Lucro Líquido - Distribuições", true)}
             </>
           )}
         </div>
