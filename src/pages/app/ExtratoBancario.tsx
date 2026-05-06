@@ -729,7 +729,7 @@ export default function ExtratoBancario() {
           </TabsList>
           <PendenciasIndicator
             cardsSemVinculo={[]}
-            onCategorizar={() => { setCategoryFilter("sem-categoria"); setAllPeriod(true); }}
+            onCategorizar={() => setUncatModalOpen(true)}
             onRealocar={() => {}}
             onRevisarOrfaos={() => {}}
             onVincularCard={() => {}}
