@@ -14,6 +14,8 @@ import { useEmpresa } from "@/hooks/useEmpresa";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
+import { useRegraConflitoDetector } from "@/hooks/useRegraConflitoDetector";
+import { RegraConflitoModal } from "./RegraConflitoModal";
 
 interface Props {
   open: boolean;
