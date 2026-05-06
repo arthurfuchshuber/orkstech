@@ -611,19 +611,10 @@ export default function ExtratoBancario() {
   const getAccountTotalBalance = (account: BankAccount) =>
     account.balance + getStoredBalance(account);
 
-  // Apenas aplicações/resgates de investimento (caixinhas) ficam fora dos totais
-  // de Entradas/Saídas — pois apenas movem dinheiro entre caixa e investimento.
-  // Transferências entre contas próprias e pagamentos de fatura SÃO contabilizados
-  // (com possibilidade de categorizar como "transferência entre contas").
-  const isInvestmentCategoryStr = (cat?: string | null) => {
-    const c = (cat || "").toLowerCase();
-    return c.includes("investment") || c.includes("mutual fund") || c.includes("aplicac");
-  };
-  const isExcludedFromTotals = (tx: typeof allTransactions[number]) =>
-    isInternalTransaction(tx, creditAccountIds) && isInvestmentCategoryStr(tx.category);
-
-  const externalTransactions = allTransactions.filter((tx) => !isExcludedFromTotals(tx));
-  const internalTransactions = allTransactions.filter((tx) => isExcludedFromTotals(tx));
+  // Toda movimentação interna (transferência entre contas próprias, aplicações/resgates,
+  // pagamento de fatura) NÃO conta como Entrada/Saída — apenas remaneja patrimônio.
+  const externalTransactions = allTransactions.filter((tx) => !isInternalTransaction(tx, creditAccountIds));
+  const internalTransactions = allTransactions.filter((tx) => isInternalTransaction(tx, creditAccountIds));
 
   const totalsByAccount = externalTransactions.reduce<
     Record<string, { income: number; expense: number }>
