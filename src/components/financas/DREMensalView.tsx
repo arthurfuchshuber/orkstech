@@ -273,6 +273,18 @@ export default function DREMensalView() {
           )}
         </CardContent>
       </Card>
+
+      <DRECategoriaMovimentacoesModal
+        open={movModal.open}
+        onOpenChange={(v) => setMovModal((s) => ({ ...s, open: v }))}
+        categoryId={movModal.categoryId}
+        categoryLabel={movModal.label}
+        year={year}
+        monthFrom={monthRange[0]}
+        monthTo={monthRange[1]}
+        bankAccountId={bankAccountId}
+        costCenterId={costCenterId}
+      />
     </div>
   );
 }
