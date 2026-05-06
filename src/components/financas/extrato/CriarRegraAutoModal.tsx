@@ -94,18 +94,19 @@ export function CriarRegraAutoModal({
     [termo]
   );
 
-  // Verifica se já existe regra parecida
-  const { data: regraExistente } = useQuery({
-    queryKey: ["dre-regra-existente", targetUserId, termo, categoriaId],
-    enabled: !!targetUserId && open && termo.trim().length >= 2 && !!categoriaId,
+  // Verifica se já existe regra parecida (mesmo termo)
+  // Retorna { exata } quando bate termo + mesma categoria, ou { conflito } quando termo igual mas categoria diferente
+  const { data: regraMatch } = useQuery({
+    queryKey: ["dre-regra-match", targetUserId, termo, categoriaId],
+    enabled: !!targetUserId && open && termo.trim().length >= 2,
     queryFn: async () => {
       const { data } = await supabase
         .from("dre_regras" as any)
         .select("id, nome, condicoes, categoria_destino_id")
         .eq("user_id", targetUserId!)
-        .eq("categoria_destino_id", categoriaId);
+        .eq("ativo", true);
       const t = termo.trim().toLowerCase();
-      const found = (data as any[] | null)?.find((r) => {
+      const matches = (data as any[] | null)?.filter((r) => {
         const conds = Array.isArray(r.condicoes) ? r.condicoes : [];
         return conds.some(
           (c: any) =>
@@ -113,10 +114,15 @@ export function CriarRegraAutoModal({
             (c.operador === "contains" || c.operador === "equals") &&
             String(c.valor || "").trim().toLowerCase() === t
         );
-      });
-      return found ?? null;
+      }) ?? [];
+      const exata = matches.find((r) => r.categoria_destino_id === categoriaId) ?? null;
+      const conflito = !exata ? matches[0] ?? null : null;
+      return { exata, conflito };
     },
   });
+
+  const regraExistente = regraMatch?.exata ?? null;
+  const regraConflito = regraMatch?.conflito ?? null;
 
   // Preview de impacto
   const { data: preview, isFetching: previewLoading } = useQuery({
