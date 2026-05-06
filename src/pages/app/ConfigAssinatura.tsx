@@ -266,9 +266,11 @@ export default function ConfigAssinatura() {
                   <div className="flex items-start gap-3">
                     <Sparkles className="w-5 h-5 text-primary mt-0.5" />
                     <div>
-                      <p className="text-sm font-medium text-foreground">Escolha seu plano para começar</p>
+                      <p className="text-sm font-medium text-foreground">
+                        Comece com 7 dias grátis — sem cobrança se cancelar antes
+                      </p>
                       <p className="text-xs text-muted-foreground mt-0.5">
-                        Selecione abaixo o plano e o ciclo de cobrança. O acesso é liberado automaticamente após o pagamento.
+                        Escolha o plano e cadastre seu cartão para liberar o acesso. A primeira cobrança só acontece após o término dos 7 dias de teste, e você pode cancelar a qualquer momento dentro desse período sem nenhum custo.
                       </p>
                     </div>
                   </div>
