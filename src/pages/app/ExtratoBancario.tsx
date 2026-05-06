@@ -639,30 +639,31 @@ export default function ExtratoBancario() {
     return accumulator;
   }, {});
 
-  // Movimentações internas — separadas em:
-  //   • transfers: transferências entre contas próprias (Same person transfer)
-  //   • investments: aplicações/resgates (Investments, Mutual funds)
-  // Ambas com sentido in/out. NÃO contam como Entrada/Saída (não impactam DRE).
-  const isInvestmentCategory = (cat?: string | null) => {
-    const c = (cat || "").toLowerCase();
-    return c.includes("investment") || c.includes("mutual fund") || c.includes("aplicac");
-  };
-
+  // Movimentações internas — separadas por subtipo via classifyInternalSubtype
+  // (transferência, pagamento de fatura, aplicação, resgate). NÃO contam no DRE.
   const internalByAccount = internalTransactions.reduce<
     Record<
       string,
-      { transfersIn: number; transfersOut: number; investIn: number; investOut: number }
+      {
+        transfersIn: number; transfersOut: number;
+        investIn: number; investOut: number;
+        faturaPaga: number;
+      }
     >
   >((acc, tx) => {
     const current =
-      acc[tx.pluggy_account_id] ?? { transfersIn: 0, transfersOut: 0, investIn: 0, investOut: 0 };
+      acc[tx.pluggy_account_id] ?? {
+        transfersIn: 0, transfersOut: 0, investIn: 0, investOut: 0, faturaPaga: 0,
+      };
     const isIn = tx.type === "CREDIT" || tx.amount > 0;
     const amt = Math.abs(tx.amount);
-    if (isInvestmentCategory(tx.category)) {
-      // Aplicação: saída de caixa → entrada em investimento (out)
-      // Resgate: entrada de caixa ← saída de investimento (in)
-      if (isIn) current.investIn += amt;
-      else current.investOut += amt;
+    const subtype = classifyInternalSubtype(tx, creditAccountIds);
+    if (subtype === "pagamento_fatura") {
+      current.faturaPaga += amt;
+    } else if (subtype === "aplicacao_investimento") {
+      current.investOut += amt;
+    } else if (subtype === "resgate_investimento") {
+      current.investIn += amt;
     } else {
       if (isIn) current.transfersIn += amt;
       else current.transfersOut += amt;
@@ -814,7 +815,7 @@ export default function ExtratoBancario() {
           <div className="mt-1 flex items-center gap-2 text-[11px] text-muted-foreground">
             <span>Em conta: <span className="font-medium text-foreground">{formatCurrency(bankAccounts.reduce((s, a) => s + a.balance, 0))}</span></span>
             <span>·</span>
-            <span>Caixinhas: <span className="font-medium text-emerald-500">{formatCurrency(bankAccounts.reduce((s, a) => s + getStoredBalance(a), 0))}</span></span>
+            <span>Aplicações: <span className="font-medium text-emerald-500">{formatCurrency(bankAccounts.reduce((s, a) => s + getStoredBalance(a), 0))}</span></span>
           </div>
         </Card>
 
@@ -879,7 +880,7 @@ export default function ExtratoBancario() {
               const stored = getStoredBalance(account);
               const totals = totalsByAccount[account.pluggy_account_id] ?? { income: 0, expense: 0 };
               const internal = internalByAccount[account.pluggy_account_id] ?? {
-                transfersIn: 0, transfersOut: 0, investIn: 0, investOut: 0,
+                transfersIn: 0, transfersOut: 0, investIn: 0, investOut: 0, faturaPaga: 0,
               };
               const conn = connections.find((c) => c.pluggy_item_id === account.pluggy_item_id);
               const totalAccount = getAccountTotalBalance(account);
@@ -904,7 +905,7 @@ export default function ExtratoBancario() {
 
                   <div className="mb-2">
                     <p className="text-lg font-bold text-foreground tabular-nums">{formatCurrency(totalAccount)}</p>
-                    <p className="text-[10px] text-muted-foreground">Saldo total (conta + caixinhas)</p>
+                    <p className="text-[10px] text-muted-foreground">Saldo total (conta + aplicações)</p>
                   </div>
 
                   <div className="grid grid-cols-2 gap-x-3 gap-y-0.5 border-t border-border/40 pt-2 text-[10px]">
@@ -913,7 +914,7 @@ export default function ExtratoBancario() {
                       <span className={`font-medium tabular-nums ${account.balance > 0 ? "text-emerald-500" : "text-foreground"}`}>{formatCurrency(account.balance)}</span>
                     </div>
                     <div className="flex justify-between text-muted-foreground">
-                      <span>Caixinhas</span>
+                      <span>Aplicações</span>
                       <span className={`font-medium tabular-nums ${stored > 0 ? "text-emerald-500" : "text-foreground"}`}>{formatCurrency(stored)}</span>
                     </div>
                     <div className="flex justify-between text-muted-foreground">
@@ -934,6 +935,28 @@ export default function ExtratoBancario() {
                           <span>Transf. enviadas</span>
                           <span className="font-medium tabular-nums text-foreground">{formatCurrency(internal.transfersOut)}</span>
                         </div>
+                      </>
+                    )}
+                    {internal.faturaPaga > 0 && (
+                      <div className="col-span-2 flex justify-between text-muted-foreground">
+                        <span>Pagamento de fatura</span>
+                        <span className="font-medium tabular-nums text-foreground">{formatCurrency(internal.faturaPaga)}</span>
+                      </div>
+                    )}
+                    {(internal.investIn > 0 || internal.investOut > 0) && (
+                      <>
+                        {internal.investOut > 0 && (
+                          <div className="flex justify-between text-muted-foreground">
+                            <span>Aplicação</span>
+                            <span className="font-medium tabular-nums text-foreground">{formatCurrency(internal.investOut)}</span>
+                          </div>
+                        )}
+                        {internal.investIn > 0 && (
+                          <div className="flex justify-between text-muted-foreground">
+                            <span>Resgate</span>
+                            <span className="font-medium tabular-nums text-foreground">{formatCurrency(internal.investIn)}</span>
+                          </div>
+                        )}
                       </>
                     )}
                   </div>
