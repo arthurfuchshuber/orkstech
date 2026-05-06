@@ -1236,14 +1236,14 @@ export default function ExtratoBancario() {
                           {subcatOptions.map((c: any) => (
                             <DropdownMenuItem
                               key={c.id}
-                              onClick={() => updateCategoriaMutation.mutate({ id: tx.id, categoria_financeira_id: c.id })}
+                              onClick={() => updateCategoriaMutation.mutate({ id: tx.id, categoria_financeira_id: c.id, description: tx.description })}
                             >
                               {c.nome}
                             </DropdownMenuItem>
                           ))}
                           {catFin && (
                             <DropdownMenuItem
-                              onClick={() => updateCategoriaMutation.mutate({ id: tx.id, categoria_financeira_id: null })}
+                              onClick={() => updateCategoriaMutation.mutate({ id: tx.id, categoria_financeira_id: null, description: tx.description })}
                               className="text-muted-foreground"
                             >
                               Limpar
