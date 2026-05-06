@@ -94,18 +94,19 @@ export function CriarRegraAutoModal({
     [termo]
   );
 
-  // Verifica se já existe regra parecida
-  const { data: regraExistente } = useQuery({
-    queryKey: ["dre-regra-existente", targetUserId, termo, categoriaId],
-    enabled: !!targetUserId && open && termo.trim().length >= 2 && !!categoriaId,
+  // Verifica se já existe regra parecida (mesmo termo)
+  // Retorna { exata } quando bate termo + mesma categoria, ou { conflito } quando termo igual mas categoria diferente
+  const { data: regraMatch } = useQuery({
+    queryKey: ["dre-regra-match", targetUserId, termo, categoriaId],
+    enabled: !!targetUserId && open && termo.trim().length >= 2,
     queryFn: async () => {
       const { data } = await supabase
         .from("dre_regras" as any)
         .select("id, nome, condicoes, categoria_destino_id")
         .eq("user_id", targetUserId!)
-        .eq("categoria_destino_id", categoriaId);
+        .eq("ativo", true);
       const t = termo.trim().toLowerCase();
-      const found = (data as any[] | null)?.find((r) => {
+      const matches = (data as any[] | null)?.filter((r) => {
         const conds = Array.isArray(r.condicoes) ? r.condicoes : [];
         return conds.some(
           (c: any) =>
@@ -113,16 +114,21 @@ export function CriarRegraAutoModal({
             (c.operador === "contains" || c.operador === "equals") &&
             String(c.valor || "").trim().toLowerCase() === t
         );
-      });
-      return found ?? null;
+      }) ?? [];
+      const exata = matches.find((r) => r.categoria_destino_id === categoriaId) ?? null;
+      const conflito = !exata ? matches[0] ?? null : null;
+      return { exata, conflito };
     },
   });
+
+  const regraExistente = regraMatch?.exata ?? null;
+  const regraConflito = regraMatch?.conflito ?? null;
 
   // Preview de impacto
   const { data: preview, isFetching: previewLoading } = useQuery({
     queryKey: ["preview-regra", targetUserId, empresaId, termo, categoriaId, aplicarEm],
     enabled:
-      !!targetUserId && open && termo.trim().length >= 2 && !!categoriaId && !regraExistente,
+      !!targetUserId && open && termo.trim().length >= 2 && !!categoriaId && !regraExistente && !regraConflito,
     queryFn: async () => {
       const { data, error } = await supabase.rpc("preview_regra_dre" as any, {
         p_user_id: targetUserId,
@@ -191,7 +197,12 @@ export function CriarRegraAutoModal({
 
   const totalImpacto = preview?.total ?? 0;
   const canSave =
-    !!termo.trim() && !!categoriaId && !!nome.trim() && !regraExistente && !saveMut.isPending;
+    !!termo.trim() &&
+    !!categoriaId &&
+    !!nome.trim() &&
+    !regraExistente &&
+    !regraConflito &&
+    !saveMut.isPending;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -207,12 +218,27 @@ export function CriarRegraAutoModal({
         </DialogHeader>
 
         <div className="space-y-4">
-          {/* Aviso de regra duplicada */}
+          {/* Aviso de regra idêntica */}
           {regraExistente && (
             <div className="rounded-md border border-amber-500/30 bg-amber-500/10 p-3 text-xs">
-              <strong className="text-amber-500">Já existe uma regra parecida:</strong>{" "}
+              <strong className="text-amber-500">Já existe uma regra idêntica:</strong>{" "}
               <span className="text-foreground">"{(regraExistente as any).nome}"</span>. Edite o
               termo abaixo ou cancele.
+            </div>
+          )}
+
+          {/* Aviso de conflito (mesmo termo apontando para outra categoria) */}
+          {regraConflito && !regraExistente && (
+            <div className="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-xs space-y-1">
+              <strong className="text-destructive">Conflito de regra:</strong>{" "}
+              <span className="text-foreground">
+                já existe a regra "{(regraConflito as any).nome}" usando este mesmo termo, mas
+                apontando para outra categoria.
+              </span>
+              <p className="text-muted-foreground">
+                Edite o termo, troque a categoria de destino, ou ajuste a regra anterior em
+                DRE & Analytics → Regras.
+              </p>
             </div>
           )}
 
@@ -280,7 +306,7 @@ export function CriarRegraAutoModal({
           </div>
 
           {/* Preview de impacto */}
-          {!regraExistente && (
+          {!regraExistente && !regraConflito && (
             <div className="rounded-md border border-primary/20 bg-primary/5 p-3 space-y-2">
               <div className="flex items-center gap-2 text-xs font-medium">
                 <Wand2 className="w-3.5 h-3.5 text-primary" />

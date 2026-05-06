@@ -53,6 +53,8 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { AsaasChargeDialog } from "@/components/asaas/AsaasChargeDialog";
+import { OfertaCriarRegraModal } from "@/components/financas/extrato/OfertaCriarRegraModal";
+import { DescricaoComRegra } from "@/components/financas/extrato/DescricaoComRegra";
 
 type PaymentMode = "avista" | "parcelado" | "recorrente" | "sazonal";
 type PayerKind = "cliente" | "fornecedor";
@@ -126,6 +128,12 @@ export default function ContasAReceber() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<ReceivableForm>(initialForm);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [ofertaRegra, setOfertaRegra] = useState<{
+    open: boolean;
+    descricoes: string[];
+    categoriaId: string;
+    categoriaNome?: string;
+  }>({ open: false, descricoes: [], categoriaId: "" });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState<string>("open");
@@ -789,12 +797,27 @@ export default function ContasAReceber() {
   const handleBulkUpdate = async (data: Record<string, any>) => {
     const ids = Array.from(selectedIds);
     if (ids.length === 0) return;
+    const selecionadas = filtered.filter((p: any) => ids.includes(p.id));
     for (const id of ids) {
       await updateAccountReceivable(id, data);
     }
     setSelectedIds(new Set());
     await refreshQueries(queryClient, [["accounts-receivable"], ["accounts-receivable-counts"]]);
     toast.success(`${ids.length} conta(s) atualizada(s)!`);
+
+    if (
+      Object.prototype.hasOwnProperty.call(data, "categoria_financeira_id") &&
+      data.categoria_financeira_id &&
+      selecionadas.length >= 2
+    ) {
+      const cat = categoriasFinanceiras.find((c: any) => c.id === data.categoria_financeira_id);
+      setOfertaRegra({
+        open: true,
+        descricoes: selecionadas.map((p: any) => p.description || "").filter(Boolean),
+        categoriaId: data.categoria_financeira_id,
+        categoriaNome: cat?.nome,
+      });
+    }
   };
 
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
@@ -1239,7 +1262,13 @@ export default function ContasAReceber() {
                           title="Editar conta"
                         >
                           <div className={opts.isChild ? "pl-4" : ""}>
-                            <span className="text-sm group-hover/edit:underline">{item.description}</span>
+                            <DescricaoComRegra
+                              description={item.description}
+                              categoriaId={item.categoria_financeira_id}
+                              tipoSugerido="receber"
+                            >
+                              <span className="text-sm group-hover/edit:underline">{item.description}</span>
+                            </DescricaoComRegra>
                             {item.installment_total > 1 && (
                               <span className="text-xs text-muted-foreground ml-1">
                                 ({item.installment_number}/{item.installment_total})
@@ -2320,6 +2349,15 @@ export default function ContasAReceber() {
           : quickListMode === "thisMonth" ? thisMonthItems
           : nextMonthItems
         }
+      />
+
+      <OfertaCriarRegraModal
+        open={ofertaRegra.open}
+        onOpenChange={(v) => setOfertaRegra((p) => ({ ...p, open: v }))}
+        descricoes={ofertaRegra.descricoes}
+        categoriaId={ofertaRegra.categoriaId}
+        categoriaNome={ofertaRegra.categoriaNome}
+        tipoSugerido="receber"
       />
     </div>
   );
