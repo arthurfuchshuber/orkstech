@@ -53,6 +53,8 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { OfertaCriarRegraModal } from "@/components/financas/extrato/OfertaCriarRegraModal";
+import { DescricaoComRegra } from "@/components/financas/extrato/DescricaoComRegra";
 
 type PaymentMode = "avista" | "parcelado" | "recorrente" | "sazonal";
 
