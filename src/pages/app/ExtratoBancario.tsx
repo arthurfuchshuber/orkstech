@@ -1217,7 +1217,16 @@ export default function ExtratoBancario() {
               {filteredTx.map((tx) => {
                 const isCredit = isInflow(tx);
                 const isInternal = isInternalTransaction(tx, creditAccountIds);
-                const internalSubtype = classifyInternalSubtype(tx, creditAccountIds);
+                let internalSubtype = classifyInternalSubtype(tx, creditAccountIds);
+                if (
+                  isInternal &&
+                  internalSubtype !== "pagamento_fatura" &&
+                  !creditAccountIds.has(tx.pluggy_account_id) &&
+                  tx.amount < 0 &&
+                  faturaPaymentKeys.has(`${tx.date}|${Math.abs(tx.amount).toFixed(2)}`)
+                ) {
+                  internalSubtype = "pagamento_fatura";
+                }
                 const catFin = categoriasFinanceiras.find((c: any) => c.id === tx.categoria_financeira_id);
 
                 // Filtra por tipo financeiro pertinente ao fluxo (entrada x saída) e mostra apenas folhas finais
