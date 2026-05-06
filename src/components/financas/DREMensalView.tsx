@@ -242,16 +242,16 @@ export default function DREMensalView() {
                           const av = receitaTotalMonthly[m] > 0 ? (v / receitaTotalMonthly[m]) * 100 : 0;
                           return (
                             <Fragment key={`c-${line.id}-${m}`}>
-                              <td className={cn("text-right py-1.5 px-2 tabular-nums", valueColor(v))}>
+                              <td className={cn("text-right py-1.5 px-2 tabular-nums transition-colors group-hover:bg-primary/20", valueColor(v))}>
                                 {line.isPercentual ? fmtPct(v) : fmtBRL(v)}
                               </td>
                               {showAV && (
-                                <td className="text-right py-1.5 px-1 text-muted-foreground tabular-nums text-[10px]">
+                                <td className="text-right py-1.5 px-1 text-muted-foreground tabular-nums text-[10px] transition-colors group-hover:bg-primary/20">
                                   {line.isPercentual || Math.abs(v) < 0.005 ? "" : fmtPct(av)}
                                 </td>
                               )}
                               {showAH && (
-                                <td className="text-right py-1.5 px-1 tabular-nums text-[10px]">
+                                <td className="text-right py-1.5 px-1 tabular-nums text-[10px] transition-colors group-hover:bg-primary/20">
                                   {ah == null || line.isPercentual ? "" : (
                                     <span className={ah >= 0 ? "text-success" : "text-destructive"}>{ah >= 0 ? "+" : ""}{ah.toFixed(0)}%</span>
                                   )}
@@ -260,7 +260,7 @@ export default function DREMensalView() {
                             </Fragment>
                           );
                         })}
-                        <td className={cn("text-right py-1.5 px-3 font-semibold tabular-nums bg-muted/20 transition-colors group-hover:bg-primary/15", valueColor(line.total))}>
+                        <td className={cn("text-right py-1.5 px-3 font-semibold tabular-nums bg-muted/20 transition-colors group-hover:!bg-primary/20", valueColor(line.total))}>
                           {line.isPercentual ? fmtPct(line.total) : fmtBRL(line.total)}
                         </td>
                       </tr>
