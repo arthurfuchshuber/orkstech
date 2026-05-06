@@ -325,8 +325,16 @@ export function CategoriaFinanceiraModal({ open, onOpenChange, editingId, defaul
 
   const parentOptions = allCategories.filter((c) => c.id !== editingId);
   const selectedParent = allCategories.find((c) => c.id === form.categoria_pai_id);
-  // Tipo herdado da pai quando há pai; senão usa o tipo escolhido pelo usuário
-  const effectiveTipo = (selectedParent?.tipo ?? form.tipo) as TipoFinanceiro;
+  // Tipo: por padrão herda da pai, mas o usuário pode override-ar pelo seletor.
+  const effectiveTipo = form.tipo as TipoFinanceiro;
+
+  // Quando troca a pai e o usuário ainda não tocou no tipo, sincroniza com o tipo herdado.
+  useEffect(() => {
+    if (selectedParent?.tipo) {
+      setForm((f) => ({ ...f, tipo: selectedParent.tipo as TipoFinanceiro }));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedParent?.id]);
 
   const saveMutation = useMutation({
     mutationFn: async () => {
@@ -335,8 +343,7 @@ export function CategoriaFinanceiraModal({ open, onOpenChange, editingId, defaul
           .update({
             nome: form.nome,
             categoria_pai_id: form.categoria_pai_id,
-            // só persiste tipo quando é raiz (sem pai)
-            ...(form.categoria_pai_id ? {} : { tipo: form.tipo as any }),
+            tipo: effectiveTipo as any,
           })
           .eq("id", editingId);
         if (error) throw error;
@@ -416,34 +423,29 @@ export function CategoriaFinanceiraModal({ open, onOpenChange, editingId, defaul
                 onAddModal={() => setParentModalOpen(true)}
               />
               {selectedParent ? (
-                <div className="mt-1.5 flex items-center gap-1.5">
-                  <span className="text-[11px] text-muted-foreground">Tipo herdado:</span>
-                  <Badge variant="outline" className={`text-[9px] px-1 py-0 leading-4 ${tipoColors[effectiveTipo]}`}>
-                    {tipoLabels[effectiveTipo]}
-                  </Badge>
-                </div>
+                <p className="mt-1.5 text-[11px] text-muted-foreground">
+                  Tipo padrão herdado de <strong>{selectedParent.nome}</strong>. Pode ser alterado abaixo.
+                </p>
               ) : (
                 <p className="mt-1.5 text-[11px] text-muted-foreground">
                   Sem categoria pai = será uma categoria <strong>raiz</strong>. Defina o tipo abaixo.
                 </p>
               )}
             </div>
-            {!selectedParent && (
-              <div>
-                <ManagedSelectInput
-                  label="Tipo (DRE)"
-                  value={form.tipo}
-                  onValueChange={(v) => setForm({ ...form, tipo: v as TipoFinanceiro })}
-                  placeholder="Selecione o tipo"
-                  options={tipoOptions}
-                />
-                <div className="mt-1.5">
-                  <Badge variant="outline" className={`text-[9px] px-1 py-0 leading-4 ${tipoColors[form.tipo]}`}>
-                    {tipoLabels[form.tipo]}
-                  </Badge>
-                </div>
+            <div>
+              <ManagedSelectInput
+                label="Tipo (DRE)"
+                value={form.tipo}
+                onValueChange={(v) => setForm({ ...form, tipo: v as TipoFinanceiro })}
+                placeholder="Selecione o tipo"
+                options={tipoOptions}
+              />
+              <div className="mt-1.5">
+                <Badge variant="outline" className={`text-[9px] px-1 py-0 leading-4 ${tipoColors[form.tipo]}`}>
+                  {tipoLabels[form.tipo]}
+                </Badge>
               </div>
-            )}
+            </div>
           </div>
           <DialogFooter className="sm:justify-between gap-2">
             <DREPreviewPopover
