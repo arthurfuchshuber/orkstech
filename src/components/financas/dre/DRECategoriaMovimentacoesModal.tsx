@@ -294,6 +294,7 @@ export function DRECategoriaMovimentacoesModal({
           <Button variant="outline" onClick={() => onOpenChange(false)}>Fechar</Button>
         </div>
       </DialogContent>
+      <RegraConflitoModal conflito={conflito} onClose={() => setConflito(null)} />
     </Dialog>
   );
 }
