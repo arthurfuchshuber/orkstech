@@ -206,6 +206,13 @@ export default function ExtratoBancario() {
   const [manualDialogOpen, setManualDialogOpen] = useState(false);
   const [editingManual, setEditingManual] = useState<any>(null);
   const [batchSelection, setBatchSelection] = useState<Set<string>>(new Set());
+  const [ofertaRegra, setOfertaRegra] = useState<{
+    open: boolean;
+    descricoes: string[];
+    categoriaId: string;
+    categoriaNome?: string;
+    tipoSugerido: "pagar" | "receber";
+  }>({ open: false, descricoes: [], categoriaId: "", tipoSugerido: "pagar" });
   const [pluggyEditTx, setPluggyEditTx] = useState<{ id: string; description: string | null; amount: number; date: string } | null>(null);
   const [contasCardsExpanded, setContasCardsExpanded] = useState(false);
 
