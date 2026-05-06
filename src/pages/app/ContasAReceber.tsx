@@ -1262,7 +1262,13 @@ export default function ContasAReceber() {
                           title="Editar conta"
                         >
                           <div className={opts.isChild ? "pl-4" : ""}>
-                            <span className="text-sm group-hover/edit:underline">{item.description}</span>
+                            <DescricaoComRegra
+                              description={item.description}
+                              categoriaId={item.categoria_financeira_id}
+                              tipoSugerido="receber"
+                            >
+                              <span className="text-sm group-hover/edit:underline">{item.description}</span>
+                            </DescricaoComRegra>
                             {item.installment_total > 1 && (
                               <span className="text-xs text-muted-foreground ml-1">
                                 ({item.installment_number}/{item.installment_total})
