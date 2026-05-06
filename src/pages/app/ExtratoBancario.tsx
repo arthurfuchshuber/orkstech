@@ -1252,7 +1252,8 @@ export default function ExtratoBancario() {
                   .filter((c: any) => allowedTipos.includes(c.tipo))
                   .filter((c: any) => !categoriasFinanceiras.some((child: any) => child.categoria_pai_id === c.id));
 
-                const enhancedDesc = enhanceDescription(tx);
+                const enhancedDesc = stripTypePrefix(enhanceDescription(tx));
+                const isCreditCardTx = creditAccountIds.has(tx.pluggy_account_id);
 
                 return (
                   <div
