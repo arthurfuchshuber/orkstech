@@ -109,8 +109,8 @@ export function UncategorizedTransactionsModal({ open, onOpenChange }: Props) {
     enabled: !!targetUserId && open,
     queryFn: async () => {
       const { data } = await supabase
-        .from("pluggy_accounts" as any)
-        .select("pluggy_id, name, marketing_name, type")
+        .from("pluggy_bank_accounts" as any)
+        .select("pluggy_account_id, name, type")
         .eq("user_id", targetUserId!);
       return (data ?? []) as any[];
     },
@@ -131,13 +131,20 @@ export function UncategorizedTransactionsModal({ open, onOpenChange }: Props) {
   });
 
   const accountLabel = (id: string) => {
-    const a = accounts.find((x: any) => x.pluggy_id === id);
-    return a?.marketing_name || a?.name || "—";
+    const a = accounts.find((x: any) => x.pluggy_account_id === id);
+    return a?.name || "—";
   };
 
   const isCreditCardAccount = (id: string) => {
-    const a = accounts.find((x: any) => x.pluggy_id === id);
+    const a = accounts.find((x: any) => x.pluggy_account_id === id);
     return a?.type === "CREDIT";
+  };
+
+  /** Para cartão: amount>0 = compra (saída); amount<0 = pagamento da fatura (entrada).
+   *  Para conta: amount>0 = entrada; amount<0 = saída. */
+  const isInflow = (tx: Tx) => {
+    if (isCreditCardAccount(tx.pluggy_account_id)) return tx.amount < 0;
+    return tx.amount > 0;
   };
 
   const updateMutation = useMutation({
@@ -189,32 +196,38 @@ export function UncategorizedTransactionsModal({ open, onOpenChange }: Props) {
     onError: (err: any) => toast.error(err?.message || "Erro ao salvar"),
   });
 
+  const creditAccountIds = useMemo(
+    () => new Set(accounts.filter((a: any) => a.type === "CREDIT").map((a: any) => a.pluggy_account_id)),
+    [accounts]
+  );
+
   // Filtra movimentações internas (transferências, pagamento de fatura, aplicações/resgates)
   // que não precisam de categorização DRE — só sobram movimentações reais.
   const enhancedTransactions = useMemo(
     () =>
       transactions
-        .filter((tx) => classifyInternalSubtype(tx as any) === null)
+        .filter((tx) => classifyInternalSubtype(tx as any, creditAccountIds) === null)
         .map((tx) => ({ ...tx, _pretty: stripTypePrefix(enhancePluggyDescription(tx)) })),
-    [transactions]
+    [transactions, creditAccountIds]
   );
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     return enhancedTransactions.filter((t) => {
       if (accountFilter !== "all" && t.pluggy_account_id !== accountFilter) return false;
-      if (typeFilter === "in" && t.amount <= 0) return false;
-      if (typeFilter === "out" && t.amount >= 0) return false;
+      const inflow = isInflow(t);
+      if (typeFilter === "in" && !inflow) return false;
+      if (typeFilter === "out" && inflow) return false;
       if (q) {
         const hay = `${t._pretty} ${t.description ?? ""}`.toLowerCase();
         if (!hay.includes(q)) return false;
       }
       return true;
     });
-  }, [enhancedTransactions, search, accountFilter, typeFilter]);
+  }, [enhancedTransactions, search, accountFilter, typeFilter, accounts]);
 
-  const totalSaida = filtered.filter((t) => t.amount < 0).reduce((s, t) => s + Math.abs(t.amount), 0);
-  const totalEntrada = filtered.filter((t) => t.amount > 0).reduce((s, t) => s + t.amount, 0);
+  const totalEntrada = filtered.filter((t) => isInflow(t)).reduce((s, t) => s + Math.abs(t.amount), 0);
+  const totalSaida = filtered.filter((t) => !isInflow(t)).reduce((s, t) => s + Math.abs(t.amount), 0);
 
   return (
     <>
@@ -249,8 +262,8 @@ export function UncategorizedTransactionsModal({ open, onOpenChange }: Props) {
               <SelectContent>
                 <SelectItem value="all">Todas as contas</SelectItem>
                 {accounts.map((a: any) => (
-                  <SelectItem key={a.pluggy_id} value={a.pluggy_id}>
-                    {a.marketing_name || a.name}
+                  <SelectItem key={a.pluggy_account_id} value={a.pluggy_account_id}>
+                    {a.name}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -288,7 +301,8 @@ export function UncategorizedTransactionsModal({ open, onOpenChange }: Props) {
               </div>
             ) : (
               filtered.map((tx) => {
-                const isIn = tx.amount > 0;
+                const isIn = isInflow(tx);
+                const signed = isIn ? Math.abs(tx.amount) : -Math.abs(tx.amount);
                 return (
                   <div
                     key={tx.id}
@@ -309,7 +323,7 @@ export function UncategorizedTransactionsModal({ open, onOpenChange }: Props) {
                         <DescricaoComRegra
                           description={tx._pretty}
                           categoriaId={tx.categoria_financeira_id}
-                          tipoSugerido={tx.amount < 0 ? "pagar" : "receber"}
+                          tipoSugerido={isIn ? "receber" : "pagar"}
                           className="block min-w-0 flex-1"
                         >
                           <p className="text-sm text-foreground truncate" title={tx._pretty}>
@@ -339,7 +353,7 @@ export function UncategorizedTransactionsModal({ open, onOpenChange }: Props) {
                         isIn ? "text-success" : "text-destructive"
                       }`}
                     >
-                      {fmt(tx.amount)}
+                      {fmt(signed)}
                     </div>
                     <div className="w-56 shrink-0">
                       <Select
