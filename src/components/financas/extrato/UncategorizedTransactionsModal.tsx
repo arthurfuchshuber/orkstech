@@ -131,13 +131,20 @@ export function UncategorizedTransactionsModal({ open, onOpenChange }: Props) {
   });
 
   const accountLabel = (id: string) => {
-    const a = accounts.find((x: any) => x.pluggy_id === id);
-    return a?.marketing_name || a?.name || "—";
+    const a = accounts.find((x: any) => x.pluggy_account_id === id);
+    return a?.name || "—";
   };
 
   const isCreditCardAccount = (id: string) => {
-    const a = accounts.find((x: any) => x.pluggy_id === id);
+    const a = accounts.find((x: any) => x.pluggy_account_id === id);
     return a?.type === "CREDIT";
+  };
+
+  /** Para cartão: amount>0 = compra (saída); amount<0 = pagamento da fatura (entrada).
+   *  Para conta: amount>0 = entrada; amount<0 = saída. */
+  const isInflow = (tx: Tx) => {
+    if (isCreditCardAccount(tx.pluggy_account_id)) return tx.amount < 0;
+    return tx.amount > 0;
   };
 
   const updateMutation = useMutation({
