@@ -109,8 +109,8 @@ export function UncategorizedTransactionsModal({ open, onOpenChange }: Props) {
     enabled: !!targetUserId && open,
     queryFn: async () => {
       const { data } = await supabase
-        .from("pluggy_accounts" as any)
-        .select("pluggy_id, name, marketing_name, type")
+        .from("pluggy_bank_accounts" as any)
+        .select("pluggy_account_id, name, type")
         .eq("user_id", targetUserId!);
       return (data ?? []) as any[];
     },
