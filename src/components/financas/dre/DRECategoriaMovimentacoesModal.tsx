@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { ScrollArea } from "@/components/ui/scroll-area";
+
 import { ChevronDown, Loader2, ArrowDownLeft, ArrowUpRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -180,8 +180,8 @@ export function DRECategoriaMovimentacoesModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[85vh] flex flex-col">
-        <DialogHeader>
+      <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col p-0 gap-0">
+        <DialogHeader className="px-6 pt-6 pb-3 border-b border-border/40 flex-shrink-0">
           <DialogTitle className="flex items-center gap-2">
             <span>{categoryLabel}</span>
             <Badge variant="outline" className="text-[10px]">
@@ -194,7 +194,7 @@ export function DRECategoriaMovimentacoesModal({
         </DialogHeader>
 
         {/* Resumo */}
-        <div className="grid grid-cols-3 gap-3 py-2">
+        <div className="grid grid-cols-3 gap-3 px-6 py-3 border-b border-border/40 flex-shrink-0">
           <div className="rounded-md border border-border/50 bg-card p-3">
             <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Entradas</p>
             <p className="text-lg font-semibold tabular-nums text-success">{fmtBRL(totalIn)}</p>
@@ -209,7 +209,7 @@ export function DRECategoriaMovimentacoesModal({
           </div>
         </div>
 
-        <ScrollArea className="flex-1 -mx-6 px-6">
+        <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar px-6 py-4">
           {isLoading ? (
             <div className="py-12 text-center text-sm text-muted-foreground">
               <Loader2 className="w-4 h-4 mx-auto mb-2 animate-spin" />
@@ -282,9 +282,9 @@ export function DRECategoriaMovimentacoesModal({
               </div>
             </div>
           )}
-        </ScrollArea>
+        </div>
 
-        <div className="flex justify-end pt-2">
+        <div className="flex justify-end gap-2 px-6 py-4 border-t border-border/40 flex-shrink-0">
           <Button variant="outline" onClick={() => onOpenChange(false)}>Fechar</Button>
         </div>
       </DialogContent>
