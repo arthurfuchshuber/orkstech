@@ -449,6 +449,8 @@ export function PlanoDeContasSection() {
             </Button>
           </DialogFooter>
         </DialogContent>
+      </Dialog>
+
       <DREPreviewDialog
         open={previewOpen}
         onOpenChange={setPreviewOpen}
