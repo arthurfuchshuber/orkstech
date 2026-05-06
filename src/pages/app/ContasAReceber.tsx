@@ -797,12 +797,27 @@ export default function ContasAReceber() {
   const handleBulkUpdate = async (data: Record<string, any>) => {
     const ids = Array.from(selectedIds);
     if (ids.length === 0) return;
+    const selecionadas = filtered.filter((p: any) => ids.includes(p.id));
     for (const id of ids) {
       await updateAccountReceivable(id, data);
     }
     setSelectedIds(new Set());
     await refreshQueries(queryClient, [["accounts-receivable"], ["accounts-receivable-counts"]]);
     toast.success(`${ids.length} conta(s) atualizada(s)!`);
+
+    if (
+      Object.prototype.hasOwnProperty.call(data, "categoria_financeira_id") &&
+      data.categoria_financeira_id &&
+      selecionadas.length >= 2
+    ) {
+      const cat = categoriasFinanceiras.find((c: any) => c.id === data.categoria_financeira_id);
+      setOfertaRegra({
+        open: true,
+        descricoes: selecionadas.map((p: any) => p.description || "").filter(Boolean),
+        categoriaId: data.categoria_financeira_id,
+        categoriaNome: cat?.nome,
+      });
+    }
   };
 
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
