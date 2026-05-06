@@ -12,6 +12,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useEmpresa } from "@/hooks/useEmpresa";
 import { toast } from "sonner";
+import { ManagedSelectInput } from "@/components/inputs/ManagedSelectInput";
+import { CategoriaFinanceiraModal } from "@/components/modals/CategoriaFinanceiraModal";
 
 interface Props {
   open: boolean;
@@ -73,13 +75,28 @@ export function CriarRegraAutoModal({
     queryFn: async () => {
       const { data } = await supabase
         .from("categorias_financeiras")
-        .select("id, nome, categoria_pai_id")
+        .select("id, nome, categoria_pai_id, tipo")
         .eq("user_id", targetUserId!)
         .eq("ativo", true)
         .order("ordem");
       return (data ?? []).filter((c: any) => c.categoria_pai_id != null);
     },
   });
+
+  const [catModal, setCatModal] = useState<{ open: boolean; editingId?: string }>({ open: false });
+
+  const categoriasFiltradas = useMemo(() => {
+    if (aplicarEm === "receber") return categorias.filter((c: any) => c.tipo === "receita");
+    if (aplicarEm === "pagar") return categorias.filter((c: any) => c.tipo === "despesa" || c.tipo === "custo");
+    return categorias;
+  }, [categorias, aplicarEm]);
+
+  // Limpa categoria se sair do escopo do tipo
+  useEffect(() => {
+    if (categoriaId && !categoriasFiltradas.find((c: any) => c.id === categoriaId)) {
+      setCategoriaId("");
+    }
+  }, [categoriasFiltradas, categoriaId]);
 
   // Atualiza nome ao trocar categoria
   useEffect(() => {
@@ -266,22 +283,6 @@ export function CriarRegraAutoModal({
           </div>
 
           <div className="space-y-1.5">
-            <Label className="text-xs">Categorizar como</Label>
-            <Select value={categoriaId} onValueChange={setCategoriaId}>
-              <SelectTrigger className="h-9 text-sm">
-                <SelectValue placeholder="Selecionar categoria" />
-              </SelectTrigger>
-              <SelectContent>
-                {categorias.map((c: any) => (
-                  <SelectItem key={c.id} value={c.id}>
-                    {c.nome}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-1.5">
             <Label className="text-xs">Aplicar em</Label>
             <Select value={aplicarEm} onValueChange={(v: any) => setAplicarEm(v)}>
               <SelectTrigger className="h-9 text-sm">
@@ -294,6 +295,17 @@ export function CriarRegraAutoModal({
               </SelectContent>
             </Select>
           </div>
+
+          <ManagedSelectInput
+            label="Categorizar como"
+            value={categoriaId}
+            onValueChange={setCategoriaId}
+            placeholder="Selecionar categoria"
+            options={categoriasFiltradas.map((c: any) => ({ value: c.id, label: c.nome }))}
+            addLabel="Nova categoria"
+            onAddModal={() => setCatModal({ open: true })}
+            onEditModal={(id) => setCatModal({ open: true, editingId: id })}
+          />
 
           <div className="space-y-1.5">
             <Label className="text-xs">Nome da regra</Label>
@@ -380,6 +392,17 @@ export function CriarRegraAutoModal({
           </Button>
         </DialogFooter>
       </DialogContent>
+      <CategoriaFinanceiraModal
+        open={catModal.open}
+        onOpenChange={(v) => setCatModal({ open: v, editingId: catModal.editingId })}
+        editingId={catModal.editingId}
+        defaultTipo={aplicarEm === "receber" ? "receita" : "despesa"}
+        onSaved={(id) => {
+          qc.invalidateQueries({ queryKey: ["dre-regras-cats-auto"] });
+          if (id) setCategoriaId(id);
+          setCatModal({ open: false });
+        }}
+      />
     </Dialog>
   );
 }
