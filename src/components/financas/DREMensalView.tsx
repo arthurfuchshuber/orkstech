@@ -11,6 +11,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useEmpresa } from "@/hooks/useEmpresa";
+import { DRECategoriaMovimentacoesModal } from "./dre/DRECategoriaMovimentacoesModal";
 
 const fmtBRL = (v: number) => {
   if (Math.abs(v) < 0.005) return "";
