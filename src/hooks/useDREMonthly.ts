@@ -185,11 +185,12 @@ export function useDREMonthly(filters: DREMonthlyFilters) {
       receita: new Array(12).fill(0), deducao: new Array(12).fill(0),
       custo: new Array(12).fill(0), despesa: new Array(12).fill(0),
       receita_fin: new Array(12).fill(0), despesa_fin: new Array(12).fill(0),
-      imposto: new Array(12).fill(0),
+      imposto: new Array(12).fill(0), distribuicao: new Array(12).fill(0),
     };
     const map: Record<string, keyof typeof totals> = {
       receita: "receita", deducao: "deducao", custo: "custo", despesa: "despesa",
       receita_financeira: "receita_fin", despesa_financeira: "despesa_fin", imposto: "imposto",
+      distribuicao_lucros: "distribuicao",
     };
 
     tree.forEach((root, idx) => {
