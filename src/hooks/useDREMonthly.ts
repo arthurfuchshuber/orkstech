@@ -237,6 +237,8 @@ export function useDREMonthly(filters: DREMonthlyFilters) {
       indicator("impostos", "(-) Impostos", totals.imposto),
       indicator("lucro-liquido", "(=) Lucro Líquido", lucroLiquido),
       pctLine("margem-liquida", "(%) Margem Líquida", lucroLiquido, totals.receita),
+      indicator("distribuicao-lucros", "(-) Distribuição de Lucros", totals.distribuicao),
+      indicator("lucro-retido", "(=) Lucro Retido", lucroRetido),
     ];
 
     return {
