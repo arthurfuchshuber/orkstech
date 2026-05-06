@@ -284,7 +284,11 @@ export function CategoriaFinanceiraModal({ open, onOpenChange, editingId, defaul
   const { empresa } = useEmpresa();
   const targetUserId = empresa?.user_id ?? user?.id;
   const qc = useQueryClient();
-  const [form, setForm] = useState({ nome: "", categoria_pai_id: null as string | null });
+  const [form, setForm] = useState({
+    nome: "",
+    categoria_pai_id: null as string | null,
+    tipo: defaultTipo as TipoFinanceiro,
+  });
   const [parentModalOpen, setParentModalOpen] = useState(false);
 
   const { data: existing } = useQuery({
@@ -309,22 +313,31 @@ export function CategoriaFinanceiraModal({ open, onOpenChange, editingId, defaul
 
   useEffect(() => {
     if (existing && editingId) {
-      setForm({ nome: existing.nome, categoria_pai_id: existing.categoria_pai_id });
+      setForm({
+        nome: existing.nome,
+        categoria_pai_id: existing.categoria_pai_id,
+        tipo: (existing.tipo as TipoFinanceiro) ?? (defaultTipo as TipoFinanceiro),
+      });
     } else if (!editingId && open) {
-      setForm({ nome: "", categoria_pai_id: null });
+      setForm({ nome: "", categoria_pai_id: null, tipo: defaultTipo as TipoFinanceiro });
     }
-  }, [existing, editingId, open]);
+  }, [existing, editingId, open, defaultTipo]);
 
   const parentOptions = allCategories.filter((c) => c.id !== editingId);
   const selectedParent = allCategories.find((c) => c.id === form.categoria_pai_id);
-  // Tipo herdado da pai, ou defaultTipo
-  const effectiveTipo = (selectedParent?.tipo ?? defaultTipo) as TipoFinanceiro;
+  // Tipo herdado da pai quando há pai; senão usa o tipo escolhido pelo usuário
+  const effectiveTipo = (selectedParent?.tipo ?? form.tipo) as TipoFinanceiro;
 
   const saveMutation = useMutation({
     mutationFn: async () => {
       if (editingId) {
         const { error } = await supabase.from("categorias_financeiras")
-          .update({ nome: form.nome, categoria_pai_id: form.categoria_pai_id })
+          .update({
+            nome: form.nome,
+            categoria_pai_id: form.categoria_pai_id,
+            // só persiste tipo quando é raiz (sem pai)
+            ...(form.categoria_pai_id ? {} : { tipo: form.tipo as any }),
+          })
           .eq("id", editingId);
         if (error) throw error;
         return editingId;
@@ -357,6 +370,20 @@ export function CategoriaFinanceiraModal({ open, onOpenChange, editingId, defaul
   });
 
   const NEW_PARENT_VALUE = "__new_parent__";
+
+  const tipoOptions = (Object.keys(tipoLabels) as TipoFinanceiro[]).map((t) => ({
+    value: t,
+    label: tipoLabels[t],
+  }));
+
+  const parentManagedOptions = [
+    { value: "__none__", label: "Nenhuma (raiz)" },
+    ...parentOptions.map((c) => ({
+      value: c.id,
+      label: c.nome,
+      tooltip: tipoLabels[c.tipo as TipoFinanceiro],
+    })),
+  ];
 
   return (
     <>
