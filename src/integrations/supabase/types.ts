@@ -4392,6 +4392,10 @@ export type Database = {
         Args: { _dismiss?: boolean; _empresa_id: string }
         Returns: undefined
       }
+      ensure_distribuicao_lucros_categoria: {
+        Args: { p_empresa_id: string; p_user_id: string }
+        Returns: string
+      }
       get_conta_saldos: { Args: { p_conta_id: string }; Returns: Json }
       get_onboarding_status: { Args: { _empresa_id: string }; Returns: Json }
       get_or_create_ajuste_saldo_categoria: {
