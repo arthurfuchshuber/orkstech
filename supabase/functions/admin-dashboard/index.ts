@@ -158,6 +158,7 @@ serve(async (req) => {
         .eq("is_manual_trial", true)
         .gt("trial_end", new Date().toISOString());
       for (const mt of manualTrials ?? []) {
+        if (superAdminIds.has(mt.user_id)) continue; // não contar Super Admins
         if (!stripeTrialUserIds.has(mt.user_id)) trialingSubscriptions++;
       }
 
