@@ -576,6 +576,11 @@ export default function ExtratoBancario() {
     if (categoryFilter === "sem-categoria" && tx.categoria_financeira_id) return false;
     if (categoryFilter === "com-categoria" && !tx.categoria_financeira_id) return false;
 
+    // Filtro por movimentações internas
+    const subtype = classifyInternalSubtype(tx, creditAccountIdsForFilter);
+    if (internoFilter === "ocultar" && subtype) return false;
+    if (internoFilter === "somente" && !subtype) return false;
+    if (internoFilter !== "all" && internoFilter !== "ocultar" && internoFilter !== "somente" && subtype !== internoFilter) return false;
     if (searchTerm === "") return true;
     const term = searchTerm.toLowerCase().trim();
     const termDigits = term.replace(/\D/g, "");
