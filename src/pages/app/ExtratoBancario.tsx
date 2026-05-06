@@ -880,7 +880,7 @@ export default function ExtratoBancario() {
               const stored = getStoredBalance(account);
               const totals = totalsByAccount[account.pluggy_account_id] ?? { income: 0, expense: 0 };
               const internal = internalByAccount[account.pluggy_account_id] ?? {
-                transfersIn: 0, transfersOut: 0, investIn: 0, investOut: 0,
+                transfersIn: 0, transfersOut: 0, investIn: 0, investOut: 0, faturaPaga: 0,
               };
               const conn = connections.find((c) => c.pluggy_item_id === account.pluggy_item_id);
               const totalAccount = getAccountTotalBalance(account);
