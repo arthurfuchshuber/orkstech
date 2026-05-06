@@ -2350,6 +2350,15 @@ export default function ContasAReceber() {
           : nextMonthItems
         }
       />
+
+      <OfertaCriarRegraModal
+        open={ofertaRegra.open}
+        onOpenChange={(v) => setOfertaRegra((p) => ({ ...p, open: v }))}
+        descricoes={ofertaRegra.descricoes}
+        categoriaId={ofertaRegra.categoriaId}
+        categoriaNome={ofertaRegra.categoriaNome}
+        tipoSugerido="receber"
+      />
     </div>
   );
 }
