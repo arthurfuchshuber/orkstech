@@ -939,7 +939,7 @@ export default function ExtratoBancario() {
                     )}
                     {internal.faturaPaga > 0 && (
                       <div className="col-span-2 flex justify-between text-muted-foreground">
-                        <span>Pagamento de fatura</span>
+                        <span>Pagamento de Fatura de Cartão</span>
                         <span className="font-medium tabular-nums text-foreground">{formatCurrency(internal.faturaPaga)}</span>
                       </div>
                     )}
