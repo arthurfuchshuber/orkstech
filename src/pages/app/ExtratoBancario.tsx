@@ -189,6 +189,12 @@ const enhanceDescription = (tx: Transaction): string => {
   return counterparty ? `${typeLabel} | ${counterparty}` : typeLabel || raw;
 };
 
+/** Remove o prefixo "Tipo |" mantendo só a contraparte para exibição limpa. */
+const stripTypePrefix = (s: string) => {
+  const idx = s.indexOf("|");
+  return idx >= 0 ? s.slice(idx + 1).trim() : s.trim();
+};
+
 export default function ExtratoBancario() {
   const { user } = useAuth();
   const { empresa } = useEmpresa();
