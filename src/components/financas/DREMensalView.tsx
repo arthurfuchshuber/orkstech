@@ -11,6 +11,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useEmpresa } from "@/hooks/useEmpresa";
+import { DRECategoriaMovimentacoesModal } from "./dre/DRECategoriaMovimentacoesModal";
 
 const fmtBRL = (v: number) => {
   if (Math.abs(v) < 0.005) return "";
@@ -43,6 +44,7 @@ export default function DREMensalView() {
   const [showAV, setShowAV] = useState(true);
   const [showAH, setShowAH] = useState(false);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const [movModal, setMovModal] = useState<{ open: boolean; categoryId: string | null; label: string }>({ open: false, categoryId: null, label: "" });
   // Default: show last 3 months of current year (or all 12 if past year)
   const defaultStart = year === currentYear ? Math.max(0, currentMonth - 2) : 0;
   const defaultEnd = year === currentYear ? currentMonth : 11;
@@ -209,19 +211,28 @@ export default function DREMensalView() {
                     };
 
                     return (
-                      <tr key={line.id} className={cn("group border-b border-border/15 transition-colors hover:bg-primary/10", rowClass)}>
+                      <tr key={line.id} className={cn("group border-b border-border/15 transition-colors hover:bg-primary/15", rowClass)}>
                         <td className={cn("sticky left-0 z-10 py-1.5 px-3 transition-colors group-hover:bg-primary/15", isSummary ? "bg-muted/40" : "bg-card")}>
                           <div
-                            className="flex items-center gap-1.5 cursor-pointer select-none"
+                            className={cn(
+                              "flex items-center gap-1.5 select-none",
+                              (hasChildren || (line.categoryId && !isIndicator)) && "cursor-pointer",
+                            )}
                             style={{ paddingLeft: `${line.depth * 16}px` }}
-                            onClick={() => hasChildren && toggle(line.id)}
+                            onClick={() => {
+                              if (hasChildren) {
+                                toggle(line.id);
+                              } else if (line.categoryId && !isIndicator) {
+                                setMovModal({ open: true, categoryId: line.categoryId, label: line.label });
+                              }
+                            }}
                           >
                             {hasChildren ? (
                               isOpen ? <ChevronDown className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" /> : <ChevronRight className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
                             ) : (
                               <span className="w-3.5 flex-shrink-0" />
                             )}
-                            <span className={cn("text-xs", labelColor)}>{line.label}</span>
+                            <span className={cn("text-xs", labelColor, line.categoryId && !isIndicator && "hover:text-primary transition-colors")}>{line.label}</span>
                           </div>
                         </td>
                         {visibleMonths.map((m) => {
@@ -262,6 +273,18 @@ export default function DREMensalView() {
           )}
         </CardContent>
       </Card>
+
+      <DRECategoriaMovimentacoesModal
+        open={movModal.open}
+        onOpenChange={(v) => setMovModal((s) => ({ ...s, open: v }))}
+        categoryId={movModal.categoryId}
+        categoryLabel={movModal.label}
+        year={year}
+        monthFrom={monthRange[0]}
+        monthTo={monthRange[1]}
+        bankAccountId={bankAccountId}
+        costCenterId={costCenterId}
+      />
     </div>
   );
 }
