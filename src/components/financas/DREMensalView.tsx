@@ -206,7 +206,7 @@ export default function DREMensalView() {
                       // Entradas de dinheiro: verde
                       if (line.tipo === "receita" || line.tipo === "receita_financeira") return "text-success";
                       // Saídas de dinheiro: amarelo
-                      if (line.tipo === "despesa" || line.tipo === "custo" || line.tipo === "deducao" || line.tipo === "despesa_financeira" || line.tipo === "imposto") return "text-warning";
+                      if (line.tipo === "despesa" || line.tipo === "custo" || line.tipo === "deducao" || line.tipo === "despesa_financeira" || line.tipo === "imposto" || line.tipo === "distribuicao_lucros") return "text-warning";
                       return "text-foreground";
                     };
 

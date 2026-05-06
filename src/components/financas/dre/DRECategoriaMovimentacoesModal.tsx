@@ -241,7 +241,7 @@ export function DRECategoriaMovimentacoesModal({
                   // só permite folhas do mesmo "lado" da transação
                   const allowedTipos = isIn
                     ? ["receita", "receita_financeira", "ajuste"]
-                    : ["despesa", "custo", "deducao", "imposto", "despesa_financeira", "ajuste"];
+                    : ["despesa", "custo", "deducao", "imposto", "despesa_financeira", "distribuicao_lucros", "ajuste"];
                   const opts = folhas.filter((c: any) => allowedTipos.includes(c.tipo));
 
                   return (

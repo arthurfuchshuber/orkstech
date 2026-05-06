@@ -116,6 +116,7 @@ const tiposFinanceiros = [
   { value: "receita_financeira", label: "📈 Rec. Financeira", tooltip: "Ganhos financeiros como rendimentos de aplicações, juros recebidos e descontos obtidos." },
   { value: "despesa_financeira", label: "📉 Desp. Financeira", tooltip: "Gastos financeiros como juros de empréstimos, tarifas bancárias e multas." },
   { value: "imposto", label: "🏛️ Imposto", tooltip: "Tributos sobre o lucro da empresa, como Imposto de Renda (IRPJ) e Contribuição Social (CSLL)." },
+  { value: "distribuicao_lucros", label: "👥 Distribuição de Lucros", tooltip: "Distribuição de lucros/dividendos aos sócios. Aparece após o Lucro Líquido (não impacta EBITDA nem Lucro Líquido)." },
   { value: "ajuste", label: "🔄 Ajuste", tooltip: "Lançamentos de correção ou reclassificação contábil que não se encaixam nas categorias acima." },
 ];
 

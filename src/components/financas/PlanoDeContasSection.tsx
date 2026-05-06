@@ -21,7 +21,7 @@ import {
 import { DragDropContext, Droppable, Draggable, type DropResult } from "@hello-pangea/dnd";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
-type TipoFinanceiro = "receita" | "despesa" | "custo" | "deducao" | "imposto" | "receita_financeira" | "despesa_financeira" | "ajuste";
+type TipoFinanceiro = "receita" | "despesa" | "custo" | "deducao" | "imposto" | "receita_financeira" | "despesa_financeira" | "distribuicao_lucros" | "ajuste";
 
 interface Categoria {
   id: string;
@@ -36,7 +36,7 @@ interface Categoria {
 const tipoLabels: Record<TipoFinanceiro, string> = {
   receita: "Receita", deducao: "Dedução", custo: "Custo", despesa: "Despesa",
   receita_financeira: "Rec. Financeira", despesa_financeira: "Desp. Financeira",
-  imposto: "Imposto", ajuste: "Ajuste",
+  imposto: "Imposto", distribuicao_lucros: "Distribuição de Lucros", ajuste: "Ajuste",
 };
 
 const tipoDescriptions: Record<TipoFinanceiro, string> = {
@@ -47,6 +47,7 @@ const tipoDescriptions: Record<TipoFinanceiro, string> = {
   receita_financeira: "Ganhos financeiros como rendimentos de aplicações, juros recebidos e descontos obtidos.",
   despesa_financeira: "Gastos financeiros como juros de empréstimos, tarifas bancárias e multas.",
   imposto: "Tributos sobre o lucro da empresa, como Imposto de Renda (IRPJ) e Contribuição Social (CSLL).",
+  distribuicao_lucros: "Distribuição de lucros/dividendos aos sócios. Aparece após o Lucro Líquido (não impacta EBITDA nem Lucro Líquido).",
   ajuste: "Lançamentos de correção ou reclassificação contábil que não se encaixam nas categorias acima.",
 };
 
@@ -58,13 +59,14 @@ const tipoColors: Record<TipoFinanceiro, string> = {
   receita_financeira: "bg-teal-500/10 text-teal-400 border-teal-500/20",
   despesa_financeira: "bg-pink-500/10 text-pink-400 border-pink-500/20",
   imposto: "bg-purple-500/10 text-purple-400 border-purple-500/20",
+  distribuicao_lucros: "bg-indigo-500/10 text-indigo-400 border-indigo-500/20",
   ajuste: "bg-blue-500/10 text-blue-400 border-blue-500/20",
 };
 
 const tipoIcons: Record<TipoFinanceiro, typeof TrendingUp> = {
   receita: TrendingUp, deducao: Minus, custo: Minus, despesa: TrendingDown,
   receita_financeira: TrendingUp, despesa_financeira: TrendingDown,
-  imposto: Minus, ajuste: RefreshCw,
+  imposto: Minus, distribuicao_lucros: TrendingDown, ajuste: RefreshCw,
 };
 
 function flattenTree(nodes: Categoria[]): { id: string; node: Categoria; level: number; parentId: string | null; number: string }[] {
@@ -529,6 +531,8 @@ function DREPreviewDialog({ open, onOpenChange, tree }: { open: boolean; onOpenC
               {section("(-) Impostos", "imposto")}
               {indicatorRow("(=) Lucro Líquido", "Resultado A.I. - Impostos", true)}
               {indicatorRow("(%) Margem Líquida", "Lucro Líquido / Receita")}
+              {section("(-) Distribuição de Lucros", "distribuicao_lucros")}
+              {indicatorRow("(=) Lucro Retido", "Lucro Líquido - Distribuições", true)}
             </>
           )}
         </div>

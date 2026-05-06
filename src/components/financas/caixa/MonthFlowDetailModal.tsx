@@ -386,7 +386,7 @@ export function MonthFlowDetailModal({ open, onOpenChange, monthLabel, monthKey,
                   const catFin = categoriasFinanceiras.find((c: any) => c.id === tx.categoria_financeira_id);
                   const allowedTipos = isCredit
                     ? ["receita", "receita_financeira", "ajuste"]
-                    : ["despesa", "custo", "deducao", "imposto", "despesa_financeira", "ajuste"];
+                    : ["despesa", "custo", "deducao", "imposto", "despesa_financeira", "distribuicao_lucros", "ajuste"];
                   const subcatOptions = (categoriasFinanceiras as any[])
                     .filter((c) => allowedTipos.includes(c.tipo))
                     .filter((c) => !categoriasFinanceiras.some((child: any) => child.categoria_pai_id === c.id));

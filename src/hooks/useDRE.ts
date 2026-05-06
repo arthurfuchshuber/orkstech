@@ -321,17 +321,18 @@ export function useDRE(filters: DREFilters) {
     const lines: DRELine[] = [];
     const totals = {
       receita: 0, deducao: 0, custo: 0, despesa: 0,
-      receita_fin: 0, despesa_fin: 0, imposto: 0,
+      receita_fin: 0, despesa_fin: 0, imposto: 0, distribuicao: 0,
     };
     const totalsPrev = {
       receita: 0, deducao: 0, custo: 0, despesa: 0,
-      receita_fin: 0, despesa_fin: 0, imposto: 0,
+      receita_fin: 0, despesa_fin: 0, imposto: 0, distribuicao: 0,
     };
 
     const accumulate = (root: CatNode, line: DRELine, prev: number) => {
       const map: Record<string, keyof typeof totals> = {
         receita: "receita", deducao: "deducao", custo: "custo", despesa: "despesa",
         receita_financeira: "receita_fin", despesa_financeira: "despesa_fin", imposto: "imposto",
+        distribuicao_lucros: "distribuicao",
       };
       const key = map[root.tipo as string];
       if (key) {
@@ -354,6 +355,7 @@ export function useDRE(filters: DREFilters) {
     const resultadoFinanceiro = totals.receita_fin - totals.despesa_fin;
     const resultadoAntesImpostos = resultadoOperacional + resultadoFinanceiro;
     const lucroLiquido = resultadoAntesImpostos - totals.imposto;
+    const lucroRetido = lucroLiquido - totals.distribuicao;
 
     // DRE – previous period
     const receitaLiquidaPrev = totalsPrev.receita - totalsPrev.deducao;
@@ -362,6 +364,7 @@ export function useDRE(filters: DREFilters) {
     const resultadoFinanceiroPrev = totalsPrev.receita_fin - totalsPrev.despesa_fin;
     const resultadoAntesImpostosPrev = resultadoOperacionalPrev + resultadoFinanceiroPrev;
     const lucroLiquidoPrev = resultadoAntesImpostosPrev - totalsPrev.imposto;
+    const lucroRetidoPrev = lucroLiquidoPrev - totalsPrev.distribuicao;
 
     const totalReceitaAmount = totals.receita;
 
@@ -406,6 +409,8 @@ export function useDRE(filters: DREFilters) {
       makeIndicator("impostos", "(-) Impostos", totals.imposto, totalsPrev.imposto),
       makeIndicator("lucro-liquido", "(=) Lucro Líquido", lucroLiquido, lucroLiquidoPrev),
       { ...makeIndicator("margem-liquida", "(%) Margem Líquida", margemLiquidaPct, margemLiquidaPctPrev), isPercentual: true },
+      makeIndicator("distribuicao-lucros", "(-) Distribuição de Lucros", totals.distribuicao, totalsPrev.distribuicao),
+      makeIndicator("lucro-retido", "(=) Lucro Retido", lucroRetido, lucroRetidoPrev),
     ];
 
     return {
