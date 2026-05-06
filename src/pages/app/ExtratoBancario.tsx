@@ -568,21 +568,14 @@ export default function ExtratoBancario() {
     const term = searchTerm.toLowerCase().trim();
     const termDigits = term.replace(/\D/g, "");
 
-    // Build a haystack of all searchable fields
-    const haystackParts: string[] = [
-      tx.description || "",
-      enhanceDescription(tx),
-      tx.category || "",
-      tx.payment_data?.payer?.name || "",
-      tx.payment_data?.receiver?.name || "",
-      tx.payment_data?.payer?.documentNumber?.value || "",
-      tx.payment_data?.receiver?.documentNumber?.value || "",
-    ];
-    const haystack = haystackParts.join(" ").toLowerCase();
+    // Busca literal: só casa contra o que é EXIBIDO na linha (descrição visível).
+    // Não considera payment_data oculto — evita falsos positivos em movimentações
+    // internas que carregam o nome da empresa nos metadados.
+    const haystack = `${tx.description || ""} ${enhanceDescription(tx)}`.toLowerCase();
 
     if (haystack.includes(term)) return true;
 
-    // Document-aware match: compare digits-only (handles CPF/CNPJ with or without mask)
+    // Match por dígitos só se o documento aparecer no texto visível
     if (termDigits.length >= 3) {
       const haystackDigits = haystack.replace(/\D/g, "");
       if (haystackDigits.includes(termDigits)) return true;
