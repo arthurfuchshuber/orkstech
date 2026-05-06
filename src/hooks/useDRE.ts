@@ -355,6 +355,7 @@ export function useDRE(filters: DREFilters) {
     const resultadoFinanceiro = totals.receita_fin - totals.despesa_fin;
     const resultadoAntesImpostos = resultadoOperacional + resultadoFinanceiro;
     const lucroLiquido = resultadoAntesImpostos - totals.imposto;
+    const lucroRetido = lucroLiquido - totals.distribuicao;
 
     // DRE – previous period
     const receitaLiquidaPrev = totalsPrev.receita - totalsPrev.deducao;
@@ -363,6 +364,7 @@ export function useDRE(filters: DREFilters) {
     const resultadoFinanceiroPrev = totalsPrev.receita_fin - totalsPrev.despesa_fin;
     const resultadoAntesImpostosPrev = resultadoOperacionalPrev + resultadoFinanceiroPrev;
     const lucroLiquidoPrev = resultadoAntesImpostosPrev - totalsPrev.imposto;
+    const lucroRetidoPrev = lucroLiquidoPrev - totalsPrev.distribuicao;
 
     const totalReceitaAmount = totals.receita;
 
