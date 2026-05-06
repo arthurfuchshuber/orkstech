@@ -1194,9 +1194,15 @@ export default function ExtratoBancario() {
 
                       <div className="min-w-0">
                         <div className="flex items-center gap-2">
-                          <p className="truncate text-sm font-medium text-foreground" title={enhancedDesc}>
-                            {enhancedDesc}
-                          </p>
+                          <DescricaoComRegra
+                            description={enhancedDesc}
+                            categoriaId={tx.categoria_financeira_id}
+                            tipoSugerido={isCredit ? "receber" : "pagar"}
+                          >
+                            <p className="truncate text-sm font-medium text-foreground" title={enhancedDesc}>
+                              {enhancedDesc}
+                            </p>
+                          </DescricaoComRegra>
                           {isInternal && (
                             <Badge variant="outline" className="gap-1 text-[10px] border-muted-foreground/30">
                               Interno
