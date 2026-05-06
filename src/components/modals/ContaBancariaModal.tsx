@@ -216,6 +216,7 @@ export function ContaBancariaModal({ open, onOpenChange, editingId, onSaved, def
               connectorName={connectedName}
               onDone={() => onOpenChange(false)}
             />
+          ) : (
             <>
               <div className="space-y-4 py-2">
                 <div>
