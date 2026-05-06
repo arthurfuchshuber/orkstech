@@ -196,32 +196,38 @@ export function UncategorizedTransactionsModal({ open, onOpenChange }: Props) {
     onError: (err: any) => toast.error(err?.message || "Erro ao salvar"),
   });
 
+  const creditAccountIds = useMemo(
+    () => new Set(accounts.filter((a: any) => a.type === "CREDIT").map((a: any) => a.pluggy_account_id)),
+    [accounts]
+  );
+
   // Filtra movimentações internas (transferências, pagamento de fatura, aplicações/resgates)
   // que não precisam de categorização DRE — só sobram movimentações reais.
   const enhancedTransactions = useMemo(
     () =>
       transactions
-        .filter((tx) => classifyInternalSubtype(tx as any) === null)
+        .filter((tx) => classifyInternalSubtype(tx as any, creditAccountIds) === null)
         .map((tx) => ({ ...tx, _pretty: stripTypePrefix(enhancePluggyDescription(tx)) })),
-    [transactions]
+    [transactions, creditAccountIds]
   );
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     return enhancedTransactions.filter((t) => {
       if (accountFilter !== "all" && t.pluggy_account_id !== accountFilter) return false;
-      if (typeFilter === "in" && t.amount <= 0) return false;
-      if (typeFilter === "out" && t.amount >= 0) return false;
+      const inflow = isInflow(t);
+      if (typeFilter === "in" && !inflow) return false;
+      if (typeFilter === "out" && inflow) return false;
       if (q) {
         const hay = `${t._pretty} ${t.description ?? ""}`.toLowerCase();
         if (!hay.includes(q)) return false;
       }
       return true;
     });
-  }, [enhancedTransactions, search, accountFilter, typeFilter]);
+  }, [enhancedTransactions, search, accountFilter, typeFilter, accounts]);
 
-  const totalSaida = filtered.filter((t) => t.amount < 0).reduce((s, t) => s + Math.abs(t.amount), 0);
-  const totalEntrada = filtered.filter((t) => t.amount > 0).reduce((s, t) => s + t.amount, 0);
+  const totalEntrada = filtered.filter((t) => isInflow(t)).reduce((s, t) => s + Math.abs(t.amount), 0);
+  const totalSaida = filtered.filter((t) => !isInflow(t)).reduce((s, t) => s + Math.abs(t.amount), 0);
 
   return (
     <>
