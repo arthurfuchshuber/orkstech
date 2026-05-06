@@ -1,0 +1,69 @@
+// Classifica movimentações internas em subtipos "técnicos" para rastreio.
+// NUNCA contam no DRE — servem só para filtros e visualização.
+
+export type InternalSubtype =
+  | "transferencia_entre_contas"
+  | "pagamento_fatura"
+  | "aplicacao_investimento"
+  | "resgate_investimento"
+  | "interno_outros";
+
+export const INTERNAL_SUBTYPE_LABEL: Record<InternalSubtype, string> = {
+  transferencia_entre_contas: "Transferência entre contas",
+  pagamento_fatura: "Pagamento de fatura",
+  aplicacao_investimento: "Aplicação",
+  resgate_investimento: "Resgate",
+  interno_outros: "Movimento interno",
+};
+
+interface ClassifyInput {
+  is_internal_transfer?: boolean | null;
+  amount: number;
+  category?: string | null;
+  pluggy_account_id?: string;
+  type?: string;
+}
+
+const isInvestmentCategory = (cat?: string | null) => {
+  const c = (cat || "").toLowerCase();
+  return c.includes("investment") || c.includes("mutual fund") || c.includes("aplicac");
+};
+
+const isTransferCategory = (cat?: string | null) => {
+  const c = (cat || "").toLowerCase();
+  return (
+    c.includes("same person transfer") ||
+    c.includes("transfer") ||
+    c.includes("transferência") ||
+    c.includes("transferencia")
+  );
+};
+
+export function classifyInternalSubtype(
+  tx: ClassifyInput,
+  creditAccountIds?: Set<string>,
+): InternalSubtype | null {
+  if (!tx.is_internal_transfer && !(creditAccountIds && tx.pluggy_account_id && creditAccountIds.has(tx.pluggy_account_id) && tx.amount < 0)) {
+    return null;
+  }
+  // Pagamento de fatura: linha do lado CARTÃO com amount<0 (entrada na fatura)
+  if (creditAccountIds && tx.pluggy_account_id && creditAccountIds.has(tx.pluggy_account_id) && tx.amount < 0) {
+    return "pagamento_fatura";
+  }
+  // Aplicação/Resgate por categoria Pluggy
+  if (isInvestmentCategory(tx.category)) {
+    const isIn = tx.type === "CREDIT" || tx.amount > 0;
+    return isIn ? "resgate_investimento" : "aplicacao_investimento";
+  }
+  // Pagamento da fatura visto pelo lado do banco (descrição/categoria)
+  const c = (tx.category || "").toLowerCase();
+  if (c.includes("credit card payment") || c.includes("fatura")) {
+    return "pagamento_fatura";
+  }
+  // Transferências entre contas próprias
+  if (isTransferCategory(tx.category)) {
+    return "transferencia_entre_contas";
+  }
+  // Default genérico
+  return "transferencia_entre_contas";
+}

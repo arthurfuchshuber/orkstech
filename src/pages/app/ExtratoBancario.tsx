@@ -40,6 +40,7 @@ import { OfertaCriarRegraModal } from "@/components/financas/extrato/OfertaCriar
 import { DescricaoComRegra } from "@/components/financas/extrato/DescricaoComRegra";
 import { useRegraConflitoDetector } from "@/hooks/useRegraConflitoDetector";
 import { RegraConflitoModal } from "@/components/financas/dre/RegraConflitoModal";
+import { classifyInternalSubtype, INTERNAL_SUBTYPE_LABEL, type InternalSubtype } from "@/lib/internal-tx-subtype";
 import {
   ArrowDownLeft,
   ArrowUpRight,
@@ -196,6 +197,7 @@ export default function ExtratoBancario() {
   const [searchTerm, setSearchTerm] = useState("");
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [categoryFilter, setCategoryFilter] = useState<"all" | "sem-categoria" | "com-categoria">("all");
+  const [internoFilter, setInternoFilter] = useState<"all" | "ocultar" | "somente" | InternalSubtype>("all");
   const [allPeriod, setAllPeriod] = useState(false);
 
   // Lê ?filtro=sem-categoria da URL e ativa o filtro + período "todo"
@@ -574,6 +576,11 @@ export default function ExtratoBancario() {
     if (categoryFilter === "sem-categoria" && tx.categoria_financeira_id) return false;
     if (categoryFilter === "com-categoria" && !tx.categoria_financeira_id) return false;
 
+    // Filtro por movimentações internas
+    const subtype = classifyInternalSubtype(tx, creditAccountIdsForFilter);
+    if (internoFilter === "ocultar" && subtype) return false;
+    if (internoFilter === "somente" && !subtype) return false;
+    if (internoFilter !== "all" && internoFilter !== "ocultar" && internoFilter !== "somente" && subtype !== internoFilter) return false;
     if (searchTerm === "") return true;
     const term = searchTerm.toLowerCase().trim();
     const termDigits = term.replace(/\D/g, "");
@@ -1048,6 +1055,22 @@ export default function ExtratoBancario() {
               <SelectItem value="com-categoria">Com categoria</SelectItem>
             </SelectContent>
           </Select>
+
+          <Select value={internoFilter} onValueChange={(v) => setInternoFilter(v as any)}>
+            <SelectTrigger className="w-full md:w-[200px]">
+              <Filter className="mr-2 h-3.5 w-3.5" />
+              <SelectValue placeholder="Movimentos internos" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas as movimentações</SelectItem>
+              <SelectItem value="ocultar">Ocultar internas</SelectItem>
+              <SelectItem value="somente">Somente internas</SelectItem>
+              <SelectItem value="transferencia_entre_contas">{INTERNAL_SUBTYPE_LABEL.transferencia_entre_contas}</SelectItem>
+              <SelectItem value="pagamento_fatura">{INTERNAL_SUBTYPE_LABEL.pagamento_fatura}</SelectItem>
+              <SelectItem value="aplicacao_investimento">{INTERNAL_SUBTYPE_LABEL.aplicacao_investimento}</SelectItem>
+              <SelectItem value="resgate_investimento">{INTERNAL_SUBTYPE_LABEL.resgate_investimento}</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       </Card>
 
@@ -1153,6 +1176,7 @@ export default function ExtratoBancario() {
               {filteredTx.map((tx) => {
                 const isCredit = isInflow(tx);
                 const isInternal = isInternalTransaction(tx, creditAccountIds);
+                const internalSubtype = classifyInternalSubtype(tx, creditAccountIds);
                 const catFin = categoriasFinanceiras.find((c: any) => c.id === tx.categoria_financeira_id);
 
                 // Filtra por tipo financeiro pertinente ao fluxo (entrada x saída) e mostra apenas folhas finais
@@ -1208,9 +1232,9 @@ export default function ExtratoBancario() {
                               {enhancedDesc}
                             </p>
                           </DescricaoComRegra>
-                          {isInternal && (
-                            <Badge variant="outline" className="gap-1 text-[10px] border-muted-foreground/30">
-                              Interno
+                          {internalSubtype && (
+                            <Badge variant="outline" className="gap-1 text-[10px] border-muted-foreground/30 text-muted-foreground">
+                              {INTERNAL_SUBTYPE_LABEL[internalSubtype]}
                             </Badge>
                           )}
                           {tx.reconciled && (
@@ -1224,46 +1248,50 @@ export default function ExtratoBancario() {
                     </div>
 
                     <div className="min-w-0">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <button
-                            className="flex items-center gap-1 text-sm cursor-pointer hover:text-foreground transition-colors group/cat w-full text-left"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            <span className="truncate">
-                              {catFin?.nome || <span className="text-muted-foreground/50">Selecionar</span>}
-                            </span>
-                            <ChevronDown className="w-3 h-3 text-muted-foreground opacity-0 group-hover/cat:opacity-100 transition-opacity flex-shrink-0" />
-                          </button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="start" className="max-h-[260px] overflow-y-auto custom-scrollbar">
-                          {subcatOptions.map((c: any) => (
-                            <DropdownMenuItem
-                              key={c.id}
-                              onClick={() => updateCategoriaMutation.mutate({ id: tx.id, categoria_financeira_id: c.id, description: tx.description })}
+                      {isInternal ? (
+                        <span className="text-xs text-muted-foreground/40 italic">—</span>
+                      ) : (
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <button
+                              className="flex items-center gap-1 text-sm cursor-pointer hover:text-foreground transition-colors group/cat w-full text-left"
+                              onClick={(e) => e.stopPropagation()}
                             >
-                              {c.nome}
-                            </DropdownMenuItem>
-                          ))}
-                          {catFin && (
+                              <span className="truncate">
+                                {catFin?.nome || <span className="text-muted-foreground/50">Selecionar</span>}
+                              </span>
+                              <ChevronDown className="w-3 h-3 text-muted-foreground opacity-0 group-hover/cat:opacity-100 transition-opacity flex-shrink-0" />
+                            </button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="start" className="max-h-[260px] overflow-y-auto custom-scrollbar">
+                            {subcatOptions.map((c: any) => (
+                              <DropdownMenuItem
+                                key={c.id}
+                                onClick={() => updateCategoriaMutation.mutate({ id: tx.id, categoria_financeira_id: c.id, description: tx.description })}
+                              >
+                                {c.nome}
+                              </DropdownMenuItem>
+                            ))}
+                            {catFin && (
+                              <DropdownMenuItem
+                                onClick={() => updateCategoriaMutation.mutate({ id: tx.id, categoria_financeira_id: null, description: tx.description })}
+                                className="text-muted-foreground"
+                              >
+                                Limpar
+                              </DropdownMenuItem>
+                            )}
+                            <DropdownMenuSeparator />
                             <DropdownMenuItem
-                              onClick={() => updateCategoriaMutation.mutate({ id: tx.id, categoria_financeira_id: null, description: tx.description })}
-                              className="text-muted-foreground"
+                              onClick={() => setPluggyEditTx({ id: tx.id, description: tx.description, amount: tx.amount, date: tx.date })}
                             >
-                              Limpar
+                              Editar (centro, forma, notas)…
                             </DropdownMenuItem>
-                          )}
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem
-                            onClick={() => setPluggyEditTx({ id: tx.id, description: tx.description, amount: tx.amount, date: tx.date })}
-                          >
-                            Editar (centro, forma, notas)…
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => setCfModalOpen(true)} className="text-primary">
-                            <Plus className="w-3.5 h-3.5 mr-1.5" /> Nova subcategoria
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                            <DropdownMenuItem onClick={() => setCfModalOpen(true)} className="text-primary">
+                              <Plus className="w-3.5 h-3.5 mr-1.5" /> Nova subcategoria
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      )}
                     </div>
 
                     <p
