@@ -1248,46 +1248,50 @@ export default function ExtratoBancario() {
                     </div>
 
                     <div className="min-w-0">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <button
-                            className="flex items-center gap-1 text-sm cursor-pointer hover:text-foreground transition-colors group/cat w-full text-left"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            <span className="truncate">
-                              {catFin?.nome || <span className="text-muted-foreground/50">Selecionar</span>}
-                            </span>
-                            <ChevronDown className="w-3 h-3 text-muted-foreground opacity-0 group-hover/cat:opacity-100 transition-opacity flex-shrink-0" />
-                          </button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="start" className="max-h-[260px] overflow-y-auto custom-scrollbar">
-                          {subcatOptions.map((c: any) => (
-                            <DropdownMenuItem
-                              key={c.id}
-                              onClick={() => updateCategoriaMutation.mutate({ id: tx.id, categoria_financeira_id: c.id, description: tx.description })}
+                      {isInternal ? (
+                        <span className="text-xs text-muted-foreground/40 italic">—</span>
+                      ) : (
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <button
+                              className="flex items-center gap-1 text-sm cursor-pointer hover:text-foreground transition-colors group/cat w-full text-left"
+                              onClick={(e) => e.stopPropagation()}
                             >
-                              {c.nome}
-                            </DropdownMenuItem>
-                          ))}
-                          {catFin && (
+                              <span className="truncate">
+                                {catFin?.nome || <span className="text-muted-foreground/50">Selecionar</span>}
+                              </span>
+                              <ChevronDown className="w-3 h-3 text-muted-foreground opacity-0 group-hover/cat:opacity-100 transition-opacity flex-shrink-0" />
+                            </button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="start" className="max-h-[260px] overflow-y-auto custom-scrollbar">
+                            {subcatOptions.map((c: any) => (
+                              <DropdownMenuItem
+                                key={c.id}
+                                onClick={() => updateCategoriaMutation.mutate({ id: tx.id, categoria_financeira_id: c.id, description: tx.description })}
+                              >
+                                {c.nome}
+                              </DropdownMenuItem>
+                            ))}
+                            {catFin && (
+                              <DropdownMenuItem
+                                onClick={() => updateCategoriaMutation.mutate({ id: tx.id, categoria_financeira_id: null, description: tx.description })}
+                                className="text-muted-foreground"
+                              >
+                                Limpar
+                              </DropdownMenuItem>
+                            )}
+                            <DropdownMenuSeparator />
                             <DropdownMenuItem
-                              onClick={() => updateCategoriaMutation.mutate({ id: tx.id, categoria_financeira_id: null, description: tx.description })}
-                              className="text-muted-foreground"
+                              onClick={() => setPluggyEditTx({ id: tx.id, description: tx.description, amount: tx.amount, date: tx.date })}
                             >
-                              Limpar
+                              Editar (centro, forma, notas)…
                             </DropdownMenuItem>
-                          )}
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem
-                            onClick={() => setPluggyEditTx({ id: tx.id, description: tx.description, amount: tx.amount, date: tx.date })}
-                          >
-                            Editar (centro, forma, notas)…
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => setCfModalOpen(true)} className="text-primary">
-                            <Plus className="w-3.5 h-3.5 mr-1.5" /> Nova subcategoria
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                            <DropdownMenuItem onClick={() => setCfModalOpen(true)} className="text-primary">
+                              <Plus className="w-3.5 h-3.5 mr-1.5" /> Nova subcategoria
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      )}
                     </div>
 
                     <p
