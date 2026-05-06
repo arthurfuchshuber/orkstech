@@ -209,6 +209,7 @@ export function useDREMonthly(filters: DREMonthlyFilters) {
     const resultadoFinanceiro = sub(totals.receita_fin, totals.despesa_fin);
     const resultadoAntesImpostos = add(resultadoOperacional, resultadoFinanceiro);
     const lucroLiquido = sub(resultadoAntesImpostos, totals.imposto);
+    const lucroRetido = sub(lucroLiquido, totals.distribuicao);
 
     let nextNum = lines.length + 1;
     const sumArr = (a: number[]) => a.reduce((x, y) => x + y, 0);
