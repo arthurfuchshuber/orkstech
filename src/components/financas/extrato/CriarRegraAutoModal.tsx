@@ -75,13 +75,28 @@ export function CriarRegraAutoModal({
     queryFn: async () => {
       const { data } = await supabase
         .from("categorias_financeiras")
-        .select("id, nome, categoria_pai_id")
+        .select("id, nome, categoria_pai_id, tipo")
         .eq("user_id", targetUserId!)
         .eq("ativo", true)
         .order("ordem");
       return (data ?? []).filter((c: any) => c.categoria_pai_id != null);
     },
   });
+
+  const [catModal, setCatModal] = useState<{ open: boolean; editingId?: string }>({ open: false });
+
+  const categoriasFiltradas = useMemo(() => {
+    if (aplicarEm === "receber") return categorias.filter((c: any) => c.tipo === "receita");
+    if (aplicarEm === "pagar") return categorias.filter((c: any) => c.tipo === "despesa" || c.tipo === "custo");
+    return categorias;
+  }, [categorias, aplicarEm]);
+
+  // Limpa categoria se sair do escopo do tipo
+  useEffect(() => {
+    if (categoriaId && !categoriasFiltradas.find((c: any) => c.id === categoriaId)) {
+      setCategoriaId("");
+    }
+  }, [categoriasFiltradas, categoriaId]);
 
   // Atualiza nome ao trocar categoria
   useEffect(() => {
