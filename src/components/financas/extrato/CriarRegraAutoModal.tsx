@@ -283,22 +283,6 @@ export function CriarRegraAutoModal({
           </div>
 
           <div className="space-y-1.5">
-            <Label className="text-xs">Categorizar como</Label>
-            <Select value={categoriaId} onValueChange={setCategoriaId}>
-              <SelectTrigger className="h-9 text-sm">
-                <SelectValue placeholder="Selecionar categoria" />
-              </SelectTrigger>
-              <SelectContent>
-                {categorias.map((c: any) => (
-                  <SelectItem key={c.id} value={c.id}>
-                    {c.nome}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-1.5">
             <Label className="text-xs">Aplicar em</Label>
             <Select value={aplicarEm} onValueChange={(v: any) => setAplicarEm(v)}>
               <SelectTrigger className="h-9 text-sm">
@@ -311,6 +295,17 @@ export function CriarRegraAutoModal({
               </SelectContent>
             </Select>
           </div>
+
+          <ManagedSelectInput
+            label="Categorizar como"
+            value={categoriaId}
+            onValueChange={setCategoriaId}
+            placeholder="Selecionar categoria"
+            options={categoriasFiltradas.map((c: any) => ({ value: c.id, label: c.nome }))}
+            addLabel="Nova categoria"
+            onAddModal={() => setCatModal({ open: true })}
+            onEditModal={(id) => setCatModal({ open: true, editingId: id })}
+          />
 
           <div className="space-y-1.5">
             <Label className="text-xs">Nome da regra</Label>
