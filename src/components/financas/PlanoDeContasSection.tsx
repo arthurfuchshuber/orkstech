@@ -111,6 +111,7 @@ export function PlanoDeContasSection() {
   const [moveModalOpen, setMoveModalOpen] = useState(false);
   const [movingNode, setMovingNode] = useState<Categoria | null>(null);
   const [moveTargetId, setMoveTargetId] = useState<string | null>(null);
+  const [previewOpen, setPreviewOpen] = useState(false);
 
   const targetUserId = empresa?.user_id ?? user?.id;
 
