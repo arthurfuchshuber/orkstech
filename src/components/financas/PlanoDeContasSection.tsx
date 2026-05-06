@@ -343,7 +343,8 @@ export function PlanoDeContasSection() {
                             <span className="text-xs font-medium text-foreground flex-1 truncate">{node.nome}</span>
                             <Badge variant="outline" className={`text-[9px] px-1 py-0 leading-4 ${tipoColors[node.tipo]}`}>{tipoLabels[node.tipo]}</Badge>
                             {(() => {
-                              const isProtected = node.tipo === "distribuicao_lucros" && !node.categoria_pai_id;
+                              const isProtected = (node.tipo === "distribuicao_lucros" && !node.categoria_pai_id) || !!node.origem_socio_id;
+                              const isAutoSocio = !!node.origem_socio_id;
                               return (
                                 <DropdownMenu>
                                   <DropdownMenuTrigger asChild>
