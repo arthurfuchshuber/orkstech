@@ -14,6 +14,7 @@ import { enhancePluggyDescription, type PluggyTxLike } from "@/lib/pluggy-descri
 import { useRegraConflitoDetector } from "@/hooks/useRegraConflitoDetector";
 import { RegraConflitoModal } from "@/components/financas/dre/RegraConflitoModal";
 import { OfertaCriarRegraModal } from "./OfertaCriarRegraModal";
+import { DescricaoComRegra } from "./DescricaoComRegra";
 
 interface Props {
   open: boolean;
