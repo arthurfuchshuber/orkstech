@@ -44,7 +44,9 @@ export function ContaBancariaModal({ open, onOpenChange, editingId, onSaved, def
   });
   const [bancoModalOpen, setBancoModalOpen] = useState(false);
   const [bancoEditingId, setBancoEditingId] = useState<string | null>(null);
-  const [mode, setMode] = useState<"choice" | "manual">("choice");
+  const [mode, setMode] = useState<"choice" | "manual" | "connected">("choice");
+  const [connectedItemId, setConnectedItemId] = useState<string | null>(null);
+  const [connectedName, setConnectedName] = useState<string>("");
 
   const bancosCrud = useManagedSelect("bancos");
 
