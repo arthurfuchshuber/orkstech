@@ -162,6 +162,8 @@ export function DRECategoriaMovimentacoesModal({
   const totalIn = movs.filter((m) => m.type === "income").reduce((s, m) => s + m.amount, 0);
   const totalOut = movs.filter((m) => m.type === "expense").reduce((s, m) => s + m.amount, 0);
 
+  const { conflito, setConflito, registrar } = useRegraConflitoDetector();
+
   const updateCat = useMutation({
     mutationFn: async ({ mov, novaCatId }: { mov: Mov; novaCatId: string | null }) => {
       const { error } = await supabase
@@ -169,13 +171,15 @@ export function DRECategoriaMovimentacoesModal({
         .update({ categoria_financeira_id: novaCatId })
         .eq("id", mov.id);
       if (error) throw error;
+      return { mov, novaCatId };
     },
-    onSuccess: () => {
+    onSuccess: ({ mov, novaCatId }) => {
       toast.success("Subcategoria atualizada");
       qc.invalidateQueries({ queryKey: ["dre-cat-movs"] });
       qc.invalidateQueries({ queryKey: ["dre-monthly-tx"] });
       qc.invalidateQueries({ queryKey: ["dre-transactions"] });
       qc.invalidateQueries({ queryKey: ["pluggy_transactions"] });
+      registrar(mov.description, novaCatId);
     },
     onError: (e: any) => toast.error(e?.message || "Erro ao atualizar"),
   });
