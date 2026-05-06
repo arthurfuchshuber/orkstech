@@ -641,6 +641,15 @@ export default function ExtratoBancario() {
 
   // Movimentações internas — separadas por subtipo via classifyInternalSubtype
   // (transferência, pagamento de fatura, aplicação, resgate). NÃO contam no DRE.
+  // Pré-detecta pagamentos de fatura pelo lado CARTÃO (amount<0 em conta credit).
+  // Bank-side counterparts (mesma data + valor absoluto) também serão classificados como pagamento_fatura.
+  const faturaPaymentKeys = new Set<string>();
+  internalTransactions.forEach((tx) => {
+    if (creditAccountIds.has(tx.pluggy_account_id) && tx.amount < 0) {
+      faturaPaymentKeys.add(`${tx.date}|${Math.abs(tx.amount).toFixed(2)}`);
+    }
+  });
+
   const internalByAccount = internalTransactions.reduce<
     Record<
       string,
@@ -657,7 +666,16 @@ export default function ExtratoBancario() {
       };
     const isIn = tx.type === "CREDIT" || tx.amount > 0;
     const amt = Math.abs(tx.amount);
-    const subtype = classifyInternalSubtype(tx, creditAccountIds);
+    let subtype = classifyInternalSubtype(tx, creditAccountIds);
+    // Bank-side fatura payment: outgoing internal transfer matching a credit-side payment
+    if (
+      subtype !== "pagamento_fatura" &&
+      !creditAccountIds.has(tx.pluggy_account_id) &&
+      tx.amount < 0 &&
+      faturaPaymentKeys.has(`${tx.date}|${amt.toFixed(2)}`)
+    ) {
+      subtype = "pagamento_fatura";
+    }
     if (subtype === "pagamento_fatura") {
       current.faturaPaga += amt;
     } else if (subtype === "aplicacao_investimento") {
