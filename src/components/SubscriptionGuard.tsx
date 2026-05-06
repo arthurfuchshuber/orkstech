@@ -11,9 +11,9 @@ import { toast } from "sonner";
 
 const REASONS = {
   no_subscription: {
-    title: "Assinatura necessária",
-    description: "Você ainda não possui um plano ativo. Escolha um plano para acessar o sistema.",
-    cta: "Ver planos disponíveis",
+    title: "Ative seu teste grátis de 7 dias",
+    description: "Escolha um plano e cadastre o cartão para liberar o acesso. Você não será cobrado se cancelar dentro dos 7 dias de teste.",
+    cta: "Escolher plano e ativar trial",
     showCta: true,
   },
   owner_no_subscription: {
