@@ -38,6 +38,8 @@ import { ManualBankTransactionDialog } from "@/components/financas/extrato/Manua
 import { PluggyTransactionEditDialog } from "@/components/financas/extrato/PluggyTransactionEditDialog";
 import { OfertaCriarRegraModal } from "@/components/financas/extrato/OfertaCriarRegraModal";
 import { DescricaoComRegra } from "@/components/financas/extrato/DescricaoComRegra";
+import { useRegraConflitoDetector } from "@/hooks/useRegraConflitoDetector";
+import { RegraConflitoModal } from "@/components/financas/dre/RegraConflitoModal";
 import {
   ArrowDownLeft,
   ArrowUpRight,
@@ -445,22 +447,25 @@ export default function ExtratoBancario() {
     enabled: !!user && !!targetUserId,
   });
 
+  const { conflito, setConflito, registrar } = useRegraConflitoDetector();
+
   const updateCategoriaMutation = useMutation({
-    mutationFn: async ({ id, categoria_financeira_id }: { id: string; categoria_financeira_id: string | null }) => {
+    mutationFn: async ({ id, categoria_financeira_id, description }: { id: string; categoria_financeira_id: string | null; description?: string }) => {
       const { data, error } = await supabase
         .from("pluggy_transactions" as any)
         .update({ categoria_financeira_id })
         .eq("id", id)
-        .select("id");
+        .select("id, description");
       if (error) throw error;
       if (!data || data.length === 0) {
         throw new Error("Nenhum registro atualizado. Verifique suas permissões.");
       }
-      return data;
+      return { rows: data, description: description ?? (data[0] as any)?.description, categoria_financeira_id };
     },
-    onSuccess: () => {
+    onSuccess: ({ description, categoria_financeira_id }) => {
       queryClient.invalidateQueries({ queryKey: ["pluggy_transactions"] });
       toast.success("Subcategoria atualizada");
+      if (description) registrar(description, categoria_financeira_id);
     },
     onError: (err: any) => {
       toast.error(err?.message || "Erro ao atualizar subcategoria");
@@ -482,6 +487,8 @@ export default function ExtratoBancario() {
       toast.success(`${data?.length ?? 0} transação(ões) atualizada(s)`);
       const ids = new Set(variables.ids);
       const selecionadas = (data ?? []).filter((t: any) => ids.has(t.id));
+      // Registra cada uma para detector de conflito
+      selecionadas.forEach((t: any) => registrar(t.description || "", variables.categoria_financeira_id));
       // Se categorizou 2+ itens com uma categoria real, oferece criar regra
       if (variables.categoria_financeira_id && selecionadas.length >= 2) {
         const negativos = selecionadas.filter((t: any) => Number(t.amount) < 0).length;
@@ -1229,14 +1236,14 @@ export default function ExtratoBancario() {
                           {subcatOptions.map((c: any) => (
                             <DropdownMenuItem
                               key={c.id}
-                              onClick={() => updateCategoriaMutation.mutate({ id: tx.id, categoria_financeira_id: c.id })}
+                              onClick={() => updateCategoriaMutation.mutate({ id: tx.id, categoria_financeira_id: c.id, description: tx.description })}
                             >
                               {c.nome}
                             </DropdownMenuItem>
                           ))}
                           {catFin && (
                             <DropdownMenuItem
-                              onClick={() => updateCategoriaMutation.mutate({ id: tx.id, categoria_financeira_id: null })}
+                              onClick={() => updateCategoriaMutation.mutate({ id: tx.id, categoria_financeira_id: null, description: tx.description })}
                               className="text-muted-foreground"
                             >
                               Limpar
@@ -1302,6 +1309,8 @@ export default function ExtratoBancario() {
         categoriaNome={ofertaRegra.categoriaNome}
         tipoSugerido={ofertaRegra.tipoSugerido}
       />
+
+      <RegraConflitoModal conflito={conflito} onClose={() => setConflito(null)} />
     </div>
   );
 }

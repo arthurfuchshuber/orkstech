@@ -14,6 +14,8 @@ import { useEmpresa } from "@/hooks/useEmpresa";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
+import { useRegraConflitoDetector } from "@/hooks/useRegraConflitoDetector";
+import { RegraConflitoModal } from "./RegraConflitoModal";
 
 interface Props {
   open: boolean;
@@ -160,6 +162,8 @@ export function DRECategoriaMovimentacoesModal({
   const totalIn = movs.filter((m) => m.type === "income").reduce((s, m) => s + m.amount, 0);
   const totalOut = movs.filter((m) => m.type === "expense").reduce((s, m) => s + m.amount, 0);
 
+  const { conflito, setConflito, registrar } = useRegraConflitoDetector();
+
   const updateCat = useMutation({
     mutationFn: async ({ mov, novaCatId }: { mov: Mov; novaCatId: string | null }) => {
       const { error } = await supabase
@@ -167,20 +171,22 @@ export function DRECategoriaMovimentacoesModal({
         .update({ categoria_financeira_id: novaCatId })
         .eq("id", mov.id);
       if (error) throw error;
+      return { mov, novaCatId };
     },
-    onSuccess: () => {
+    onSuccess: ({ mov, novaCatId }) => {
       toast.success("Subcategoria atualizada");
       qc.invalidateQueries({ queryKey: ["dre-cat-movs"] });
       qc.invalidateQueries({ queryKey: ["dre-monthly-tx"] });
       qc.invalidateQueries({ queryKey: ["dre-transactions"] });
       qc.invalidateQueries({ queryKey: ["pluggy_transactions"] });
+      registrar(mov.description, novaCatId);
     },
     onError: (e: any) => toast.error(e?.message || "Erro ao atualizar"),
   });
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col p-0 gap-0">
+      <DialogContent className="max-w-4xl h-[92vh] max-h-[92vh] flex flex-col p-0 gap-0">
         <DialogHeader className="px-6 pt-6 pb-3 border-b border-border/40 flex-shrink-0">
           <DialogTitle className="flex items-center gap-2">
             <span>{categoryLabel}</span>
@@ -288,6 +294,7 @@ export function DRECategoriaMovimentacoesModal({
           <Button variant="outline" onClick={() => onOpenChange(false)}>Fechar</Button>
         </div>
       </DialogContent>
+      <RegraConflitoModal conflito={conflito} onClose={() => setConflito(null)} />
     </Dialog>
   );
 }
