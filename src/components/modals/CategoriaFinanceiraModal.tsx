@@ -343,8 +343,7 @@ export function CategoriaFinanceiraModal({ open, onOpenChange, editingId, defaul
           .update({
             nome: form.nome,
             categoria_pai_id: form.categoria_pai_id,
-            // só persiste tipo quando é raiz (sem pai)
-            ...(form.categoria_pai_id ? {} : { tipo: form.tipo as any }),
+            tipo: effectiveTipo as any,
           })
           .eq("id", editingId);
         if (error) throw error;
