@@ -44,6 +44,7 @@ export default function DREMensalView() {
   const [showAV, setShowAV] = useState(true);
   const [showAH, setShowAH] = useState(false);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const [movModal, setMovModal] = useState<{ open: boolean; categoryId: string | null; label: string }>({ open: false, categoryId: null, label: "" });
   // Default: show last 3 months of current year (or all 12 if past year)
   const defaultStart = year === currentYear ? Math.max(0, currentMonth - 2) : 0;
   const defaultEnd = year === currentYear ? currentMonth : 11;
