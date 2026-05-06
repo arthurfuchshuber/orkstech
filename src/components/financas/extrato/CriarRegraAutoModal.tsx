@@ -128,7 +128,7 @@ export function CriarRegraAutoModal({
   const { data: preview, isFetching: previewLoading } = useQuery({
     queryKey: ["preview-regra", targetUserId, empresaId, termo, categoriaId, aplicarEm],
     enabled:
-      !!targetUserId && open && termo.trim().length >= 2 && !!categoriaId && !regraExistente,
+      !!targetUserId && open && termo.trim().length >= 2 && !!categoriaId && !regraExistente && !regraConflito,
     queryFn: async () => {
       const { data, error } = await supabase.rpc("preview_regra_dre" as any, {
         p_user_id: targetUserId,
