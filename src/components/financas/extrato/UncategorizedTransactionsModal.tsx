@@ -284,9 +284,16 @@ export function UncategorizedTransactionsModal({ open, onOpenChange }: Props) {
                       {format(new Date(tx.date), "dd/MM/yy", { locale: ptBR })}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm text-foreground truncate" title={tx._pretty}>
-                        {tx._pretty}
-                      </p>
+                      <DescricaoComRegra
+                        description={tx._pretty}
+                        categoriaId={tx.categoria_financeira_id}
+                        tipoSugerido={tx.amount < 0 ? "pagar" : "receber"}
+                        className="block"
+                      >
+                        <p className="text-sm text-foreground truncate" title={tx._pretty}>
+                          {tx._pretty}
+                        </p>
+                      </DescricaoComRegra>
                       <p className="text-[11px] text-muted-foreground truncate">
                         {accountLabel(tx.pluggy_account_id)}
                       </p>
