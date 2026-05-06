@@ -38,6 +38,8 @@ import { ManualBankTransactionDialog } from "@/components/financas/extrato/Manua
 import { PluggyTransactionEditDialog } from "@/components/financas/extrato/PluggyTransactionEditDialog";
 import { OfertaCriarRegraModal } from "@/components/financas/extrato/OfertaCriarRegraModal";
 import { DescricaoComRegra } from "@/components/financas/extrato/DescricaoComRegra";
+import { useRegraConflitoDetector } from "@/hooks/useRegraConflitoDetector";
+import { RegraConflitoModal } from "@/components/financas/dre/RegraConflitoModal";
 import {
   ArrowDownLeft,
   ArrowUpRight,
