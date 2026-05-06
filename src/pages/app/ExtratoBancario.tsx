@@ -1303,6 +1303,17 @@ export default function ExtratoBancario() {
                               {INTERNAL_SUBTYPE_LABEL[internalSubtype]}
                             </Badge>
                           )}
+                          <Badge
+                            variant="outline"
+                            className={cn(
+                              "gap-1 text-[10px]",
+                              isCreditCardTx
+                                ? "border-purple-500/40 bg-purple-500/10 text-purple-300"
+                                : "border-sky-500/40 bg-sky-500/10 text-sky-300"
+                            )}
+                          >
+                            {isCreditCardTx ? "Cartão de Crédito" : "Conta Corrente"}
+                          </Badge>
                           {tx.reconciled && (
                             <Badge variant="outline" className="gap-1 text-[10px]">
                               <CheckCircle2 className="h-3 w-3" />
