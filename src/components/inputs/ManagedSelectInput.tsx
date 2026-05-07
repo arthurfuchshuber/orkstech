@@ -339,7 +339,8 @@ export function ManagedSelectInput({
                       </div>
                     )}
                   </div>
-                ))
+                  );
+                })
               )}
           </div>
 
