@@ -121,21 +121,35 @@ export function UncategorizedTransactionsModal({ open, onOpenChange }: Props) {
     },
   });
 
-  const { data: categorias = [] } = useQuery({
+  const { data: categoriasData = { leaves: [], all: [] } } = useQuery({
     queryKey: ["uncategorized-cats", targetUserId],
     enabled: !!targetUserId && open,
     queryFn: async () => {
       const { data } = await supabase
         .from("categorias_financeiras")
-        .select("id, nome, categoria_pai_id, ativo, tipo")
+        .select("id, nome, categoria_pai_id, ativo, tipo, ordem")
         .eq("user_id", targetUserId!)
         .eq("ativo", true)
         .order("ordem");
-      const all = data ?? [];
-      // só folhas (sem filhos)
-      return all.filter((c: any) => !all.some((child: any) => child.categoria_pai_id === c.id));
+      const all = (data ?? []) as any[];
+      const leaves = all.filter((c: any) => !all.some((child: any) => child.categoria_pai_id === c.id));
+      return { leaves, all };
     },
   });
+  const categorias = categoriasData.leaves;
+  const allCategorias = categoriasData.all;
+
+  // Constrói o caminho hierárquico (raiz → folha) de uma categoria
+  const buildPath = (id: string): { nome: string; depth: number }[] => {
+    const map = new Map<string, any>(allCategorias.map((c: any) => [c.id, c]));
+    const path: any[] = [];
+    let cur = map.get(id);
+    while (cur) {
+      path.unshift(cur);
+      cur = cur.categoria_pai_id ? map.get(cur.categoria_pai_id) : null;
+    }
+    return path.map((c, i) => ({ nome: c.nome, depth: i }));
+  };
 
   const accountLabel = (id: string) => {
     const a = accounts.find((x: any) => x.pluggy_account_id === id);
