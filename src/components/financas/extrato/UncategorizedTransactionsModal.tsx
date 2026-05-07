@@ -18,6 +18,8 @@ import { useRegraConflitoDetector } from "@/hooks/useRegraConflitoDetector";
 import { RegraConflitoModal } from "@/components/financas/dre/RegraConflitoModal";
 import { OfertaCriarRegraModal } from "./OfertaCriarRegraModal";
 import { DescricaoComRegra } from "./DescricaoComRegra";
+import { CategoriaFinanceiraModal } from "@/components/modals/CategoriaFinanceiraModal";
+import { Plus } from "lucide-react";
 
 /** Remove o prefixo "Tipo |" mantendo só a contraparte. */
 const stripTypePrefix = (s: string) => {
