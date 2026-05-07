@@ -15,6 +15,10 @@ export interface ManagedOption {
   value: string;
   label: string;
   tooltip?: string;
+  /** Profundidade na hierarquia (0 = raiz). Usado para indentação visual. */
+  depth?: number;
+  /** Rótulo de nível (ex.: "Categoria", "Subcategoria"). Renderizado como badge. */
+  levelLabel?: string;
 }
 
 interface ManagedSelectInputProps {
