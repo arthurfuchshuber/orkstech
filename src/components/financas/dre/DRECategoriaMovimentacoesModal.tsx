@@ -37,6 +37,7 @@ interface Mov {
   amount: number;
   type: "income" | "expense";
   categoria_financeira_id: string | null;
+  pluggy_account_id?: string | null;
 }
 
 const fmtBRL = (v: number) =>
