@@ -122,11 +122,13 @@ export function UncategorizedTransactionsModal({ open, onOpenChange }: Props) {
     queryFn: async () => {
       const { data } = await supabase
         .from("categorias_financeiras")
-        .select("id, nome, categoria_pai_id, ativo")
+        .select("id, nome, categoria_pai_id, ativo, tipo")
         .eq("user_id", targetUserId!)
         .eq("ativo", true)
         .order("ordem");
-      return (data ?? []).filter((c: any) => c.categoria_pai_id != null);
+      const all = data ?? [];
+      // só folhas (sem filhos)
+      return all.filter((c: any) => !all.some((child: any) => child.categoria_pai_id === c.id));
     },
   });
 
