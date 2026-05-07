@@ -238,14 +238,19 @@ export function ManagedSelectInput({
                   Nenhuma opção encontrada
                 </div>
               ) : (
-                filtered.map((opt, idx) => (
+                filtered.map((opt, idx) => {
+                  const depth = opt.depth ?? 0;
+                  const isRoot = depth === 0;
+                  return (
                   <div
                     key={opt.value}
                     title={opt.tooltip}
+                    style={{ paddingLeft: `${8 + depth * 14}px` }}
                     className={cn(
-                      "flex items-center gap-1 rounded-md px-2 py-1.5 text-sm cursor-pointer group transition-colors",
+                      "flex items-center gap-1.5 rounded-md pr-2 py-1.5 text-sm cursor-pointer group transition-colors relative",
                       "hover:bg-accent/50",
-                      value === opt.value && "bg-primary/[0.08] text-primary font-medium"
+                      value === opt.value && "bg-primary/[0.08] text-primary font-medium",
+                      isRoot && "font-semibold text-foreground/90 mt-0.5"
                     )}
                     onClick={() => {
                       if (mode !== "select") return;
@@ -253,6 +258,15 @@ export function ManagedSelectInput({
                       setOpen(false);
                     }}
                   >
+                    {/* Linha guia de hierarquia */}
+                    {depth > 0 && (
+                      <span
+                        aria-hidden
+                        className="absolute top-0 bottom-0 border-l border-border/40"
+                        style={{ left: `${8 + (depth - 1) * 14 + 6}px` }}
+                      />
+                    )}
+
                     {/* Reorder grip */}
                     {onReorder && mode === "select" && (
                       <div className="flex flex-col opacity-0 group-hover:opacity-100 transition-opacity -ml-1">
@@ -275,7 +289,27 @@ export function ManagedSelectInput({
                       </div>
                     )}
 
+                    {/* Conector visual para filhos */}
+                    {depth > 0 && (
+                      <span aria-hidden className="text-muted-foreground/40 text-xs select-none -ml-0.5">└</span>
+                    )}
+
                     <span className="flex-1 truncate">{opt.label}</span>
+
+                    {opt.levelLabel && (
+                      <span
+                        className={cn(
+                          "text-[9px] uppercase tracking-wide px-1.5 py-0 rounded border shrink-0",
+                          isRoot
+                            ? "bg-primary/10 text-primary border-primary/30"
+                            : depth === 1
+                            ? "bg-sky-500/10 text-sky-300 border-sky-500/30"
+                            : "bg-muted/40 text-muted-foreground border-border/50"
+                        )}
+                      >
+                        {opt.levelLabel}
+                      </span>
+                    )}
 
                     {value === opt.value && (
                       <Check className="w-3.5 h-3.5 text-primary flex-shrink-0" />
