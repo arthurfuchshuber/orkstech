@@ -124,7 +124,7 @@ export function DRECategoriaMovimentacoesModal({
   );
 
   const { data: movs = [], isLoading } = useQuery<Mov[]>({
-    queryKey: ["dre-cat-movs", targetUserId, empresaId, idsAlvo.join(","), startStr, endStr, bankAccountId ?? "", costCenterId ?? ""],
+    queryKey: ["dre-cat-movs", targetUserId, empresaId, idsAlvo.join(","), startStr, endStr, bankAccountId ?? "", costCenterId ?? "", pluggyAccounts.length],
     enabled: !!targetUserId && open && idsAlvo.length > 0,
     queryFn: async () => {
       let qPay = supabase.from("accounts_payable")
