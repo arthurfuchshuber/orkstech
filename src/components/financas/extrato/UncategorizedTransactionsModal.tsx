@@ -18,6 +18,8 @@ import { useRegraConflitoDetector } from "@/hooks/useRegraConflitoDetector";
 import { RegraConflitoModal } from "@/components/financas/dre/RegraConflitoModal";
 import { OfertaCriarRegraModal } from "./OfertaCriarRegraModal";
 import { DescricaoComRegra } from "./DescricaoComRegra";
+import { CategoriaFinanceiraModal } from "@/components/modals/CategoriaFinanceiraModal";
+import { Plus } from "lucide-react";
 
 /** Remove o prefixo "Tipo |" mantendo só a contraparte. */
 const stripTypePrefix = (s: string) => {
@@ -60,6 +62,9 @@ export function UncategorizedTransactionsModal({ open, onOpenChange }: Props) {
   const [search, setSearch] = useState("");
   const [accountFilter, setAccountFilter] = useState<string>("all");
   const [typeFilter, setTypeFilter] = useState<"all" | "in" | "out">("all");
+  const [createCatOpen, setCreateCatOpen] = useState(false);
+  const [createCatTipo, setCreateCatTipo] = useState<string>("despesa");
+  const [pendingTxId, setPendingTxId] = useState<string | null>(null);
 
   const { conflito, setConflito, registrar } = useRegraConflitoDetector();
 
@@ -361,6 +366,12 @@ export function UncategorizedTransactionsModal({ open, onOpenChange }: Props) {
                       <Select
                         value={tx.categoria_financeira_id ?? ""}
                         onValueChange={(v) => {
+                          if (v === "__create__") {
+                            setPendingTxId(tx.id);
+                            setCreateCatTipo(isIn ? "receita" : "despesa");
+                            setCreateCatOpen(true);
+                            return;
+                          }
                           const c = categorias.find((x: any) => x.id === v);
                           updateMutation.mutate({
                             id: tx.id,
@@ -387,6 +398,13 @@ export function UncategorizedTransactionsModal({ open, onOpenChange }: Props) {
                                 </SelectItem>
                               ));
                           })()}
+                          <div className="my-1 border-t border-border/40" />
+                          <SelectItem value="__create__" className="text-primary">
+                            <span className="flex items-center gap-2">
+                              <Plus className="w-3.5 h-3.5" />
+                              Criar nova categoria…
+                            </span>
+                          </SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -408,6 +426,27 @@ export function UncategorizedTransactionsModal({ open, onOpenChange }: Props) {
         tipoSugerido={oferta.tipoSugerido}
       />
       <RegraConflitoModal conflito={conflito} onClose={() => setConflito(null)} />
+      <CategoriaFinanceiraModal
+        open={createCatOpen}
+        onOpenChange={setCreateCatOpen}
+        defaultTipo={createCatTipo}
+        onSaved={(newId) => {
+          queryClient.invalidateQueries({ queryKey: ["categorias_financeiras"] });
+          if (pendingTxId) {
+            const tx = transactions.find((t) => t.id === pendingTxId);
+            if (tx) {
+              updateMutation.mutate({
+                id: tx.id,
+                categoria_financeira_id: newId,
+                description: tx.description ?? "",
+                amount: tx.amount,
+                categoriaNome: "",
+              });
+            }
+            setPendingTxId(null);
+          }
+        }}
+      />
     </>
   );
 }
