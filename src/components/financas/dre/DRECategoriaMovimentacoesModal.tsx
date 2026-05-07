@@ -37,6 +37,7 @@ interface Mov {
   amount: number;
   type: "income" | "expense";
   categoria_financeira_id: string | null;
+  pluggy_account_id?: string | null;
 }
 
 const fmtBRL = (v: number) =>
@@ -82,6 +83,24 @@ export function DRECategoriaMovimentacoesModal({
     },
   });
 
+  // Contas Pluggy (para detectar cartão de crédito → sinal invertido)
+  const { data: pluggyAccounts = [] } = useQuery({
+    queryKey: ["dre-cat-mov-pluggy-accounts", targetUserId],
+    enabled: !!targetUserId && open,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("pluggy_bank_accounts" as any)
+        .select("pluggy_account_id, type")
+        .eq("user_id", targetUserId!);
+      return (data ?? []) as any[];
+    },
+  });
+  const isCreditCardAccount = (id: string | null | undefined) => {
+    if (!id) return false;
+    const a = pluggyAccounts.find((x: any) => x.pluggy_account_id === id);
+    return a?.type === "CREDIT";
+  };
+
   const idsAlvo = useMemo(() => {
     if (!categoryId) return [] as string[];
     const ids = new Set<string>([categoryId]);
@@ -105,7 +124,7 @@ export function DRECategoriaMovimentacoesModal({
   );
 
   const { data: movs = [], isLoading } = useQuery<Mov[]>({
-    queryKey: ["dre-cat-movs", targetUserId, empresaId, idsAlvo.join(","), startStr, endStr, bankAccountId ?? "", costCenterId ?? ""],
+    queryKey: ["dre-cat-movs", targetUserId, empresaId, idsAlvo.join(","), startStr, endStr, bankAccountId ?? "", costCenterId ?? "", pluggyAccounts.length],
     enabled: !!targetUserId && open && idsAlvo.length > 0,
     queryFn: async () => {
       let qPay = supabase.from("accounts_payable")
@@ -125,7 +144,7 @@ export function DRECategoriaMovimentacoesModal({
       if (costCenterId) qRec = qRec.eq("cost_center_id", costCenterId);
 
       const qPlu = supabase.from("pluggy_transactions" as any)
-        .select("id, amount, date, description, categoria_financeira_id, type, user_id, reconciled, is_internal_transfer")
+        .select("id, amount, date, description, categoria_financeira_id, type, user_id, reconciled, is_internal_transfer, pluggy_account_id")
         .eq("user_id", targetUserId!)
         .eq("reconciled", false)
         .eq("is_internal_transfer", false)
@@ -148,12 +167,19 @@ export function DRECategoriaMovimentacoesModal({
         description: r.description ?? "—", amount: Math.abs(Number(r.amount)),
         type: "income", categoria_financeira_id: r.categoria_financeira_id,
       }));
-      (pluRes.data ?? []).forEach((r: any) => out.push({
-        id: r.id, source: "pluggy_transactions", date: r.date,
-        description: r.description ?? "—", amount: Math.abs(Number(r.amount)),
-        type: Number(r.amount) >= 0 ? "income" : "expense",
-        categoria_financeira_id: r.categoria_financeira_id,
-      }));
+      (pluRes.data ?? []).forEach((r: any) => {
+        const isCredit = isCreditCardAccount(r.pluggy_account_id);
+        // Cartão: amount>0 = compra (saída), amount<0 = pagamento (entrada).
+        // Conta: amount>0 = entrada, amount<0 = saída.
+        const isIn = isCredit ? Number(r.amount) < 0 : Number(r.amount) > 0;
+        out.push({
+          id: r.id, source: "pluggy_transactions", date: r.date,
+          description: r.description ?? "—", amount: Math.abs(Number(r.amount)),
+          type: isIn ? "income" : "expense",
+          categoria_financeira_id: r.categoria_financeira_id,
+          pluggy_account_id: r.pluggy_account_id,
+        });
+      });
       out.sort((a, b) => (a.date < b.date ? 1 : -1));
       return out;
     },
