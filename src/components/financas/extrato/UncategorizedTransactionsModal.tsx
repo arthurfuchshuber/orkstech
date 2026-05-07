@@ -62,6 +62,9 @@ export function UncategorizedTransactionsModal({ open, onOpenChange }: Props) {
   const [search, setSearch] = useState("");
   const [accountFilter, setAccountFilter] = useState<string>("all");
   const [typeFilter, setTypeFilter] = useState<"all" | "in" | "out">("all");
+  const [createCatOpen, setCreateCatOpen] = useState(false);
+  const [createCatTipo, setCreateCatTipo] = useState<string>("despesa");
+  const [pendingTxId, setPendingTxId] = useState<string | null>(null);
 
   const { conflito, setConflito, registrar } = useRegraConflitoDetector();
 
