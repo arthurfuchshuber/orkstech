@@ -366,6 +366,12 @@ export function UncategorizedTransactionsModal({ open, onOpenChange }: Props) {
                       <Select
                         value={tx.categoria_financeira_id ?? ""}
                         onValueChange={(v) => {
+                          if (v === "__create__") {
+                            setPendingTxId(tx.id);
+                            setCreateCatTipo(isIn ? "receita" : "despesa");
+                            setCreateCatOpen(true);
+                            return;
+                          }
                           const c = categorias.find((x: any) => x.id === v);
                           updateMutation.mutate({
                             id: tx.id,
@@ -392,6 +398,13 @@ export function UncategorizedTransactionsModal({ open, onOpenChange }: Props) {
                                 </SelectItem>
                               ));
                           })()}
+                          <div className="my-1 border-t border-border/40" />
+                          <SelectItem value="__create__" className="text-primary">
+                            <span className="flex items-center gap-2">
+                              <Plus className="w-3.5 h-3.5" />
+                              Criar nova categoria…
+                            </span>
+                          </SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
