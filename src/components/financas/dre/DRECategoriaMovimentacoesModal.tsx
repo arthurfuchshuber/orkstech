@@ -82,6 +82,24 @@ export function DRECategoriaMovimentacoesModal({
     },
   });
 
+  // Contas Pluggy (para detectar cartão de crédito → sinal invertido)
+  const { data: pluggyAccounts = [] } = useQuery({
+    queryKey: ["dre-cat-mov-pluggy-accounts", targetUserId],
+    enabled: !!targetUserId && open,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("pluggy_bank_accounts" as any)
+        .select("pluggy_account_id, type")
+        .eq("user_id", targetUserId!);
+      return (data ?? []) as any[];
+    },
+  });
+  const isCreditCardAccount = (id: string | null | undefined) => {
+    if (!id) return false;
+    const a = pluggyAccounts.find((x: any) => x.pluggy_account_id === id);
+    return a?.type === "CREDIT";
+  };
+
   const idsAlvo = useMemo(() => {
     if (!categoryId) return [] as string[];
     const ids = new Set<string>([categoryId]);
