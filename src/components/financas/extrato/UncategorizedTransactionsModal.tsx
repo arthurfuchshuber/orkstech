@@ -375,11 +375,18 @@ export function UncategorizedTransactionsModal({ open, onOpenChange }: Props) {
                           <SelectValue placeholder="Selecionar subcategoria" />
                         </SelectTrigger>
                         <SelectContent>
-                          {categorias.map((c: any) => (
-                            <SelectItem key={c.id} value={c.id}>
-                              {c.nome}
-                            </SelectItem>
-                          ))}
+                          {(() => {
+                            const allowed = isIn
+                              ? ["receita", "receita_financeira", "ajuste"]
+                              : ["despesa", "custo", "deducao", "imposto", "despesa_financeira", "distribuicao_lucros", "ajuste"];
+                            return categorias
+                              .filter((c: any) => allowed.includes(c.tipo))
+                              .map((c: any) => (
+                                <SelectItem key={c.id} value={c.id}>
+                                  {c.nome}
+                                </SelectItem>
+                              ));
+                          })()}
                         </SelectContent>
                       </Select>
                     </div>
