@@ -426,6 +426,27 @@ export function UncategorizedTransactionsModal({ open, onOpenChange }: Props) {
         tipoSugerido={oferta.tipoSugerido}
       />
       <RegraConflitoModal conflito={conflito} onClose={() => setConflito(null)} />
+      <CategoriaFinanceiraModal
+        open={createCatOpen}
+        onOpenChange={setCreateCatOpen}
+        defaultTipo={createCatTipo}
+        onSaved={(newId) => {
+          queryClient.invalidateQueries({ queryKey: ["categorias_financeiras"] });
+          if (pendingTxId) {
+            const tx = transactions.find((t) => t.id === pendingTxId);
+            if (tx) {
+              updateMutation.mutate({
+                id: tx.id,
+                categoria_financeira_id: newId,
+                description: tx.description ?? "",
+                amount: tx.amount,
+                categoriaNome: "",
+              });
+            }
+            setPendingTxId(null);
+          }
+        }}
+      />
     </>
   );
 }
