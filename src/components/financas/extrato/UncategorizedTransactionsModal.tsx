@@ -399,18 +399,73 @@ export function UncategorizedTransactionsModal({ open, onOpenChange }: Props) {
                         <SelectTrigger className="h-8 text-xs">
                           <SelectValue placeholder="Selecionar subcategoria" />
                         </SelectTrigger>
-                        <SelectContent>
+                        <SelectContent className="max-w-[420px]">
                           {(() => {
                             const allowed = isIn
                               ? ["receita", "receita_financeira", "ajuste"]
                               : ["despesa", "custo", "deducao", "imposto", "despesa_financeira", "distribuicao_lucros", "ajuste"];
-                            return categorias
-                              .filter((c: any) => allowed.includes(c.tipo))
-                              .map((c: any) => (
-                                <SelectItem key={c.id} value={c.id}>
-                                  {c.nome}
+                            const items = categorias.filter((c: any) => allowed.includes(c.tipo));
+                            // Agrupa por raiz e ordena para mostrar família junta
+                            const decorated = items.map((c: any) => {
+                              const path = buildPath(c.id);
+                              const rootName = path[0]?.nome ?? c.nome;
+                              return { c, path, rootName };
+                            });
+                            decorated.sort((a, b) => a.rootName.localeCompare(b.rootName, "pt-BR"));
+
+                            let lastRoot = "";
+                            return decorated.flatMap(({ c, path }) => {
+                              const depth = Math.max(0, path.length - 1);
+                              const isNewGroup = path[0]?.nome !== lastRoot;
+                              lastRoot = path[0]?.nome ?? "";
+                              const ancestors = path.slice(0, -1).map((p) => p.nome).join(" › ");
+                              const levelLabel =
+                                depth === 0 ? "Categoria" : depth === 1 ? "Subcategoria" : `Nível ${depth + 1}`;
+                              const nodes: any[] = [];
+                              if (isNewGroup) {
+                                nodes.push(
+                                  <div
+                                    key={`hdr-${c.id}`}
+                                    className="px-2 pt-2 pb-1 text-[10px] uppercase tracking-wider text-muted-foreground/70 font-semibold"
+                                  >
+                                    {path[0]?.nome}
+                                  </div>
+                                );
+                              }
+                              nodes.push(
+                                <SelectItem key={c.id} value={c.id} className="py-1.5">
+                                  <div
+                                    className="flex items-center gap-2 min-w-0"
+                                    style={{ paddingLeft: `${depth * 12}px` }}
+                                  >
+                                    {depth > 0 && (
+                                      <span className="text-muted-foreground/40 text-xs select-none">└</span>
+                                    )}
+                                    <div className="flex flex-col min-w-0">
+                                      <span className="truncate text-sm">{c.nome}</span>
+                                      {ancestors && (
+                                        <span className="truncate text-[10px] text-muted-foreground/70">
+                                          {ancestors}
+                                        </span>
+                                      )}
+                                    </div>
+                                    <span
+                                      className={cn(
+                                        "ml-auto text-[9px] uppercase tracking-wide px-1.5 py-0 rounded border shrink-0",
+                                        depth === 0
+                                          ? "bg-primary/10 text-primary border-primary/30"
+                                          : depth === 1
+                                          ? "bg-sky-500/10 text-sky-300 border-sky-500/30"
+                                          : "bg-muted/40 text-muted-foreground border-border/50"
+                                      )}
+                                    >
+                                      {levelLabel}
+                                    </span>
+                                  </div>
                                 </SelectItem>
-                              ));
+                              );
+                              return nodes;
+                            });
                           })()}
                           <div className="my-1 border-t border-border/40" />
                           <SelectItem value="__create__" className="text-primary">
