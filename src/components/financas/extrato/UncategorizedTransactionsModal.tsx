@@ -122,11 +122,13 @@ export function UncategorizedTransactionsModal({ open, onOpenChange }: Props) {
     queryFn: async () => {
       const { data } = await supabase
         .from("categorias_financeiras")
-        .select("id, nome, categoria_pai_id, ativo")
+        .select("id, nome, categoria_pai_id, ativo, tipo")
         .eq("user_id", targetUserId!)
         .eq("ativo", true)
         .order("ordem");
-      return (data ?? []).filter((c: any) => c.categoria_pai_id != null);
+      const all = data ?? [];
+      // só folhas (sem filhos)
+      return all.filter((c: any) => !all.some((child: any) => child.categoria_pai_id === c.id));
     },
   });
 
@@ -373,11 +375,18 @@ export function UncategorizedTransactionsModal({ open, onOpenChange }: Props) {
                           <SelectValue placeholder="Selecionar subcategoria" />
                         </SelectTrigger>
                         <SelectContent>
-                          {categorias.map((c: any) => (
-                            <SelectItem key={c.id} value={c.id}>
-                              {c.nome}
-                            </SelectItem>
-                          ))}
+                          {(() => {
+                            const allowed = isIn
+                              ? ["receita", "receita_financeira", "ajuste"]
+                              : ["despesa", "custo", "deducao", "imposto", "despesa_financeira", "distribuicao_lucros", "ajuste"];
+                            return categorias
+                              .filter((c: any) => allowed.includes(c.tipo))
+                              .map((c: any) => (
+                                <SelectItem key={c.id} value={c.id}>
+                                  {c.nome}
+                                </SelectItem>
+                              ));
+                          })()}
                         </SelectContent>
                       </Select>
                     </div>
