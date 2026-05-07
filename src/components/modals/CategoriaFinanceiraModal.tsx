@@ -383,13 +383,35 @@ export function CategoriaFinanceiraModal({ open, onOpenChange, editingId, defaul
     label: tipoLabels[t],
   }));
 
+  const levelLabelFor = (depth: number) =>
+    depth === 0 ? "Categoria" : depth === 1 ? "Subcategoria" : `Nível ${depth + 1}`;
+
+  const buildHierarchicalOptions = () => {
+    const map = new Map<string, any>(parentOptions.map((c: any) => [c.id, c]));
+    const childrenOf = (parentId: string | null) =>
+      parentOptions
+        .filter((c: any) => (c.categoria_pai_id ?? null) === parentId)
+        .sort((a: any, b: any) => (a.ordem ?? 0) - (b.ordem ?? 0));
+    const out: { value: string; label: string; tooltip?: string; depth: number; levelLabel: string }[] = [];
+    const walk = (parentId: string | null, depth: number) => {
+      for (const c of childrenOf(parentId)) {
+        out.push({
+          value: c.id,
+          label: c.nome,
+          tooltip: tipoLabels[c.tipo as TipoFinanceiro],
+          depth,
+          levelLabel: levelLabelFor(depth),
+        });
+        walk(c.id, depth + 1);
+      }
+    };
+    walk(null, 0);
+    return out;
+  };
+
   const parentManagedOptions = [
-    { value: "__none__", label: "Nenhuma (raiz)" },
-    ...parentOptions.map((c) => ({
-      value: c.id,
-      label: c.nome,
-      tooltip: tipoLabels[c.tipo as TipoFinanceiro],
-    })),
+    { value: "__none__", label: "Nenhuma (raiz)", depth: 0 },
+    ...buildHierarchicalOptions(),
   ];
 
   return (
