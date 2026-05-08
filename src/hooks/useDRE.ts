@@ -403,6 +403,8 @@ export function useDRE(filters: DREFilters) {
     const margemLiquidaPct = totalReceitaAmount > 0 ? (lucroLiquido / totalReceitaAmount) * 100 : 0;
     const margemLiquidaPctPrev = totalsPrev.receita > 0 ? (lucroLiquidoPrev / totalsPrev.receita) * 100 : 0;
 
+    const isFiltered = !!(filters.businessUnitId && filters.businessUnitId !== "all");
+
     const indicators: DRELine[] = [
       makeIndicator("receita-liquida", "(=) Receita Líquida", receitaLiquida, receitaLiquidaPrev),
       makeIndicator("lucro-bruto", "(=) Lucro Bruto", lucroBruto, lucroBrutoPrev),
@@ -416,12 +418,20 @@ export function useDRE(filters: DREFilters) {
       makeIndicator("impostos", "(-) Impostos", totals.imposto, totalsPrev.imposto),
       makeIndicator("lucro-liquido", "(=) Lucro Líquido", lucroLiquido, lucroLiquidoPrev),
       { ...makeIndicator("margem-liquida", "(%) Margem Líquida", margemLiquidaPct, margemLiquidaPctPrev), isPercentual: true },
-      makeIndicator("distribuicao-lucros", "(-) Distribuição de Lucros", totals.distribuicao, totalsPrev.distribuicao),
-      makeIndicator("lucro-retido", "(=) Lucro Retido", lucroRetido, lucroRetidoPrev),
+      // Distribuição de Lucros e Lucro Retido só aparecem no consolidado
+      ...(isFiltered ? [] : [
+        makeIndicator("distribuicao-lucros", "(-) Distribuição de Lucros", totals.distribuicao, totalsPrev.distribuicao),
+        makeIndicator("lucro-retido", "(=) Lucro Retido", lucroRetido, lucroRetidoPrev),
+      ]),
     ];
 
+    // Quando filtrado, oculta também a categoria-tronco "Distribuição de Lucros" do plano de contas
+    const visibleLines = isFiltered
+      ? lines.filter((l) => l.tipo !== "distribuicao_lucros")
+      : lines;
+
     return {
-      lines: [...lines, ...indicators],
+      lines: [...visibleLines, ...indicators],
       totalRevenue: totalReceitaAmount,
       totalExpense: totals.despesa + totals.custo + totals.deducao + totals.imposto + totals.despesa_fin,
       grossProfit: lucroBruto,
@@ -431,7 +441,7 @@ export function useDRE(filters: DREFilters) {
       netIncome: lucroLiquido,
       profitMargin: totalReceitaAmount > 0 ? (lucroLiquido / totalReceitaAmount) * 100 : 0,
     };
-  }, [transactions, prevTransactions, categorias, regrasVis]);
+  }, [transactions, prevTransactions, categorias, regrasVis, filters.businessUnitId]);
 
   return {
     ...dreData,
