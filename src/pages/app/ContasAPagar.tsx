@@ -25,6 +25,8 @@ import { useManagedSelect } from "@/hooks/useManagedSelect";
 import { CategoriaCadastroModal } from "@/components/modals/CategoriaCadastroModal";
 import { CategoriaFinanceiraModal } from "@/components/modals/CategoriaFinanceiraModal";
 import { CentroCustoModal } from "@/components/modals/CentroCustoModal";
+import { BusinessUnitModal } from "@/components/modals/BusinessUnitModal";
+import { useBusinessUnits } from "@/hooks/useBusinessUnits";
 import { ContaBancariaModal } from "@/components/modals/ContaBancariaModal";
 import { FormaPagamentoModal } from "@/components/modals/FormaPagamentoModal";
 import { FornecedorModal, type FornecedorPrefill } from "@/components/modals/FornecedorModal";
@@ -70,6 +72,7 @@ interface PayableForm {
   tipo_financeiro: string;
   categoria_financeira_id: string;
   cost_center_id: string;
+  business_unit_id?: string;
   bank_account_id: string;
   payment_method_id: string;
   payment_mode: PaymentMode;
@@ -95,6 +98,7 @@ const initialForm: PayableForm = {
   tipo_financeiro: "",
   categoria_financeira_id: "",
   cost_center_id: "",
+  business_unit_id: "",
   bank_account_id: "",
   payment_method_id: "",
   payment_mode: "avista",
@@ -172,6 +176,7 @@ export default function ContasAPagar() {
   // Managed select hooks
   const categoriasCrud = useManagedSelect("categorias_cadastro");
   const centrosCrud = useManagedSelect("centros_custo");
+  const businessUnitsCrud = useManagedSelect("business_units");
   const contasCrud = useManagedSelect("contas_bancarias");
   const formasCrud = useManagedSelect("formas_pagamento");
   const catFinCrud = useManagedSelect("categorias_financeiras");
@@ -181,6 +186,9 @@ export default function ContasAPagar() {
   const [catEditingId, setCatEditingId] = useState<string | null>(null);
   const [ccModalOpen, setCcModalOpen] = useState(false);
   const [ccEditingId, setCcEditingId] = useState<string | null>(null);
+  const [buModalOpen, setBuModalOpen] = useState(false);
+  const [buEditingId, setBuEditingId] = useState<string | null>(null);
+  const { businessUnits } = useBusinessUnits();
   const [cbModalOpen, setCbModalOpen] = useState(false);
   const [cbEditingId, setCbEditingId] = useState<string | null>(null);
   const [fpModalOpen, setFpModalOpen] = useState(false);
@@ -513,6 +521,7 @@ export default function ContasAPagar() {
           category_id: form.category_id || null,
           categoria_financeira_id: form.categoria_financeira_id || null,
           cost_center_id: form.cost_center_id || null,
+          business_unit_id: form.business_unit_id || null,
           bank_account_id: form.bank_account_id || null,
           payment_method_id: form.payment_method_id || null,
           is_recurring: form.is_recurring,
@@ -551,6 +560,7 @@ export default function ContasAPagar() {
       category_id: form.category_id || null,
       categoria_financeira_id: form.categoria_financeira_id || null,
       cost_center_id: form.cost_center_id || null,
+      business_unit_id: form.business_unit_id || null,
       bank_account_id: form.bank_account_id || null,
       payment_method_id: form.payment_method_id || null,
       installment_number: 1,
@@ -621,6 +631,7 @@ export default function ContasAPagar() {
       tipo_financeiro: catFin?.tipo || "",
       categoria_financeira_id: item.categoria_financeira_id || "",
       cost_center_id: item.cost_center_id || "",
+      business_unit_id: item.business_unit_id || "",
       bank_account_id: item.bank_account_id || "",
       payment_method_id: item.payment_method_id || "",
       payment_mode: item.is_recurring
@@ -803,6 +814,7 @@ export default function ContasAPagar() {
       tipo_financeiro: catFin2?.tipo || "",
       categoria_financeira_id: item.categoria_financeira_id || "",
       cost_center_id: item.cost_center_id || "",
+      business_unit_id: item.business_unit_id || "",
       bank_account_id: item.bank_account_id || "",
       payment_method_id: item.payment_method_id || "",
       payment_mode: "avista",
@@ -2068,6 +2080,20 @@ export default function ContasAPagar() {
             addLabel="Novo centro de custo"
           />
 
+          {/* Unidade de Negócio (DRE multioperação) */}
+          <ManagedSelectInput
+            label="Unidade de Negócio"
+            value={form.business_unit_id || ""}
+            onValueChange={(v) => updateField("business_unit_id" as any, v)}
+            options={businessUnits.map((u) => ({ value: u.id, label: u.nome }))}
+            placeholder="Selecione a unidade (opcional)..."
+            icon={<Target className="w-4 h-4" />}
+            onAddModal={() => { setBuEditingId(null); setBuModalOpen(true); }}
+            onEditModal={(id) => { setBuEditingId(id); setBuModalOpen(true); }}
+            onDelete={businessUnitsCrud.onDelete}
+            addLabel="Nova unidade de negócio"
+          />
+
           {/* Conta Bancária */}
           <ManagedSelectInput
             label="Conta Bancária"
@@ -2151,6 +2177,12 @@ export default function ContasAPagar() {
         onOpenChange={setCbModalOpen}
         editingId={cbEditingId}
         onSaved={(id) => updateField("bank_account_id", id)}
+      />
+      <BusinessUnitModal
+        open={buModalOpen}
+        onOpenChange={setBuModalOpen}
+        editingId={buEditingId}
+        onSaved={(id) => updateField("business_unit_id" as any, id)}
       />
       <FormaPagamentoModal
         open={fpModalOpen}

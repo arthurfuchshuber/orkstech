@@ -20,6 +20,7 @@ export type Database = {
           amount: number
           attachment_url: string | null
           bank_account_id: string | null
+          business_unit_id: string | null
           categoria_financeira_id: string | null
           category_id: string | null
           cliente_id: string | null
@@ -58,6 +59,7 @@ export type Database = {
           amount?: number
           attachment_url?: string | null
           bank_account_id?: string | null
+          business_unit_id?: string | null
           categoria_financeira_id?: string | null
           category_id?: string | null
           cliente_id?: string | null
@@ -96,6 +98,7 @@ export type Database = {
           amount?: number
           attachment_url?: string | null
           bank_account_id?: string | null
+          business_unit_id?: string | null
           categoria_financeira_id?: string | null
           category_id?: string | null
           cliente_id?: string | null
@@ -135,6 +138,13 @@ export type Database = {
             columns: ["bank_account_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "accounts_payable_business_unit_id_fkey"
+            columns: ["business_unit_id"]
+            isOneToOne: false
+            referencedRelation: "business_units"
             referencedColumns: ["id"]
           },
           {
@@ -201,6 +211,7 @@ export type Database = {
           amount: number
           attachment_url: string | null
           bank_account_id: string | null
+          business_unit_id: string | null
           categoria_financeira_id: string | null
           category_id: string | null
           cliente_id: string | null
@@ -234,6 +245,7 @@ export type Database = {
           amount?: number
           attachment_url?: string | null
           bank_account_id?: string | null
+          business_unit_id?: string | null
           categoria_financeira_id?: string | null
           category_id?: string | null
           cliente_id?: string | null
@@ -267,6 +279,7 @@ export type Database = {
           amount?: number
           attachment_url?: string | null
           bank_account_id?: string | null
+          business_unit_id?: string | null
           categoria_financeira_id?: string | null
           category_id?: string | null
           cliente_id?: string | null
@@ -301,6 +314,13 @@ export type Database = {
             columns: ["bank_account_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "accounts_receivable_business_unit_id_fkey"
+            columns: ["business_unit_id"]
+            isOneToOne: false
+            referencedRelation: "business_units"
             referencedColumns: ["id"]
           },
           {
@@ -672,11 +692,59 @@ export type Database = {
           },
         ]
       }
+      business_units: {
+        Row: {
+          ativo: boolean
+          cor: string | null
+          created_at: string
+          descricao: string | null
+          empresa_id: string
+          id: string
+          nome: string
+          ordem: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          ativo?: boolean
+          cor?: string | null
+          created_at?: string
+          descricao?: string | null
+          empresa_id: string
+          id?: string
+          nome: string
+          ordem?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          ativo?: boolean
+          cor?: string | null
+          created_at?: string
+          descricao?: string | null
+          empresa_id?: string
+          id?: string
+          nome?: string
+          ordem?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "business_units_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cash_transactions: {
         Row: {
           account_payable_id: string | null
           amount: number
           bank_account_id: string | null
+          business_unit_id: string | null
           categoria_financeira_id: string | null
           created_at: string
           description: string | null
@@ -694,6 +762,7 @@ export type Database = {
           account_payable_id?: string | null
           amount?: number
           bank_account_id?: string | null
+          business_unit_id?: string | null
           categoria_financeira_id?: string | null
           created_at?: string
           description?: string | null
@@ -711,6 +780,7 @@ export type Database = {
           account_payable_id?: string | null
           amount?: number
           bank_account_id?: string | null
+          business_unit_id?: string | null
           categoria_financeira_id?: string | null
           created_at?: string
           description?: string | null
@@ -737,6 +807,13 @@ export type Database = {
             columns: ["bank_account_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cash_transactions_business_unit_id_fkey"
+            columns: ["business_unit_id"]
+            isOneToOne: false
+            referencedRelation: "business_units"
             referencedColumns: ["id"]
           },
           {
@@ -2340,6 +2417,7 @@ export type Database = {
         Row: {
           amount: number
           bank_account_id: string | null
+          business_unit_id: string | null
           categoria_financeira_id: string | null
           category: string | null
           created_at: string
@@ -2359,6 +2437,7 @@ export type Database = {
         Insert: {
           amount: number
           bank_account_id?: string | null
+          business_unit_id?: string | null
           categoria_financeira_id?: string | null
           category?: string | null
           created_at?: string
@@ -2378,6 +2457,7 @@ export type Database = {
         Update: {
           amount?: number
           bank_account_id?: string | null
+          business_unit_id?: string | null
           categoria_financeira_id?: string | null
           category?: string | null
           created_at?: string
@@ -2400,6 +2480,13 @@ export type Database = {
             columns: ["bank_account_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "manual_bank_transactions_business_unit_id_fkey"
+            columns: ["business_unit_id"]
+            isOneToOne: false
+            referencedRelation: "business_units"
             referencedColumns: ["id"]
           },
           {
@@ -2960,6 +3047,7 @@ export type Database = {
           ajuste_motivo: string | null
           amount: number
           amount_original: number | null
+          business_unit_id: string | null
           categoria_financeira_id: string | null
           category: string | null
           cost_center_id: string | null
@@ -2988,6 +3076,7 @@ export type Database = {
           ajuste_motivo?: string | null
           amount?: number
           amount_original?: number | null
+          business_unit_id?: string | null
           categoria_financeira_id?: string | null
           category?: string | null
           cost_center_id?: string | null
@@ -3016,6 +3105,7 @@ export type Database = {
           ajuste_motivo?: string | null
           amount?: number
           amount_original?: number | null
+          business_unit_id?: string | null
           categoria_financeira_id?: string | null
           category?: string | null
           cost_center_id?: string | null
@@ -3039,6 +3129,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "pluggy_transactions_business_unit_id_fkey"
+            columns: ["business_unit_id"]
+            isOneToOne: false
+            referencedRelation: "business_units"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "pluggy_transactions_categoria_financeira_id_fkey"
             columns: ["categoria_financeira_id"]

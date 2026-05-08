@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ChevronRight, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useBankAccountOptions } from "@/hooks/useBankAccountOptions";
+import { useBusinessUnits } from "@/hooks/useBusinessUnits";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -41,6 +42,7 @@ export default function DREMensalView() {
   const [year, setYear] = useState(currentYear);
   const [bankAccountId, setBankAccountId] = useState<string | undefined>();
   const [costCenterId, setCostCenterId] = useState<string | undefined>();
+  const [businessUnitId, setBusinessUnitId] = useState<string>("all");
   const [showAV, setShowAV] = useState(true);
   const [showAH, setShowAH] = useState(false);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
@@ -50,8 +52,9 @@ export default function DREMensalView() {
   const defaultEnd = year === currentYear ? currentMonth : 11;
   const [monthRange, setMonthRange] = useState<[number, number]>([defaultStart, defaultEnd]);
 
-  const { lines, receitaTotalMonthly, isLoading } = useDREMonthly({ year, bankAccountId, costCenterId });
+  const { lines, receitaTotalMonthly, isLoading } = useDREMonthly({ year, bankAccountId, costCenterId, businessUnitId });
   const { options: bankAccounts } = useBankAccountOptions();
+  const { businessUnits } = useBusinessUnits();
   const { data: costCenters = [] } = useQuery({
     queryKey: ["dre-mensal-cc", targetUserId],
     enabled: !!targetUserId,
@@ -141,6 +144,18 @@ export default function DREMensalView() {
           <SelectContent>
             <SelectItem value="all">Todos os centros</SelectItem>
             {costCenters.map((c: any) => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}
+          </SelectContent>
+        </Select>
+
+        <Select value={businessUnitId} onValueChange={setBusinessUnitId}>
+          <SelectTrigger className="w-[200px] h-9 text-sm">
+            <SelectValue placeholder="Unidade de negócio" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todas as unidades (consolidado)</SelectItem>
+            {businessUnits.map((u) => (
+              <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>
+            ))}
           </SelectContent>
         </Select>
 

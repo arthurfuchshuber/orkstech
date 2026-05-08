@@ -9,6 +9,8 @@ export interface DREMonthlyFilters {
   year: number;
   bankAccountId?: string;
   costCenterId?: string;
+  /** Filtra por unidade de negócio. "all" ou undefined = consolidado. */
+  businessUnitId?: string | "all";
 }
 
 export interface DREMonthlyLine {
@@ -101,27 +103,32 @@ export function useDREMonthly(filters: DREMonthlyFilters) {
   });
 
   const { data: transactions = [], isLoading } = useQuery({
-    queryKey: ["dre-monthly-tx", targetUserId, empresaId, filters.year, filters.bankAccountId, filters.costCenterId],
+    queryKey: ["dre-monthly-tx", targetUserId, empresaId, filters.year, filters.bankAccountId, filters.costCenterId, filters.businessUnitId],
     enabled: !!user && !!targetUserId,
     queryFn: async () => {
+      const buFilter = filters.businessUnitId && filters.businessUnitId !== "all" ? filters.businessUnitId : null;
+
       let qPay = supabase.from("accounts_payable")
-        .select("amount, payment_date, categoria_financeira_id, bank_account_id, cost_center_id, empresa_id, user_id")
+        .select("amount, payment_date, categoria_financeira_id, bank_account_id, cost_center_id, business_unit_id, empresa_id, user_id")
         .eq("status", "paid").gte("payment_date", startStr).lte("payment_date", endStr);
       if (empresaId) qPay = qPay.eq("empresa_id", empresaId); else qPay = qPay.eq("user_id", targetUserId!);
       if (filters.bankAccountId) qPay = qPay.eq("bank_account_id", filters.bankAccountId);
       if (filters.costCenterId) qPay = qPay.eq("cost_center_id", filters.costCenterId);
+      if (buFilter) qPay = qPay.eq("business_unit_id", buFilter);
 
       let qRec = supabase.from("accounts_receivable")
-        .select("amount, payment_date, categoria_financeira_id, bank_account_id, cost_center_id, empresa_id, user_id")
+        .select("amount, payment_date, categoria_financeira_id, bank_account_id, cost_center_id, business_unit_id, empresa_id, user_id")
         .eq("status", "paid").gte("payment_date", startStr).lte("payment_date", endStr);
       if (empresaId) qRec = qRec.eq("empresa_id", empresaId); else qRec = qRec.eq("user_id", targetUserId!);
       if (filters.bankAccountId) qRec = qRec.eq("bank_account_id", filters.bankAccountId);
       if (filters.costCenterId) qRec = qRec.eq("cost_center_id", filters.costCenterId);
+      if (buFilter) qRec = qRec.eq("business_unit_id", buFilter);
 
       let qPlu = supabase.from("pluggy_transactions")
-        .select("amount, date, categoria_financeira_id, type, user_id")
+        .select("amount, date, categoria_financeira_id, type, business_unit_id, user_id")
         .eq("user_id", targetUserId!).eq("reconciled", false).eq("is_internal_transfer", false)
         .not("categoria_financeira_id", "is", null).gte("date", startStr).lte("date", endStr);
+      if (buFilter) qPlu = qPlu.eq("business_unit_id", buFilter);
 
       const [payRes, recRes, pluRes] = await Promise.all([qPay, qRec, qPlu]);
       if (payRes.error) throw payRes.error;
@@ -224,6 +231,8 @@ export function useDREMonthly(filters: DREMonthlyFilters) {
       total: sumArr(den) > 0 ? (sumArr(num) / sumArr(den)) * 100 : 0,
     });
 
+    const isFiltered = !!(filters.businessUnitId && filters.businessUnitId !== "all");
+
     const indicators: DREMonthlyLine[] = [
       indicator("receita-liquida", "(=) Receita Líquida", receitaLiquida),
       indicator("lucro-bruto", "(=) Lucro Bruto", lucroBruto),
@@ -237,15 +246,21 @@ export function useDREMonthly(filters: DREMonthlyFilters) {
       indicator("impostos", "(-) Impostos", totals.imposto),
       indicator("lucro-liquido", "(=) Lucro Líquido", lucroLiquido),
       pctLine("margem-liquida", "(%) Margem Líquida", lucroLiquido, totals.receita),
-      indicator("distribuicao-lucros", "(-) Distribuição de Lucros", totals.distribuicao),
-      indicator("lucro-retido", "(=) Lucro Retido", lucroRetido),
+      ...(isFiltered ? [] : [
+        indicator("distribuicao-lucros", "(-) Distribuição de Lucros", totals.distribuicao),
+        indicator("lucro-retido", "(=) Lucro Retido", lucroRetido),
+      ]),
     ];
 
+    const visibleLines = isFiltered
+      ? lines.filter((l) => l.tipo !== "distribuicao_lucros")
+      : lines;
+
     return {
-      lines: [...lines, ...indicators],
+      lines: [...visibleLines, ...indicators],
       receitaTotalMonthly: totals.receita,
     };
-  }, [categorias, transactions]);
+  }, [categorias, transactions, filters.businessUnitId]);
 
   return {
     ...data,

@@ -15,6 +15,8 @@ export interface DREFilters {
   costCenterId?: string;
   categoriaFinanceiraId?: string;
   tipo?: "all" | "income" | "expense";
+  /** Filtra por unidade de negócio. "all" ou undefined = consolidado. */
+  businessUnitId?: string | "all";
 }
 
 export interface DRELine {
@@ -147,10 +149,12 @@ export function useDRE(filters: DREFilters) {
 
   // Fetch unified transactions: AP paid + AR paid + Pluggy (não reconciliado, com categoria)
   const fetchUnified = async (s: string, e: string) => {
+    const buFilter = filters.businessUnitId && filters.businessUnitId !== "all" ? filters.businessUnitId : null;
+
     // 1) Contas a Pagar — pagas no período
     let qPay = supabase
       .from("accounts_payable")
-      .select("id, amount, payment_date, categoria_financeira_id, description, bank_account_id, cost_center_id, empresa_id, user_id")
+      .select("id, amount, payment_date, categoria_financeira_id, description, bank_account_id, cost_center_id, business_unit_id, empresa_id, user_id")
       .eq("status", "paid")
       .gte("payment_date", s)
       .lte("payment_date", e);
@@ -158,11 +162,12 @@ export function useDRE(filters: DREFilters) {
     else qPay = qPay.eq("user_id", targetUserId!);
     if (filters.bankAccountId) qPay = qPay.eq("bank_account_id", filters.bankAccountId);
     if (filters.costCenterId) qPay = qPay.eq("cost_center_id", filters.costCenterId);
+    if (buFilter) qPay = qPay.eq("business_unit_id", buFilter);
 
     // 2) Contas a Receber — recebidas no período
     let qRec = supabase
       .from("accounts_receivable")
-      .select("id, amount, payment_date, categoria_financeira_id, description, bank_account_id, cost_center_id, empresa_id, user_id")
+      .select("id, amount, payment_date, categoria_financeira_id, description, bank_account_id, cost_center_id, business_unit_id, empresa_id, user_id")
       .eq("status", "paid")
       .gte("payment_date", s)
       .lte("payment_date", e);
@@ -170,17 +175,19 @@ export function useDRE(filters: DREFilters) {
     else qRec = qRec.eq("user_id", targetUserId!);
     if (filters.bankAccountId) qRec = qRec.eq("bank_account_id", filters.bankAccountId);
     if (filters.costCenterId) qRec = qRec.eq("cost_center_id", filters.costCenterId);
+    if (buFilter) qRec = qRec.eq("business_unit_id", buFilter);
 
-    // 3) Pluggy — não reconciliadas, com categoria, EXCLUI transferências internas (aplicações/resgates)
+    // 3) Pluggy — não reconciliadas, com categoria, EXCLUI transferências internas
     let qPlu = supabase
       .from("pluggy_transactions")
-      .select("id, amount, date, categoria_financeira_id, description, type, reconciled, user_id")
+      .select("id, amount, date, categoria_financeira_id, description, type, reconciled, business_unit_id, user_id")
       .eq("user_id", targetUserId!)
       .eq("reconciled", false)
       .eq("is_internal_transfer", false)
       .not("categoria_financeira_id", "is", null)
       .gte("date", s)
       .lte("date", e);
+    if (buFilter) qPlu = qPlu.eq("business_unit_id", buFilter);
 
     const [payRes, recRes, pluRes] = await Promise.all([qPay, qRec, qPlu]);
     if (payRes.error) throw payRes.error;
@@ -216,13 +223,13 @@ export function useDRE(filters: DREFilters) {
   };
 
   const { data: transactions = [], isLoading: loadingTx } = useQuery({
-    queryKey: ["dre-unified-tx", targetUserId, empresaId, startStr, endStr, filters.bankAccountId, filters.costCenterId],
+    queryKey: ["dre-unified-tx", targetUserId, empresaId, startStr, endStr, filters.bankAccountId, filters.costCenterId, filters.businessUnitId],
     enabled: !!user && !!targetUserId,
     queryFn: () => fetchUnified(startStr, endStr),
   });
 
   const { data: prevTransactions = [] } = useQuery({
-    queryKey: ["dre-unified-prev-tx", targetUserId, empresaId, prevStartStr, prevEndStr, filters.bankAccountId, filters.costCenterId],
+    queryKey: ["dre-unified-prev-tx", targetUserId, empresaId, prevStartStr, prevEndStr, filters.bankAccountId, filters.costCenterId, filters.businessUnitId],
     enabled: !!user && !!targetUserId,
     queryFn: () => fetchUnified(prevStartStr, prevEndStr),
   });
@@ -396,6 +403,8 @@ export function useDRE(filters: DREFilters) {
     const margemLiquidaPct = totalReceitaAmount > 0 ? (lucroLiquido / totalReceitaAmount) * 100 : 0;
     const margemLiquidaPctPrev = totalsPrev.receita > 0 ? (lucroLiquidoPrev / totalsPrev.receita) * 100 : 0;
 
+    const isFiltered = !!(filters.businessUnitId && filters.businessUnitId !== "all");
+
     const indicators: DRELine[] = [
       makeIndicator("receita-liquida", "(=) Receita Líquida", receitaLiquida, receitaLiquidaPrev),
       makeIndicator("lucro-bruto", "(=) Lucro Bruto", lucroBruto, lucroBrutoPrev),
@@ -409,12 +418,20 @@ export function useDRE(filters: DREFilters) {
       makeIndicator("impostos", "(-) Impostos", totals.imposto, totalsPrev.imposto),
       makeIndicator("lucro-liquido", "(=) Lucro Líquido", lucroLiquido, lucroLiquidoPrev),
       { ...makeIndicator("margem-liquida", "(%) Margem Líquida", margemLiquidaPct, margemLiquidaPctPrev), isPercentual: true },
-      makeIndicator("distribuicao-lucros", "(-) Distribuição de Lucros", totals.distribuicao, totalsPrev.distribuicao),
-      makeIndicator("lucro-retido", "(=) Lucro Retido", lucroRetido, lucroRetidoPrev),
+      // Distribuição de Lucros e Lucro Retido só aparecem no consolidado
+      ...(isFiltered ? [] : [
+        makeIndicator("distribuicao-lucros", "(-) Distribuição de Lucros", totals.distribuicao, totalsPrev.distribuicao),
+        makeIndicator("lucro-retido", "(=) Lucro Retido", lucroRetido, lucroRetidoPrev),
+      ]),
     ];
 
+    // Quando filtrado, oculta também a categoria-tronco "Distribuição de Lucros" do plano de contas
+    const visibleLines = isFiltered
+      ? lines.filter((l) => l.tipo !== "distribuicao_lucros")
+      : lines;
+
     return {
-      lines: [...lines, ...indicators],
+      lines: [...visibleLines, ...indicators],
       totalRevenue: totalReceitaAmount,
       totalExpense: totals.despesa + totals.custo + totals.deducao + totals.imposto + totals.despesa_fin,
       grossProfit: lucroBruto,
@@ -424,7 +441,7 @@ export function useDRE(filters: DREFilters) {
       netIncome: lucroLiquido,
       profitMargin: totalReceitaAmount > 0 ? (lucroLiquido / totalReceitaAmount) * 100 : 0,
     };
-  }, [transactions, prevTransactions, categorias, regrasVis]);
+  }, [transactions, prevTransactions, categorias, regrasVis, filters.businessUnitId]);
 
   return {
     ...dreData,

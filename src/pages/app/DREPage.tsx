@@ -26,6 +26,7 @@ import { cn } from "@/lib/utils";
 import { PlanoDeContasSection } from "@/components/financas/PlanoDeContasSection";
 import { DRERegrasSection } from "@/components/financas/DRERegrasSection";
 import { useBankAccountOptions } from "@/hooks/useBankAccountOptions";
+import { useBusinessUnits } from "@/hooks/useBusinessUnits";
 import DREMensalView from "@/components/financas/DREMensalView";
 import { CalendarDays } from "lucide-react";
 
