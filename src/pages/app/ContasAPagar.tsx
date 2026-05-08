@@ -70,7 +70,7 @@ interface PayableForm {
   tipo_financeiro: string;
   categoria_financeira_id: string;
   cost_center_id: string;
-  business_unit_id: string;
+  business_unit_id?: string;
   bank_account_id: string;
   payment_method_id: string;
   payment_mode: PaymentMode;
