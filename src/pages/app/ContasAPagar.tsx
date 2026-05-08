@@ -70,6 +70,7 @@ interface PayableForm {
   tipo_financeiro: string;
   categoria_financeira_id: string;
   cost_center_id: string;
+  business_unit_id: string;
   bank_account_id: string;
   payment_method_id: string;
   payment_mode: PaymentMode;
@@ -95,6 +96,7 @@ const initialForm: PayableForm = {
   tipo_financeiro: "",
   categoria_financeira_id: "",
   cost_center_id: "",
+  business_unit_id: "",
   bank_account_id: "",
   payment_method_id: "",
   payment_mode: "avista",
