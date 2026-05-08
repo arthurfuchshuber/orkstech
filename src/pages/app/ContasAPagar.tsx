@@ -2178,6 +2178,12 @@ export default function ContasAPagar() {
         editingId={cbEditingId}
         onSaved={(id) => updateField("bank_account_id", id)}
       />
+      <BusinessUnitModal
+        open={buModalOpen}
+        onOpenChange={setBuModalOpen}
+        editingId={buEditingId}
+        onSaved={(id) => updateField("business_unit_id" as any, id)}
+      />
       <FormaPagamentoModal
         open={fpModalOpen}
         onOpenChange={setFpModalOpen}
