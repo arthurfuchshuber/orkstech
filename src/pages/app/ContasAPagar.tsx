@@ -25,6 +25,8 @@ import { useManagedSelect } from "@/hooks/useManagedSelect";
 import { CategoriaCadastroModal } from "@/components/modals/CategoriaCadastroModal";
 import { CategoriaFinanceiraModal } from "@/components/modals/CategoriaFinanceiraModal";
 import { CentroCustoModal } from "@/components/modals/CentroCustoModal";
+import { BusinessUnitModal } from "@/components/modals/BusinessUnitModal";
+import { useBusinessUnits } from "@/hooks/useBusinessUnits";
 import { ContaBancariaModal } from "@/components/modals/ContaBancariaModal";
 import { FormaPagamentoModal } from "@/components/modals/FormaPagamentoModal";
 import { FornecedorModal, type FornecedorPrefill } from "@/components/modals/FornecedorModal";
@@ -174,6 +176,7 @@ export default function ContasAPagar() {
   // Managed select hooks
   const categoriasCrud = useManagedSelect("categorias_cadastro");
   const centrosCrud = useManagedSelect("centros_custo");
+  const businessUnitsCrud = useManagedSelect("business_units");
   const contasCrud = useManagedSelect("contas_bancarias");
   const formasCrud = useManagedSelect("formas_pagamento");
   const catFinCrud = useManagedSelect("categorias_financeiras");
