@@ -186,6 +186,9 @@ export default function ContasAPagar() {
   const [catEditingId, setCatEditingId] = useState<string | null>(null);
   const [ccModalOpen, setCcModalOpen] = useState(false);
   const [ccEditingId, setCcEditingId] = useState<string | null>(null);
+  const [buModalOpen, setBuModalOpen] = useState(false);
+  const [buEditingId, setBuEditingId] = useState<string | null>(null);
+  const { businessUnits } = useBusinessUnits();
   const [cbModalOpen, setCbModalOpen] = useState(false);
   const [cbEditingId, setCbEditingId] = useState<string | null>(null);
   const [fpModalOpen, setFpModalOpen] = useState(false);
@@ -2070,6 +2073,26 @@ export default function ContasAPagar() {
             onValueChange={(v) => updateField("cost_center_id", v)}
             options={costCenters.map((c: any) => ({ value: c.id, label: c.nome }))}
             placeholder="Selecione o centro de custo..."
+            icon={<Target className="w-4 h-4" />}
+            onAddModal={() => { setCcEditingId(null); setCcModalOpen(true); }}
+            onEditModal={(id) => { setCcEditingId(id); setCcModalOpen(true); }}
+            onDelete={centrosCrud.onDelete}
+            addLabel="Novo centro de custo"
+          />
+
+          {/* Unidade de Negócio (DRE multioperação) */}
+          <ManagedSelectInput
+            label="Unidade de Negócio"
+            value={form.business_unit_id || ""}
+            onValueChange={(v) => updateField("business_unit_id" as any, v)}
+            options={businessUnits.map((u) => ({ value: u.id, label: u.nome }))}
+            placeholder="Selecione a unidade (opcional)..."
+            icon={<Target className="w-4 h-4" />}
+            onAddModal={() => { setBuEditingId(null); setBuModalOpen(true); }}
+            onEditModal={(id) => { setBuEditingId(id); setBuModalOpen(true); }}
+            onDelete={businessUnitsCrud.onDelete}
+            addLabel="Nova unidade de negócio"
+          />
             icon={<Target className="w-4 h-4" />}
             onAddModal={() => { setCcEditingId(null); setCcModalOpen(true); }}
             onEditModal={(id) => { setCcEditingId(id); setCcModalOpen(true); }}
