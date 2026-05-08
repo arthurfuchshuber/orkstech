@@ -2093,12 +2093,6 @@ export default function ContasAPagar() {
             onDelete={businessUnitsCrud.onDelete}
             addLabel="Nova unidade de negócio"
           />
-            icon={<Target className="w-4 h-4" />}
-            onAddModal={() => { setCcEditingId(null); setCcModalOpen(true); }}
-            onEditModal={(id) => { setCcEditingId(id); setCcModalOpen(true); }}
-            onDelete={centrosCrud.onDelete}
-            addLabel="Novo centro de custo"
-          />
 
           {/* Conta Bancária */}
           <ManagedSelectInput
