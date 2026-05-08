@@ -6,6 +6,7 @@ import { PhoneInput } from "@/components/inputs/PhoneInput";
 import { DateInput } from "@/components/inputs/DateInput";
 import { CepInput } from "@/components/inputs/CepInput";
 import { SociosSection } from "@/components/socios/SociosSection";
+import { BusinessUnitsSection } from "@/components/financas/BusinessUnitsSection";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -158,6 +159,9 @@ function EmpresaTab() {
 
         {/* Quadro Societário */}
         <SociosSection />
+
+        {/* Unidades de Negócio */}
+        <BusinessUnitsSection />
       </div>
 
       {/* Edit Empresa Modal */}
