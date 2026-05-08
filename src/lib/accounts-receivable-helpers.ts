@@ -19,6 +19,7 @@ export type AccountReceivableInsert = {
   category_id?: string | null;
   categoria_financeira_id?: string | null;
   cost_center_id?: string | null;
+  business_unit_id?: string | null;
   bank_account_id?: string | null;
   payment_method_id?: string | null;
   installment_number?: number;
