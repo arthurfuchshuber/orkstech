@@ -21,11 +21,13 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Plus, BarChart3, Eye } from "lucide-react";
 import { ManagedSelectInput } from "@/components/inputs/ManagedSelectInput";
 
-type TipoFinanceiro = "receita" | "despesa" | "custo" | "deducao" | "imposto" | "receita_financeira" | "despesa_financeira" | "distribuicao_lucros" | "ajuste";
+type TipoFinanceiro = "receita" | "despesa" | "despesa_comercial" | "custo" | "deducao" | "imposto" | "receita_financeira" | "despesa_financeira" | "resultado_financeiro" | "distribuicao_lucros" | "ajuste";
 
 const tipoLabels: Record<TipoFinanceiro, string> = {
   receita: "Receita", deducao: "Dedução", custo: "Custo", despesa: "Despesa",
+  despesa_comercial: "Despesa Comercial",
   receita_financeira: "Rec. Financeira", despesa_financeira: "Desp. Financeira",
+  resultado_financeiro: "Resultado Financeiro",
   imposto: "Imposto", distribuicao_lucros: "Distribuição de Lucros", ajuste: "Ajuste",
 };
 
@@ -34,8 +36,10 @@ const tipoColors: Record<TipoFinanceiro, string> = {
   deducao: "bg-orange-500/10 text-orange-400 border-orange-500/20",
   custo: "bg-amber-500/10 text-amber-400 border-amber-500/20",
   despesa: "bg-red-500/10 text-red-400 border-red-500/20",
+  despesa_comercial: "bg-rose-500/10 text-rose-400 border-rose-500/20",
   receita_financeira: "bg-teal-500/10 text-teal-400 border-teal-500/20",
   despesa_financeira: "bg-pink-500/10 text-pink-400 border-pink-500/20",
+  resultado_financeiro: "bg-cyan-500/10 text-cyan-400 border-cyan-500/20",
   imposto: "bg-purple-500/10 text-purple-400 border-purple-500/20",
   distribuicao_lucros: "bg-indigo-500/10 text-indigo-400 border-indigo-500/20",
   ajuste: "bg-blue-500/10 text-blue-400 border-blue-500/20",
@@ -289,7 +293,6 @@ export function CategoriaFinanceiraModal({ open, onOpenChange, editingId, defaul
     categoria_pai_id: null as string | null,
     tipo: defaultTipo as TipoFinanceiro,
   });
-  const [parentModalOpen, setParentModalOpen] = useState(false);
 
   const { data: existing } = useQuery({
     queryKey: ["categorias_financeiras_edit", editingId],
@@ -311,6 +314,10 @@ export function CategoriaFinanceiraModal({ open, onOpenChange, editingId, defaul
     },
   });
 
+  // Bloqueio: troncos do sistema e nomes travados de sócios
+  const isLockedTronco = !!(existing as any)?.is_tronco_sistema;
+  const isLockedNome = !!(existing as any)?.nome_locked;
+
   useEffect(() => {
     if (existing && editingId) {
       setForm({
@@ -323,21 +330,32 @@ export function CategoriaFinanceiraModal({ open, onOpenChange, editingId, defaul
     }
   }, [existing, editingId, open, defaultTipo]);
 
-  const parentOptions = allCategories.filter((c) => c.id !== editingId);
-  const selectedParent = allCategories.find((c) => c.id === form.categoria_pai_id);
-  // Tipo: por padrão herda da pai, mas o usuário pode override-ar pelo seletor.
-  const effectiveTipo = form.tipo as TipoFinanceiro;
+  const parentOptions = (allCategories as any[]).filter((c) => c.id !== editingId);
+  const selectedParent = (allCategories as any[]).find((c) => c.id === form.categoria_pai_id);
 
-  // Quando troca a pai e o usuário ainda não tocou no tipo, sincroniza com o tipo herdado.
+  // Tipo é sempre herdado do tronco raiz (cadeia até a raiz). Usuário não escolhe.
+  const rootTipoFor = (parentId: string | null): TipoFinanceiro => {
+    let cur = (allCategories as any[]).find((c) => c.id === parentId);
+    while (cur?.categoria_pai_id) {
+      const next = (allCategories as any[]).find((c) => c.id === cur.categoria_pai_id);
+      if (!next) break;
+      cur = next;
+    }
+    return (cur?.tipo as TipoFinanceiro) ?? (defaultTipo as TipoFinanceiro);
+  };
+  const effectiveTipo: TipoFinanceiro = form.categoria_pai_id ? rootTipoFor(form.categoria_pai_id) : (form.tipo as TipoFinanceiro);
+
   useEffect(() => {
-    if (selectedParent?.tipo) {
-      setForm((f) => ({ ...f, tipo: selectedParent.tipo as TipoFinanceiro }));
+    if (form.categoria_pai_id) {
+      const t = rootTipoFor(form.categoria_pai_id);
+      if (t !== form.tipo) setForm((f) => ({ ...f, tipo: t }));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedParent?.id]);
+  }, [form.categoria_pai_id, allCategories.length]);
 
   const saveMutation = useMutation({
     mutationFn: async () => {
+      if (!form.categoria_pai_id) throw new Error("Selecione uma categoria-tronco do DRE");
       if (editingId) {
         const { error } = await supabase.from("categorias_financeiras")
           .update({
@@ -349,7 +367,7 @@ export function CategoriaFinanceiraModal({ open, onOpenChange, editingId, defaul
         if (error) throw error;
         return editingId;
       } else {
-        const siblings = allCategories.filter((c) => c.categoria_pai_id === form.categoria_pai_id);
+        const siblings = (allCategories as any[]).filter((c) => c.categoria_pai_id === form.categoria_pai_id);
         const ordem = siblings.length;
         const { data, error } = await supabase.from("categorias_financeiras")
           .insert({
@@ -369,25 +387,18 @@ export function CategoriaFinanceiraModal({ open, onOpenChange, editingId, defaul
       qc.invalidateQueries({ queryKey: ["categorias_financeiras"] });
       qc.invalidateQueries({ queryKey: ["categorias-financeiras"] });
       qc.invalidateQueries({ queryKey: ["dre-categorias"] });
+      qc.invalidateQueries({ queryKey: ["dre-monthly-cats"] });
       toast.success(editingId ? "Categoria atualizada" : "Categoria criada");
       onSaved?.(id);
       onOpenChange(false);
     },
-    onError: () => toast.error("Erro ao salvar categoria"),
+    onError: (e: any) => toast.error(e?.message || "Erro ao salvar categoria"),
   });
 
-  const NEW_PARENT_VALUE = "__new_parent__";
-
-  const tipoOptions = (Object.keys(tipoLabels) as TipoFinanceiro[]).map((t) => ({
-    value: t,
-    label: tipoLabels[t],
-  }));
-
   const levelLabelFor = (depth: number) =>
-    depth === 0 ? "Categoria" : depth === 1 ? "Subcategoria" : `Nível ${depth + 1}`;
+    depth === 0 ? "Tronco DRE" : depth === 1 ? "Subcategoria" : `Nível ${depth + 1}`;
 
   const buildHierarchicalOptions = () => {
-    const map = new Map<string, any>(parentOptions.map((c: any) => [c.id, c]));
     const childrenOf = (parentId: string | null) =>
       parentOptions
         .filter((c: any) => (c.categoria_pai_id ?? null) === parentId)
@@ -397,7 +408,7 @@ export function CategoriaFinanceiraModal({ open, onOpenChange, editingId, defaul
       for (const c of childrenOf(parentId)) {
         out.push({
           value: c.id,
-          label: c.nome,
+          label: c.is_tronco_sistema ? `🔒 ${c.nome}` : c.nome,
           tooltip: tipoLabels[c.tipo as TipoFinanceiro],
           depth,
           levelLabel: levelLabelFor(depth),
@@ -409,89 +420,86 @@ export function CategoriaFinanceiraModal({ open, onOpenChange, editingId, defaul
     return out;
   };
 
-  const parentManagedOptions = [
-    { value: "__none__", label: "Nenhuma (raiz)", depth: 0 },
-    ...buildHierarchicalOptions(),
-  ];
+  const parentManagedOptions = buildHierarchicalOptions();
 
-  return (
-    <>
+  if (isLockedTronco) {
+    return (
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{editingId ? "Editar Categoria" : "Nova Categoria"}</DialogTitle>
+            <DialogTitle>Categoria do DRE bloqueada</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4 py-2">
-            <div>
-              <label className="text-sm font-medium text-foreground mb-1.5 block">Nome</label>
-              <Input
-                value={form.nome}
-                onChange={(e) => setForm({ ...form, nome: e.target.value })}
-                placeholder="Ex: Receita de Serviços"
-                maxLength={60}
-                autoFocus
-              />
-            </div>
-            <div>
-              <ManagedSelectInput
-                label="Categoria Pai (opcional)"
-                value={form.categoria_pai_id || "__none__"}
-                onValueChange={(v) =>
-                  setForm({ ...form, categoria_pai_id: v === "__none__" ? null : v })
-                }
-                placeholder="Nenhuma (raiz)"
-                options={parentManagedOptions}
-                addLabel="Criar nova categoria pai…"
-                onAddModal={() => setParentModalOpen(true)}
-              />
-              {selectedParent ? (
-                <p className="mt-1.5 text-[11px] text-muted-foreground">
-                  Tipo padrão herdado de <strong>{selectedParent.nome}</strong>. Pode ser alterado abaixo.
-                </p>
-              ) : (
-                <p className="mt-1.5 text-[11px] text-muted-foreground">
-                  Sem categoria pai = será uma categoria <strong>raiz</strong>. Defina o tipo abaixo.
-                </p>
-              )}
-            </div>
-            <div>
-              <ManagedSelectInput
-                label="Tipo (DRE)"
-                value={form.tipo}
-                onValueChange={(v) => setForm({ ...form, tipo: v as TipoFinanceiro })}
-                placeholder="Selecione o tipo"
-                options={tipoOptions}
-              />
-              <div className="mt-1.5">
-                <Badge variant="outline" className={`text-[9px] px-1 py-0 leading-4 ${tipoColors[form.tipo]}`}>
-                  {tipoLabels[form.tipo]}
-                </Badge>
-              </div>
-            </div>
+          <div className="text-sm text-muted-foreground py-2">
+            <p><strong>{existing?.nome}</strong> é uma categoria-tronco oficial do DRE e não pode ser editada, renomeada ou excluída.</p>
+            <p className="mt-2">Você pode criar subcategorias dentro dela normalmente.</p>
           </div>
-          <DialogFooter className="sm:justify-between gap-2">
-            <DREPreviewPopover
-              simNome={form.nome}
-              simTipo={effectiveTipo}
-              simParentId={form.categoria_pai_id}
-              parentName={selectedParent?.nome}
-            />
-            <div className="flex gap-2">
-              <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-              <Button onClick={() => saveMutation.mutate()} disabled={!form.nome.trim() || saveMutation.isPending}>
-                {saveMutation.isPending ? "Salvando..." : "Salvar"}
-              </Button>
-            </div>
+          <DialogFooter>
+            <Button onClick={() => onOpenChange(false)}>Entendi</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+    );
+  }
 
-      <NewParentCategoryModal
-        open={parentModalOpen}
-        onOpenChange={setParentModalOpen}
-        defaultTipo={defaultTipo as TipoFinanceiro}
-        onCreated={(id) => setForm((f) => ({ ...f, categoria_pai_id: id }))}
-      />
-    </>
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>{editingId ? "Editar Categoria" : "Nova Categoria"}</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4 py-2">
+          <div>
+            <ManagedSelectInput
+              label="Tronco / Subcategoria pai"
+              value={form.categoria_pai_id || ""}
+              onValueChange={(v) => setForm({ ...form, categoria_pai_id: v || null })}
+              placeholder="Selecione um tronco do DRE"
+              options={parentManagedOptions}
+            />
+            <p className="mt-1.5 text-[11px] text-muted-foreground">
+              Toda nova categoria deve nascer dentro de um tronco oficial do DRE. Os troncos (🔒) não podem ser editados.
+            </p>
+          </div>
+          <div>
+            <label className="text-sm font-medium text-foreground mb-1.5 block">
+              Nome {isLockedNome && <span className="text-[10px] text-muted-foreground">(travado pelo Quadro Societário)</span>}
+            </label>
+            <Input
+              value={form.nome}
+              onChange={(e) => setForm({ ...form, nome: e.target.value })}
+              placeholder="Ex: Marketing Digital"
+              maxLength={60}
+              autoFocus={!isLockedNome}
+              disabled={isLockedNome}
+            />
+          </div>
+          {form.categoria_pai_id && (
+            <div className="text-xs text-muted-foreground flex items-center gap-2">
+              <span>Tipo herdado:</span>
+              <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${tipoColors[effectiveTipo]}`}>
+                {tipoLabels[effectiveTipo]}
+              </Badge>
+            </div>
+          )}
+        </div>
+        <DialogFooter className="sm:justify-between gap-2">
+          <DREPreviewPopover
+            simNome={form.nome}
+            simTipo={effectiveTipo}
+            simParentId={form.categoria_pai_id}
+            parentName={selectedParent?.nome}
+          />
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
+            <Button
+              onClick={() => saveMutation.mutate()}
+              disabled={!form.nome.trim() || !form.categoria_pai_id || saveMutation.isPending || isLockedNome}
+            >
+              {saveMutation.isPending ? "Salvando..." : "Salvar"}
+            </Button>
+          </div>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

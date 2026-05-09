@@ -45,6 +45,8 @@ interface CatRow {
   ordem: number;
   ativo: boolean;
   dre_group: string | null;
+  tronco_slug: string | null;
+  is_tronco_sistema: boolean;
 }
 
 interface CatNode extends CatRow {
@@ -319,127 +321,152 @@ export function useDRE(filters: DREFilters) {
       };
     }
 
-    // Compute total revenue (sum of all root nodes with tipo=receita) – current and previous
-    const revenueRoots = tree.filter(n => n.tipo === "receita");
-    const totalRevenue = revenueRoots.reduce((s, n) => s + sumNode(n, txByCat), 0);
-    const totalRevenuePrev = revenueRoots.reduce((s, n) => s + sumNode(n, prevTxByCat), 0);
+    // Compute total revenue from tronco "receita_operacional"
+    const troncoBy = (slug: string) => tree.find(n => n.tronco_slug === slug);
+    const tReceita = troncoBy("receita_operacional");
+    const tDeducoes = troncoBy("deducoes_receita");
+    const tCustos = troncoBy("custos_diretos");
+    const tDespOp = troncoBy("despesas_operacionais");
+    const tDespCom = troncoBy("despesas_comerciais");
+    const tResFin = troncoBy("resultado_financeiro");
+    const tImpostos = troncoBy("impostos");
+    const tDistribuicao = troncoBy("distribuicao_lucros");
 
-    // Build lines directly from tree – same order as plano de contas
-    const lines: DRELine[] = [];
-    const totals = {
-      receita: 0, deducao: 0, custo: 0, despesa: 0,
-      receita_fin: 0, despesa_fin: 0, imposto: 0, distribuicao: 0,
-    };
-    const totalsPrev = {
-      receita: 0, deducao: 0, custo: 0, despesa: 0,
-      receita_fin: 0, despesa_fin: 0, imposto: 0, distribuicao: 0,
-    };
+    const sumOf = (n: CatNode | undefined, m: Map<string, number>) => n ? sumNode(n, m) : 0;
 
-    const accumulate = (root: CatNode, line: DRELine, prev: number) => {
-      const map: Record<string, keyof typeof totals> = {
-        receita: "receita", deducao: "deducao", custo: "custo", despesa: "despesa",
-        receita_financeira: "receita_fin", despesa_financeira: "despesa_fin", imposto: "imposto",
-        distribuicao_lucros: "distribuicao",
+    // Resultado Financeiro: signed sum (receita_financeira+, despesa_financeira-)
+    const sumResultadoFinanceiro = (node: CatNode | undefined, m: Map<string, number>): number => {
+      if (!node) return 0;
+      let total = 0;
+      const visit = (n: CatNode) => {
+        const own = m.get(n.id) || 0;
+        const sign = n.tipo === "despesa_financeira" ? -1 : 1;
+        total += sign * own;
+        n.children.forEach(visit);
       };
-      const key = map[root.tipo as string];
-      if (key) {
-        totals[key] += line.amount;
-        totalsPrev[key] += prev;
-      }
+      visit(node);
+      return total;
     };
 
-    tree.forEach((root, idx) => {
-      const line = buildNodeLine(root, 0, "", idx, totalRevenue);
-      const prevAmount = sumNode(root, prevTxByCat);
-      lines.push(line);
-      accumulate(root, line, prevAmount);
-    });
+    const totReceita = sumOf(tReceita, txByCat);
+    const totDeducoes = sumOf(tDeducoes, txByCat);
+    const totCustos = sumOf(tCustos, txByCat);
+    const totDespOp = sumOf(tDespOp, txByCat);
+    const totDespCom = sumOf(tDespCom, txByCat);
+    const totResFin = sumResultadoFinanceiro(tResFin, txByCat);
+    const totImpostos = sumOf(tImpostos, txByCat);
+    const totDistribuicao = sumOf(tDistribuicao, txByCat);
 
-    // DRE completo baseado nos tipos – current
-    const receitaLiquida = totals.receita - totals.deducao;
-    const lucroBruto = receitaLiquida - totals.custo;
-    const resultadoOperacional = lucroBruto - totals.despesa;
-    const resultadoFinanceiro = totals.receita_fin - totals.despesa_fin;
-    const resultadoAntesImpostos = resultadoOperacional + resultadoFinanceiro;
-    const lucroLiquido = resultadoAntesImpostos - totals.imposto;
-    const lucroRetido = lucroLiquido - totals.distribuicao;
+    const totReceitaPrev = sumOf(tReceita, prevTxByCat);
+    const totDeducoesPrev = sumOf(tDeducoes, prevTxByCat);
+    const totCustosPrev = sumOf(tCustos, prevTxByCat);
+    const totDespOpPrev = sumOf(tDespOp, prevTxByCat);
+    const totDespComPrev = sumOf(tDespCom, prevTxByCat);
+    const totResFinPrev = sumResultadoFinanceiro(tResFin, prevTxByCat);
+    const totImpostosPrev = sumOf(tImpostos, prevTxByCat);
+    const totDistribuicaoPrev = sumOf(tDistribuicao, prevTxByCat);
 
-    // DRE – previous period
-    const receitaLiquidaPrev = totalsPrev.receita - totalsPrev.deducao;
-    const lucroBrutoPrev = receitaLiquidaPrev - totalsPrev.custo;
-    const resultadoOperacionalPrev = lucroBrutoPrev - totalsPrev.despesa;
-    const resultadoFinanceiroPrev = totalsPrev.receita_fin - totalsPrev.despesa_fin;
-    const resultadoAntesImpostosPrev = resultadoOperacionalPrev + resultadoFinanceiroPrev;
-    const lucroLiquidoPrev = resultadoAntesImpostosPrev - totalsPrev.imposto;
-    const lucroRetidoPrev = lucroLiquidoPrev - totalsPrev.distribuicao;
+    const receitaLiquida = totReceita - totDeducoes;
+    const lucroBruto = receitaLiquida - totCustos;
+    const resultadoOperacional = lucroBruto - totDespOp - totDespCom;
+    const ebitda = resultadoOperacional;
+    const resultadoAntesImpostos = resultadoOperacional + totResFin;
+    const lucroLiquido = resultadoAntesImpostos - totImpostos;
+    const lucroRetido = lucroLiquido - totDistribuicao;
 
-    const totalReceitaAmount = totals.receita;
-
-    // Continue numbering from tree length
-    let nextNum = lines.length + 1;
-
-    const calcVar = (curr: number, prev: number): number | null => {
-      if (prev === 0) return null;
-      return ((curr - prev) / Math.abs(prev)) * 100;
-    };
-
-    const makeIndicator = (id: string, label: string, amount: number, prevAmount: number): DRELine => ({
-      id, label, depth: 0, amount,
-      percentage: totalReceitaAmount > 0 ? (amount / totalReceitaAmount) * 100 : 0,
-      previousAmount: prevAmount,
-      variation: calcVar(amount, prevAmount),
-      isGroup: false, isSummary: false,
-      number: `${nextNum++}.`,
-    });
-
-    const margemBrutaPct = totalReceitaAmount > 0 ? (lucroBruto / totalReceitaAmount) * 100 : 0;
-    const margemBrutaPctPrev = totalsPrev.receita > 0 ? (lucroBrutoPrev / totalsPrev.receita) * 100 : 0;
-    const margemOperacionalPct = totalReceitaAmount > 0 ? (resultadoOperacional / totalReceitaAmount) * 100 : 0;
-    const margemOperacionalPctPrev = totalsPrev.receita > 0 ? (resultadoOperacionalPrev / totalsPrev.receita) * 100 : 0;
-    const ebitda = resultadoOperacional; // simplificado (sem D&A separado)
+    const receitaLiquidaPrev = totReceitaPrev - totDeducoesPrev;
+    const lucroBrutoPrev = receitaLiquidaPrev - totCustosPrev;
+    const resultadoOperacionalPrev = lucroBrutoPrev - totDespOpPrev - totDespComPrev;
     const ebitdaPrev = resultadoOperacionalPrev;
-    const margemEbitdaPct = totalReceitaAmount > 0 ? (ebitda / totalReceitaAmount) * 100 : 0;
-    const margemEbitdaPctPrev = totalsPrev.receita > 0 ? (ebitdaPrev / totalsPrev.receita) * 100 : 0;
-    const margemLiquidaPct = totalReceitaAmount > 0 ? (lucroLiquido / totalReceitaAmount) * 100 : 0;
-    const margemLiquidaPctPrev = totalsPrev.receita > 0 ? (lucroLiquidoPrev / totalsPrev.receita) * 100 : 0;
+    const resultadoAntesImpostosPrev = resultadoOperacionalPrev + totResFinPrev;
+    const lucroLiquidoPrev = resultadoAntesImpostosPrev - totImpostosPrev;
+    const lucroRetidoPrev = lucroLiquidoPrev - totDistribuicaoPrev;
+
+    const calcVar = (curr: number, prev: number): number | null =>
+      prev === 0 ? null : ((curr - prev) / Math.abs(prev)) * 100;
+
+    let counter = 1;
+    const num = () => `${counter++}.`;
+
+    const buildTroncoLine = (
+      tronco: CatNode | undefined,
+      labelOverride: string,
+      depth = 0,
+      signedSum = false,
+    ): DRELine => {
+      const numLabel = num();
+      if (!tronco) {
+        return {
+          id: `placeholder-${labelOverride}`, label: labelOverride, depth, amount: 0, percentage: 0,
+          previousAmount: 0, variation: null, isGroup: false, isSummary: false, number: numLabel,
+        };
+      }
+      const amount = signedSum ? sumResultadoFinanceiro(tronco, txByCat) : sumNode(tronco, txByCat);
+      const prevAmount = signedSum ? sumResultadoFinanceiro(tronco, prevTxByCat) : sumNode(tronco, prevTxByCat);
+      const childLines = tronco.children.map((c, i) => buildNodeLine(c, depth + 1, numLabel, i, totReceita));
+      return {
+        id: tronco.id, label: labelOverride, depth, amount,
+        percentage: totReceita > 0 ? (amount / totReceita) * 100 : 0,
+        previousAmount: prevAmount, variation: calcVar(amount, prevAmount),
+        isGroup: childLines.length > 0, isSummary: false,
+        dreGroup: tronco.tipo, tipo: tronco.tipo,
+        children: childLines.length > 0 ? childLines : undefined,
+        categoryId: tronco.id, number: numLabel,
+      };
+    };
+
+    const indicator = (id: string, label: string, amount: number, prevAmount: number, isPercentual = false): DRELine => ({
+      id, label, depth: 0, amount,
+      percentage: isPercentual ? amount : (totReceita > 0 ? (amount / totReceita) * 100 : 0),
+      previousAmount: prevAmount, variation: calcVar(amount, prevAmount),
+      isGroup: false, isSummary: true, isPercentual, number: num(),
+    });
+
+    const margemBrutaPct = totReceita > 0 ? (lucroBruto / totReceita) * 100 : 0;
+    const margemBrutaPctPrev = totReceitaPrev > 0 ? (lucroBrutoPrev / totReceitaPrev) * 100 : 0;
+    const margemOpPct = totReceita > 0 ? (resultadoOperacional / totReceita) * 100 : 0;
+    const margemOpPctPrev = totReceitaPrev > 0 ? (resultadoOperacionalPrev / totReceitaPrev) * 100 : 0;
+    const margemEbitdaPct = totReceita > 0 ? (ebitda / totReceita) * 100 : 0;
+    const margemEbitdaPctPrev = totReceitaPrev > 0 ? (ebitdaPrev / totReceitaPrev) * 100 : 0;
+    const margemLiquidaPct = totReceita > 0 ? (lucroLiquido / totReceita) * 100 : 0;
+    const margemLiquidaPctPrev = totReceitaPrev > 0 ? (lucroLiquidoPrev / totReceitaPrev) * 100 : 0;
 
     const isFiltered = !!(filters.businessUnitId && filters.businessUnitId !== "all");
 
-    const indicators: DRELine[] = [
-      makeIndicator("receita-liquida", "(=) Receita Líquida", receitaLiquida, receitaLiquidaPrev),
-      makeIndicator("lucro-bruto", "(=) Lucro Bruto", lucroBruto, lucroBrutoPrev),
-      { ...makeIndicator("margem-bruta", "(%) Margem Bruta", margemBrutaPct, margemBrutaPctPrev), isPercentual: true },
-      makeIndicator("resultado-operacional", "(=) Resultado Operacional", resultadoOperacional, resultadoOperacionalPrev),
-      { ...makeIndicator("margem-operacional", "(%) Margem Operacional", margemOperacionalPct, margemOperacionalPctPrev), isPercentual: true },
-      makeIndicator("ebitda", "(=) EBITDA", ebitda, ebitdaPrev),
-      { ...makeIndicator("margem-ebitda", "(%) Margem EBITDA", margemEbitdaPct, margemEbitdaPctPrev), isPercentual: true },
-      makeIndicator("resultado-financeiro", "(+/-) Resultado Financeiro", resultadoFinanceiro, resultadoFinanceiroPrev),
-      makeIndicator("resultado-antes-impostos", "(=) Resultado antes dos Impostos", resultadoAntesImpostos, resultadoAntesImpostosPrev),
-      makeIndicator("impostos", "(-) Impostos", totals.imposto, totalsPrev.imposto),
-      makeIndicator("lucro-liquido", "(=) Lucro Líquido", lucroLiquido, lucroLiquidoPrev),
-      { ...makeIndicator("margem-liquida", "(%) Margem Líquida", margemLiquidaPct, margemLiquidaPctPrev), isPercentual: true },
-      // Distribuição de Lucros e Lucro Retido só aparecem no consolidado
+    const ordered: DRELine[] = [
+      buildTroncoLine(tReceita, "Receita Operacional"),
+      buildTroncoLine(tDeducoes, "(-) Deduções da Receita"),
+      indicator("receita-liquida", "(=) Receita Líquida", receitaLiquida, receitaLiquidaPrev),
+      buildTroncoLine(tCustos, "(-) Custos Diretos"),
+      indicator("lucro-bruto", "(=) Lucro Bruto", lucroBruto, lucroBrutoPrev),
+      indicator("margem-bruta", "(%) Margem Bruta", margemBrutaPct, margemBrutaPctPrev, true),
+      buildTroncoLine(tDespOp, "(-) Despesas Operacionais"),
+      buildTroncoLine(tDespCom, "(-) Despesas Comerciais"),
+      indicator("resultado-operacional", "(=) Resultado Operacional", resultadoOperacional, resultadoOperacionalPrev),
+      indicator("margem-operacional", "(%) Margem Operacional", margemOpPct, margemOpPctPrev, true),
+      indicator("ebitda", "(=) EBITDA", ebitda, ebitdaPrev),
+      indicator("margem-ebitda", "(%) Margem EBITDA", margemEbitdaPct, margemEbitdaPctPrev, true),
+      buildTroncoLine(tResFin, "(+/-) Resultado Financeiro", 0, true),
+      indicator("resultado-antes-impostos", "(=) Resultado antes dos Impostos", resultadoAntesImpostos, resultadoAntesImpostosPrev),
+      buildTroncoLine(tImpostos, "(-) Impostos"),
+      indicator("lucro-liquido", "(=) Lucro Líquido", lucroLiquido, lucroLiquidoPrev),
+      indicator("margem-liquida", "(%) Margem Líquida", margemLiquidaPct, margemLiquidaPctPrev, true),
       ...(isFiltered ? [] : [
-        makeIndicator("distribuicao-lucros", "(-) Distribuição de Lucros", totals.distribuicao, totalsPrev.distribuicao),
-        makeIndicator("lucro-retido", "(=) Lucro Retido", lucroRetido, lucroRetidoPrev),
+        buildTroncoLine(tDistribuicao, "(-) Distribuição de Lucros"),
+        indicator("lucro-retido", "(=) Lucro Retido", lucroRetido, lucroRetidoPrev),
       ]),
     ];
 
-    // Quando filtrado, oculta também a categoria-tronco "Distribuição de Lucros" do plano de contas
-    const visibleLines = isFiltered
-      ? lines.filter((l) => l.tipo !== "distribuicao_lucros")
-      : lines;
-
     return {
-      lines: [...visibleLines, ...indicators],
-      totalRevenue: totalReceitaAmount,
-      totalExpense: totals.despesa + totals.custo + totals.deducao + totals.imposto + totals.despesa_fin,
+      lines: ordered,
+      totalRevenue: totReceita,
+      totalExpense: totDespOp + totDespCom + totCustos + totDeducoes + totImpostos,
       grossProfit: lucroBruto,
-      grossMargin: totalReceitaAmount > 0 ? (lucroBruto / totalReceitaAmount) * 100 : 0,
-      ebitda: resultadoOperacional,
+      grossMargin: margemBrutaPct,
+      ebitda,
       operatingResult: resultadoOperacional,
       netIncome: lucroLiquido,
-      profitMargin: totalReceitaAmount > 0 ? (lucroLiquido / totalReceitaAmount) * 100 : 0,
+      profitMargin: margemLiquidaPct,
     };
   }, [transactions, prevTransactions, categorias, regrasVis, filters.businessUnitId]);
 
