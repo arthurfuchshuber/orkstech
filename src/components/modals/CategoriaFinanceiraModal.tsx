@@ -21,11 +21,13 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Plus, BarChart3, Eye } from "lucide-react";
 import { ManagedSelectInput } from "@/components/inputs/ManagedSelectInput";
 
-type TipoFinanceiro = "receita" | "despesa" | "custo" | "deducao" | "imposto" | "receita_financeira" | "despesa_financeira" | "distribuicao_lucros" | "ajuste";
+type TipoFinanceiro = "receita" | "despesa" | "despesa_comercial" | "custo" | "deducao" | "imposto" | "receita_financeira" | "despesa_financeira" | "resultado_financeiro" | "distribuicao_lucros" | "ajuste";
 
 const tipoLabels: Record<TipoFinanceiro, string> = {
   receita: "Receita", deducao: "Dedução", custo: "Custo", despesa: "Despesa",
+  despesa_comercial: "Despesa Comercial",
   receita_financeira: "Rec. Financeira", despesa_financeira: "Desp. Financeira",
+  resultado_financeiro: "Resultado Financeiro",
   imposto: "Imposto", distribuicao_lucros: "Distribuição de Lucros", ajuste: "Ajuste",
 };
 
@@ -34,8 +36,10 @@ const tipoColors: Record<TipoFinanceiro, string> = {
   deducao: "bg-orange-500/10 text-orange-400 border-orange-500/20",
   custo: "bg-amber-500/10 text-amber-400 border-amber-500/20",
   despesa: "bg-red-500/10 text-red-400 border-red-500/20",
+  despesa_comercial: "bg-rose-500/10 text-rose-400 border-rose-500/20",
   receita_financeira: "bg-teal-500/10 text-teal-400 border-teal-500/20",
   despesa_financeira: "bg-pink-500/10 text-pink-400 border-pink-500/20",
+  resultado_financeiro: "bg-cyan-500/10 text-cyan-400 border-cyan-500/20",
   imposto: "bg-purple-500/10 text-purple-400 border-purple-500/20",
   distribuicao_lucros: "bg-indigo-500/10 text-indigo-400 border-indigo-500/20",
   ajuste: "bg-blue-500/10 text-blue-400 border-blue-500/20",
