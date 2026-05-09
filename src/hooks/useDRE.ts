@@ -45,6 +45,8 @@ interface CatRow {
   ordem: number;
   ativo: boolean;
   dre_group: string | null;
+  tronco_slug: string | null;
+  is_tronco_sistema: boolean;
 }
 
 interface CatNode extends CatRow {
