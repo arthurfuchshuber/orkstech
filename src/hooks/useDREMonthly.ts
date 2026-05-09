@@ -188,78 +188,110 @@ export function useDREMonthly(filters: DREMonthlyFilters) {
       };
     }
 
-    const lines: DREMonthlyLine[] = [];
-    const totals = {
-      receita: new Array(12).fill(0), deducao: new Array(12).fill(0),
-      custo: new Array(12).fill(0), despesa: new Array(12).fill(0),
-      receita_fin: new Array(12).fill(0), despesa_fin: new Array(12).fill(0),
-      imposto: new Array(12).fill(0), distribuicao: new Array(12).fill(0),
-    };
-    const map: Record<string, keyof typeof totals> = {
-      receita: "receita", deducao: "deducao", custo: "custo", despesa: "despesa",
-      receita_financeira: "receita_fin", despesa_financeira: "despesa_fin", imposto: "imposto",
-      distribuicao_lucros: "distribuicao",
+    const troncoBy = (slug: string) => tree.find(n => n.tronco_slug === slug);
+    const tReceita = troncoBy("receita_operacional");
+    const tDeducoes = troncoBy("deducoes_receita");
+    const tCustos = troncoBy("custos_diretos");
+    const tDespOp = troncoBy("despesas_operacionais");
+    const tDespCom = troncoBy("despesas_comerciais");
+    const tResFin = troncoBy("resultado_financeiro");
+    const tImpostos = troncoBy("impostos");
+    const tDistribuicao = troncoBy("distribuicao_lucros");
+
+    const sumMonthlyOf = (n: CatNode | undefined) => n ? sumMonthly(n) : new Array(12).fill(0);
+    const sumMonthlyResFin = (node: CatNode | undefined): number[] => {
+      const arr = new Array(12).fill(0);
+      if (!node) return arr;
+      const visit = (n: CatNode) => {
+        const sign = n.tipo === "despesa_financeira" ? -1 : 1;
+        const m = monthlyByCat.get(n.id);
+        if (m) for (let i = 0; i < 12; i++) arr[i] += sign * m[i];
+        n.children.forEach(visit);
+      };
+      visit(node);
+      return arr;
     };
 
-    tree.forEach((root, idx) => {
-      const line = buildLine(root, 0, "", idx);
-      const key = map[root.tipo];
-      if (key) for (let i = 0; i < 12; i++) totals[key][i] += line.monthly[i];
-      lines.push(line);
-    });
+    const mReceita = sumMonthlyOf(tReceita);
+    const mDeducoes = sumMonthlyOf(tDeducoes);
+    const mCustos = sumMonthlyOf(tCustos);
+    const mDespOp = sumMonthlyOf(tDespOp);
+    const mDespCom = sumMonthlyOf(tDespCom);
+    const mResFin = sumMonthlyResFin(tResFin);
+    const mImpostos = sumMonthlyOf(tImpostos);
+    const mDistribuicao = sumMonthlyOf(tDistribuicao);
 
     const sub = (a: number[], b: number[]) => a.map((v, i) => v - b[i]);
+    const subMany = (a: number[], ...rest: number[][]) =>
+      a.map((v, i) => rest.reduce((acc, arr) => acc - arr[i], v));
     const add = (a: number[], b: number[]) => a.map((v, i) => v + b[i]);
 
-    const receitaLiquida = sub(totals.receita, totals.deducao);
-    const lucroBruto = sub(receitaLiquida, totals.custo);
-    const resultadoOperacional = sub(lucroBruto, totals.despesa);
-    const resultadoFinanceiro = sub(totals.receita_fin, totals.despesa_fin);
-    const resultadoAntesImpostos = add(resultadoOperacional, resultadoFinanceiro);
-    const lucroLiquido = sub(resultadoAntesImpostos, totals.imposto);
-    const lucroRetido = sub(lucroLiquido, totals.distribuicao);
+    const receitaLiquida = sub(mReceita, mDeducoes);
+    const lucroBruto = sub(receitaLiquida, mCustos);
+    const resultadoOperacional = subMany(lucroBruto, mDespOp, mDespCom);
+    const ebitda = resultadoOperacional;
+    const resultadoAntesImpostos = add(resultadoOperacional, mResFin);
+    const lucroLiquido = sub(resultadoAntesImpostos, mImpostos);
+    const lucroRetido = sub(lucroLiquido, mDistribuicao);
 
-    let nextNum = lines.length + 1;
+    let counter = 1;
+    const num = () => `${counter++}.`;
     const sumArr = (a: number[]) => a.reduce((x, y) => x + y, 0);
-    const indicator = (id: string, label: string, monthly: number[], isSummary = true): DREMonthlyLine => ({
-      id, label, depth: 0, isGroup: false, isSummary,
-      number: `${nextNum++}.`, monthly, total: sumArr(monthly),
+
+    const tronco = (
+      node: CatNode | undefined, label: string, depth = 0, signedSum = false,
+    ): DREMonthlyLine => {
+      const numLabel = num();
+      if (!node) return { id: `placeholder-${label}`, label, depth, isGroup: false, isSummary: false, number: numLabel, monthly: new Array(12).fill(0), total: 0 };
+      const monthly = signedSum ? sumMonthlyResFin(node) : sumMonthly(node);
+      const total = monthly.reduce((a, b) => a + b, 0);
+      const children = node.children.map((c, i) => buildLine(c, depth + 1, numLabel, i));
+      return {
+        id: node.id, label, depth, isGroup: children.length > 0, isSummary: false,
+        tipo: node.tipo, number: numLabel, monthly, total,
+        children: children.length > 0 ? children : undefined, categoryId: node.id,
+      };
+    };
+    const indicator = (id: string, label: string, monthly: number[]): DREMonthlyLine => ({
+      id, label, depth: 0, isGroup: false, isSummary: true,
+      number: num(), monthly, total: sumArr(monthly),
     });
-    const pctLine = (id: string, label: string, num: number[], den: number[]): DREMonthlyLine => ({
+    const pctLine = (id: string, label: string, numArr: number[], den: number[]): DREMonthlyLine => ({
       id, label, depth: 0, isGroup: false, isSummary: false, isPercentual: true,
-      number: `${nextNum++}.`,
-      monthly: num.map((v, i) => den[i] > 0 ? (v / den[i]) * 100 : 0),
-      total: sumArr(den) > 0 ? (sumArr(num) / sumArr(den)) * 100 : 0,
+      number: num(),
+      monthly: numArr.map((v, i) => den[i] > 0 ? (v / den[i]) * 100 : 0),
+      total: sumArr(den) > 0 ? (sumArr(numArr) / sumArr(den)) * 100 : 0,
     });
 
     const isFiltered = !!(filters.businessUnitId && filters.businessUnitId !== "all");
 
-    const indicators: DREMonthlyLine[] = [
+    const lines: DREMonthlyLine[] = [
+      tronco(tReceita, "Receita Operacional"),
+      tronco(tDeducoes, "(-) Deduções da Receita"),
       indicator("receita-liquida", "(=) Receita Líquida", receitaLiquida),
+      tronco(tCustos, "(-) Custos Diretos"),
       indicator("lucro-bruto", "(=) Lucro Bruto", lucroBruto),
-      pctLine("margem-bruta", "(%) Margem Bruta", lucroBruto, totals.receita),
+      pctLine("margem-bruta", "(%) Margem Bruta", lucroBruto, mReceita),
+      tronco(tDespOp, "(-) Despesas Operacionais"),
+      tronco(tDespCom, "(-) Despesas Comerciais"),
       indicator("resultado-operacional", "(=) Resultado Operacional", resultadoOperacional),
-      pctLine("margem-operacional", "(%) Margem Operacional", resultadoOperacional, totals.receita),
-      indicator("ebitda", "(=) EBITDA", resultadoOperacional),
-      pctLine("margem-ebitda", "(%) Margem EBITDA", resultadoOperacional, totals.receita),
-      indicator("resultado-financeiro", "(+/-) Resultado Financeiro", resultadoFinanceiro),
+      pctLine("margem-operacional", "(%) Margem Operacional", resultadoOperacional, mReceita),
+      indicator("ebitda", "(=) EBITDA", ebitda),
+      pctLine("margem-ebitda", "(%) Margem EBITDA", ebitda, mReceita),
+      tronco(tResFin, "(+/-) Resultado Financeiro", 0, true),
       indicator("resultado-antes-impostos", "(=) Resultado antes dos Impostos", resultadoAntesImpostos),
-      indicator("impostos", "(-) Impostos", totals.imposto),
+      tronco(tImpostos, "(-) Impostos"),
       indicator("lucro-liquido", "(=) Lucro Líquido", lucroLiquido),
-      pctLine("margem-liquida", "(%) Margem Líquida", lucroLiquido, totals.receita),
+      pctLine("margem-liquida", "(%) Margem Líquida", lucroLiquido, mReceita),
       ...(isFiltered ? [] : [
-        indicator("distribuicao-lucros", "(-) Distribuição de Lucros", totals.distribuicao),
+        tronco(tDistribuicao, "(-) Distribuição de Lucros"),
         indicator("lucro-retido", "(=) Lucro Retido", lucroRetido),
       ]),
     ];
 
-    const visibleLines = isFiltered
-      ? lines.filter((l) => l.tipo !== "distribuicao_lucros")
-      : lines;
-
     return {
-      lines: [...visibleLines, ...indicators],
-      receitaTotalMonthly: totals.receita,
+      lines,
+      receitaTotalMonthly: mReceita,
     };
   }, [categorias, transactions, filters.businessUnitId]);
 
