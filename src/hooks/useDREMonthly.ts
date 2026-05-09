@@ -35,6 +35,7 @@ interface CatRow {
   categoria_pai_id: string | null;
   ordem: number;
   ativo: boolean;
+  tronco_slug: string | null;
 }
 interface CatNode extends CatRow {
   children: CatNode[];
