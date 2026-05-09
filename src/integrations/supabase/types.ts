@@ -1029,10 +1029,13 @@ export type Database = {
           dre_group: Database["public"]["Enums"]["dre_group"] | null
           empresa_id: string | null
           id: string
+          is_tronco_sistema: boolean
           nome: string
+          nome_locked: boolean
           ordem: number
           origem_socio_id: string | null
           tipo: Database["public"]["Enums"]["tipo_financeiro"]
+          tronco_slug: string | null
           updated_at: string
           user_id: string
         }
@@ -1043,10 +1046,13 @@ export type Database = {
           dre_group?: Database["public"]["Enums"]["dre_group"] | null
           empresa_id?: string | null
           id?: string
+          is_tronco_sistema?: boolean
           nome: string
+          nome_locked?: boolean
           ordem?: number
           origem_socio_id?: string | null
           tipo: Database["public"]["Enums"]["tipo_financeiro"]
+          tronco_slug?: string | null
           updated_at?: string
           user_id: string
         }
@@ -1057,10 +1063,13 @@ export type Database = {
           dre_group?: Database["public"]["Enums"]["dre_group"] | null
           empresa_id?: string | null
           id?: string
+          is_tronco_sistema?: boolean
           nome?: string
+          nome_locked?: boolean
           ordem?: number
           origem_socio_id?: string | null
           tipo?: Database["public"]["Enums"]["tipo_financeiro"]
+          tronco_slug?: string | null
           updated_at?: string
           user_id?: string
         }
@@ -4629,6 +4638,10 @@ export type Database = {
         Args: { p_user_id: string }
         Returns: undefined
       }
+      seed_dre_troncos: {
+        Args: { _empresa_id: string; _user_id: string }
+        Returns: undefined
+      }
       seed_rh_menus: { Args: { p_user_id: string }; Returns: undefined }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
@@ -4649,6 +4662,10 @@ export type Database = {
           sample_descriptions: string[]
           similar_count: number
         }[]
+      }
+      sync_socios_to_distribuicao: {
+        Args: { _empresa_id: string }
+        Returns: undefined
       }
       title_case_ptbr: { Args: { input: string }; Returns: string }
       unaccent: { Args: { "": string }; Returns: string }
@@ -4697,6 +4714,8 @@ export type Database = {
         | "receita_financeira"
         | "despesa_financeira"
         | "distribuicao_lucros"
+        | "despesa_comercial"
+        | "resultado_financeiro"
       tipo_forma_pagamento:
         | "pix"
         | "boleto"
@@ -4883,6 +4902,8 @@ export const Constants = {
         "receita_financeira",
         "despesa_financeira",
         "distribuicao_lucros",
+        "despesa_comercial",
+        "resultado_financeiro",
       ],
       tipo_forma_pagamento: [
         "pix",
