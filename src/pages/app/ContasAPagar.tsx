@@ -1621,7 +1621,7 @@ export default function ContasAPagar() {
                             {cfg.label}
                           </Badge>
                         </TableCell>
-                        <TableCell colSpan={4}>
+                        <TableCell colSpan={6}>
                           <div className="flex items-center gap-3 text-xs text-muted-foreground">
                             {paidCount > 0 && <span><Check className="w-3 h-3 inline text-success" /> {paidCount} pagas</span>}
                             {pendingCount > 0 && <span><Clock className="w-3 h-3 inline text-warning" /> {pendingCount} pendentes</span>}
