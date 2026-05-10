@@ -1462,7 +1462,7 @@ export default function ContasAReceber() {
                             {cfg.label}
                           </Badge>
                         </TableCell>
-                        <TableCell colSpan={3}>
+                        <TableCell colSpan={5}>
                           <div className="flex items-center gap-3 text-xs text-muted-foreground">
                             {paidCount > 0 && <span><Check className="w-3 h-3 inline text-success" /> {paidCount} recebidas</span>}
                             {pendingCount > 0 && <span><Clock className="w-3 h-3 inline text-warning" /> {pendingCount} pendentes</span>}
@@ -2018,6 +2018,12 @@ export default function ContasAReceber() {
         onOpenChange={setCbModalOpen}
         editingId={cbEditingId}
         onSaved={(id) => updateField("bank_account_id", id)}
+      />
+      <BusinessUnitModal
+        open={buModalOpen}
+        onOpenChange={setBuModalOpen}
+        editingId={buEditingId}
+        onSaved={(id) => updateField("business_unit_id" as any, id)}
       />
       <FormaPagamentoModal
         open={fpModalOpen}
