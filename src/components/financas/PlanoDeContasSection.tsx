@@ -21,7 +21,7 @@ import {
 import { DragDropContext, Droppable, Draggable, type DropResult } from "@hello-pangea/dnd";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
-type TipoFinanceiro = "receita" | "despesa" | "custo" | "deducao" | "imposto" | "receita_financeira" | "despesa_financeira" | "distribuicao_lucros" | "ajuste";
+type TipoFinanceiro = "receita" | "despesa" | "despesa_comercial" | "custo" | "deducao" | "imposto" | "receita_financeira" | "despesa_financeira" | "resultado_financeiro" | "distribuicao_lucros" | "ajuste";
 
 interface Categoria {
   id: string;
@@ -36,7 +36,9 @@ interface Categoria {
 
 const tipoLabels: Record<TipoFinanceiro, string> = {
   receita: "Receita", deducao: "Dedução", custo: "Custo", despesa: "Despesa",
+  despesa_comercial: "Desp. Comercial",
   receita_financeira: "Rec. Financeira", despesa_financeira: "Desp. Financeira",
+  resultado_financeiro: "Resultado Financeiro",
   imposto: "Imposto", distribuicao_lucros: "Distribuição de Lucros", ajuste: "Ajuste",
 };
 
@@ -45,8 +47,10 @@ const tipoDescriptions: Record<TipoFinanceiro, string> = {
   deducao: "Valores descontados da receita bruta, como impostos sobre vendas (ISS, ICMS) e devoluções.",
   custo: "Gastos diretamente ligados à produção ou entrega do serviço/produto (ex: matéria-prima, mão de obra direta).",
   despesa: "Gastos operacionais para manter a empresa funcionando (ex: aluguel, salários administrativos, marketing).",
+  despesa_comercial: "Gastos comerciais e de vendas (ex: comissões, marketing de performance, materiais promocionais).",
   receita_financeira: "Ganhos financeiros como rendimentos de aplicações, juros recebidos e descontos obtidos.",
   despesa_financeira: "Gastos financeiros como juros de empréstimos, tarifas bancárias e multas.",
+  resultado_financeiro: "Tronco que agrupa receitas e despesas financeiras (saldo líquido).",
   imposto: "Tributos sobre o lucro da empresa, como Imposto de Renda (IRPJ) e Contribuição Social (CSLL).",
   distribuicao_lucros: "Distribuição de lucros/dividendos aos sócios. Aparece após o Lucro Líquido (não impacta EBITDA nem Lucro Líquido).",
   ajuste: "Lançamentos de correção ou reclassificação contábil que não se encaixam nas categorias acima.",
@@ -57,8 +61,10 @@ const tipoColors: Record<TipoFinanceiro, string> = {
   deducao: "bg-orange-500/10 text-orange-400 border-orange-500/20",
   custo: "bg-amber-500/10 text-amber-400 border-amber-500/20",
   despesa: "bg-red-500/10 text-red-400 border-red-500/20",
+  despesa_comercial: "bg-rose-500/10 text-rose-400 border-rose-500/20",
   receita_financeira: "bg-teal-500/10 text-teal-400 border-teal-500/20",
   despesa_financeira: "bg-pink-500/10 text-pink-400 border-pink-500/20",
+  resultado_financeiro: "bg-cyan-500/10 text-cyan-400 border-cyan-500/20",
   imposto: "bg-purple-500/10 text-purple-400 border-purple-500/20",
   distribuicao_lucros: "bg-indigo-500/10 text-indigo-400 border-indigo-500/20",
   ajuste: "bg-blue-500/10 text-blue-400 border-blue-500/20",
@@ -66,7 +72,9 @@ const tipoColors: Record<TipoFinanceiro, string> = {
 
 const tipoIcons: Record<TipoFinanceiro, typeof TrendingUp> = {
   receita: TrendingUp, deducao: Minus, custo: Minus, despesa: TrendingDown,
+  despesa_comercial: TrendingDown,
   receita_financeira: TrendingUp, despesa_financeira: TrendingDown,
+  resultado_financeiro: RefreshCw,
   imposto: Minus, distribuicao_lucros: TrendingDown, ajuste: RefreshCw,
 };
 
