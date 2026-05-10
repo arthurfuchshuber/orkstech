@@ -1474,100 +1474,69 @@ export default function ContasAPagar() {
                         {!rowTipo ? (
                           <span className="text-sm text-muted-foreground/30">Selecione o tipo...</span>
                         ) : (
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <button className="flex items-center gap-1 text-sm cursor-pointer hover:text-foreground transition-colors group w-full">
-                                <span className="truncate">{catFin?.nome || <span className="text-muted-foreground/50">Selecionar</span>}</span>
-                                <ChevronDown className="w-3 h-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
-                              </button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="start" className="max-h-[260px] overflow-y-auto custom-scrollbar">
-                              {subcatOptions.map((c: any) => (
-                                <DropdownMenuItem
-                                  key={c.id}
-                                  onClick={() => {
-                                    updateMutation.mutate({ id: item.id, data: { categoria_financeira_id: c.id } });
-                                    setInlineTipoMap(prev => { const n = { ...prev }; delete n[item.id]; return n; });
-                                  }}
-                                >
-                                  {c.nome}
-                                </DropdownMenuItem>
-                              ))}
-                              {subcatOptions.length === 0 && (
-                                <DropdownMenuItem disabled className="text-muted-foreground text-xs">
-                                  Nenhuma subcategoria cadastrada
-                                </DropdownMenuItem>
-                              )}
-                              {catFin && (
-                                <DropdownMenuItem onClick={() => updateMutation.mutate({ id: item.id, data: { categoria_financeira_id: null } })} className="text-muted-foreground">
-                                  Limpar
-                                </DropdownMenuItem>
-                              )}
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem onClick={() => { setCfEditingId(null); setCfModalOpen(true); }} className="text-primary">
-                                <Plus className="w-3.5 h-3.5 mr-1.5" /> Nova subcategoria
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
+                          <InlineManagedCell
+                            value={item.categoria_financeira_id}
+                            options={subcatOptions.map((c: any) => ({ value: c.id, label: c.nome }))}
+                            onChange={(v) => {
+                              updateMutation.mutate({ id: item.id, data: { categoria_financeira_id: v } });
+                              setInlineTipoMap(prev => { const n = { ...prev }; delete n[item.id]; return n; });
+                            }}
+                            onAddModal={() => { setCfEditingId(null); setCfModalOpen(true); }}
+                            onEditModal={(id) => { setCfEditingId(id); setCfModalOpen(true); }}
+                            onDelete={catFinCrud.onDelete}
+                            placeholder="Selecionar"
+                            addLabel="Nova subcategoria"
+                            emptyHint="Nenhuma subcategoria cadastrada"
+                          />
                         )}
                       </TableCell>
                       <TableCell>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <button className="flex items-center gap-1 text-sm cursor-pointer hover:text-foreground transition-colors group w-full">
-                              <span className="truncate">{formaPgto?.nome || <span className="text-muted-foreground/50">Selecionar</span>}</span>
-                              <ChevronDown className="w-3 h-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
-                            </button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="start" className="max-h-[260px] overflow-y-auto custom-scrollbar">
-                            {paymentMethods.map((m: any) => (
-                              <DropdownMenuItem
-                                key={m.id}
-                                onClick={() => updateMutation.mutate({ id: item.id, data: { payment_method_id: m.id } })}
-                              >
-                                {m.nome}
-                              </DropdownMenuItem>
-                            ))}
-                            {formaPgto && (
-                              <DropdownMenuItem onClick={() => updateMutation.mutate({ id: item.id, data: { payment_method_id: null } })} className="text-muted-foreground">
-                                Limpar
-                              </DropdownMenuItem>
-                            )}
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem onClick={() => { setFpEditingId(null); setFpModalOpen(true); }} className="text-primary">
-                              <Plus className="w-3.5 h-3.5 mr-1.5" /> Nova forma de pagamento
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                        <InlineManagedCell
+                          value={item.cost_center_id}
+                          options={costCenters.map((c: any) => ({ value: c.id, label: c.nome }))}
+                          onChange={(v) => updateMutation.mutate({ id: item.id, data: { cost_center_id: v } })}
+                          onAddModal={() => { setCcEditingId(null); setCcModalOpen(true); }}
+                          onEditModal={(id) => { setCcEditingId(id); setCcModalOpen(true); }}
+                          onDelete={centrosCrud.onDelete}
+                          placeholder="Selecionar"
+                          addLabel="Novo centro de custo"
+                        />
                       </TableCell>
                       <TableCell>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <button className="flex items-center gap-1 text-sm cursor-pointer hover:text-foreground transition-colors group w-full">
-                              <span className="truncate">{contaBanc?.nome || <span className="text-muted-foreground/50">Selecionar</span>}</span>
-                              <ChevronDown className="w-3 h-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
-                            </button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="start" className="max-h-[260px] overflow-y-auto custom-scrollbar">
-                            {bankAccounts.map((b: any) => (
-                              <DropdownMenuItem
-                                key={b.id}
-                                onClick={() => updateMutation.mutate({ id: item.id, data: { bank_account_id: b.id } })}
-                              >
-                                {b.nome}
-                              </DropdownMenuItem>
-                            ))}
-                            {contaBanc && (
-                              <DropdownMenuItem onClick={() => updateMutation.mutate({ id: item.id, data: { bank_account_id: null } })} className="text-muted-foreground">
-                                Limpar
-                              </DropdownMenuItem>
-                            )}
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem onClick={() => { setCbEditingId(null); setCbModalOpen(true); }} className="text-primary">
-                              <Plus className="w-3.5 h-3.5 mr-1.5" /> Nova conta bancária
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                        <InlineManagedCell
+                          value={item.business_unit_id}
+                          options={businessUnits.map((u: any) => ({ value: u.id, label: u.nome }))}
+                          onChange={(v) => updateMutation.mutate({ id: item.id, data: { business_unit_id: v } })}
+                          onAddModal={() => { setBuEditingId(null); setBuModalOpen(true); }}
+                          onEditModal={(id) => { setBuEditingId(id); setBuModalOpen(true); }}
+                          onDelete={businessUnitsCrud.onDelete}
+                          placeholder="Selecionar"
+                          addLabel="Nova unidade de negócio"
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <InlineManagedCell
+                          value={item.payment_method_id}
+                          options={paymentMethods.map((m: any) => ({ value: m.id, label: m.nome }))}
+                          onChange={(v) => updateMutation.mutate({ id: item.id, data: { payment_method_id: v } })}
+                          onAddModal={() => { setFpEditingId(null); setFpModalOpen(true); }}
+                          onEditModal={(id) => { setFpEditingId(id); setFpModalOpen(true); }}
+                          onDelete={formasPagamentoCrud.onDelete}
+                          placeholder="Selecionar"
+                          addLabel="Nova forma de pagamento"
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <InlineManagedCell
+                          value={item.bank_account_id}
+                          options={bankAccounts.map((b: any) => ({ value: b.id, label: b.nome }))}
+                          onChange={(v) => updateMutation.mutate({ id: item.id, data: { bank_account_id: v } })}
+                          onAddModal={() => { setCbEditingId(null); setCbModalOpen(true); }}
+                          onEditModal={(id) => { setCbEditingId(id); setCbModalOpen(true); }}
+                          onDelete={contasBancariasCrud.onDelete}
+                          placeholder="Selecionar"
+                          addLabel="Nova conta bancária"
+                        />
                       </TableCell>
                       <TableCell className="text-right">
                         <DropdownMenu>
