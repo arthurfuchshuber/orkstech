@@ -1,1 +1,2 @@
 - [Default Menu Layout](mem://architecture/default-menu-layout) — Layout oficial da sidebar: "Recursos Humanos" (cadastros operacionais) vive dentro de Cadastros, não em RH
+- [Inline Table Editing](mem://ui/inline-table-editing) — Células de tabela usam InlineManagedCell com Add/Edit/Delete via modal pai
