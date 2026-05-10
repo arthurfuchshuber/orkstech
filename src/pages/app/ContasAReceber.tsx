@@ -18,6 +18,9 @@ import { TextareaInput } from "@/components/inputs/TextareaInput";
 import { CurrencyInput } from "@/components/inputs/CurrencyInput";
 import { DateInput } from "@/components/inputs/DateInput";
 import { ManagedSelectInput } from "@/components/inputs/ManagedSelectInput";
+import { InlineManagedCell } from "@/components/inputs/InlineManagedCell";
+import { useBusinessUnits } from "@/hooks/useBusinessUnits";
+import { BusinessUnitModal } from "@/components/modals/BusinessUnitModal";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { FileAttachment } from "@/components/inputs/FileAttachment";
 
@@ -154,6 +157,10 @@ export default function ContasAReceber() {
   const contasCrud = useManagedSelect("contas_bancarias");
   const formasCrud = useManagedSelect("formas_pagamento");
   const catFinCrud = useManagedSelect("categorias_financeiras");
+  const businessUnitsCrud = useManagedSelect("business_units");
+  const { businessUnits } = useBusinessUnits();
+  const [buModalOpen, setBuModalOpen] = useState(false);
+  const [buEditingId, setBuEditingId] = useState<string | null>(null);
 
   const [ccModalOpen, setCcModalOpen] = useState(false);
   const [ccEditingId, setCcEditingId] = useState<string | null>(null);
