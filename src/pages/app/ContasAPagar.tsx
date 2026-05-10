@@ -18,6 +18,7 @@ import { TextareaInput } from "@/components/inputs/TextareaInput";
 import { CurrencyInput } from "@/components/inputs/CurrencyInput";
 import { DateInput } from "@/components/inputs/DateInput";
 import { ManagedSelectInput } from "@/components/inputs/ManagedSelectInput";
+import { InlineManagedCell } from "@/components/inputs/InlineManagedCell";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { FileAttachment } from "@/components/inputs/FileAttachment";
 
@@ -1521,7 +1522,7 @@ export default function ContasAPagar() {
                           onChange={(v) => updateMutation.mutate({ id: item.id, data: { payment_method_id: v } })}
                           onAddModal={() => { setFpEditingId(null); setFpModalOpen(true); }}
                           onEditModal={(id) => { setFpEditingId(id); setFpModalOpen(true); }}
-                          onDelete={formasPagamentoCrud.onDelete}
+                          onDelete={formasCrud.onDelete}
                           placeholder="Selecionar"
                           addLabel="Nova forma de pagamento"
                         />
@@ -1533,7 +1534,7 @@ export default function ContasAPagar() {
                           onChange={(v) => updateMutation.mutate({ id: item.id, data: { bank_account_id: v } })}
                           onAddModal={() => { setCbEditingId(null); setCbModalOpen(true); }}
                           onEditModal={(id) => { setCbEditingId(id); setCbModalOpen(true); }}
-                          onDelete={contasBancariasCrud.onDelete}
+                          onDelete={contasCrud.onDelete}
                           placeholder="Selecionar"
                           addLabel="Nova conta bancária"
                         />
