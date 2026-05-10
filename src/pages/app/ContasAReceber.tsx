@@ -18,6 +18,9 @@ import { TextareaInput } from "@/components/inputs/TextareaInput";
 import { CurrencyInput } from "@/components/inputs/CurrencyInput";
 import { DateInput } from "@/components/inputs/DateInput";
 import { ManagedSelectInput } from "@/components/inputs/ManagedSelectInput";
+import { InlineManagedCell } from "@/components/inputs/InlineManagedCell";
+import { useBusinessUnits } from "@/hooks/useBusinessUnits";
+import { BusinessUnitModal } from "@/components/modals/BusinessUnitModal";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { FileAttachment } from "@/components/inputs/FileAttachment";
 
@@ -154,6 +157,10 @@ export default function ContasAReceber() {
   const contasCrud = useManagedSelect("contas_bancarias");
   const formasCrud = useManagedSelect("formas_pagamento");
   const catFinCrud = useManagedSelect("categorias_financeiras");
+  const businessUnitsCrud = useManagedSelect("business_units");
+  const { businessUnits } = useBusinessUnits();
+  const [buModalOpen, setBuModalOpen] = useState(false);
+  const [buEditingId, setBuEditingId] = useState<string | null>(null);
 
   const [ccModalOpen, setCcModalOpen] = useState(false);
   const [ccEditingId, setCcEditingId] = useState<string | null>(null);
@@ -1198,6 +1205,8 @@ export default function ContasAReceber() {
                 <TableHead style={{ minWidth: 110 }}>Valor</TableHead>
                 <TableHead style={{ minWidth: 120 }}>Status</TableHead>
                 <TableHead style={{ minWidth: 200 }}>Subcategoria</TableHead>
+                <TableHead style={{ minWidth: 160 }}>Centro de Custo</TableHead>
+                <TableHead style={{ minWidth: 160 }}>Unidade de Negócio</TableHead>
                 <TableHead style={{ minWidth: 180 }}>Forma</TableHead>
                 <TableHead style={{ minWidth: 180 }}>Conta Bancária</TableHead>
                 <TableHead style={{ width: 50, minWidth: 50 }} className="text-right">Ações</TableHead>
@@ -1309,79 +1318,65 @@ export default function ContasAReceber() {
                         </DropdownMenu>
                       </TableCell>
                       <TableCell>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <button className="flex items-center gap-1 text-sm cursor-pointer hover:text-foreground transition-colors group w-full">
-                              <span className="truncate">{catFin?.nome || <span className="text-muted-foreground/50">Selecionar</span>}</span>
-                              <ChevronDown className="w-3 h-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
-                            </button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="start" className="max-h-[260px] overflow-y-auto custom-scrollbar">
-                            {subcatOptions.map((c: any) => (
-                              <DropdownMenuItem
-                                key={c.id}
-                                onClick={() => {
-                                  updateMutation.mutate({ id: item.id, data: { categoria_financeira_id: c.id } });
-                                }}
-                              >
-                                {c.nome}
-                              </DropdownMenuItem>
-                            ))}
-                            {catFin && (
-                              <DropdownMenuItem onClick={() => updateMutation.mutate({ id: item.id, data: { categoria_financeira_id: null } })} className="text-muted-foreground">
-                                Limpar
-                              </DropdownMenuItem>
-                            )}
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem onClick={() => { setCfEditingId(null); setCfModalOpen(true); }} className="text-primary">
-                              <Plus className="w-3.5 h-3.5 mr-1.5" /> Nova subcategoria
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                        <InlineManagedCell
+                          value={item.categoria_financeira_id}
+                          options={subcatOptions.map((c: any) => ({ value: c.id, label: c.nome }))}
+                          onChange={(v) => updateMutation.mutate({ id: item.id, data: { categoria_financeira_id: v } })}
+                          onAddModal={() => { setCfEditingId(null); setCfModalOpen(true); }}
+                          onEditModal={(id) => { setCfEditingId(id); setCfModalOpen(true); }}
+                          onDelete={catFinCrud.onDelete}
+                          placeholder="Selecionar"
+                          addLabel="Nova subcategoria"
+                          emptyHint="Nenhuma subcategoria cadastrada"
+                        />
                       </TableCell>
                       <TableCell>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <button className="flex items-center gap-1 text-sm cursor-pointer hover:text-foreground transition-colors group w-full">
-                              <span className="truncate">{formaPgto?.nome || <span className="text-muted-foreground/50">Selecionar</span>}</span>
-                              <ChevronDown className="w-3 h-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
-                            </button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="start" className="max-h-[260px] overflow-y-auto custom-scrollbar">
-                            {paymentMethods.map((m: any) => (
-                              <DropdownMenuItem key={m.id} onClick={() => updateMutation.mutate({ id: item.id, data: { payment_method_id: m.id } })}>
-                                {m.nome}
-                              </DropdownMenuItem>
-                            ))}
-                            {formaPgto && (
-                              <DropdownMenuItem onClick={() => updateMutation.mutate({ id: item.id, data: { payment_method_id: null } })} className="text-muted-foreground">
-                                Limpar
-                              </DropdownMenuItem>
-                            )}
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                        <InlineManagedCell
+                          value={item.cost_center_id}
+                          options={costCenters.map((c: any) => ({ value: c.id, label: c.nome }))}
+                          onChange={(v) => updateMutation.mutate({ id: item.id, data: { cost_center_id: v } })}
+                          onAddModal={() => { setCcEditingId(null); setCcModalOpen(true); }}
+                          onEditModal={(id) => { setCcEditingId(id); setCcModalOpen(true); }}
+                          onDelete={centrosCrud.onDelete}
+                          placeholder="Selecionar"
+                          addLabel="Novo centro de custo"
+                        />
                       </TableCell>
                       <TableCell>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <button className="flex items-center gap-1 text-sm cursor-pointer hover:text-foreground transition-colors group w-full">
-                              <span className="truncate">{contaBanc?.nome || <span className="text-muted-foreground/50">Selecionar</span>}</span>
-                              <ChevronDown className="w-3 h-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
-                            </button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="start" className="max-h-[260px] overflow-y-auto custom-scrollbar">
-                            {bankAccounts.map((b: any) => (
-                              <DropdownMenuItem key={b.id} onClick={() => updateMutation.mutate({ id: item.id, data: { bank_account_id: b.id } })}>
-                                {b.nome}
-                              </DropdownMenuItem>
-                            ))}
-                            {contaBanc && (
-                              <DropdownMenuItem onClick={() => updateMutation.mutate({ id: item.id, data: { bank_account_id: null } })} className="text-muted-foreground">
-                                Limpar
-                              </DropdownMenuItem>
-                            )}
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                        <InlineManagedCell
+                          value={item.business_unit_id}
+                          options={businessUnits.map((u: any) => ({ value: u.id, label: u.nome }))}
+                          onChange={(v) => updateMutation.mutate({ id: item.id, data: { business_unit_id: v } })}
+                          onAddModal={() => { setBuEditingId(null); setBuModalOpen(true); }}
+                          onEditModal={(id) => { setBuEditingId(id); setBuModalOpen(true); }}
+                          onDelete={businessUnitsCrud.onDelete}
+                          placeholder="Selecionar"
+                          addLabel="Nova unidade de negócio"
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <InlineManagedCell
+                          value={item.payment_method_id}
+                          options={paymentMethods.map((m: any) => ({ value: m.id, label: m.nome }))}
+                          onChange={(v) => updateMutation.mutate({ id: item.id, data: { payment_method_id: v } })}
+                          onAddModal={() => { setFpEditingId(null); setFpModalOpen(true); }}
+                          onEditModal={(id) => { setFpEditingId(id); setFpModalOpen(true); }}
+                          onDelete={formasCrud.onDelete}
+                          placeholder="Selecionar"
+                          addLabel="Nova forma de pagamento"
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <InlineManagedCell
+                          value={item.bank_account_id}
+                          options={bankAccounts.map((b: any) => ({ value: b.id, label: b.nome }))}
+                          onChange={(v) => updateMutation.mutate({ id: item.id, data: { bank_account_id: v } })}
+                          onAddModal={() => { setCbEditingId(null); setCbModalOpen(true); }}
+                          onEditModal={(id) => { setCbEditingId(id); setCbModalOpen(true); }}
+                          onDelete={contasCrud.onDelete}
+                          placeholder="Selecionar"
+                          addLabel="Nova conta bancária"
+                        />
                       </TableCell>
                       <TableCell className="text-right">
                         <DropdownMenu>
@@ -1467,7 +1462,7 @@ export default function ContasAReceber() {
                             {cfg.label}
                           </Badge>
                         </TableCell>
-                        <TableCell colSpan={3}>
+                        <TableCell colSpan={5}>
                           <div className="flex items-center gap-3 text-xs text-muted-foreground">
                             {paidCount > 0 && <span><Check className="w-3 h-3 inline text-success" /> {paidCount} recebidas</span>}
                             {pendingCount > 0 && <span><Clock className="w-3 h-3 inline text-warning" /> {pendingCount} pendentes</span>}
@@ -2023,6 +2018,12 @@ export default function ContasAReceber() {
         onOpenChange={setCbModalOpen}
         editingId={cbEditingId}
         onSaved={(id) => updateField("bank_account_id", id)}
+      />
+      <BusinessUnitModal
+        open={buModalOpen}
+        onOpenChange={setBuModalOpen}
+        editingId={buEditingId}
+        onSaved={(id) => updateField("business_unit_id" as any, id)}
       />
       <FormaPagamentoModal
         open={fpModalOpen}
