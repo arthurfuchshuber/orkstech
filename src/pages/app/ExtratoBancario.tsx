@@ -1154,13 +1154,7 @@ export default function ExtratoBancario() {
                     .map((c: any) => (
                       <DropdownMenuItem
                         key={c.id}
-                        onClick={() =>
-                          batchUpdateCategoriaMutation.mutate({
-                            ids: Array.from(batchSelection),
-                            categoria_financeira_id: c.id,
-                            categoriaNome: c.nome,
-                          })
-                        }
+                        onClick={() => tryBulkCategorize(c.id, c.tipo, c.nome)}
                       >
                         {c.nome}
                       </DropdownMenuItem>
