@@ -1419,6 +1419,15 @@ export default function ExtratoBancario() {
 
       <RegraConflitoModal conflito={conflito} onClose={() => setConflito(null)} />
 
+      <MixedTypeBulkDialog
+        open={mixedBulk.open}
+        onOpenChange={(v) => setMixedBulk((p) => ({ ...p, open: v }))}
+        totalIn={mixedBulk.inIds.length}
+        totalOut={mixedBulk.outIds.length}
+        onApplyIncome={() => mixedBulk.categoriaId && batchUpdateCategoriaMutation.mutate({ ids: mixedBulk.inIds, categoria_financeira_id: mixedBulk.categoriaId, categoriaNome: mixedBulk.categoriaNome })}
+        onApplyExpense={() => mixedBulk.categoriaId && batchUpdateCategoriaMutation.mutate({ ids: mixedBulk.outIds, categoria_financeira_id: mixedBulk.categoriaId, categoriaNome: mixedBulk.categoriaNome })}
+      />
+
       <UncategorizedTransactionsModal open={uncatModalOpen} onOpenChange={setUncatModalOpen} />
     </div>
   );
