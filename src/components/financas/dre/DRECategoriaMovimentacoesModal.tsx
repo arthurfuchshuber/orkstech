@@ -3,8 +3,9 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
-  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
 import { ChevronDown, Loader2, ArrowDownLeft, ArrowUpRight } from "lucide-react";
@@ -16,6 +17,8 @@ import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { useRegraConflitoDetector } from "@/hooks/useRegraConflitoDetector";
 import { RegraConflitoModal } from "./RegraConflitoModal";
+import { enhancePluggyDescription } from "@/lib/pluggy-description";
+import { MixedTypeBulkDialog } from "@/components/financas/MixedTypeBulkDialog";
 
 interface Props {
   open: boolean;
@@ -38,6 +41,7 @@ interface Mov {
   type: "income" | "expense";
   categoria_financeira_id: string | null;
   pluggy_account_id?: string | null;
+  payment_data?: any;
 }
 
 const fmtBRL = (v: number) =>
@@ -53,6 +57,25 @@ const sourceLabel: Record<Mov["source"], string> = {
   pluggy_transactions: "Extrato",
 };
 
+/** Mantém só a parte após o "|" (contraparte limpa) — espelha o Extrato. */
+const cleanDescription = (m: Mov): string => {
+  if (m.source === "pluggy_transactions") {
+    const enhanced = enhancePluggyDescription({
+      description: m.description,
+      amount: m.type === "income" ? m.amount : -m.amount,
+      payment_data: m.payment_data,
+    });
+    const idx = enhanced.indexOf("|");
+    return idx >= 0 ? enhanced.slice(idx + 1).trim() : enhanced.trim();
+  }
+  const raw = (m.description || "").trim();
+  const idx = raw.indexOf("|");
+  return idx >= 0 ? raw.slice(idx + 1).trim() : raw || "—";
+};
+
+const ALLOWED_INCOME = ["receita", "resultado_financeiro", "ajuste"];
+const ALLOWED_EXPENSE = ["despesa", "despesa_comercial", "custo", "deducao", "imposto", "resultado_financeiro", "distribuicao_lucros", "ajuste"];
+
 export function DRECategoriaMovimentacoesModal({
   open, onOpenChange, categoryId, categoryLabel,
   year, monthFrom, monthTo, bankAccountId, costCenterId,
@@ -67,7 +90,11 @@ export function DRECategoriaMovimentacoesModal({
   const endDate = new Date(year, monthTo + 1, 0);
   const endStr = format(endDate, "yyyy-MM-dd");
 
-  // Categorias (para resolver descendentes da clicada + opções de edição)
+  const [selection, setSelection] = useState<Set<string>>(new Set());
+  const [mixedDialog, setMixedDialog] = useState<{ open: boolean; categoriaId: string | null; categoriaTipo: "income" | "expense" | "both" }>({
+    open: false, categoriaId: null, categoriaTipo: "both",
+  });
+
   const { data: categorias = [] } = useQuery({
     queryKey: ["dre-cat-mov-cats", targetUserId],
     enabled: !!targetUserId && open,
@@ -83,7 +110,6 @@ export function DRECategoriaMovimentacoesModal({
     },
   });
 
-  // Contas Pluggy (para detectar cartão de crédito → sinal invertido)
   const { data: pluggyAccounts = [] } = useQuery({
     queryKey: ["dre-cat-mov-pluggy-accounts", targetUserId],
     enabled: !!targetUserId && open,
@@ -117,7 +143,6 @@ export function DRECategoriaMovimentacoesModal({
     return Array.from(ids);
   }, [categoryId, categorias]);
 
-  // Subcategorias folha (válidas para edição)
   const folhas = useMemo(
     () => categorias.filter((c: any) => !categorias.some((cc: any) => cc.categoria_pai_id === c.id)),
     [categorias],
@@ -144,7 +169,7 @@ export function DRECategoriaMovimentacoesModal({
       if (costCenterId) qRec = qRec.eq("cost_center_id", costCenterId);
 
       const qPlu = supabase.from("pluggy_transactions" as any)
-        .select("id, amount, date, description, categoria_financeira_id, type, user_id, reconciled, is_internal_transfer, pluggy_account_id")
+        .select("id, amount, date, description, categoria_financeira_id, type, user_id, reconciled, is_internal_transfer, pluggy_account_id, payment_data")
         .eq("user_id", targetUserId!)
         .eq("reconciled", false)
         .eq("is_internal_transfer", false)
@@ -169,8 +194,6 @@ export function DRECategoriaMovimentacoesModal({
       }));
       (pluRes.data ?? []).forEach((r: any) => {
         const isCredit = isCreditCardAccount(r.pluggy_account_id);
-        // Cartão: amount>0 = compra (saída), amount<0 = pagamento (entrada).
-        // Conta: amount>0 = entrada, amount<0 = saída.
         const isIn = isCredit ? Number(r.amount) < 0 : Number(r.amount) > 0;
         out.push({
           id: r.id, source: "pluggy_transactions", date: r.date,
@@ -178,6 +201,7 @@ export function DRECategoriaMovimentacoesModal({
           type: isIn ? "income" : "expense",
           categoria_financeira_id: r.categoria_financeira_id,
           pluggy_account_id: r.pluggy_account_id,
+          payment_data: r.payment_data,
         });
       });
       out.sort((a, b) => (a.date < b.date ? 1 : -1));
@@ -210,9 +234,98 @@ export function DRECategoriaMovimentacoesModal({
     onError: (e: any) => toast.error(e?.message || "Erro ao atualizar"),
   });
 
+  /** Atualiza em massa, agrupando por source. */
+  const bulkUpdate = useMutation({
+    mutationFn: async ({ targets, novaCatId }: { targets: Mov[]; novaCatId: string | null }) => {
+      const bySource: Record<string, string[]> = {};
+      targets.forEach((m) => {
+        bySource[m.source] = bySource[m.source] || [];
+        bySource[m.source].push(m.id);
+      });
+      for (const [src, ids] of Object.entries(bySource)) {
+        const { error } = await supabase.from(src as any).update({ categoria_financeira_id: novaCatId }).in("id", ids);
+        if (error) throw error;
+      }
+      return targets.length;
+    },
+    onSuccess: (count) => {
+      toast.success(`${count} lançamento(s) recategorizados`);
+      setSelection(new Set());
+      qc.invalidateQueries({ queryKey: ["dre-cat-movs"] });
+      qc.invalidateQueries({ queryKey: ["dre-monthly-tx"] });
+      qc.invalidateQueries({ queryKey: ["dre-transactions"] });
+      qc.invalidateQueries({ queryKey: ["pluggy_transactions"] });
+    },
+    onError: (e: any) => toast.error(e?.message || "Erro ao recategorizar"),
+  });
+
+  const toggleRow = (id: string) => {
+    setSelection((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+  const toggleAll = () => {
+    if (selection.size === movs.length) setSelection(new Set());
+    else setSelection(new Set(movs.map((m) => m.id)));
+  };
+
+  const selectedMovs = useMemo(() => movs.filter((m) => selection.has(m.id)), [movs, selection]);
+  const selectedIn = selectedMovs.filter((m) => m.type === "income");
+  const selectedOut = selectedMovs.filter((m) => m.type === "expense");
+
+  /** Tenta aplicar categoria em massa, validando tipo. */
+  const tryBulkCategorize = (catId: string | null) => {
+    if (selectedMovs.length === 0) return;
+
+    if (catId === null) {
+      bulkUpdate.mutate({ targets: selectedMovs, novaCatId: null });
+      return;
+    }
+
+    const cat: any = folhas.find((c: any) => c.id === catId);
+    if (!cat) return;
+
+    const isIncomeCat = ALLOWED_INCOME.includes(cat.tipo);
+    const isExpenseCat = ALLOWED_EXPENSE.includes(cat.tipo);
+
+    // Se a categoria pertence a ambos os lados (ex.: resultado_financeiro), permite tudo.
+    if (isIncomeCat && isExpenseCat) {
+      bulkUpdate.mutate({ targets: selectedMovs, novaCatId: catId });
+      return;
+    }
+
+    const hasIn = selectedIn.length > 0;
+    const hasOut = selectedOut.length > 0;
+    const conflitoTipo = (isIncomeCat && hasOut) || (isExpenseCat && hasIn);
+
+    if (conflitoTipo && hasIn && hasOut) {
+      setMixedDialog({
+        open: true,
+        categoriaId: catId,
+        categoriaTipo: isIncomeCat ? "income" : "expense",
+      });
+      return;
+    }
+
+    if (conflitoTipo) {
+      toast.error(
+        isIncomeCat
+          ? "Esta categoria é de entrada e a seleção contém apenas saídas."
+          : "Esta categoria é de saída e a seleção contém apenas entradas.",
+      );
+      return;
+    }
+
+    bulkUpdate.mutate({ targets: selectedMovs, novaCatId: catId });
+  };
+
+  const allChecked = movs.length > 0 && selection.size === movs.length;
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl h-[92vh] max-h-[92vh] flex flex-col p-0 gap-0">
+      <DialogContent className="max-w-5xl h-[92vh] max-h-[92vh] flex flex-col p-0 gap-0">
         <DialogHeader className="px-6 pt-6 pb-3 border-b border-border/40 flex-shrink-0">
           <DialogTitle className="flex items-center gap-2">
             <span>{categoryLabel}</span>
@@ -241,6 +354,38 @@ export function DRECategoriaMovimentacoesModal({
           </div>
         </div>
 
+        {/* Toolbar de seleção em massa */}
+        {selection.size > 0 && (
+          <div className="flex items-center justify-between gap-3 px-6 py-2.5 border-b border-border/40 bg-primary/5 flex-shrink-0">
+            <div className="flex items-center gap-2 text-xs">
+              <Badge variant="secondary">{selection.size} selecionada(s)</Badge>
+              {selectedIn.length > 0 && <span className="text-success">{selectedIn.length} entrada(s)</span>}
+              {selectedOut.length > 0 && <span className="text-warning">{selectedOut.length} saída(s)</span>}
+            </div>
+            <div className="flex items-center gap-2">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button size="sm" variant="outline" className="gap-2">
+                    Categorizar em massa <ChevronDown className="w-3.5 h-3.5" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="max-h-[320px] overflow-y-auto custom-scrollbar">
+                  {folhas.map((c: any) => (
+                    <DropdownMenuItem key={c.id} onClick={() => tryBulkCategorize(c.id)}>
+                      {c.nome}
+                    </DropdownMenuItem>
+                  ))}
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => tryBulkCategorize(null)} className="text-muted-foreground">
+                    Limpar categoria
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+              <Button size="sm" variant="ghost" onClick={() => setSelection(new Set())}>Cancelar</Button>
+            </div>
+          </div>
+        )}
+
         <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar px-6 py-4">
           {isLoading ? (
             <div className="py-12 text-center text-sm text-muted-foreground">
@@ -253,7 +398,8 @@ export function DRECategoriaMovimentacoesModal({
             </div>
           ) : (
             <div className="border border-border/40 rounded-md overflow-hidden">
-              <div className="grid grid-cols-[100px_90px_minmax(0,1fr)_220px_140px] gap-3 border-b border-border/40 bg-muted/20 px-3 py-2 text-[11px] uppercase tracking-wider text-muted-foreground">
+              <div className="grid grid-cols-[36px_100px_90px_minmax(0,1fr)_220px_140px] gap-3 border-b border-border/40 bg-muted/20 px-3 py-2 text-[11px] uppercase tracking-wider text-muted-foreground items-center">
+                <Checkbox checked={allChecked} onCheckedChange={toggleAll} aria-label="Selecionar todos" />
                 <div>Data</div>
                 <div>Origem</div>
                 <div>Descrição</div>
@@ -264,15 +410,18 @@ export function DRECategoriaMovimentacoesModal({
                 {movs.map((m) => {
                   const isIn = m.type === "income";
                   const cat = categorias.find((c: any) => c.id === m.categoria_financeira_id);
-                  // só permite folhas do mesmo "lado" da transação
-                  const allowedTipos = isIn
-                    ? ["receita", "receita_financeira", "ajuste"]
-                    : ["despesa", "custo", "deducao", "imposto", "despesa_financeira", "distribuicao_lucros", "ajuste"];
+                  const allowedTipos = isIn ? ALLOWED_INCOME : ALLOWED_EXPENSE;
                   const opts = folhas.filter((c: any) => allowedTipos.includes(c.tipo));
+                  const desc = cleanDescription(m);
+                  const checked = selection.has(m.id);
 
                   return (
                     <div key={`${m.source}-${m.id}`}
-                      className="grid grid-cols-[100px_90px_minmax(0,1fr)_220px_140px] gap-3 px-3 py-2 items-center hover:bg-muted/20 transition-colors">
+                      className={cn(
+                        "grid grid-cols-[36px_100px_90px_minmax(0,1fr)_220px_140px] gap-3 px-3 py-2 items-center hover:bg-muted/20 transition-colors",
+                        checked && "bg-primary/5",
+                      )}>
+                      <Checkbox checked={checked} onCheckedChange={() => toggleRow(m.id)} aria-label="Selecionar linha" />
                       <div className="text-xs tabular-nums text-muted-foreground">{fmtDate(m.date)}</div>
                       <Badge variant="outline" className="text-[10px] w-fit">{sourceLabel[m.source]}</Badge>
                       <div className="flex items-center gap-2 min-w-0">
@@ -282,7 +431,7 @@ export function DRECategoriaMovimentacoesModal({
                         )}>
                           {isIn ? <ArrowDownLeft className="w-3 h-3 text-success" /> : <ArrowUpRight className="w-3 h-3 text-warning" />}
                         </div>
-                        <span className="text-sm truncate" title={m.description}>{m.description}</span>
+                        <span className="text-sm truncate" title={desc}>{desc}</span>
                       </div>
                       <div className="min-w-0">
                         <DropdownMenu>
@@ -320,7 +469,17 @@ export function DRECategoriaMovimentacoesModal({
           <Button variant="outline" onClick={() => onOpenChange(false)}>Fechar</Button>
         </div>
       </DialogContent>
+
       <RegraConflitoModal conflito={conflito} onClose={() => setConflito(null)} />
+
+      <MixedTypeBulkDialog
+        open={mixedDialog.open}
+        onOpenChange={(v) => setMixedDialog((p) => ({ ...p, open: v }))}
+        totalIn={selectedIn.length}
+        totalOut={selectedOut.length}
+        onApplyIncome={() => mixedDialog.categoriaId && bulkUpdate.mutate({ targets: selectedIn, novaCatId: mixedDialog.categoriaId })}
+        onApplyExpense={() => mixedDialog.categoriaId && bulkUpdate.mutate({ targets: selectedOut, novaCatId: mixedDialog.categoriaId })}
+      />
     </Dialog>
   );
 }
