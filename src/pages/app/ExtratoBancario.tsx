@@ -538,6 +538,38 @@ export default function ExtratoBancario() {
     });
   };
 
+  /** Categorização em massa com guard de tipo misto. */
+  const tryBulkCategorize = (catId: string, catTipo: string, catNome: string) => {
+    const ids = Array.from(batchSelection);
+    const selected = transactions.filter((t) => batchSelection.has(t.id));
+    const inIds = selected.filter((t) => isInflow(t)).map((t) => t.id);
+    const outIds = selected.filter((t) => !isInflow(t)).map((t) => t.id);
+
+    const isIncomeCat = ALLOWED_INCOME_TIPOS.includes(catTipo);
+    const isExpenseCat = ALLOWED_EXPENSE_TIPOS.includes(catTipo);
+    const bothSides = isIncomeCat && isExpenseCat;
+
+    if (bothSides) {
+      batchUpdateCategoriaMutation.mutate({ ids, categoria_financeira_id: catId, categoriaNome: catNome });
+      return;
+    }
+
+    const conflito = (isIncomeCat && outIds.length > 0) || (isExpenseCat && inIds.length > 0);
+    if (conflito && inIds.length > 0 && outIds.length > 0) {
+      setMixedBulk({ open: true, categoriaId: catId, categoriaNome: catNome, inIds, outIds });
+      return;
+    }
+    if (conflito) {
+      toast.error(
+        isIncomeCat
+          ? "Esta categoria é de entrada e a seleção contém apenas saídas."
+          : "Esta categoria é de saída e a seleção contém apenas entradas.",
+      );
+      return;
+    }
+    batchUpdateCategoriaMutation.mutate({ ids, categoria_financeira_id: catId, categoriaNome: catNome });
+  };
+
   const [syncing, setSyncing] = useState<string | null>(null);
 
   const handleSync = async (itemId: string) => {
