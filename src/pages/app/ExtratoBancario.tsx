@@ -39,6 +39,10 @@ import { ManualBankTransactionDialog } from "@/components/financas/extrato/Manua
 import { PluggyTransactionEditDialog } from "@/components/financas/extrato/PluggyTransactionEditDialog";
 import { OfertaCriarRegraModal } from "@/components/financas/extrato/OfertaCriarRegraModal";
 import { DescricaoComRegra } from "@/components/financas/extrato/DescricaoComRegra";
+import { MixedTypeBulkDialog } from "@/components/financas/MixedTypeBulkDialog";
+
+const ALLOWED_INCOME_TIPOS = ["receita", "resultado_financeiro", "ajuste"];
+const ALLOWED_EXPENSE_TIPOS = ["despesa", "despesa_comercial", "custo", "deducao", "imposto", "resultado_financeiro", "distribuicao_lucros", "ajuste"];
 import { useRegraConflitoDetector } from "@/hooks/useRegraConflitoDetector";
 import { RegraConflitoModal } from "@/components/financas/dre/RegraConflitoModal";
 import { classifyInternalSubtype, INTERNAL_SUBTYPE_LABEL, type InternalSubtype } from "@/lib/internal-tx-subtype";
@@ -228,6 +232,9 @@ export default function ExtratoBancario() {
     tipoSugerido: "pagar" | "receber";
   }>({ open: false, descricoes: [], categoriaId: "", tipoSugerido: "pagar" });
   const [pluggyEditTx, setPluggyEditTx] = useState<{ id: string; description: string | null; amount: number; date: string } | null>(null);
+  const [mixedBulk, setMixedBulk] = useState<{ open: boolean; categoriaId: string | null; categoriaNome?: string; inIds: string[]; outIds: string[] }>({
+    open: false, categoriaId: null, inIds: [], outIds: [],
+  });
   const [contasCardsExpanded, setContasCardsExpanded] = useState(false);
 
   // Date range filter — default to current month
@@ -529,6 +536,38 @@ export default function ExtratoBancario() {
       else next.add(id);
       return next;
     });
+  };
+
+  /** Categorização em massa com guard de tipo misto. */
+  const tryBulkCategorize = (catId: string, catTipo: string, catNome: string) => {
+    const ids = Array.from(batchSelection);
+    const selected = transactions.filter((t) => batchSelection.has(t.id));
+    const inIds = selected.filter((t) => isInflow(t)).map((t) => t.id);
+    const outIds = selected.filter((t) => !isInflow(t)).map((t) => t.id);
+
+    const isIncomeCat = ALLOWED_INCOME_TIPOS.includes(catTipo);
+    const isExpenseCat = ALLOWED_EXPENSE_TIPOS.includes(catTipo);
+    const bothSides = isIncomeCat && isExpenseCat;
+
+    if (bothSides) {
+      batchUpdateCategoriaMutation.mutate({ ids, categoria_financeira_id: catId, categoriaNome: catNome });
+      return;
+    }
+
+    const conflito = (isIncomeCat && outIds.length > 0) || (isExpenseCat && inIds.length > 0);
+    if (conflito && inIds.length > 0 && outIds.length > 0) {
+      setMixedBulk({ open: true, categoriaId: catId, categoriaNome: catNome, inIds, outIds });
+      return;
+    }
+    if (conflito) {
+      toast.error(
+        isIncomeCat
+          ? "Esta categoria é de entrada e a seleção contém apenas saídas."
+          : "Esta categoria é de saída e a seleção contém apenas entradas.",
+      );
+      return;
+    }
+    batchUpdateCategoriaMutation.mutate({ ids, categoria_financeira_id: catId, categoriaNome: catNome });
   };
 
   const [syncing, setSyncing] = useState<string | null>(null);
@@ -1154,13 +1193,7 @@ export default function ExtratoBancario() {
                     .map((c: any) => (
                       <DropdownMenuItem
                         key={c.id}
-                        onClick={() =>
-                          batchUpdateCategoriaMutation.mutate({
-                            ids: Array.from(batchSelection),
-                            categoria_financeira_id: c.id,
-                            categoriaNome: c.nome,
-                          })
-                        }
+                        onClick={() => tryBulkCategorize(c.id, c.tipo, c.nome)}
                       >
                         {c.nome}
                       </DropdownMenuItem>
@@ -1246,8 +1279,8 @@ export default function ExtratoBancario() {
 
                 // Filtra por tipo financeiro pertinente ao fluxo (entrada x saída) e mostra apenas folhas finais
                 const allowedTipos = isCredit
-                  ? ["receita", "receita_financeira", "ajuste"]
-                  : ["despesa", "custo", "deducao", "imposto", "despesa_financeira", "distribuicao_lucros", "ajuste"];
+                  ? ["receita", "resultado_financeiro", "ajuste"]
+                  : ["despesa", "despesa_comercial", "custo", "deducao", "imposto", "resultado_financeiro", "distribuicao_lucros", "ajuste"];
                 const subcatOptions = categoriasFinanceiras
                   .filter((c: any) => allowedTipos.includes(c.tipo))
                   .filter((c: any) => !categoriasFinanceiras.some((child: any) => child.categoria_pai_id === c.id));
@@ -1420,6 +1453,15 @@ export default function ExtratoBancario() {
       />
 
       <RegraConflitoModal conflito={conflito} onClose={() => setConflito(null)} />
+
+      <MixedTypeBulkDialog
+        open={mixedBulk.open}
+        onOpenChange={(v) => setMixedBulk((p) => ({ ...p, open: v }))}
+        totalIn={mixedBulk.inIds.length}
+        totalOut={mixedBulk.outIds.length}
+        onApplyIncome={() => mixedBulk.categoriaId && batchUpdateCategoriaMutation.mutate({ ids: mixedBulk.inIds, categoria_financeira_id: mixedBulk.categoriaId, categoriaNome: mixedBulk.categoriaNome })}
+        onApplyExpense={() => mixedBulk.categoriaId && batchUpdateCategoriaMutation.mutate({ ids: mixedBulk.outIds, categoria_financeira_id: mixedBulk.categoriaId, categoriaNome: mixedBulk.categoriaNome })}
+      />
 
       <UncategorizedTransactionsModal open={uncatModalOpen} onOpenChange={setUncatModalOpen} />
     </div>
