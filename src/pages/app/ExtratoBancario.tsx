@@ -232,6 +232,9 @@ export default function ExtratoBancario() {
     tipoSugerido: "pagar" | "receber";
   }>({ open: false, descricoes: [], categoriaId: "", tipoSugerido: "pagar" });
   const [pluggyEditTx, setPluggyEditTx] = useState<{ id: string; description: string | null; amount: number; date: string } | null>(null);
+  const [mixedBulk, setMixedBulk] = useState<{ open: boolean; categoriaId: string | null; categoriaNome?: string; inIds: string[]; outIds: string[] }>({
+    open: false, categoriaId: null, inIds: [], outIds: [],
+  });
   const [contasCardsExpanded, setContasCardsExpanded] = useState(false);
 
   // Date range filter — default to current month
