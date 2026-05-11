@@ -39,6 +39,10 @@ import { ManualBankTransactionDialog } from "@/components/financas/extrato/Manua
 import { PluggyTransactionEditDialog } from "@/components/financas/extrato/PluggyTransactionEditDialog";
 import { OfertaCriarRegraModal } from "@/components/financas/extrato/OfertaCriarRegraModal";
 import { DescricaoComRegra } from "@/components/financas/extrato/DescricaoComRegra";
+import { MixedTypeBulkDialog } from "@/components/financas/MixedTypeBulkDialog";
+
+const ALLOWED_INCOME_TIPOS = ["receita", "resultado_financeiro", "ajuste"];
+const ALLOWED_EXPENSE_TIPOS = ["despesa", "despesa_comercial", "custo", "deducao", "imposto", "resultado_financeiro", "distribuicao_lucros", "ajuste"];
 import { useRegraConflitoDetector } from "@/hooks/useRegraConflitoDetector";
 import { RegraConflitoModal } from "@/components/financas/dre/RegraConflitoModal";
 import { classifyInternalSubtype, INTERNAL_SUBTYPE_LABEL, type InternalSubtype } from "@/lib/internal-tx-subtype";
