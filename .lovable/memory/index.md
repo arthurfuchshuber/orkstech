@@ -1,2 +1,3 @@
 - [Default Menu Layout](mem://architecture/default-menu-layout) — Layout oficial da sidebar: "Recursos Humanos" (cadastros operacionais) vive dentro de Cadastros, não em RH
 - [Inline Table Editing](mem://ui/inline-table-editing) — Células de tabela usam InlineManagedCell com Add/Edit/Delete via modal pai
+- [Categoria Tree Select](mem://ui/categoria-tree-select) — Componente único de seleção de subcategoria DRE com árvore expansível + busca + filtro entrada/saída + somente folhas
