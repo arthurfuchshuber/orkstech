@@ -19,6 +19,7 @@ import { RegraConflitoModal } from "@/components/financas/dre/RegraConflitoModal
 import { OfertaCriarRegraModal } from "./OfertaCriarRegraModal";
 import { DescricaoComRegra } from "./DescricaoComRegra";
 import { CategoriaFinanceiraModal } from "@/components/modals/CategoriaFinanceiraModal";
+import { CategoriaTreeSelect } from "@/components/inputs/CategoriaTreeSelect";
 import { Plus } from "lucide-react";
 
 /** Remove o prefixo "Tipo |" mantendo só a contraparte. */
