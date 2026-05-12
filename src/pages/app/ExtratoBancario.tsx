@@ -1275,16 +1275,6 @@ export default function ExtratoBancario() {
                 ) {
                   internalSubtype = "pagamento_fatura";
                 }
-                const catFin = categoriasFinanceiras.find((c: any) => c.id === tx.categoria_financeira_id);
-
-                // Filtra por tipo financeiro pertinente ao fluxo (entrada x saída) e mostra apenas folhas finais
-                const allowedTipos = isCredit
-                  ? ["receita", "resultado_financeiro", "ajuste"]
-                  : ["despesa", "despesa_comercial", "custo", "deducao", "imposto", "resultado_financeiro", "distribuicao_lucros", "ajuste"];
-                const subcatOptions = categoriasFinanceiras
-                  .filter((c: any) => allowedTipos.includes(c.tipo))
-                  .filter((c: any) => !categoriasFinanceiras.some((child: any) => child.categoria_pai_id === c.id));
-
                 const enhancedDesc = stripTypePrefix(enhanceDescription(tx));
                 const isCreditCardTx = creditAccountIds.has(tx.pluggy_account_id);
 
