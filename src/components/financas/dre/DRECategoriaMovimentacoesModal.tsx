@@ -19,6 +19,7 @@ import { useRegraConflitoDetector } from "@/hooks/useRegraConflitoDetector";
 import { RegraConflitoModal } from "./RegraConflitoModal";
 import { enhancePluggyDescription } from "@/lib/pluggy-description";
 import { MixedTypeBulkDialog } from "@/components/financas/MixedTypeBulkDialog";
+import { CategoriaTreeSelect } from "@/components/inputs/CategoriaTreeSelect";
 
 interface Props {
   open: boolean;
