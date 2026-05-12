@@ -40,6 +40,7 @@ import { PluggyTransactionEditDialog } from "@/components/financas/extrato/Plugg
 import { OfertaCriarRegraModal } from "@/components/financas/extrato/OfertaCriarRegraModal";
 import { DescricaoComRegra } from "@/components/financas/extrato/DescricaoComRegra";
 import { MixedTypeBulkDialog } from "@/components/financas/MixedTypeBulkDialog";
+import { CategoriaTreeSelect } from "@/components/inputs/CategoriaTreeSelect";
 
 const ALLOWED_INCOME_TIPOS = ["receita", "resultado_financeiro", "ajuste"];
 const ALLOWED_EXPENSE_TIPOS = ["despesa", "despesa_comercial", "custo", "deducao", "imposto", "resultado_financeiro", "distribuicao_lucros", "ajuste"];
