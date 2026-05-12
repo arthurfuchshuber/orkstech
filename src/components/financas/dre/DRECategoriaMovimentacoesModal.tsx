@@ -434,25 +434,13 @@ export function DRECategoriaMovimentacoesModal({
                         <span className="text-sm truncate" title={desc}>{desc}</span>
                       </div>
                       <div className="min-w-0">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <button className="flex items-center gap-1 text-xs cursor-pointer hover:text-foreground transition-colors w-full text-left text-muted-foreground">
-                              <span className="truncate">{cat?.nome || "Selecionar"}</span>
-                              <ChevronDown className="w-3 h-3 flex-shrink-0 opacity-60" />
-                            </button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="start" className="max-h-72 overflow-y-auto">
-                            {opts.map((o: any) => (
-                              <DropdownMenuItem key={o.id} onClick={() => updateCat.mutate({ mov: m, novaCatId: o.id })}>
-                                {o.nome}
-                              </DropdownMenuItem>
-                            ))}
-                            <DropdownMenuItem onClick={() => updateCat.mutate({ mov: m, novaCatId: null })}
-                              className="text-muted-foreground">
-                              Limpar categoria
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                        <CategoriaTreeSelect
+                          categorias={categorias as any}
+                          value={m.categoria_financeira_id}
+                          direction={isIn ? "in" : "out"}
+                          placeholder="Selecionar"
+                          onChange={(v) => updateCat.mutate({ mov: m, novaCatId: v })}
+                        />
                       </div>
                       <div className={cn("text-sm font-semibold tabular-nums text-right", isIn ? "text-success" : "text-warning")}>
                         {isIn ? "+" : "−"} {fmtBRL(m.amount)}
