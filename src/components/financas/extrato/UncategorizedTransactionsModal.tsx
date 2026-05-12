@@ -416,14 +416,6 @@ export function UncategorizedTransactionsModal({ open, onOpenChange }: Props) {
                           </button>
                         }
                       />
-                          <SelectItem value="__create__" className="text-primary">
-                            <span className="flex items-center gap-2">
-                              <Plus className="w-3.5 h-3.5" />
-                              Criar nova categoria…
-                            </span>
-                          </SelectItem>
-                        </SelectContent>
-                      </Select>
                     </div>
                   </div>
                 );
