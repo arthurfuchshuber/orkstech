@@ -36,7 +36,6 @@ interface Props {
 
 const ALLOWED_INCOME = new Set([
   "receita",
-  "resultado_financeiro",
   "receita_financeira",
   "ajuste",
 ]);
@@ -46,7 +45,6 @@ const ALLOWED_EXPENSE = new Set([
   "custo",
   "deducao",
   "imposto",
-  "resultado_financeiro",
   "despesa_financeira",
   "distribuicao_lucros",
   "ajuste",

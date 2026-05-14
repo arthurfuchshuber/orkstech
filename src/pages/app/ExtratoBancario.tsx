@@ -42,8 +42,8 @@ import { DescricaoComRegra } from "@/components/financas/extrato/DescricaoComReg
 import { MixedTypeBulkDialog } from "@/components/financas/MixedTypeBulkDialog";
 import { CategoriaTreeSelect } from "@/components/inputs/CategoriaTreeSelect";
 
-const ALLOWED_INCOME_TIPOS = ["receita", "resultado_financeiro", "ajuste"];
-const ALLOWED_EXPENSE_TIPOS = ["despesa", "despesa_comercial", "custo", "deducao", "imposto", "resultado_financeiro", "distribuicao_lucros", "ajuste"];
+const ALLOWED_INCOME_TIPOS = ["receita", "receita_financeira", "ajuste"];
+const ALLOWED_EXPENSE_TIPOS = ["despesa", "despesa_comercial", "custo", "deducao", "imposto", "despesa_financeira", "distribuicao_lucros", "ajuste"];
 import { useRegraConflitoDetector } from "@/hooks/useRegraConflitoDetector";
 import { RegraConflitoModal } from "@/components/financas/dre/RegraConflitoModal";
 import { classifyInternalSubtype, INTERNAL_SUBTYPE_LABEL, type InternalSubtype } from "@/lib/internal-tx-subtype";
