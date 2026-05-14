@@ -42,8 +42,8 @@ import { DescricaoComRegra } from "@/components/financas/extrato/DescricaoComReg
 import { MixedTypeBulkDialog } from "@/components/financas/MixedTypeBulkDialog";
 import { CategoriaTreeSelect } from "@/components/inputs/CategoriaTreeSelect";
 
-const ALLOWED_INCOME_TIPOS = ["receita", "resultado_financeiro", "ajuste"];
-const ALLOWED_EXPENSE_TIPOS = ["despesa", "despesa_comercial", "custo", "deducao", "imposto", "resultado_financeiro", "distribuicao_lucros", "ajuste"];
+const ALLOWED_INCOME_TIPOS = ["receita", "receita_financeira", "ajuste"];
+const ALLOWED_EXPENSE_TIPOS = ["despesa", "despesa_comercial", "custo", "deducao", "imposto", "despesa_financeira", "distribuicao_lucros", "ajuste"];
 import { useRegraConflitoDetector } from "@/hooks/useRegraConflitoDetector";
 import { RegraConflitoModal } from "@/components/financas/dre/RegraConflitoModal";
 import { classifyInternalSubtype, INTERNAL_SUBTYPE_LABEL, type InternalSubtype } from "@/lib/internal-tx-subtype";
@@ -1180,44 +1180,50 @@ export default function ExtratoBancario() {
           )}
         </div>
         <div className="flex items-center gap-2">
-          {batchSelection.size > 0 && (
-            <>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button size="sm" variant="outline" className="gap-2">
-                    Categorizar em massa <ChevronDown className="w-3.5 h-3.5" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="max-h-[320px] overflow-y-auto custom-scrollbar">
-                  {categoriasFinanceiras
-                    .filter((c: any) => !categoriasFinanceiras.some((child: any) => child.categoria_pai_id === c.id))
-                    .map((c: any) => (
-                      <DropdownMenuItem
-                        key={c.id}
-                        onClick={() => tryBulkCategorize(c.id, c.tipo, c.nome)}
-                      >
-                        {c.nome}
-                      </DropdownMenuItem>
-                    ))}
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem
-                    onClick={() =>
-                      batchUpdateCategoriaMutation.mutate({
-                        ids: Array.from(batchSelection),
-                        categoria_financeira_id: null,
-                      })
-                    }
-                    className="text-muted-foreground"
-                  >
-                    Limpar categoria
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-              <Button size="sm" variant="ghost" onClick={() => setBatchSelection(new Set())}>
-                Cancelar
-              </Button>
-            </>
-          )}
+          {batchSelection.size > 0 && (() => {
+            const selected = transactions.filter((t) => batchSelection.has(t.id));
+            const hasIn = selected.some((t) => isInflow(t));
+            const hasOut = selected.some((t) => !isInflow(t));
+            const bulkDirection: "in" | "out" | "both" =
+              hasIn && hasOut ? "both" : hasIn ? "in" : "out";
+            return (
+              <>
+                <div className="flex items-center gap-2 rounded-md border border-border/60 bg-card px-2.5 h-9">
+                  <span className="text-xs text-muted-foreground whitespace-nowrap">
+                    Categorizar em massa:
+                  </span>
+                  <CategoriaTreeSelect
+                    categorias={categoriasFinanceiras as any}
+                    value={null}
+                    direction={bulkDirection}
+                    placeholder="Selecionar subcategoria"
+                    clearable={false}
+                    onChange={(v) => {
+                      if (!v) return;
+                      const c = (categoriasFinanceiras as any[]).find((x) => x.id === v);
+                      if (c) tryBulkCategorize(c.id, c.tipo, c.nome);
+                    }}
+                    triggerClassName="min-w-[200px]"
+                  />
+                </div>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() =>
+                    batchUpdateCategoriaMutation.mutate({
+                      ids: Array.from(batchSelection),
+                      categoria_financeira_id: null,
+                    })
+                  }
+                >
+                  Limpar categoria
+                </Button>
+                <Button size="sm" variant="ghost" onClick={() => setBatchSelection(new Set())}>
+                  Cancelar
+                </Button>
+              </>
+            );
+          })()}
           <Button
             size="sm"
             onClick={() => { setEditingManual(null); setManualDialogOpen(true); }}

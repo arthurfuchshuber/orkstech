@@ -5,6 +5,8 @@ import { Input } from "@/components/ui/input";
 import { Sparkles, Loader2, Search, ArrowUpRight, ArrowDownLeft, Filter } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -20,7 +22,11 @@ import { OfertaCriarRegraModal } from "./OfertaCriarRegraModal";
 import { DescricaoComRegra } from "./DescricaoComRegra";
 import { CategoriaFinanceiraModal } from "@/components/modals/CategoriaFinanceiraModal";
 import { CategoriaTreeSelect } from "@/components/inputs/CategoriaTreeSelect";
+import { MixedTypeBulkDialog } from "@/components/financas/MixedTypeBulkDialog";
 import { Plus } from "lucide-react";
+
+const ALLOWED_INCOME_TIPOS = ["receita", "receita_financeira", "ajuste"];
+const ALLOWED_EXPENSE_TIPOS = ["despesa", "despesa_comercial", "custo", "deducao", "imposto", "despesa_financeira", "distribuicao_lucros", "ajuste"];
 
 /** Remove o prefixo "Tipo |" mantendo só a contraparte. */
 const stripTypePrefix = (s: string) => {
@@ -66,6 +72,16 @@ export function UncategorizedTransactionsModal({ open, onOpenChange }: Props) {
   const [createCatOpen, setCreateCatOpen] = useState(false);
   const [createCatTipo, setCreateCatTipo] = useState<string>("despesa");
   const [pendingTxId, setPendingTxId] = useState<string | null>(null);
+
+  // Seleção em massa
+  const [selection, setSelection] = useState<Set<string>>(new Set());
+  const [mixedBulk, setMixedBulk] = useState<{
+    open: boolean;
+    categoriaId: string | null;
+    categoriaNome: string;
+    inIds: string[];
+    outIds: string[];
+  }>({ open: false, categoriaId: null, categoriaNome: "", inIds: [], outIds: [] });
 
   const { conflito, setConflito, registrar } = useRegraConflitoDetector();
 
@@ -218,6 +234,53 @@ export function UncategorizedTransactionsModal({ open, onOpenChange }: Props) {
     onError: (err: any) => toast.error(err?.message || "Erro ao salvar"),
   });
 
+  // Mutation em massa
+  const bulkMutation = useMutation({
+    mutationFn: async (vars: { ids: string[]; categoria_financeira_id: string | null }) => {
+      const { error } = await supabase
+        .from("pluggy_transactions" as any)
+        .update({ categoria_financeira_id: vars.categoria_financeira_id })
+        .in("id", vars.ids);
+      if (error) throw error;
+      return vars;
+    },
+    onSuccess: (vars) => {
+      toast.success(`${vars.ids.length} transação(ões) atualizadas`);
+      setSelection(new Set());
+      queryClient.invalidateQueries({ queryKey: ["uncategorized-tx-list"] });
+      queryClient.invalidateQueries({ queryKey: ["pluggy_transactions"] });
+      queryClient.invalidateQueries({ queryKey: ["uncategorized_tx_count"] });
+    },
+    onError: (err: any) => toast.error(err?.message || "Erro ao aplicar em massa"),
+  });
+
+  const tryBulkApply = (catId: string, catTipo: string, catNome: string) => {
+    const ids = Array.from(selection);
+    const selected = transactions.filter((t) => selection.has(t.id));
+    const inIds = selected.filter((t) => isInflow(t)).map((t) => t.id);
+    const outIds = selected.filter((t) => !isInflow(t)).map((t) => t.id);
+    const isIncomeCat = ALLOWED_INCOME_TIPOS.includes(catTipo);
+    const isExpenseCat = ALLOWED_EXPENSE_TIPOS.includes(catTipo);
+    const both = isIncomeCat && isExpenseCat;
+    if (both) {
+      bulkMutation.mutate({ ids, categoria_financeira_id: catId });
+      return;
+    }
+    if (inIds.length > 0 && outIds.length > 0 && (isIncomeCat || isExpenseCat)) {
+      setMixedBulk({ open: true, categoriaId: catId, categoriaNome: catNome, inIds, outIds });
+      return;
+    }
+    if ((isIncomeCat && outIds.length > 0) || (isExpenseCat && inIds.length > 0)) {
+      toast.error(
+        isIncomeCat
+          ? "Esta categoria é de entrada e a seleção contém apenas saídas."
+          : "Esta categoria é de saída e a seleção contém apenas entradas.",
+      );
+      return;
+    }
+    bulkMutation.mutate({ ids, categoria_financeira_id: catId });
+  };
+
   const creditAccountIds = useMemo(
     () => new Set(accounts.filter((a: any) => a.type === "CREDIT").map((a: any) => a.pluggy_account_id)),
     [accounts]
@@ -312,6 +375,74 @@ export function UncategorizedTransactionsModal({ open, onOpenChange }: Props) {
             </span>
           </div>
 
+          {/* Barra de seleção em massa */}
+          {filtered.length > 0 && (() => {
+            const allSelected = filtered.every((t) => selection.has(t.id));
+            const someSelected = selection.size > 0;
+            const selectedList = transactions.filter((t) => selection.has(t.id));
+            const hasIn = selectedList.some((t) => isInflow(t));
+            const hasOut = selectedList.some((t) => !isInflow(t));
+            const bulkDirection: "in" | "out" | "both" =
+              hasIn && hasOut ? "both" : hasIn ? "in" : "out";
+            return (
+              <div className="flex items-center gap-2 px-1">
+                <Checkbox
+                  checked={allSelected}
+                  onCheckedChange={(v) => {
+                    if (v) setSelection(new Set(filtered.map((t) => t.id)));
+                    else setSelection(new Set());
+                  }}
+                />
+                <span className="text-xs text-muted-foreground">
+                  {someSelected ? `${selection.size} selecionada(s)` : "Selecionar todos"}
+                </span>
+                {someSelected && (
+                  <>
+                    <div className="ml-3 flex items-center gap-2 rounded-md border border-border/60 bg-card px-2.5 h-8">
+                      <span className="text-[11px] text-muted-foreground whitespace-nowrap">
+                        Categorizar em massa:
+                      </span>
+                      <CategoriaTreeSelect
+                        categorias={allCategorias as any}
+                        value={null}
+                        direction={bulkDirection}
+                        placeholder="Selecionar subcategoria"
+                        clearable={false}
+                        onChange={(v) => {
+                          if (!v) return;
+                          const c = (allCategorias as any[]).find((x) => x.id === v);
+                          if (c) tryBulkApply(c.id, c.tipo, c.nome);
+                        }}
+                        triggerClassName="min-w-[180px]"
+                      />
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-8 text-xs"
+                      onClick={() =>
+                        bulkMutation.mutate({
+                          ids: Array.from(selection),
+                          categoria_financeira_id: null,
+                        })
+                      }
+                    >
+                      Limpar categoria
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-8 text-xs"
+                      onClick={() => setSelection(new Set())}
+                    >
+                      Cancelar
+                    </Button>
+                  </>
+                )}
+              </div>
+            );
+          })()}
+
           <div className="max-h-[55vh] overflow-y-auto rounded-md border border-border/40 divide-y divide-border/40">
             {isLoading ? (
               <div className="p-8 flex items-center justify-center text-sm text-muted-foreground gap-2">
@@ -330,6 +461,18 @@ export function UncategorizedTransactionsModal({ open, onOpenChange }: Props) {
                     key={tx.id}
                     className="flex items-center gap-3 px-3 py-2 hover:bg-muted/30 transition-colors"
                   >
+                    <Checkbox
+                      checked={selection.has(tx.id)}
+                      onCheckedChange={(v) => {
+                        setSelection((prev) => {
+                          const next = new Set(prev);
+                          if (v) next.add(tx.id);
+                          else next.delete(tx.id);
+                          return next;
+                        });
+                      }}
+                      className="shrink-0"
+                    />
                     <div className="w-7 h-7 rounded-md bg-muted/40 flex items-center justify-center shrink-0">
                       {isIn ? (
                         <ArrowDownLeft className="w-3.5 h-3.5 text-success" />
@@ -456,6 +599,21 @@ export function UncategorizedTransactionsModal({ open, onOpenChange }: Props) {
             setPendingTxId(null);
           }
         }}
+      />
+
+      <MixedTypeBulkDialog
+        open={mixedBulk.open}
+        onOpenChange={(v) => setMixedBulk((p) => ({ ...p, open: v }))}
+        totalIn={mixedBulk.inIds.length}
+        totalOut={mixedBulk.outIds.length}
+        onApplyIncome={() =>
+          mixedBulk.categoriaId &&
+          bulkMutation.mutate({ ids: mixedBulk.inIds, categoria_financeira_id: mixedBulk.categoriaId })
+        }
+        onApplyExpense={() =>
+          mixedBulk.categoriaId &&
+          bulkMutation.mutate({ ids: mixedBulk.outIds, categoria_financeira_id: mixedBulk.categoriaId })
+        }
       />
     </>
   );
