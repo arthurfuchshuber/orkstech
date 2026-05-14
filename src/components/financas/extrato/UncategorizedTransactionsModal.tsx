@@ -600,6 +600,21 @@ export function UncategorizedTransactionsModal({ open, onOpenChange }: Props) {
           }
         }}
       />
+
+      <MixedTypeBulkDialog
+        open={mixedBulk.open}
+        onOpenChange={(v) => setMixedBulk((p) => ({ ...p, open: v }))}
+        totalIn={mixedBulk.inIds.length}
+        totalOut={mixedBulk.outIds.length}
+        onApplyIncome={() =>
+          mixedBulk.categoriaId &&
+          bulkMutation.mutate({ ids: mixedBulk.inIds, categoria_financeira_id: mixedBulk.categoriaId })
+        }
+        onApplyExpense={() =>
+          mixedBulk.categoriaId &&
+          bulkMutation.mutate({ ids: mixedBulk.outIds, categoria_financeira_id: mixedBulk.categoriaId })
+        }
+      />
     </>
   );
 }
