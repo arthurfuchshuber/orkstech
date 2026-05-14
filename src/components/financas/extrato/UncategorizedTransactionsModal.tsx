@@ -234,6 +234,53 @@ export function UncategorizedTransactionsModal({ open, onOpenChange }: Props) {
     onError: (err: any) => toast.error(err?.message || "Erro ao salvar"),
   });
 
+  // Mutation em massa
+  const bulkMutation = useMutation({
+    mutationFn: async (vars: { ids: string[]; categoria_financeira_id: string | null }) => {
+      const { error } = await supabase
+        .from("pluggy_transactions" as any)
+        .update({ categoria_financeira_id: vars.categoria_financeira_id })
+        .in("id", vars.ids);
+      if (error) throw error;
+      return vars;
+    },
+    onSuccess: (vars) => {
+      toast.success(`${vars.ids.length} transação(ões) atualizadas`);
+      setSelection(new Set());
+      queryClient.invalidateQueries({ queryKey: ["uncategorized-tx-list"] });
+      queryClient.invalidateQueries({ queryKey: ["pluggy_transactions"] });
+      queryClient.invalidateQueries({ queryKey: ["uncategorized_tx_count"] });
+    },
+    onError: (err: any) => toast.error(err?.message || "Erro ao aplicar em massa"),
+  });
+
+  const tryBulkApply = (catId: string, catTipo: string, catNome: string) => {
+    const ids = Array.from(selection);
+    const selected = transactions.filter((t) => selection.has(t.id));
+    const inIds = selected.filter((t) => isInflow(t)).map((t) => t.id);
+    const outIds = selected.filter((t) => !isInflow(t)).map((t) => t.id);
+    const isIncomeCat = ALLOWED_INCOME_TIPOS.includes(catTipo);
+    const isExpenseCat = ALLOWED_EXPENSE_TIPOS.includes(catTipo);
+    const both = isIncomeCat && isExpenseCat;
+    if (both) {
+      bulkMutation.mutate({ ids, categoria_financeira_id: catId });
+      return;
+    }
+    if (inIds.length > 0 && outIds.length > 0 && (isIncomeCat || isExpenseCat)) {
+      setMixedBulk({ open: true, categoriaId: catId, categoriaNome: catNome, inIds, outIds });
+      return;
+    }
+    if ((isIncomeCat && outIds.length > 0) || (isExpenseCat && inIds.length > 0)) {
+      toast.error(
+        isIncomeCat
+          ? "Esta categoria é de entrada e a seleção contém apenas saídas."
+          : "Esta categoria é de saída e a seleção contém apenas entradas.",
+      );
+      return;
+    }
+    bulkMutation.mutate({ ids, categoria_financeira_id: catId });
+  };
+
   const creditAccountIds = useMemo(
     () => new Set(accounts.filter((a: any) => a.type === "CREDIT").map((a: any) => a.pluggy_account_id)),
     [accounts]
