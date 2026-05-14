@@ -375,6 +375,74 @@ export function UncategorizedTransactionsModal({ open, onOpenChange }: Props) {
             </span>
           </div>
 
+          {/* Barra de seleção em massa */}
+          {filtered.length > 0 && (() => {
+            const allSelected = filtered.every((t) => selection.has(t.id));
+            const someSelected = selection.size > 0;
+            const selectedList = transactions.filter((t) => selection.has(t.id));
+            const hasIn = selectedList.some((t) => isInflow(t));
+            const hasOut = selectedList.some((t) => !isInflow(t));
+            const bulkDirection: "in" | "out" | "both" =
+              hasIn && hasOut ? "both" : hasIn ? "in" : "out";
+            return (
+              <div className="flex items-center gap-2 px-1">
+                <Checkbox
+                  checked={allSelected}
+                  onCheckedChange={(v) => {
+                    if (v) setSelection(new Set(filtered.map((t) => t.id)));
+                    else setSelection(new Set());
+                  }}
+                />
+                <span className="text-xs text-muted-foreground">
+                  {someSelected ? `${selection.size} selecionada(s)` : "Selecionar todos"}
+                </span>
+                {someSelected && (
+                  <>
+                    <div className="ml-3 flex items-center gap-2 rounded-md border border-border/60 bg-card px-2.5 h-8">
+                      <span className="text-[11px] text-muted-foreground whitespace-nowrap">
+                        Categorizar em massa:
+                      </span>
+                      <CategoriaTreeSelect
+                        categorias={allCategorias as any}
+                        value={null}
+                        direction={bulkDirection}
+                        placeholder="Selecionar subcategoria"
+                        clearable={false}
+                        onChange={(v) => {
+                          if (!v) return;
+                          const c = (allCategorias as any[]).find((x) => x.id === v);
+                          if (c) tryBulkApply(c.id, c.tipo, c.nome);
+                        }}
+                        triggerClassName="min-w-[180px]"
+                      />
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-8 text-xs"
+                      onClick={() =>
+                        bulkMutation.mutate({
+                          ids: Array.from(selection),
+                          categoria_financeira_id: null,
+                        })
+                      }
+                    >
+                      Limpar categoria
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-8 text-xs"
+                      onClick={() => setSelection(new Set())}
+                    >
+                      Cancelar
+                    </Button>
+                  </>
+                )}
+              </div>
+            );
+          })()}
+
           <div className="max-h-[55vh] overflow-y-auto rounded-md border border-border/40 divide-y divide-border/40">
             {isLoading ? (
               <div className="p-8 flex items-center justify-center text-sm text-muted-foreground gap-2">
