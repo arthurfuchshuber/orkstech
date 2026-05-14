@@ -5,6 +5,8 @@ import { Input } from "@/components/ui/input";
 import { Sparkles, Loader2, Search, ArrowUpRight, ArrowDownLeft, Filter } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -20,7 +22,11 @@ import { OfertaCriarRegraModal } from "./OfertaCriarRegraModal";
 import { DescricaoComRegra } from "./DescricaoComRegra";
 import { CategoriaFinanceiraModal } from "@/components/modals/CategoriaFinanceiraModal";
 import { CategoriaTreeSelect } from "@/components/inputs/CategoriaTreeSelect";
+import { MixedTypeBulkDialog } from "@/components/financas/MixedTypeBulkDialog";
 import { Plus } from "lucide-react";
+
+const ALLOWED_INCOME_TIPOS = ["receita", "receita_financeira", "ajuste"];
+const ALLOWED_EXPENSE_TIPOS = ["despesa", "despesa_comercial", "custo", "deducao", "imposto", "despesa_financeira", "distribuicao_lucros", "ajuste"];
 
 /** Remove o prefixo "Tipo |" mantendo só a contraparte. */
 const stripTypePrefix = (s: string) => {
