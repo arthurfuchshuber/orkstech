@@ -73,6 +73,16 @@ export function UncategorizedTransactionsModal({ open, onOpenChange }: Props) {
   const [createCatTipo, setCreateCatTipo] = useState<string>("despesa");
   const [pendingTxId, setPendingTxId] = useState<string | null>(null);
 
+  // Seleção em massa
+  const [selection, setSelection] = useState<Set<string>>(new Set());
+  const [mixedBulk, setMixedBulk] = useState<{
+    open: boolean;
+    categoriaId: string | null;
+    categoriaNome: string;
+    inIds: string[];
+    outIds: string[];
+  }>({ open: false, categoriaId: null, categoriaNome: "", inIds: [], outIds: [] });
+
   const { conflito, setConflito, registrar } = useRegraConflitoDetector();
 
   // Buffer pra detectar quando usuário aplicou a mesma categoria em ≥2 transações
