@@ -461,6 +461,18 @@ export function UncategorizedTransactionsModal({ open, onOpenChange }: Props) {
                     key={tx.id}
                     className="flex items-center gap-3 px-3 py-2 hover:bg-muted/30 transition-colors"
                   >
+                    <Checkbox
+                      checked={selection.has(tx.id)}
+                      onCheckedChange={(v) => {
+                        setSelection((prev) => {
+                          const next = new Set(prev);
+                          if (v) next.add(tx.id);
+                          else next.delete(tx.id);
+                          return next;
+                        });
+                      }}
+                      className="shrink-0"
+                    />
                     <div className="w-7 h-7 rounded-md bg-muted/40 flex items-center justify-center shrink-0">
                       {isIn ? (
                         <ArrowDownLeft className="w-3.5 h-3.5 text-success" />
