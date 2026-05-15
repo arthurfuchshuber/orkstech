@@ -123,6 +123,7 @@ export function PluggyTransactionEditDialog({ open, onOpenChange, transactionId,
           categoria_financeira_id: categoriaId,
           cost_center_id: costCenterId,
           payment_method_id: paymentMethodId,
+          business_unit_id: businessUnitId,
           notes: notes.trim() || null,
         })
         .eq("id", transactionId);
