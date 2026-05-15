@@ -129,6 +129,7 @@ export function ManualBankTransactionDialog({ open, onOpenChange, editing }: Pro
         categoria_financeira_id: editing.categoria_financeira_id ?? "",
         notes: editing.notes ?? "",
         bank_account_id: editing.bank_account_id ?? "",
+        business_unit_id: editing.business_unit_id ?? "",
       });
     } else {
       setForm(empty);
