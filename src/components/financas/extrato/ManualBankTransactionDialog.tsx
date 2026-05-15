@@ -22,9 +22,10 @@ import { ManagedSelectInput } from "@/components/inputs/ManagedSelectInput";
 import { useManagedSelect } from "@/hooks/useManagedSelect";
 import { ContaBancariaModal } from "@/components/modals/ContaBancariaModal";
 import { CategoriaFinanceiraModal } from "@/components/modals/CategoriaFinanceiraModal";
-import { Loader2, ArrowDownLeft, ArrowUpRight, Landmark, FolderTree, AlertTriangle } from "lucide-react";
+import { Loader2, ArrowDownLeft, ArrowUpRight, Landmark, FolderTree, AlertTriangle, Layers } from "lucide-react";
 import { toast } from "sonner";
 import { useBankAccountOptions } from "@/hooks/useBankAccountOptions";
+import { useBusinessUnits } from "@/hooks/useBusinessUnits";
 
 export interface ManualBankTx {
   id?: string;
