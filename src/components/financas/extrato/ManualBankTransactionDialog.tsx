@@ -361,6 +361,23 @@ export function ManualBankTransactionDialog({ open, onOpenChange, editing }: Pro
               addLabel="Nova categoria"
             />
 
+            {/* Unidade de Negócio (opcional) — habilita filtros no DRE por unidade */}
+            <div>
+              <Label className="text-sm font-medium mb-1 flex items-center gap-1.5">
+                <Layers className="w-3.5 h-3.5" /> Unidade de Negócio
+              </Label>
+              <select
+                value={form.business_unit_id}
+                onChange={(e) => update("business_unit_id", e.target.value)}
+                className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm"
+              >
+                <option value="">— Sem unidade (consolidado) —</option>
+                {businessUnits.map((u) => (
+                  <option key={u.id} value={u.id}>{u.nome}</option>
+                ))}
+              </select>
+            </div>
+
             <div>
               <Label htmlFor="doc" className="text-sm font-medium">
                 Documento
