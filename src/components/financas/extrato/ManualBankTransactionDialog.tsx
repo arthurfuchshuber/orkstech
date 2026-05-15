@@ -168,6 +168,7 @@ export function ManualBankTransactionDialog({ open, onOpenChange, editing }: Pro
         document_number: form.document_number.trim() || null,
         category: catRow?.nome ?? null,
         categoria_financeira_id: form.categoria_financeira_id || null,
+        business_unit_id: form.business_unit_id || null,
         notes: form.notes.trim() || null,
         source: "manual" as const,
       };
