@@ -69,10 +69,11 @@ export function SubscriptionGuard({ children }: { children: ReactNode }) {
 
   const shouldBlock =
     !isLoading &&
+    !isLoadingSuperAdmin &&
+    !isSuperAdmin &&
     !hasAccess &&
     !isOnPlansPage &&
-    !isOnOnboarding &&
-    !(isSuperAdmin && isOnAdminPanel);
+    !isOnOnboarding;
 
   const reason = blockReason ? REASONS[blockReason] : null;
 
