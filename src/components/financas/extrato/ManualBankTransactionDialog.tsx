@@ -81,6 +81,7 @@ export function ManualBankTransactionDialog({ open, onOpenChange, editing }: Pro
   // Bank accounts: manuais + Pluggy (Open Finance) — mesma lógica de Contas a Pagar/Receber
   // Espelha 100% o cadastro de Contas Bancárias (sem abreviar nomes Pluggy ou bancos)
   const { options: bankAccounts } = useBankAccountOptions();
+  const { businessUnits } = useBusinessUnits();
 
   // Categorias financeiras (Plano de Contas) — full hierarchy used to find leaves
   const { data: categoriasFinanceiras = [] } = useQuery({
