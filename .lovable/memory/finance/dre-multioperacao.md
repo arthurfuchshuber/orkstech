@@ -1,12 +1,11 @@
 ---
-name: DRE Multioperação
-description: DRE pode ser consolidado ou filtrado por unidade de negócio (produto/operação); Distribuição de Lucros e Lucro Retido só aparecem no consolidado
+name: DRE Multioperação por Unidade de Negócio
+description: Filtro do DRE por business_unit_id, suportado em todos os lançamentos financeiros
 type: feature
 ---
-- Tabela `business_units` (empresa-scoped, RLS por membro) representa produtos/operações (ex: SaaS Imóveis, Consultoria, Estética).
-- Coluna opcional `business_unit_id` em accounts_payable, accounts_receivable, pluggy_transactions, manual_bank_transactions, cash_transactions (FK ON DELETE SET NULL).
-- Cadastro em Configurações > Empresa > Unidades de Negócio (`BusinessUnitsSection`).
-- Filtro `businessUnitId` em `useDRE` e `useDREMonthly`. Quando filtrado: oculta indicadores `distribuicao-lucros` e `lucro-retido` + categoria-tronco `distribuicao_lucros`.
-- Indicadores (Receita Líquida, Lucro Bruto, EBITDA, margens, etc.) NUNCA são categorias no banco — sempre calculados em memória.
-- Lançamentos sem `business_unit_id` aparecem só no consolidado.
-- Form de Contas a Pagar tem campo opcional logo após Centro de Custo. Receivables/Pluggy/manual reuse mesmo padrão (a expandir conforme demanda).
+
+DRE Mensal (DREMensalView) tem selector "Unidade de Negócio" no topo. Filtra `accounts_payable`, `accounts_receivable`, `cash_transactions`, `manual_bank_transactions`, `pluggy_transactions` por `business_unit_id` (todas as tabelas têm a coluna).
+
+Campo "Unidade de Negócio" (opcional) presente em: Contas a Pagar (form + edição inline), Contas a Receber (form + edição inline), Extrato Manual (ManualBankTransactionDialog), Pluggy (PluggyTransactionEditDialog).
+
+"Sem unidade" = consolidado/empresa toda. Auto-herdar do cliente/fornecedor e Regras Automáticas ficaram para entrega futura.
