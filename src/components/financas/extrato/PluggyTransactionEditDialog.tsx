@@ -7,9 +7,10 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Lock, Sparkles } from "lucide-react";
+import { Lock, Sparkles, Layers } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useEmpresa } from "@/hooks/useEmpresa";
+import { useBusinessUnits } from "@/hooks/useBusinessUnits";
 import { toast } from "sonner";
 import { SugestaoCategoriaModal } from "./SugestaoCategoriaModal";
 
@@ -37,9 +38,11 @@ export function PluggyTransactionEditDialog({ open, onOpenChange, transactionId,
   const [categoriaId, setCategoriaId] = useState<string | null>(null);
   const [costCenterId, setCostCenterId] = useState<string | null>(null);
   const [paymentMethodId, setPaymentMethodId] = useState<string | null>(null);
+  const [businessUnitId, setBusinessUnitId] = useState<string | null>(null);
   const [notes, setNotes] = useState("");
   const [sugestaoOpen, setSugestaoOpen] = useState(false);
   const [autoOfferedFor, setAutoOfferedFor] = useState<string | null>(null);
+  const { businessUnits } = useBusinessUnits();
 
   // Load current values
   const { data: tx } = useQuery({
@@ -48,7 +51,7 @@ export function PluggyTransactionEditDialog({ open, onOpenChange, transactionId,
       if (!transactionId) return null;
       const { data, error } = await supabase
         .from("pluggy_transactions" as any)
-        .select("id, categoria_financeira_id, cost_center_id, payment_method_id, notes")
+        .select("id, categoria_financeira_id, cost_center_id, payment_method_id, business_unit_id, notes")
         .eq("id", transactionId)
         .maybeSingle();
       if (error) throw error;
@@ -62,6 +65,7 @@ export function PluggyTransactionEditDialog({ open, onOpenChange, transactionId,
       setCategoriaId(tx.categoria_financeira_id ?? null);
       setCostCenterId(tx.cost_center_id ?? null);
       setPaymentMethodId(tx.payment_method_id ?? null);
+      setBusinessUnitId(tx.business_unit_id ?? null);
       setNotes(tx.notes ?? "");
     }
   }, [tx]);
@@ -119,6 +123,7 @@ export function PluggyTransactionEditDialog({ open, onOpenChange, transactionId,
           categoria_financeira_id: categoriaId,
           cost_center_id: costCenterId,
           payment_method_id: paymentMethodId,
+          business_unit_id: businessUnitId,
           notes: notes.trim() || null,
         })
         .eq("id", transactionId);
@@ -202,6 +207,19 @@ export function PluggyTransactionEditDialog({ open, onOpenChange, transactionId,
                 <SelectItem value="_none">— Nenhuma —</SelectItem>
                 {formasPagamento.map((f: any) => (
                   <SelectItem key={f.id} value={f.id}>{f.nome}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <Label className="flex items-center gap-1.5"><Layers className="w-3.5 h-3.5" /> Unidade de Negócio</Label>
+            <Select value={businessUnitId ?? "_none"} onValueChange={(v) => setBusinessUnitId(v === "_none" ? null : v)}>
+              <SelectTrigger><SelectValue placeholder="Nenhuma (consolidado)" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="_none">— Sem unidade (consolidado) —</SelectItem>
+                {businessUnits.map((u) => (
+                  <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>
                 ))}
               </SelectContent>
             </Select>

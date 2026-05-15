@@ -22,9 +22,10 @@ import { ManagedSelectInput } from "@/components/inputs/ManagedSelectInput";
 import { useManagedSelect } from "@/hooks/useManagedSelect";
 import { ContaBancariaModal } from "@/components/modals/ContaBancariaModal";
 import { CategoriaFinanceiraModal } from "@/components/modals/CategoriaFinanceiraModal";
-import { Loader2, ArrowDownLeft, ArrowUpRight, Landmark, FolderTree, AlertTriangle } from "lucide-react";
+import { Loader2, ArrowDownLeft, ArrowUpRight, Landmark, FolderTree, AlertTriangle, Layers } from "lucide-react";
 import { toast } from "sonner";
 import { useBankAccountOptions } from "@/hooks/useBankAccountOptions";
+import { useBusinessUnits } from "@/hooks/useBusinessUnits";
 
 export interface ManualBankTx {
   id?: string;
@@ -37,6 +38,7 @@ export interface ManualBankTx {
   categoria_financeira_id: string;
   notes: string;
   bank_account_id: string;
+  business_unit_id: string;
 }
 
 const empty: ManualBankTx = {
@@ -49,6 +51,7 @@ const empty: ManualBankTx = {
   categoria_financeira_id: "",
   notes: "",
   bank_account_id: "",
+  business_unit_id: "",
 };
 
 interface Props {
@@ -78,6 +81,7 @@ export function ManualBankTransactionDialog({ open, onOpenChange, editing }: Pro
   // Bank accounts: manuais + Pluggy (Open Finance) — mesma lógica de Contas a Pagar/Receber
   // Espelha 100% o cadastro de Contas Bancárias (sem abreviar nomes Pluggy ou bancos)
   const { options: bankAccounts } = useBankAccountOptions();
+  const { businessUnits } = useBusinessUnits();
 
   // Categorias financeiras (Plano de Contas) — full hierarchy used to find leaves
   const { data: categoriasFinanceiras = [] } = useQuery({
@@ -126,6 +130,7 @@ export function ManualBankTransactionDialog({ open, onOpenChange, editing }: Pro
         categoria_financeira_id: editing.categoria_financeira_id ?? "",
         notes: editing.notes ?? "",
         bank_account_id: editing.bank_account_id ?? "",
+        business_unit_id: editing.business_unit_id ?? "",
       });
     } else {
       setForm(empty);
@@ -163,6 +168,7 @@ export function ManualBankTransactionDialog({ open, onOpenChange, editing }: Pro
         document_number: form.document_number.trim() || null,
         category: catRow?.nome ?? null,
         categoria_financeira_id: form.categoria_financeira_id || null,
+        business_unit_id: form.business_unit_id || null,
         notes: form.notes.trim() || null,
         source: "manual" as const,
       };
@@ -354,6 +360,23 @@ export function ManualBankTransactionDialog({ open, onOpenChange, editing }: Pro
               onDelete={catFinCrud.onDelete}
               addLabel="Nova categoria"
             />
+
+            {/* Unidade de Negócio (opcional) — habilita filtros no DRE por unidade */}
+            <div>
+              <Label className="text-sm font-medium mb-1 flex items-center gap-1.5">
+                <Layers className="w-3.5 h-3.5" /> Unidade de Negócio
+              </Label>
+              <select
+                value={form.business_unit_id}
+                onChange={(e) => update("business_unit_id", e.target.value)}
+                className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm"
+              >
+                <option value="">— Sem unidade (consolidado) —</option>
+                {businessUnits.map((u) => (
+                  <option key={u.id} value={u.id}>{u.nome}</option>
+                ))}
+              </select>
+            </div>
 
             <div>
               <Label htmlFor="doc" className="text-sm font-medium">
