@@ -51,7 +51,7 @@ export function PluggyTransactionEditDialog({ open, onOpenChange, transactionId,
       if (!transactionId) return null;
       const { data, error } = await supabase
         .from("pluggy_transactions" as any)
-        .select("id, categoria_financeira_id, cost_center_id, payment_method_id, notes")
+        .select("id, categoria_financeira_id, cost_center_id, payment_method_id, business_unit_id, notes")
         .eq("id", transactionId)
         .maybeSingle();
       if (error) throw error;
@@ -65,6 +65,7 @@ export function PluggyTransactionEditDialog({ open, onOpenChange, transactionId,
       setCategoriaId(tx.categoria_financeira_id ?? null);
       setCostCenterId(tx.cost_center_id ?? null);
       setPaymentMethodId(tx.payment_method_id ?? null);
+      setBusinessUnitId(tx.business_unit_id ?? null);
       setNotes(tx.notes ?? "");
     }
   }, [tx]);
