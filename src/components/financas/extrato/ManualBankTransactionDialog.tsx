@@ -38,6 +38,7 @@ export interface ManualBankTx {
   categoria_financeira_id: string;
   notes: string;
   bank_account_id: string;
+  business_unit_id: string;
 }
 
 const empty: ManualBankTx = {
@@ -50,6 +51,7 @@ const empty: ManualBankTx = {
   categoria_financeira_id: "",
   notes: "",
   bank_account_id: "",
+  business_unit_id: "",
 };
 
 interface Props {
