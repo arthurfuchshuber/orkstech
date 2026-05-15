@@ -50,7 +50,7 @@ const REASONS = {
 
 export function SubscriptionGuard({ children }: { children: ReactNode }) {
   const { hasAccess, blockReason, isLoading } = useSubscription();
-  const { isSuperAdmin } = useSuperAdmin();
+  const { isSuperAdmin, isLoading: isLoadingSuperAdmin } = useSuperAdmin();
   const { signOut } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
