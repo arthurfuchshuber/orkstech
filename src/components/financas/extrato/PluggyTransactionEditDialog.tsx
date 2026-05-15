@@ -213,6 +213,19 @@ export function PluggyTransactionEditDialog({ open, onOpenChange, transactionId,
           </div>
 
           <div>
+            <Label className="flex items-center gap-1.5"><Layers className="w-3.5 h-3.5" /> Unidade de Negócio</Label>
+            <Select value={businessUnitId ?? "_none"} onValueChange={(v) => setBusinessUnitId(v === "_none" ? null : v)}>
+              <SelectTrigger><SelectValue placeholder="Nenhuma (consolidado)" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="_none">— Sem unidade (consolidado) —</SelectItem>
+                {businessUnits.map((u) => (
+                  <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
             <Label>Notas internas</Label>
             <Textarea
               value={notes}
