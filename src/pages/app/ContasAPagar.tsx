@@ -29,6 +29,7 @@ import { CentroCustoModal } from "@/components/modals/CentroCustoModal";
 import { BusinessUnitModal } from "@/components/modals/BusinessUnitModal";
 import { useBusinessUnits } from "@/hooks/useBusinessUnits";
 import { ContaBancariaModal } from "@/components/modals/ContaBancariaModal";
+import { useBankAccountOptions } from "@/hooks/useBankAccountOptions";
 import { FormaPagamentoModal } from "@/components/modals/FormaPagamentoModal";
 import { FornecedorModal, type FornecedorPrefill } from "@/components/modals/FornecedorModal";
 import { ClienteModal } from "@/components/modals/ClienteModal";
@@ -924,7 +925,16 @@ export default function ContasAPagar() {
 
   const openPaymentDialog = (id: string) => {
     const item = payables.find((p: any) => p.id === id);
-    const isOverdue = item && (item.status === "overdue" || (item.status === "pending" && isPast(new Date(item.due_date))));
+    // Considera vencida só a partir do 1º dia útil após o vencimento (pula sáb/dom)
+    const nextBusinessDay = (d: Date) => {
+      const x = new Date(d); x.setDate(x.getDate() + 1);
+      while (x.getDay() === 0 || x.getDay() === 6) x.setDate(x.getDate() + 1);
+      return x;
+    };
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const dueDate = item ? new Date(item.due_date) : null;
+    const overdueSince = dueDate ? nextBusinessDay(dueDate) : null;
+    const isOverdue = item && (item.status === "overdue" || (item.status === "pending" && overdueSince && today >= overdueSince));
     setPayingId(id);
     setPaymentBankAccount("");
     setPaymentDate(new Date());

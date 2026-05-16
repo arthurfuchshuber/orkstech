@@ -400,7 +400,7 @@ export default function ContasAReceber() {
         }
       }
     },
-    onError: () => toast.error("Erro ao salvar conta"),
+    onError: (e: any) => toast.error(`Erro ao salvar conta: ${e?.message || "desconhecido"}`),
   });
 
   const pushReceivableToAsaas = async (receivableId: string, scope: "single" | "group" = "single") => {
@@ -873,7 +873,16 @@ export default function ContasAReceber() {
 
   const openReceiptDialog = (id: string) => {
     const item = receivables.find((p: any) => p.id === id);
-    const isOverdue = item && (item.status === "overdue" || (item.status === "pending" && isPast(new Date(item.due_date))));
+    // Considera vencida só a partir do 1º dia útil após o vencimento (pula sáb/dom)
+    const nextBusinessDay = (d: Date) => {
+      const x = new Date(d); x.setDate(x.getDate() + 1);
+      while (x.getDay() === 0 || x.getDay() === 6) x.setDate(x.getDate() + 1);
+      return x;
+    };
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const dueDate = item ? new Date(item.due_date) : null;
+    const overdueSince = dueDate ? nextBusinessDay(dueDate) : null;
+    const isOverdue = item && (item.status === "overdue" || (item.status === "pending" && overdueSince && today >= overdueSince));
     setReceivingId(id);
     setReceiptBankAccount("");
     setReceiptDate(new Date());
