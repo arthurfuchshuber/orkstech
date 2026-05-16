@@ -297,59 +297,16 @@ export default function ContasAPagar() {
     },
   });
 
-  const { data: bankAccounts = [] } = useQuery({
-    queryKey: ["contas-bancarias", empresaId],
-    queryFn: async () => {
-      // Manual accounts
-      let q = supabase.from("contas_bancarias").select("id, nome, banco").eq("ativo", true).order("nome");
-      if (empresaId) q = q.eq("empresa_id", empresaId);
-      const { data: manual } = await q;
-
-      // Pluggy (Open Finance) — only checking accounts
-      const { data: pluggy } = await supabase
-        .from("pluggy_bank_accounts")
-        .select("id, name, pluggy_item_id, type, subtype, bank_data")
-        .eq("type", "BANK")
-        .eq("subtype", "CHECKING_ACCOUNT")
-        .order("name");
-
-      // Get connector names for friendly labels
-      const itemIds = [...new Set((pluggy ?? []).map((p: any) => p.pluggy_item_id))];
-      let connectorMap: Record<string, string> = {};
-      if (itemIds.length) {
-        const { data: conns } = await supabase
-          .from("pluggy_connections")
-          .select("pluggy_item_id, connector_name")
-          .in("pluggy_item_id", itemIds);
-        for (const c of conns ?? []) {
-          connectorMap[c.pluggy_item_id] = c.connector_name || "";
-        }
-      }
-
-      // Get empresa names for PJ accounts without owner
-      const { data: empresasList } = await supabase
-        .from("empresas")
-        .select("cnpj, nome_fantasia, razao_social");
-      const empresaByDoc: Record<string, string> = {};
-      for (const e of empresasList ?? []) {
-        const cleanCnpj = (e.cnpj || "").replace(/\D/g, "");
-        if (cleanCnpj) empresaByDoc[cleanCnpj] = e.nome_fantasia || e.razao_social || "";
-      }
-
-      const pluggyMapped = (pluggy ?? []).map((p: any) => {
-        const connName = connectorMap[p.pluggy_item_id] || p.name;
-        let ownerName = (p.bank_data as any)?.owner || "";
-        if (!ownerName) {
-          const taxNum = ((p.bank_data as any)?.taxNumber || "").replace(/\D/g, "");
-          ownerName = empresaByDoc[taxNum] || "";
-        }
-        const label = ownerName ? `${connName} - ${ownerName}` : connName;
-        return { id: p.id, nome: label, banco: "Open Finance" };
-      });
-
-      return [...(manual ?? []), ...pluggyMapped];
-    },
-  });
+  // Espelha 100% o cadastro (Configurações > Financeiro > Contas Bancárias/Cartões)
+  const { options: bankAccountOptions } = useBankAccountOptions();
+  const bankAccounts = useMemo(
+    () => bankAccountOptions.map((b) => ({
+      id: b.id,
+      nome: b.primaryLabel,
+      banco: b.secondaryLabel,
+    })),
+    [bankAccountOptions]
+  );
 
   const { data: paymentMethods = [] } = useQuery({
     queryKey: ["formas-pagamento", empresaId],
