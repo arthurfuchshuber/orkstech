@@ -166,7 +166,7 @@ export function ManagedSelectInput({
   const hasEdit = onEdit || onEditModal;
 
   return (
-    <div className="space-y-1.5">
+    <div className="space-y-1.5 w-full min-w-0">
       {label && <label className="text-sm font-medium text-foreground">{label}</label>}
       <Popover open={disabled ? false : open} onOpenChange={(v) => { if (disabled) return; setOpen(v); if (!v) cancelInput(); setSearchTerm(""); }}>
         <PopoverTrigger asChild>
