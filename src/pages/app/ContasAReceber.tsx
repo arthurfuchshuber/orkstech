@@ -19,6 +19,8 @@ import { CurrencyInput } from "@/components/inputs/CurrencyInput";
 import { DateInput } from "@/components/inputs/DateInput";
 import { ManagedSelectInput } from "@/components/inputs/ManagedSelectInput";
 import { InlineManagedCell } from "@/components/inputs/InlineManagedCell";
+import { CategoriaTreeSelect } from "@/components/inputs/CategoriaTreeSelect";
+import { CategoriaTreeField } from "@/components/inputs/CategoriaTreeField";
 import { useBusinessUnits } from "@/hooks/useBusinessUnits";
 import { BusinessUnitModal } from "@/components/modals/BusinessUnitModal";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -1327,16 +1329,21 @@ export default function ContasAReceber() {
                         </DropdownMenu>
                       </TableCell>
                       <TableCell>
-                        <InlineManagedCell
+                        <CategoriaTreeSelect
+                          categorias={categoriasFinanceiras as any}
                           value={item.categoria_financeira_id}
-                          options={subcatOptions.map((c: any) => ({ value: c.id, label: c.nome }))}
                           onChange={(v) => updateMutation.mutate({ id: item.id, data: { categoria_financeira_id: v } })}
-                          onAddModal={() => { setCfEditingId(null); setCfModalOpen(true); }}
-                          onEditModal={(id) => { setCfEditingId(id); setCfModalOpen(true); }}
-                          onDelete={catFinCrud.onDelete}
+                          direction="in"
                           placeholder="Selecionar"
-                          addLabel="Nova subcategoria"
-                          emptyHint="Nenhuma subcategoria cadastrada"
+                          footerActions={
+                            <button
+                              type="button"
+                              onClick={() => { setCfEditingId(null); setCfModalOpen(true); }}
+                              className="text-xs text-primary hover:bg-primary/10 px-2 py-1.5 rounded-sm transition-colors flex items-center gap-1"
+                            >
+                              + Nova
+                            </button>
+                          }
                         />
                       </TableCell>
                       <TableCell>
@@ -1873,35 +1880,13 @@ export default function ContasAReceber() {
             <div className="h-px flex-1 bg-border/30" />
           </div>
 
-          <ManagedSelectInput
-            label="Tipo Financeiro (DRE)"
-            value={form.tipo_financeiro}
-            onValueChange={(v) => {
-              updateField("tipo_financeiro", v);
-              updateField("categoria_financeira_id", "");
-            }}
-            options={tiposFinanceiros}
-            placeholder="Selecione o tipo financeiro..."
-            icon={<BarChart3 className="w-4 h-4" />}
-          />
-
-          <ManagedSelectInput
+          <CategoriaTreeField
             label="Subcategoria (Plano de Contas)"
-            value={form.categoria_financeira_id}
-            onValueChange={(v) => updateField("categoria_financeira_id", v)}
-            options={(() => {
-              const filteredCats = categoriasFinanceiras.filter((c: any) => !form.tipo_financeiro || c.tipo === form.tipo_financeiro);
-              return filteredCats
-                .filter((c: any) => !allCategoriasFin.some((child: any) => child.categoria_pai_id === c.id))
-                .map((c: any) => ({ value: c.id, label: c.nome }));
-            })()}
-            placeholder={form.tipo_financeiro ? "Selecione a subcategoria..." : "Selecione o tipo financeiro primeiro..."}
-            icon={<FolderTree className="w-4 h-4" />}
-            onAddModal={() => { setCfEditingId(null); setCfModalOpen(true); }}
-            onEditModal={(id) => { setCfEditingId(id); setCfModalOpen(true); }}
-            onDelete={catFinCrud.onDelete}
-            addLabel="Nova subcategoria"
-            disabled={!form.tipo_financeiro}
+            value={form.categoria_financeira_id || null}
+            onChange={(v) => updateField("categoria_financeira_id", v || "")}
+            categorias={categoriasFinanceiras as any}
+            direction="in"
+            placeholder="Selecione a subcategoria..."
           />
 
           <ManagedSelectInput

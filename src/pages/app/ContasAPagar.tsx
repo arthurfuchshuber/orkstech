@@ -19,6 +19,8 @@ import { CurrencyInput } from "@/components/inputs/CurrencyInput";
 import { DateInput } from "@/components/inputs/DateInput";
 import { ManagedSelectInput } from "@/components/inputs/ManagedSelectInput";
 import { InlineManagedCell } from "@/components/inputs/InlineManagedCell";
+import { CategoriaTreeSelect } from "@/components/inputs/CategoriaTreeSelect";
+import { CategoriaTreeField } from "@/components/inputs/CategoriaTreeField";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { FileAttachment } from "@/components/inputs/FileAttachment";
 
@@ -1161,32 +1163,7 @@ export default function ContasAPagar() {
               {selectedIds.size} item(ns) selecionado(s)
             </span>
             <div className="flex items-center gap-2 flex-wrap">
-              {/* Bulk: Tipo Financeiro */}
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button size="sm" variant="outline" className="rounded-lg text-xs gap-1">
-                    <BarChart3 className="w-3 h-3" /> Tipo Financeiro <ChevronDown className="w-3 h-3" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent className="max-h-[260px] overflow-y-auto custom-scrollbar">
-                  {tiposFinanceiros.map((t) => (
-                    <DropdownMenuItem key={t.value} title={t.tooltip} onClick={() => {
-                      // For bulk, set inline tipo for all selected and clear subcategoria
-                      const ids = Array.from(selectedIds);
-                      setInlineTipoMap(prev => {
-                        const n = { ...prev };
-                        ids.forEach(id => { n[id] = t.value; });
-                        return n;
-                      });
-                      handleBulkUpdate({ categoria_financeira_id: null });
-                    }}>
-                      {t.label}
-                    </DropdownMenuItem>
-                  ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
-
-              {/* Bulk: Subcategoria */}
+              {/* Bulk: Tipo Financeiro — removido (a árvore já filtra por direção) */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button size="sm" variant="outline" className="rounded-lg text-xs gap-1">
@@ -1299,8 +1276,7 @@ export default function ContasAPagar() {
                 <TableHead style={{ minWidth: 220 }}>Descrição</TableHead>
                 <TableHead style={{ minWidth: 110 }}>Valor</TableHead>
                 <TableHead style={{ minWidth: 120 }}>Status</TableHead>
-                <TableHead style={{ minWidth: 180 }}>Tipo Financeiro</TableHead>
-                <TableHead style={{ minWidth: 200 }}>Subcategoria</TableHead>
+                <TableHead style={{ minWidth: 220 }}>Subcategoria</TableHead>
                 <TableHead style={{ minWidth: 160 }}>Centro de Custo</TableHead>
                 <TableHead style={{ minWidth: 160 }}>Unidade de Negócio</TableHead>
                 <TableHead style={{ minWidth: 180 }}>Forma Pagamento</TableHead>
@@ -1405,58 +1381,22 @@ export default function ContasAPagar() {
                         </DropdownMenu>
                       </TableCell>
                       <TableCell>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <button className="flex items-center gap-1 text-sm cursor-pointer hover:text-foreground transition-colors group w-full">
-                              <span className="truncate">{tipoFinLabel || <span className="text-muted-foreground/50">Selecionar</span>}</span>
-                              <ChevronDown className="w-3 h-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
+                        <CategoriaTreeSelect
+                          categorias={categoriasFinanceiras as any}
+                          value={item.categoria_financeira_id}
+                          onChange={(v) => updateMutation.mutate({ id: item.id, data: { categoria_financeira_id: v } })}
+                          direction="out"
+                          placeholder="Selecionar"
+                          footerActions={
+                            <button
+                              type="button"
+                              onClick={() => { setCfEditingId(null); setCfModalOpen(true); }}
+                              className="text-xs text-primary hover:bg-primary/10 px-2 py-1.5 rounded-sm transition-colors flex items-center gap-1"
+                            >
+                              <Plus className="w-3 h-3" /> Nova
                             </button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="start" className="max-h-[260px] overflow-y-auto custom-scrollbar">
-                            {tiposFinanceiros.map((t) => (
-                              <DropdownMenuItem
-                                key={t.value}
-                                title={t.tooltip}
-                                onClick={() => {
-                                  setInlineTipoMap(prev => ({ ...prev, [item.id]: t.value }));
-                                  if (catFin?.tipo !== t.value) {
-                                    updateMutation.mutate({ id: item.id, data: { categoria_financeira_id: null } });
-                                  }
-                                }}
-                              >
-                                {t.label}
-                              </DropdownMenuItem>
-                            ))}
-                            {rowTipo && (
-                              <DropdownMenuItem onClick={() => {
-                                setInlineTipoMap(prev => { const n = { ...prev }; delete n[item.id]; return n; });
-                                updateMutation.mutate({ id: item.id, data: { categoria_financeira_id: null } });
-                              }} className="text-muted-foreground">
-                                Limpar
-                              </DropdownMenuItem>
-                            )}
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
-                      <TableCell>
-                        {!rowTipo ? (
-                          <span className="text-sm text-muted-foreground/30">Selecione o tipo...</span>
-                        ) : (
-                          <InlineManagedCell
-                            value={item.categoria_financeira_id}
-                            options={subcatOptions.map((c: any) => ({ value: c.id, label: c.nome }))}
-                            onChange={(v) => {
-                              updateMutation.mutate({ id: item.id, data: { categoria_financeira_id: v } });
-                              setInlineTipoMap(prev => { const n = { ...prev }; delete n[item.id]; return n; });
-                            }}
-                            onAddModal={() => { setCfEditingId(null); setCfModalOpen(true); }}
-                            onEditModal={(id) => { setCfEditingId(id); setCfModalOpen(true); }}
-                            onDelete={catFinCrud.onDelete}
-                            placeholder="Selecionar"
-                            addLabel="Nova subcategoria"
-                            emptyHint="Nenhuma subcategoria cadastrada"
-                          />
-                        )}
+                          }
+                        />
                       </TableCell>
                       <TableCell>
                         <InlineManagedCell
@@ -1971,38 +1911,14 @@ export default function ContasAPagar() {
             <div className="h-px flex-1 bg-border/30" />
           </div>
 
-          {/* Tipo Financeiro */}
-          <ManagedSelectInput
-            label="Tipo Financeiro (DRE)"
-            value={form.tipo_financeiro}
-            onValueChange={(v) => {
-              updateField("tipo_financeiro", v);
-              updateField("categoria_financeira_id", "");
-            }}
-            options={tiposFinanceiros}
-            placeholder="Selecione o tipo financeiro..."
-            icon={<BarChart3 className="w-4 h-4" />}
-          />
-
-          {/* Subcategoria Financeira (Plano de Contas / DRE) */}
-          <ManagedSelectInput
+          {/* Subcategoria (Plano de Contas — DRE) */}
+          <CategoriaTreeField
             label="Subcategoria (Plano de Contas)"
-            value={form.categoria_financeira_id}
-            onValueChange={(v) => updateField("categoria_financeira_id", v)}
-            options={(() => {
-              const filtered = categoriasFinanceiras.filter((c: any) => !form.tipo_financeiro || c.tipo === form.tipo_financeiro);
-              // Leaf = not a parent of any other category (using full hierarchy across all empresas)
-              return filtered
-                .filter((c: any) => !allCategoriasFin.some((child: any) => child.categoria_pai_id === c.id))
-                .map((c: any) => ({ value: c.id, label: c.nome }));
-            })()}
-            placeholder={form.tipo_financeiro ? "Selecione a subcategoria..." : "Selecione o tipo financeiro primeiro..."}
-            icon={<FolderTree className="w-4 h-4" />}
-            onAddModal={() => { setCfEditingId(null); setCfModalOpen(true); }}
-            onEditModal={(id) => { setCfEditingId(id); setCfModalOpen(true); }}
-            onDelete={catFinCrud.onDelete}
-            addLabel="Nova subcategoria"
-            disabled={!form.tipo_financeiro}
+            value={form.categoria_financeira_id || null}
+            onChange={(v) => updateField("categoria_financeira_id", v || "")}
+            categorias={categoriasFinanceiras as any}
+            direction="out"
+            placeholder="Selecione a subcategoria..."
           />
 
           {/* Centro de Custo */}
