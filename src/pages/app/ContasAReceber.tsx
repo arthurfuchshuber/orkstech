@@ -1329,16 +1329,21 @@ export default function ContasAReceber() {
                         </DropdownMenu>
                       </TableCell>
                       <TableCell>
-                        <InlineManagedCell
+                        <CategoriaTreeSelect
+                          categorias={categoriasFinanceiras as any}
                           value={item.categoria_financeira_id}
-                          options={subcatOptions.map((c: any) => ({ value: c.id, label: c.nome }))}
                           onChange={(v) => updateMutation.mutate({ id: item.id, data: { categoria_financeira_id: v } })}
-                          onAddModal={() => { setCfEditingId(null); setCfModalOpen(true); }}
-                          onEditModal={(id) => { setCfEditingId(id); setCfModalOpen(true); }}
-                          onDelete={catFinCrud.onDelete}
+                          direction="in"
                           placeholder="Selecionar"
-                          addLabel="Nova subcategoria"
-                          emptyHint="Nenhuma subcategoria cadastrada"
+                          footerActions={
+                            <button
+                              type="button"
+                              onClick={() => { setCfEditingId(null); setCfModalOpen(true); }}
+                              className="text-xs text-primary hover:bg-primary/10 px-2 py-1.5 rounded-sm transition-colors flex items-center gap-1"
+                            >
+                              + Nova
+                            </button>
+                          }
                         />
                       </TableCell>
                       <TableCell>
