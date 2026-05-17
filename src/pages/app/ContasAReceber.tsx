@@ -1875,35 +1875,13 @@ export default function ContasAReceber() {
             <div className="h-px flex-1 bg-border/30" />
           </div>
 
-          <ManagedSelectInput
-            label="Tipo Financeiro (DRE)"
-            value={form.tipo_financeiro}
-            onValueChange={(v) => {
-              updateField("tipo_financeiro", v);
-              updateField("categoria_financeira_id", "");
-            }}
-            options={tiposFinanceiros}
-            placeholder="Selecione o tipo financeiro..."
-            icon={<BarChart3 className="w-4 h-4" />}
-          />
-
-          <ManagedSelectInput
+          <CategoriaTreeField
             label="Subcategoria (Plano de Contas)"
-            value={form.categoria_financeira_id}
-            onValueChange={(v) => updateField("categoria_financeira_id", v)}
-            options={(() => {
-              const filteredCats = categoriasFinanceiras.filter((c: any) => !form.tipo_financeiro || c.tipo === form.tipo_financeiro);
-              return filteredCats
-                .filter((c: any) => !allCategoriasFin.some((child: any) => child.categoria_pai_id === c.id))
-                .map((c: any) => ({ value: c.id, label: c.nome }));
-            })()}
-            placeholder={form.tipo_financeiro ? "Selecione a subcategoria..." : "Selecione o tipo financeiro primeiro..."}
-            icon={<FolderTree className="w-4 h-4" />}
-            onAddModal={() => { setCfEditingId(null); setCfModalOpen(true); }}
-            onEditModal={(id) => { setCfEditingId(id); setCfModalOpen(true); }}
-            onDelete={catFinCrud.onDelete}
-            addLabel="Nova subcategoria"
-            disabled={!form.tipo_financeiro}
+            value={form.categoria_financeira_id || null}
+            onChange={(v) => updateField("categoria_financeira_id", v || "")}
+            categorias={categoriasFinanceiras as any}
+            direction="in"
+            placeholder="Selecione a subcategoria..."
           />
 
           <ManagedSelectInput
