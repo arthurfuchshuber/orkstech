@@ -1276,8 +1276,7 @@ export default function ContasAPagar() {
                 <TableHead style={{ minWidth: 220 }}>Descrição</TableHead>
                 <TableHead style={{ minWidth: 110 }}>Valor</TableHead>
                 <TableHead style={{ minWidth: 120 }}>Status</TableHead>
-                <TableHead style={{ minWidth: 180 }}>Tipo Financeiro</TableHead>
-                <TableHead style={{ minWidth: 200 }}>Subcategoria</TableHead>
+                <TableHead style={{ minWidth: 220 }}>Subcategoria</TableHead>
                 <TableHead style={{ minWidth: 160 }}>Centro de Custo</TableHead>
                 <TableHead style={{ minWidth: 160 }}>Unidade de Negócio</TableHead>
                 <TableHead style={{ minWidth: 180 }}>Forma Pagamento</TableHead>
