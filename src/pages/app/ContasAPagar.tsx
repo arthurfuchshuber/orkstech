@@ -1163,32 +1163,7 @@ export default function ContasAPagar() {
               {selectedIds.size} item(ns) selecionado(s)
             </span>
             <div className="flex items-center gap-2 flex-wrap">
-              {/* Bulk: Tipo Financeiro */}
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button size="sm" variant="outline" className="rounded-lg text-xs gap-1">
-                    <BarChart3 className="w-3 h-3" /> Tipo Financeiro <ChevronDown className="w-3 h-3" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent className="max-h-[260px] overflow-y-auto custom-scrollbar">
-                  {tiposFinanceiros.map((t) => (
-                    <DropdownMenuItem key={t.value} title={t.tooltip} onClick={() => {
-                      // For bulk, set inline tipo for all selected and clear subcategoria
-                      const ids = Array.from(selectedIds);
-                      setInlineTipoMap(prev => {
-                        const n = { ...prev };
-                        ids.forEach(id => { n[id] = t.value; });
-                        return n;
-                      });
-                      handleBulkUpdate({ categoria_financeira_id: null });
-                    }}>
-                      {t.label}
-                    </DropdownMenuItem>
-                  ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
-
-              {/* Bulk: Subcategoria */}
+              {/* Bulk: Tipo Financeiro — removido (a árvore já filtra por direção) */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button size="sm" variant="outline" className="rounded-lg text-xs gap-1">
