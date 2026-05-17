@@ -1381,58 +1381,22 @@ export default function ContasAPagar() {
                         </DropdownMenu>
                       </TableCell>
                       <TableCell>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <button className="flex items-center gap-1 text-sm cursor-pointer hover:text-foreground transition-colors group w-full">
-                              <span className="truncate">{tipoFinLabel || <span className="text-muted-foreground/50">Selecionar</span>}</span>
-                              <ChevronDown className="w-3 h-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
+                        <CategoriaTreeSelect
+                          categorias={categoriasFinanceiras as any}
+                          value={item.categoria_financeira_id}
+                          onChange={(v) => updateMutation.mutate({ id: item.id, data: { categoria_financeira_id: v } })}
+                          direction="out"
+                          placeholder="Selecionar"
+                          footerActions={
+                            <button
+                              type="button"
+                              onClick={() => { setCfEditingId(null); setCfModalOpen(true); }}
+                              className="text-xs text-primary hover:bg-primary/10 px-2 py-1.5 rounded-sm transition-colors flex items-center gap-1"
+                            >
+                              <Plus className="w-3 h-3" /> Nova
                             </button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="start" className="max-h-[260px] overflow-y-auto custom-scrollbar">
-                            {tiposFinanceiros.map((t) => (
-                              <DropdownMenuItem
-                                key={t.value}
-                                title={t.tooltip}
-                                onClick={() => {
-                                  setInlineTipoMap(prev => ({ ...prev, [item.id]: t.value }));
-                                  if (catFin?.tipo !== t.value) {
-                                    updateMutation.mutate({ id: item.id, data: { categoria_financeira_id: null } });
-                                  }
-                                }}
-                              >
-                                {t.label}
-                              </DropdownMenuItem>
-                            ))}
-                            {rowTipo && (
-                              <DropdownMenuItem onClick={() => {
-                                setInlineTipoMap(prev => { const n = { ...prev }; delete n[item.id]; return n; });
-                                updateMutation.mutate({ id: item.id, data: { categoria_financeira_id: null } });
-                              }} className="text-muted-foreground">
-                                Limpar
-                              </DropdownMenuItem>
-                            )}
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
-                      <TableCell>
-                        {!rowTipo ? (
-                          <span className="text-sm text-muted-foreground/30">Selecione o tipo...</span>
-                        ) : (
-                          <InlineManagedCell
-                            value={item.categoria_financeira_id}
-                            options={subcatOptions.map((c: any) => ({ value: c.id, label: c.nome }))}
-                            onChange={(v) => {
-                              updateMutation.mutate({ id: item.id, data: { categoria_financeira_id: v } });
-                              setInlineTipoMap(prev => { const n = { ...prev }; delete n[item.id]; return n; });
-                            }}
-                            onAddModal={() => { setCfEditingId(null); setCfModalOpen(true); }}
-                            onEditModal={(id) => { setCfEditingId(id); setCfModalOpen(true); }}
-                            onDelete={catFinCrud.onDelete}
-                            placeholder="Selecionar"
-                            addLabel="Nova subcategoria"
-                            emptyHint="Nenhuma subcategoria cadastrada"
-                          />
-                        )}
+                          }
+                        />
                       </TableCell>
                       <TableCell>
                         <InlineManagedCell
