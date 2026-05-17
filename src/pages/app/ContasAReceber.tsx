@@ -19,6 +19,8 @@ import { CurrencyInput } from "@/components/inputs/CurrencyInput";
 import { DateInput } from "@/components/inputs/DateInput";
 import { ManagedSelectInput } from "@/components/inputs/ManagedSelectInput";
 import { InlineManagedCell } from "@/components/inputs/InlineManagedCell";
+import { CategoriaTreeSelect } from "@/components/inputs/CategoriaTreeSelect";
+import { CategoriaTreeField } from "@/components/inputs/CategoriaTreeField";
 import { useBusinessUnits } from "@/hooks/useBusinessUnits";
 import { BusinessUnitModal } from "@/components/modals/BusinessUnitModal";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
