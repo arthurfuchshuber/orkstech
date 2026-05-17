@@ -11,6 +11,7 @@ import { TextareaInput } from "@/components/inputs/TextareaInput";
 import { CurrencyInput } from "@/components/inputs/CurrencyInput";
 import { DateInput } from "@/components/inputs/DateInput";
 import { ManagedSelectInput } from "@/components/inputs/ManagedSelectInput";
+import { CategoriaTreeField } from "@/components/inputs/CategoriaTreeField";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { FileAttachment } from "@/components/inputs/FileAttachment";
