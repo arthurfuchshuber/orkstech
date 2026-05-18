@@ -128,6 +128,8 @@ interface Transaction {
   is_internal_transfer?: boolean | null;
   pluggy_account_id: string;
   categoria_financeira_id: string | null;
+  cost_center_id: string | null;
+  business_unit_id: string | null;
   payment_data?: {
     payer?: { name?: string | null; documentNumber?: { value?: string | null } | null } | null;
     receiver?: { name?: string | null; documentNumber?: { value?: string | null } | null } | null;
