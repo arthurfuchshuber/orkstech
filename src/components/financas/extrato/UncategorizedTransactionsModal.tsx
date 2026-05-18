@@ -144,7 +144,46 @@ export function UncategorizedTransactionsModal({ open, onOpenChange }: Props) {
     },
   });
 
-  const { data: categoriasData = { leaves: [], all: [] } } = useQuery({
+  const { data: centrosCusto = [] } = useQuery({
+    queryKey: ["centros_custo", targetUserId],
+    enabled: !!targetUserId && open,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("centros_custo").select("id, nome").eq("user_id", targetUserId!).eq("ativo", true).order("nome");
+      return (data ?? []) as { id: string; nome: string }[];
+    },
+  });
+
+  const { data: businessUnits = [] } = useQuery({
+    queryKey: ["business_units", targetUserId],
+    enabled: !!targetUserId && open,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("business_units").select("id, nome").eq("user_id", targetUserId!).eq("ativo", true).order("nome");
+      return (data ?? []) as { id: string; nome: string }[];
+    },
+  });
+
+  const centrosCrud = useManagedSelect("centros_custo");
+  const buCrud = useManagedSelect("business_units");
+
+  const [ccModalOpen, setCcModalOpen] = useState(false);
+  const [ccEditingId, setCcEditingId] = useState<string | null>(null);
+  const [buModalOpen, setBuModalOpen] = useState(false);
+  const [buEditingId, setBuEditingId] = useState<string | null>(null);
+
+  const updateExtraFieldMutation = useMutation({
+    mutationFn: async ({ id, field, value }: { id: string; field: "cost_center_id" | "business_unit_id"; value: string | null }) => {
+      const { error } = await supabase.from("pluggy_transactions" as any).update({ [field]: value }).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["uncategorized-tx-list"] });
+      queryClient.invalidateQueries({ queryKey: ["pluggy_transactions"] });
+      toast.success("Atualizado");
+    },
+    onError: (err: any) => toast.error(err?.message || "Erro ao atualizar"),
+  });
     queryKey: ["uncategorized-cats", targetUserId],
     enabled: !!targetUserId && open,
     queryFn: async () => {
