@@ -115,7 +115,7 @@ export function UncategorizedTransactionsModal({ open, onOpenChange }: Props) {
         const { data, error } = await supabase
           .from("pluggy_transactions" as any)
           .select(
-            "id, description, amount, date, type, pluggy_account_id, categoria_financeira_id, payment_data, category, is_internal_transfer"
+            "id, description, amount, date, type, pluggy_account_id, categoria_financeira_id, cost_center_id, business_unit_id, payment_data, category, is_internal_transfer"
           )
           .eq("user_id", targetUserId!)
           .is("categoria_financeira_id", null)
