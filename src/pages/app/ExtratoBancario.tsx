@@ -1452,6 +1452,42 @@ export default function ExtratoBancario() {
                       )}
                     </div>
 
+                    {/* Centro de Custo */}
+                    <div className="min-w-0">
+                      {isInternal ? (
+                        <span className="text-xs text-muted-foreground/40 italic">—</span>
+                      ) : (
+                        <InlineManagedCell
+                          value={tx.cost_center_id}
+                          options={centrosCusto.map((c) => ({ value: c.id, label: c.nome }))}
+                          onChange={(v) => updateExtraFieldMutation.mutate({ id: tx.id, field: "cost_center_id", value: v })}
+                          onAddModal={() => { setCcEditingId(null); setCcModalOpen(true); }}
+                          onEditModal={(id) => { setCcEditingId(id); setCcModalOpen(true); }}
+                          onDelete={centrosCrud.onDelete}
+                          placeholder="—"
+                          addLabel="Novo centro de custo"
+                        />
+                      )}
+                    </div>
+
+                    {/* Unidade de Negócio */}
+                    <div className="min-w-0">
+                      {isInternal ? (
+                        <span className="text-xs text-muted-foreground/40 italic">—</span>
+                      ) : (
+                        <InlineManagedCell
+                          value={tx.business_unit_id}
+                          options={businessUnits.map((b) => ({ value: b.id, label: b.nome }))}
+                          onChange={(v) => updateExtraFieldMutation.mutate({ id: tx.id, field: "business_unit_id", value: v })}
+                          onAddModal={() => { setBuEditingId(null); setBuModalOpen(true); }}
+                          onEditModal={(id) => { setBuEditingId(id); setBuModalOpen(true); }}
+                          onDelete={buCrud.onDelete}
+                          placeholder="—"
+                          addLabel="Nova unidade de negócio"
+                        />
+                      )}
+                    </div>
+
                     <p
                       className={`whitespace-nowrap text-right text-sm font-semibold ${
                         isCredit ? "text-primary" : "text-destructive"
