@@ -184,6 +184,8 @@ export function UncategorizedTransactionsModal({ open, onOpenChange }: Props) {
     },
     onError: (err: any) => toast.error(err?.message || "Erro ao atualizar"),
   });
+
+  const { data: categoriasData = { leaves: [], all: [] } } = useQuery({
     queryKey: ["uncategorized-cats", targetUserId],
     enabled: !!targetUserId && open,
     queryFn: async () => {
