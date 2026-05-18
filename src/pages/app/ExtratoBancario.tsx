@@ -41,6 +41,10 @@ import { OfertaCriarRegraModal } from "@/components/financas/extrato/OfertaCriar
 import { DescricaoComRegra } from "@/components/financas/extrato/DescricaoComRegra";
 import { MixedTypeBulkDialog } from "@/components/financas/MixedTypeBulkDialog";
 import { CategoriaTreeSelect } from "@/components/inputs/CategoriaTreeSelect";
+import { InlineManagedCell } from "@/components/inputs/InlineManagedCell";
+import { CentroCustoModal } from "@/components/modals/CentroCustoModal";
+import { BusinessUnitModal } from "@/components/modals/BusinessUnitModal";
+import { useManagedSelect } from "@/hooks/useManagedSelect";
 
 const ALLOWED_INCOME_TIPOS = ["receita", "receita_financeira", "ajuste"];
 const ALLOWED_EXPENSE_TIPOS = ["despesa", "despesa_comercial", "custo", "deducao", "imposto", "despesa_financeira", "distribuicao_lucros", "ajuste"];
