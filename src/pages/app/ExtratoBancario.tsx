@@ -1548,6 +1548,20 @@ export default function ExtratoBancario() {
       />
 
       <UncategorizedTransactionsModal open={uncatModalOpen} onOpenChange={setUncatModalOpen} />
+
+      <CentroCustoModal
+        open={ccModalOpen}
+        onOpenChange={(o) => { setCcModalOpen(o); if (!o) setCcEditingId(null); }}
+        editingId={ccEditingId}
+        onSaved={() => queryClient.invalidateQueries({ queryKey: ["centros_custo"] })}
+      />
+
+      <BusinessUnitModal
+        open={buModalOpen}
+        onOpenChange={(o) => { setBuModalOpen(o); if (!o) setBuEditingId(null); }}
+        editingId={buEditingId}
+        onSaved={() => queryClient.invalidateQueries({ queryKey: ["business_units"] })}
+      />
     </div>
   );
 }
