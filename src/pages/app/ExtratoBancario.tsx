@@ -528,8 +528,7 @@ export default function ExtratoBancario() {
 
   const { conflito, setConflito, registrar } = useRegraConflitoDetector();
 
-
-    mutationFn: async ({ id, categoria_financeira_id, description }: { id: string; categoria_financeira_id: string | null; description?: string }) => {
+  const updateCategoriaMutation = useMutation({
       const { data, error } = await supabase
         .from("pluggy_transactions" as any)
         .update({ categoria_financeira_id })
