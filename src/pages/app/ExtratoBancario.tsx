@@ -1349,7 +1349,7 @@ export default function ExtratoBancario() {
                   <div
                     key={tx.id}
                     className={cn(
-                      "grid grid-cols-[36px_120px_minmax(0,1.6fr)_220px_140px] items-center gap-4 px-4 py-3 transition-colors hover:bg-muted/30",
+                      "grid grid-cols-[36px_100px_minmax(0,1.4fr)_180px_140px_130px_120px] items-center gap-3 px-4 py-3 transition-colors hover:bg-muted/30",
                       isInternal && "opacity-60",
                       batchSelection.has(tx.id) && "bg-primary/5"
                     )}
