@@ -526,7 +526,9 @@ export default function ExtratoBancario() {
     onError: (err: any) => toast.error(err?.message || "Erro ao atualizar"),
   });
 
-  const updateCategoriaMutation = useMutation({
+  const { conflito, setConflito, registrar } = useRegraConflitoDetector();
+
+
     mutationFn: async ({ id, categoria_financeira_id, description }: { id: string; categoria_financeira_id: string | null; description?: string }) => {
       const { data, error } = await supabase
         .from("pluggy_transactions" as any)
