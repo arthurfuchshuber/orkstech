@@ -41,6 +41,10 @@ import { OfertaCriarRegraModal } from "@/components/financas/extrato/OfertaCriar
 import { DescricaoComRegra } from "@/components/financas/extrato/DescricaoComRegra";
 import { MixedTypeBulkDialog } from "@/components/financas/MixedTypeBulkDialog";
 import { CategoriaTreeSelect } from "@/components/inputs/CategoriaTreeSelect";
+import { InlineManagedCell } from "@/components/inputs/InlineManagedCell";
+import { CentroCustoModal } from "@/components/modals/CentroCustoModal";
+import { BusinessUnitModal } from "@/components/modals/BusinessUnitModal";
+import { useManagedSelect } from "@/hooks/useManagedSelect";
 
 const ALLOWED_INCOME_TIPOS = ["receita", "receita_financeira", "ajuste"];
 const ALLOWED_EXPENSE_TIPOS = ["despesa", "despesa_comercial", "custo", "deducao", "imposto", "despesa_financeira", "distribuicao_lucros", "ajuste"];
@@ -124,6 +128,8 @@ interface Transaction {
   is_internal_transfer?: boolean | null;
   pluggy_account_id: string;
   categoria_financeira_id: string | null;
+  cost_center_id: string | null;
+  business_unit_id: string | null;
   payment_data?: {
     payer?: { name?: string | null; documentNumber?: { value?: string | null } | null } | null;
     receiver?: { name?: string | null; documentNumber?: { value?: string | null } | null } | null;
@@ -430,7 +436,7 @@ export default function ExtratoBancario() {
     queryFn: async () => {
       let query = supabase
         .from("pluggy_transactions" as any)
-        .select("id, description, amount, date, type, category, reconciled, is_internal_transfer, pluggy_account_id, categoria_financeira_id, payment_data")
+        .select("id, description, amount, date, type, category, reconciled, is_internal_transfer, pluggy_account_id, categoria_financeira_id, cost_center_id, business_unit_id, payment_data")
         .eq("user_id", targetUserId!)
         .gte("date", dateFromStr)
         .lte("date", dateToStr)
@@ -466,6 +472,58 @@ export default function ExtratoBancario() {
       return data ?? [];
     },
     enabled: !!user && !!targetUserId,
+  });
+
+  // Centros de Custo + Unidades de Negócio (espelham 100% o cadastro de origem)
+  const { data: centrosCusto = [] } = useQuery({
+    queryKey: ["centros_custo", targetUserId],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("centros_custo")
+        .select("id, nome")
+        .eq("user_id", targetUserId!)
+        .eq("ativo", true)
+        .order("nome");
+      return (data ?? []) as { id: string; nome: string }[];
+    },
+    enabled: !!targetUserId,
+  });
+
+  const { data: businessUnits = [] } = useQuery({
+    queryKey: ["business_units", targetUserId],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("business_units")
+        .select("id, nome")
+        .eq("user_id", targetUserId!)
+        .eq("ativo", true)
+        .order("nome");
+      return (data ?? []) as { id: string; nome: string }[];
+    },
+    enabled: !!targetUserId,
+  });
+
+  const centrosCrud = useManagedSelect("centros_custo");
+  const buCrud = useManagedSelect("business_units");
+
+  const [ccModalOpen, setCcModalOpen] = useState(false);
+  const [ccEditingId, setCcEditingId] = useState<string | null>(null);
+  const [buModalOpen, setBuModalOpen] = useState(false);
+  const [buEditingId, setBuEditingId] = useState<string | null>(null);
+
+  const updateExtraFieldMutation = useMutation({
+    mutationFn: async ({ id, field, value }: { id: string; field: "cost_center_id" | "business_unit_id"; value: string | null }) => {
+      const { error } = await supabase
+        .from("pluggy_transactions" as any)
+        .update({ [field]: value })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["pluggy_transactions"] });
+      toast.success("Atualizado");
+    },
+    onError: (err: any) => toast.error(err?.message || "Erro ao atualizar"),
   });
 
   const { conflito, setConflito, registrar } = useRegraConflitoDetector();
@@ -1246,7 +1304,7 @@ export default function ExtratoBancario() {
           </div>
         ) : (
           <>
-            <div className="grid grid-cols-[36px_120px_minmax(0,1.6fr)_220px_140px] gap-4 border-b border-border/50 bg-card px-4 py-3 text-sm text-muted-foreground">
+            <div className="grid grid-cols-[36px_100px_minmax(0,1.4fr)_180px_140px_130px_120px] gap-3 border-b border-border/50 bg-card px-4 py-3 text-xs text-muted-foreground uppercase tracking-wider">
               <div className="flex items-center justify-center">
                 <Checkbox
                   checked={
@@ -1265,6 +1323,8 @@ export default function ExtratoBancario() {
               <div>Data</div>
               <div>Descrição</div>
               <div>Subcategoria</div>
+              <div>Centro de Custo</div>
+              <div>Unidade de Negócio</div>
               <div className="text-right">Valor</div>
             </div>
 
@@ -1289,7 +1349,7 @@ export default function ExtratoBancario() {
                   <div
                     key={tx.id}
                     className={cn(
-                      "grid grid-cols-[36px_120px_minmax(0,1.6fr)_220px_140px] items-center gap-4 px-4 py-3 transition-colors hover:bg-muted/30",
+                      "grid grid-cols-[36px_100px_minmax(0,1.4fr)_180px_140px_130px_120px] items-center gap-3 px-4 py-3 transition-colors hover:bg-muted/30",
                       isInternal && "opacity-60",
                       batchSelection.has(tx.id) && "bg-primary/5"
                     )}
@@ -1392,6 +1452,42 @@ export default function ExtratoBancario() {
                       )}
                     </div>
 
+                    {/* Centro de Custo */}
+                    <div className="min-w-0">
+                      {isInternal ? (
+                        <span className="text-xs text-muted-foreground/40 italic">—</span>
+                      ) : (
+                        <InlineManagedCell
+                          value={tx.cost_center_id}
+                          options={centrosCusto.map((c) => ({ value: c.id, label: c.nome }))}
+                          onChange={(v) => updateExtraFieldMutation.mutate({ id: tx.id, field: "cost_center_id", value: v })}
+                          onAddModal={() => { setCcEditingId(null); setCcModalOpen(true); }}
+                          onEditModal={(id) => { setCcEditingId(id); setCcModalOpen(true); }}
+                          onDelete={centrosCrud.onDelete}
+                          placeholder="—"
+                          addLabel="Novo centro de custo"
+                        />
+                      )}
+                    </div>
+
+                    {/* Unidade de Negócio */}
+                    <div className="min-w-0">
+                      {isInternal ? (
+                        <span className="text-xs text-muted-foreground/40 italic">—</span>
+                      ) : (
+                        <InlineManagedCell
+                          value={tx.business_unit_id}
+                          options={businessUnits.map((b) => ({ value: b.id, label: b.nome }))}
+                          onChange={(v) => updateExtraFieldMutation.mutate({ id: tx.id, field: "business_unit_id", value: v })}
+                          onAddModal={() => { setBuEditingId(null); setBuModalOpen(true); }}
+                          onEditModal={(id) => { setBuEditingId(id); setBuModalOpen(true); }}
+                          onDelete={buCrud.onDelete}
+                          placeholder="—"
+                          addLabel="Nova unidade de negócio"
+                        />
+                      )}
+                    </div>
+
                     <p
                       className={`whitespace-nowrap text-right text-sm font-semibold ${
                         isCredit ? "text-primary" : "text-destructive"
@@ -1452,6 +1548,20 @@ export default function ExtratoBancario() {
       />
 
       <UncategorizedTransactionsModal open={uncatModalOpen} onOpenChange={setUncatModalOpen} />
+
+      <CentroCustoModal
+        open={ccModalOpen}
+        onOpenChange={(o) => { setCcModalOpen(o); if (!o) setCcEditingId(null); }}
+        editingId={ccEditingId}
+        onSaved={() => queryClient.invalidateQueries({ queryKey: ["centros_custo"] })}
+      />
+
+      <BusinessUnitModal
+        open={buModalOpen}
+        onOpenChange={(o) => { setBuModalOpen(o); if (!o) setBuEditingId(null); }}
+        editingId={buEditingId}
+        onSaved={() => queryClient.invalidateQueries({ queryKey: ["business_units"] })}
+      />
     </div>
   );
 }

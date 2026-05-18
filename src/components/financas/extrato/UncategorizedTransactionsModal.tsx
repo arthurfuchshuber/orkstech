@@ -22,6 +22,10 @@ import { OfertaCriarRegraModal } from "./OfertaCriarRegraModal";
 import { DescricaoComRegra } from "./DescricaoComRegra";
 import { CategoriaFinanceiraModal } from "@/components/modals/CategoriaFinanceiraModal";
 import { CategoriaTreeSelect } from "@/components/inputs/CategoriaTreeSelect";
+import { InlineManagedCell } from "@/components/inputs/InlineManagedCell";
+import { CentroCustoModal } from "@/components/modals/CentroCustoModal";
+import { BusinessUnitModal } from "@/components/modals/BusinessUnitModal";
+import { useManagedSelect } from "@/hooks/useManagedSelect";
 import { MixedTypeBulkDialog } from "@/components/financas/MixedTypeBulkDialog";
 import { Plus } from "lucide-react";
 
@@ -45,6 +49,8 @@ interface Tx extends PluggyTxLike {
   date: string;
   pluggy_account_id: string;
   categoria_financeira_id: string | null;
+  cost_center_id: string | null;
+  business_unit_id: string | null;
   category?: string | null;
   is_internal_transfer?: boolean | null;
 }
@@ -109,7 +115,7 @@ export function UncategorizedTransactionsModal({ open, onOpenChange }: Props) {
         const { data, error } = await supabase
           .from("pluggy_transactions" as any)
           .select(
-            "id, description, amount, date, type, pluggy_account_id, categoria_financeira_id, payment_data, category, is_internal_transfer"
+            "id, description, amount, date, type, pluggy_account_id, categoria_financeira_id, cost_center_id, business_unit_id, payment_data, category, is_internal_transfer"
           )
           .eq("user_id", targetUserId!)
           .is("categoria_financeira_id", null)
@@ -136,6 +142,47 @@ export function UncategorizedTransactionsModal({ open, onOpenChange }: Props) {
         .eq("user_id", targetUserId!);
       return (data ?? []) as any[];
     },
+  });
+
+  const { data: centrosCusto = [] } = useQuery({
+    queryKey: ["centros_custo", targetUserId],
+    enabled: !!targetUserId && open,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("centros_custo").select("id, nome").eq("user_id", targetUserId!).eq("ativo", true).order("nome");
+      return (data ?? []) as { id: string; nome: string }[];
+    },
+  });
+
+  const { data: businessUnits = [] } = useQuery({
+    queryKey: ["business_units", targetUserId],
+    enabled: !!targetUserId && open,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("business_units").select("id, nome").eq("user_id", targetUserId!).eq("ativo", true).order("nome");
+      return (data ?? []) as { id: string; nome: string }[];
+    },
+  });
+
+  const centrosCrud = useManagedSelect("centros_custo");
+  const buCrud = useManagedSelect("business_units");
+
+  const [ccModalOpen, setCcModalOpen] = useState(false);
+  const [ccEditingId, setCcEditingId] = useState<string | null>(null);
+  const [buModalOpen, setBuModalOpen] = useState(false);
+  const [buEditingId, setBuEditingId] = useState<string | null>(null);
+
+  const updateExtraFieldMutation = useMutation({
+    mutationFn: async ({ id, field, value }: { id: string; field: "cost_center_id" | "business_unit_id"; value: string | null }) => {
+      const { error } = await supabase.from("pluggy_transactions" as any).update({ [field]: value }).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["uncategorized-tx-list"] });
+      queryClient.invalidateQueries({ queryKey: ["pluggy_transactions"] });
+      toast.success("Atualizado");
+    },
+    onError: (err: any) => toast.error(err?.message || "Erro ao atualizar"),
   });
 
   const { data: categoriasData = { leaves: [], all: [] } } = useQuery({
@@ -561,6 +608,30 @@ export function UncategorizedTransactionsModal({ open, onOpenChange }: Props) {
                         }
                       />
                     </div>
+                    <div className="w-40 shrink-0">
+                      <InlineManagedCell
+                        value={tx.cost_center_id}
+                        options={centrosCusto.map((c) => ({ value: c.id, label: c.nome }))}
+                        onChange={(v) => updateExtraFieldMutation.mutate({ id: tx.id, field: "cost_center_id", value: v })}
+                        onAddModal={() => { setCcEditingId(null); setCcModalOpen(true); }}
+                        onEditModal={(id) => { setCcEditingId(id); setCcModalOpen(true); }}
+                        onDelete={centrosCrud.onDelete}
+                        placeholder="Centro de custo"
+                        addLabel="Novo centro de custo"
+                      />
+                    </div>
+                    <div className="w-40 shrink-0">
+                      <InlineManagedCell
+                        value={tx.business_unit_id}
+                        options={businessUnits.map((b) => ({ value: b.id, label: b.nome }))}
+                        onChange={(v) => updateExtraFieldMutation.mutate({ id: tx.id, field: "business_unit_id", value: v })}
+                        onAddModal={() => { setBuEditingId(null); setBuModalOpen(true); }}
+                        onEditModal={(id) => { setBuEditingId(id); setBuModalOpen(true); }}
+                        onDelete={buCrud.onDelete}
+                        placeholder="Unidade de negócio"
+                        addLabel="Nova unidade de negócio"
+                      />
+                    </div>
                   </div>
                 );
               })
@@ -614,6 +685,20 @@ export function UncategorizedTransactionsModal({ open, onOpenChange }: Props) {
           mixedBulk.categoriaId &&
           bulkMutation.mutate({ ids: mixedBulk.outIds, categoria_financeira_id: mixedBulk.categoriaId })
         }
+      />
+
+      <CentroCustoModal
+        open={ccModalOpen}
+        onOpenChange={(o) => { setCcModalOpen(o); if (!o) setCcEditingId(null); }}
+        editingId={ccEditingId}
+        onSaved={() => queryClient.invalidateQueries({ queryKey: ["centros_custo"] })}
+      />
+
+      <BusinessUnitModal
+        open={buModalOpen}
+        onOpenChange={(o) => { setBuModalOpen(o); if (!o) setBuEditingId(null); }}
+        editingId={buEditingId}
+        onSaved={() => queryClient.invalidateQueries({ queryKey: ["business_units"] })}
       />
     </>
   );
