@@ -22,6 +22,10 @@ import { OfertaCriarRegraModal } from "./OfertaCriarRegraModal";
 import { DescricaoComRegra } from "./DescricaoComRegra";
 import { CategoriaFinanceiraModal } from "@/components/modals/CategoriaFinanceiraModal";
 import { CategoriaTreeSelect } from "@/components/inputs/CategoriaTreeSelect";
+import { InlineManagedCell } from "@/components/inputs/InlineManagedCell";
+import { CentroCustoModal } from "@/components/modals/CentroCustoModal";
+import { BusinessUnitModal } from "@/components/modals/BusinessUnitModal";
+import { useManagedSelect } from "@/hooks/useManagedSelect";
 import { MixedTypeBulkDialog } from "@/components/financas/MixedTypeBulkDialog";
 import { Plus } from "lucide-react";
 
