@@ -49,6 +49,8 @@ interface Tx extends PluggyTxLike {
   date: string;
   pluggy_account_id: string;
   categoria_financeira_id: string | null;
+  cost_center_id: string | null;
+  business_unit_id: string | null;
   category?: string | null;
   is_internal_transfer?: boolean | null;
 }
