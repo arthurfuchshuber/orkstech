@@ -474,7 +474,57 @@ export default function ExtratoBancario() {
     enabled: !!user && !!targetUserId,
   });
 
-  const { conflito, setConflito, registrar } = useRegraConflitoDetector();
+  // Centros de Custo + Unidades de Negócio (espelham 100% o cadastro de origem)
+  const { data: centrosCusto = [] } = useQuery({
+    queryKey: ["centros_custo", targetUserId],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("centros_custo")
+        .select("id, nome")
+        .eq("user_id", targetUserId!)
+        .eq("ativo", true)
+        .order("nome");
+      return (data ?? []) as { id: string; nome: string }[];
+    },
+    enabled: !!targetUserId,
+  });
+
+  const { data: businessUnits = [] } = useQuery({
+    queryKey: ["business_units", targetUserId],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("business_units")
+        .select("id, nome")
+        .eq("user_id", targetUserId!)
+        .eq("ativo", true)
+        .order("nome");
+      return (data ?? []) as { id: string; nome: string }[];
+    },
+    enabled: !!targetUserId,
+  });
+
+  const centrosCrud = useManagedSelect("centros_custo");
+  const buCrud = useManagedSelect("business_units");
+
+  const [ccModalOpen, setCcModalOpen] = useState(false);
+  const [ccEditingId, setCcEditingId] = useState<string | null>(null);
+  const [buModalOpen, setBuModalOpen] = useState(false);
+  const [buEditingId, setBuEditingId] = useState<string | null>(null);
+
+  const updateExtraFieldMutation = useMutation({
+    mutationFn: async ({ id, field, value }: { id: string; field: "cost_center_id" | "business_unit_id"; value: string | null }) => {
+      const { error } = await supabase
+        .from("pluggy_transactions" as any)
+        .update({ [field]: value })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["pluggy_transactions"] });
+      toast.success("Atualizado");
+    },
+    onError: (err: any) => toast.error(err?.message || "Erro ao atualizar"),
+  });
 
   const updateCategoriaMutation = useMutation({
     mutationFn: async ({ id, categoria_financeira_id, description }: { id: string; categoria_financeira_id: string | null; description?: string }) => {
