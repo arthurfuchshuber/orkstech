@@ -1729,6 +1729,8 @@ export default function ContasAPagar() {
               if (forn) {
                 const name = forn.tipo === "pj" ? (forn.nome_fantasia || forn.razao_social || "") : (forn.nome_completo || "");
                 updateField("supplier_name", name);
+                // Auto-seleciona PJ/PF conforme o cadastro do fornecedor
+                if (forn.tipo === "pj" || forn.tipo === "pf") updateField("pessoa_tipo", forn.tipo);
               }
             }}
             options={fornecedorOptions}
