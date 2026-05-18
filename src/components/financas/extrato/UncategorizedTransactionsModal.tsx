@@ -632,6 +632,7 @@ export function UncategorizedTransactionsModal({ open, onOpenChange }: Props) {
                         addLabel="Nova unidade de negócio"
                       />
                     </div>
+                  </div>
                 );
               })
             )}
