@@ -608,7 +608,30 @@ export function UncategorizedTransactionsModal({ open, onOpenChange }: Props) {
                         }
                       />
                     </div>
-                  </div>
+                    <div className="w-40 shrink-0">
+                      <InlineManagedCell
+                        value={tx.cost_center_id}
+                        options={centrosCusto.map((c) => ({ value: c.id, label: c.nome }))}
+                        onChange={(v) => updateExtraFieldMutation.mutate({ id: tx.id, field: "cost_center_id", value: v })}
+                        onAddModal={() => { setCcEditingId(null); setCcModalOpen(true); }}
+                        onEditModal={(id) => { setCcEditingId(id); setCcModalOpen(true); }}
+                        onDelete={centrosCrud.onDelete}
+                        placeholder="Centro de custo"
+                        addLabel="Novo centro de custo"
+                      />
+                    </div>
+                    <div className="w-40 shrink-0">
+                      <InlineManagedCell
+                        value={tx.business_unit_id}
+                        options={businessUnits.map((b) => ({ value: b.id, label: b.nome }))}
+                        onChange={(v) => updateExtraFieldMutation.mutate({ id: tx.id, field: "business_unit_id", value: v })}
+                        onAddModal={() => { setBuEditingId(null); setBuModalOpen(true); }}
+                        onEditModal={(id) => { setBuEditingId(id); setBuModalOpen(true); }}
+                        onDelete={buCrud.onDelete}
+                        placeholder="Unidade de negócio"
+                        addLabel="Nova unidade de negócio"
+                      />
+                    </div>
                 );
               })
             )}
