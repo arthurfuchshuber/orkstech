@@ -2,10 +2,11 @@
 // Disparado por pg_cron a cada algumas horas para manter os bancos
 // sempre sincronizados sem necessidade de ação manual do usuário.
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { isCronAuthorized, jsonResponse } from '../_shared/security.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-cron-secret',
 }
 
 async function getPluggyApiKey(): Promise<string> {
@@ -26,6 +27,12 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
+
+  if (!isCronAuthorized(req)) {
+    return jsonResponse({ error: 'Unauthorized' }, 401, corsHeaders)
+  }
+
+  const cronSecret = Deno.env.get('CRON_SECRET')!
 
   try {
     const supabase = createClient(
@@ -109,7 +116,7 @@ Deno.serve(async (req) => {
             // Fire-and-forget: não esperamos a sync completa terminar para liberar este endpoint
             fetch(syncUrl, {
               headers: {
-                Authorization: `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!}`,
+                Authorization: `Bearer ${cronSecret}`,
                 'X-Internal-User-Id': conn.user_id,
               },
             }).catch((e) => console.error(`Background sync failed for ${conn.pluggy_item_id}:`, e))

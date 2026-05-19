@@ -3,6 +3,12 @@
 // Input: client snapshot (cliente, financial buckets, recent interactions).
 // Output: { insights: [{ tone, text }], recommendation: string }
 
+import {
+  canAccessCliente,
+  jsonResponse,
+  requireAuthenticatedUser,
+} from "../_shared/security.ts";
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
@@ -12,11 +18,24 @@ const corsHeaders = {
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
+  const auth = await requireAuthenticatedUser(req, corsHeaders);
+  if ("response" in auth) return auth.response;
+
   try {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
 
     const payload = await req.json();
+
+    const clienteId = payload?.cliente_id as string | undefined;
+    if (!clienteId) {
+      return jsonResponse({ error: "cliente_id is required" }, 400, corsHeaders);
+    }
+
+    const allowed = await canAccessCliente(auth.supabaseAdmin, auth.user.id, clienteId);
+    if (!allowed) {
+      return jsonResponse({ error: "Forbidden" }, 403, corsHeaders);
+    }
 
     const systemPrompt = `Você é um Especialista Sênior em Customer Success B2B com foco em retenção, expansão de receita e redução de churn.
 

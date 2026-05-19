@@ -1,11 +1,18 @@
 // Sincroniza o Quadro Societário (QSA) de todas as empresas com a Receita Federal.
-// Pode ser invocada por cron diário ou manualmente passando { empresa_id }.
+// Bulk (sem empresa_id): apenas CRON_SECRET. Manual: JWT + acesso à empresa.
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import {
+  canAccessEmpresa,
+  createServiceClient,
+  isCronAuthorized,
+  jsonResponse,
+  requireAuthenticatedUser,
+} from "../_shared/security.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-cron-secret",
 };
 
 function onlyDigits(v: any): string {
@@ -22,7 +29,6 @@ function normalizeQsa(qsa: any[]): any[] {
   return qsa.map((s: any) => {
     const rawDoc = String(s.cnpj_cpf_do_socio || s.cpf_cnpj_socio || "");
     const doc = onlyDigits(rawDoc);
-    // Receita mascara CPF (***169339**) por LGPD — só 6 dígitos do meio são públicos
     const isMasked = /\*/.test(rawDoc) || (doc.length > 0 && doc.length < 11);
     const tipo_pessoa = doc.length === 14 ? "PJ" : "PF";
     return {
@@ -55,7 +61,6 @@ async function syncEmpresa(supabase: any, empresa: { id: string; cnpj: string; u
   const qsa = await fetchQsa(cnpjClean);
   if (!qsa) return { empresa_id: empresa.id, skipped: true, reason: "fetch_failed" };
 
-  // Sócios já existentes (busca todos os campos pra comparar antes de sobrescrever)
   const { data: existing } = await supabase
     .from("empresa_socios")
     .select("id, documento, nome_completo, qualificacao, percentual_participacao, tipo_pessoa, data_entrada")
@@ -67,9 +72,6 @@ async function syncEmpresa(supabase: any, empresa: { id: string; cnpj: string; u
   for (const s of qsa) {
     const existingRow = byDoc.get(s.documento);
     if (existingRow) {
-      // Política: NÃO sobrescrever dados manuais com valores vazios/zerados da Receita.
-      // Só atualiza um campo se a Receita trouxer valor válido E o campo atual estiver vazio,
-      // exceto tipo_pessoa que sempre reflete a natureza do documento.
       const patch: Record<string, any> = {};
       if (s.nome && !existingRow.nome_completo) patch.nome_completo = s.nome;
       if (s.qualificacao && !existingRow.qualificacao) patch.qualificacao = s.qualificacao;
@@ -93,7 +95,6 @@ async function syncEmpresa(supabase: any, empresa: { id: string; cnpj: string; u
         user_id: empresa.user_id,
         nome_completo: s.nome,
         documento: s.documento,
-        // Só preenche CPF/CNPJ completo; se mascarado, deixa null para usuário completar
         cpf: s.tipo_pessoa === "PF" && s.documento_completo ? s.documento : null,
         tipo_pessoa: s.tipo_pessoa,
         qualificacao: s.qualificacao || null,
@@ -109,26 +110,31 @@ async function syncEmpresa(supabase: any, empresa: { id: string; cnpj: string; u
     }
   }
 
-  // NÃO inativamos automaticamente sócios ausentes da Receita —
-  // preservamos integralmente os cadastros manuais e históricos do usuário.
-  const deactivated = 0;
-
   await supabase.from("empresas").update({ last_qsa_sync_at: new Date().toISOString() }).eq("id", empresa.id);
 
-  return { empresa_id: empresa.id, created, updated, deactivated, total_qsa: qsa.length };
+  return { empresa_id: empresa.id, created, updated, deactivated: 0, total_qsa: qsa.length };
 }
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-    );
-
     const body = await req.json().catch(() => ({}));
     const { empresa_id } = body || {};
+
+    const supabase = createServiceClient();
+
+    if (empresa_id) {
+      const auth = await requireAuthenticatedUser(req, corsHeaders);
+      if ("response" in auth) return auth.response;
+
+      const allowed = await canAccessEmpresa(auth.supabaseAdmin, auth.user.id, empresa_id);
+      if (!allowed) {
+        return jsonResponse({ error: "Forbidden" }, 403, corsHeaders);
+      }
+    } else if (!isCronAuthorized(req)) {
+      return jsonResponse({ error: "Unauthorized" }, 401, corsHeaders);
+    }
 
     let empresas: any[] = [];
     if (empresa_id) {
@@ -139,7 +145,6 @@ serve(async (req) => {
         .limit(1);
       empresas = data ?? [];
     } else {
-      // Sincroniza apenas empresas que não tiveram sync nas últimas 20h (evita reexecução desnecessária)
       const cutoff = new Date(Date.now() - 20 * 60 * 60 * 1000).toISOString();
       const { data } = await supabase
         .from("empresas")
@@ -153,18 +158,11 @@ serve(async (req) => {
     for (const e of empresas) {
       const r = await syncEmpresa(supabase, e);
       results.push(r);
-      // pequeno delay para não estourar rate-limit da BrasilAPI
       await new Promise((res) => setTimeout(res, 250));
     }
 
-    return new Response(JSON.stringify({ ok: true, processed: results.length, results }), {
-      status: 200,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return jsonResponse({ ok: true, processed: results.length, results }, 200, corsHeaders);
   } catch (err: any) {
-    return new Response(JSON.stringify({ error: err?.message || "Erro interno" }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return jsonResponse({ error: err?.message || "Erro interno" }, 500, corsHeaders);
   }
 });

@@ -1,8 +1,9 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { jsonResponse, verifyPluggyWebhookSecret } from '../_shared/security.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-pluggy-webhook-secret, x-webhook-secret',
 }
 
 async function getPluggyApiKey(): Promise<string> {
@@ -101,6 +102,10 @@ async function tryReconcile(
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
+  }
+
+  if (!verifyPluggyWebhookSecret(req)) {
+    return jsonResponse({ error: 'Unauthorized' }, 401, corsHeaders)
   }
 
   const supabase = createServiceClient()

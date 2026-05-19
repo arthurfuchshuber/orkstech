@@ -1,8 +1,14 @@
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-internal-user-id, x-cron-secret',
 }
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import {
+  assertPluggyItemAccess,
+  createServiceClient,
+  createUserClient,
+  isCronAuthorized,
+} from '../_shared/security.ts'
 
 async function getPluggyApiKey(): Promise<string> {
   const res = await fetch('https://api.pluggy.ai/auth', {
@@ -56,23 +62,6 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
     }
 
-    const supabaseAdmin = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-    )
-
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_ANON_KEY')!,
-      { global: { headers: { Authorization: authHeader } } }
-    )
-
-    const { data: { user }, error: userError } = await supabase.auth.getUser()
-    if (userError || !user) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
-    }
-    const userId = user.id
-
     const url = new URL(req.url)
     const itemId = url.searchParams.get('itemId')
     const action = url.searchParams.get('action') || 'full_sync'
@@ -80,6 +69,34 @@ Deno.serve(async (req) => {
     if (!itemId) {
       return new Response(JSON.stringify({ error: 'itemId is required' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
     }
+
+    const supabaseAdmin = createServiceClient()
+    const internalCron = isCronAuthorized(req)
+    let callerUserId: string
+
+    if (internalCron) {
+      const internalUserId = req.headers.get('X-Internal-User-Id')
+      if (!internalUserId) {
+        return new Response(JSON.stringify({ error: 'X-Internal-User-Id required' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+      }
+      callerUserId = internalUserId
+    } else {
+      const supabase = createUserClient(authHeader)
+      const { data: { user }, error: userError } = await supabase.auth.getUser()
+      if (userError || !user) {
+        return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+      }
+      callerUserId = user.id
+    }
+
+    const access = await assertPluggyItemAccess(supabaseAdmin, itemId, callerUserId, {
+      isInternalCron: internalCron,
+      internalUserId: req.headers.get('X-Internal-User-Id'),
+    }, corsHeaders)
+    if ('error' in access) return access.error
+
+    const { conn, ownerUserId } = access
+    const connectionId = conn.id || null
 
     const apiKey = await getPluggyApiKey()
     const headers = { 'X-API-KEY': apiKey, 'Content-Type': 'application/json' }
@@ -141,17 +158,6 @@ Deno.serve(async (req) => {
       totalInvestments = Math.round(totalInvestments * 100) / 100
       console.log(`[pluggy-sync] Total investments (balance líquido) item ${itemId}: R$ ${totalInvestments} de ${investmentsList.length} investimentos`)
     }
-
-    // Get connection and resolve the real owner user_id
-    const { data: conn } = await supabaseAdmin
-      .from('pluggy_connections')
-      .select('id, user_id')
-      .eq('pluggy_item_id', itemId)
-      .maybeSingle()
-
-    const connectionId = conn?.id || null
-    // Use the connection owner's user_id (important for Super Admin syncing on behalf of another user)
-    const ownerUserId = conn?.user_id || userId
 
     // Save individual investments with yield data
     let savedInvestments = 0

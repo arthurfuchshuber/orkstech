@@ -358,6 +358,7 @@ export function ClienteVisaoGeralTab({ cliente, onEdit: _onEdit }: Props) {
   // ---------- Strategic AI Summary via Lovable AI ----------
   // Build a debounced fingerprint to avoid excessive calls
   const aiPayload = useMemo(() => ({
+    cliente_id: cliente.id,
     cliente: {
       nome: cliente.tipo === "pf" ? cliente.nome_completo : (cliente.nome_fantasia || cliente.razao_social),
       tipo: cliente.tipo,

@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { jsonResponse, requireAuthenticatedUser } from "../_shared/security.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -34,43 +35,41 @@ serve(async (req) => {
     return new Response("ok", { headers: corsHeaders });
   }
 
+  const auth = await requireAuthenticatedUser(req, corsHeaders);
+  if ("response" in auth) return auth.response;
+
   try {
     const { cnpj } = await req.json();
     const cleanCnpj = onlyDigits(cnpj);
 
     if (!cleanCnpj || cleanCnpj.length !== 14) {
-      return new Response(
-        JSON.stringify({ error: "CNPJ inválido" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return jsonResponse({ error: "CNPJ inválido" }, 400, corsHeaders);
     }
 
     const response = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${cleanCnpj}`);
 
     if (!response.ok) {
-      return new Response(
-        JSON.stringify({ error: "CNPJ não encontrado na Receita Federal" }),
-        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return jsonResponse({ error: "CNPJ não encontrado na Receita Federal" }, 404, corsHeaders);
     }
 
     const data = await response.json();
 
     const situacao = (data.descricao_situacao_cadastral || "").toUpperCase();
     if (situacao !== "ATIVA") {
-      return new Response(
-        JSON.stringify({
+      return jsonResponse(
+        {
           error: `CNPJ com situação cadastral: ${data.descricao_situacao_cadastral || "INATIVA"}. Apenas empresas ATIVAS podem ser cadastradas.`,
           situacao: data.descricao_situacao_cadastral,
-        }),
-        { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        },
+        422,
+        corsHeaders,
       );
     }
 
     const qsa = normalizeQsa(data.qsa || data.socios || []);
 
-    return new Response(
-      JSON.stringify({
+    return jsonResponse(
+      {
         razao_social: data.razao_social || "",
         nome_fantasia: data.nome_fantasia || "",
         telefone: data.ddd_telefone_1
@@ -86,13 +85,11 @@ serve(async (req) => {
         cep: (data.cep || "").replace(/\D/g, ""),
         situacao: data.descricao_situacao_cadastral,
         qsa,
-      }),
-      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      },
+      200,
+      corsHeaders,
     );
-  } catch (err) {
-    return new Response(
-      JSON.stringify({ error: "Erro ao consultar CNPJ" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+  } catch {
+    return jsonResponse({ error: "Erro ao consultar CNPJ" }, 500, corsHeaders);
   }
 });
