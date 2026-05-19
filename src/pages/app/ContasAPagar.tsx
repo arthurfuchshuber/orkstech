@@ -1262,26 +1262,27 @@ export default function ContasAPagar() {
             <p className="text-sm text-muted-foreground font-medium">Nenhuma conta encontrada</p>
           </div>
         ) : (
+          <div className="overflow-x-auto">
           <Table className="w-full">
             <TableHeader>
               <TableRow>
-                <TableHead style={{ width: 40, minWidth: 40 }}>
+                <TableHead style={{ width: 36, minWidth: 36 }}>
                   <Checkbox
                     checked={filtered.length > 0 && selectedIds.size === filtered.length}
                     onCheckedChange={toggleSelectAll}
                   />
                 </TableHead>
-                <TableHead style={{ minWidth: 110 }}>Vencimento</TableHead>
-                <TableHead style={{ minWidth: 180 }}>Fornecedor</TableHead>
-                <TableHead style={{ minWidth: 220 }}>Descrição</TableHead>
-                <TableHead style={{ minWidth: 110 }}>Valor</TableHead>
-                <TableHead style={{ minWidth: 120 }}>Status</TableHead>
-                <TableHead style={{ minWidth: 220 }}>Subcategoria</TableHead>
-                <TableHead style={{ minWidth: 160 }}>Centro de Custo</TableHead>
-                <TableHead style={{ minWidth: 160 }}>Unidade de Negócio</TableHead>
-                <TableHead style={{ minWidth: 180 }}>Forma Pagamento</TableHead>
-                <TableHead style={{ minWidth: 180 }}>Conta Bancária</TableHead>
-                <TableHead style={{ width: 50, minWidth: 50 }} className="text-right">Ações</TableHead>
+                <TableHead style={{ minWidth: 96 }}>Vencimento</TableHead>
+                <TableHead style={{ minWidth: 140 }}>Fornecedor</TableHead>
+                <TableHead style={{ minWidth: 180 }}>Descrição</TableHead>
+                <TableHead style={{ minWidth: 100 }}>Valor</TableHead>
+                <TableHead style={{ minWidth: 104 }}>Status</TableHead>
+                <TableHead style={{ minWidth: 160 }}>Subcategoria</TableHead>
+                <TableHead style={{ minWidth: 130 }}>Centro de Custo</TableHead>
+                <TableHead style={{ minWidth: 140 }}>Unidade de Negócio</TableHead>
+                <TableHead style={{ minWidth: 140 }}>Forma Pagamento</TableHead>
+                <TableHead style={{ minWidth: 150 }}>Conta Bancária</TableHead>
+                <TableHead style={{ width: 48, minWidth: 48 }} className="text-right sticky right-0 bg-card shadow-[-4px_0_8px_-4px_rgba(0,0,0,0.1)]">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
