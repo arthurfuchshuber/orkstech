@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useEmpresa } from "@/hooks/useEmpresa";
 import { toast } from "sonner";
+import { translateError } from "@/lib/translate-error";
 import { Button } from "@/components/ui/button";
 import { FormModal } from "@/components/FormModal";
 import { TextInput } from "@/components/inputs/TextInput";
