@@ -1560,6 +1560,7 @@ export default function ContasAPagar() {
               })()}
             </TableBody>
           </Table>
+          </div>
         )}
       </Card>
 
