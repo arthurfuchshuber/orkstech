@@ -23,7 +23,16 @@ const MAP: Array<[RegExp, string]> = [
   // PostgREST / DB
   [/duplicate key value|already exists/i, "Registro já existe"],
   [/violates foreign key constraint/i, "Existe um registro vinculado que impede a operação"],
+  [/violates not-null constraint.*column "([^"]+)"/i, 'O campo "$1" é obrigatório'],
   [/violates not-null constraint/i, "Há campos obrigatórios não preenchidos"],
+  // Check constraints conhecidos
+  [/clientes_check_pf/i, "Para Pessoa Física, informe nome completo e CPF válido"],
+  [/clientes_check_pj/i, "Para Pessoa Jurídica, informe razão social e CNPJ válido"],
+  [/fornecedores_check_pf/i, "Para Pessoa Física, informe nome completo e CPF válido"],
+  [/fornecedores_check_pj/i, "Para Pessoa Jurídica, informe razão social e CNPJ válido"],
+  [/check constraint "([^"]+)"/i, "Dados inválidos: verifique os campos preenchidos"],
+  [/could not find the '([^']+)' column of '([^']+)' in the schema cache/i,
+    "O campo \"$1\" não existe na tabela. Atualize a página e tente novamente."],
   [/permission denied|row-level security/i, "Você não tem permissão para esta operação"],
   [/network ?error|failed to fetch|load failed/i, "Sem conexão com o servidor. Verifique sua internet."],
   [/timeout|timed out/i, "Tempo esgotado. Tente novamente."],
@@ -49,6 +58,6 @@ export function translateError(input: unknown): string {
   }
   // Se já vier em português (heurística simples), devolve como está
   if (/[ãáàâéêíóôõúçÃÁÀÂÉÊÍÓÔÕÚÇ]/.test(raw)) return raw;
-  // Mensagens técnicas sem tradução conhecida → fallback genérico
+  // Mensagens técnicas em inglês sem tradução conhecida → fallback genérico em PT-BR
   return "Ocorreu um erro. Tente novamente.";
 }

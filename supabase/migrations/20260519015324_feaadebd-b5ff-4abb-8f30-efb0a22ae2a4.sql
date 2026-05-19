@@ -1,0 +1,2 @@
+ALTER TABLE public.accounts_receivable ADD COLUMN IF NOT EXISTS supplier_id uuid REFERENCES public.fornecedores(id) ON DELETE SET NULL;
+CREATE INDEX IF NOT EXISTS idx_ar_supplier_id ON public.accounts_receivable(supplier_id);

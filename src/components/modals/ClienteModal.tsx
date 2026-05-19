@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useEmpresa } from "@/hooks/useEmpresa";
 import { toast } from "sonner";
+import { translateError } from "@/lib/translate-error";
 import { Button } from "@/components/ui/button";
 import { FormModal } from "@/components/FormModal";
 import { TextInput } from "@/components/inputs/TextInput";
@@ -260,7 +261,7 @@ export function ClienteModal({ open, onOpenChange, editingId, onSaved, prefill }
       onSaved?.(id);
       onOpenChange(false);
     },
-    onError: (e: any) => toast.error(e.message || "Erro ao salvar cliente"),
+    onError: (e: any) => toast.error(translateError(e)),
   });
 
   const validate = () => {
