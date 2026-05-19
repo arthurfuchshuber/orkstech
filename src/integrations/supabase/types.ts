@@ -235,6 +235,7 @@ export type Database = {
           pessoa_tipo: string
           recurrence_interval: string | null
           status: string
+          supplier_id: string | null
           supplier_name: string | null
           ultima_sync_at: string | null
           updated_at: string
@@ -269,6 +270,7 @@ export type Database = {
           pessoa_tipo?: string
           recurrence_interval?: string | null
           status?: string
+          supplier_id?: string | null
           supplier_name?: string | null
           ultima_sync_at?: string | null
           updated_at?: string
@@ -303,6 +305,7 @@ export type Database = {
           pessoa_tipo?: string
           recurrence_interval?: string | null
           status?: string
+          supplier_id?: string | null
           supplier_name?: string | null
           ultima_sync_at?: string | null
           updated_at?: string
@@ -363,6 +366,13 @@ export type Database = {
             columns: ["payment_method_id"]
             isOneToOne: false
             referencedRelation: "formas_pagamento"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "accounts_receivable_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "fornecedores"
             referencedColumns: ["id"]
           },
         ]
