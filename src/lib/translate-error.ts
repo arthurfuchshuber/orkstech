@@ -58,6 +58,6 @@ export function translateError(input: unknown): string {
   }
   // Se já vier em português (heurística simples), devolve como está
   if (/[ãáàâéêíóôõúçÃÁÀÂÉÊÍÓÔÕÚÇ]/.test(raw)) return raw;
-  // Mensagens técnicas sem tradução conhecida → fallback genérico
+  // Mensagens técnicas em inglês sem tradução conhecida → fallback genérico em PT-BR
   return "Ocorreu um erro. Tente novamente.";
 }
