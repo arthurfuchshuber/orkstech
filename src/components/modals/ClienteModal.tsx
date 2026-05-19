@@ -260,7 +260,7 @@ export function ClienteModal({ open, onOpenChange, editingId, onSaved, prefill }
       onSaved?.(id);
       onOpenChange(false);
     },
-    onError: (e: any) => toast.error(e.message || "Erro ao salvar cliente"),
+    onError: (e: any) => toast.error(translateError(e)),
   });
 
   const validate = () => {
