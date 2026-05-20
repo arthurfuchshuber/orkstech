@@ -30,6 +30,7 @@ import { useOrfaosFinanceiros } from "@/hooks/useOrfaosFinanceiros";
 import { RealocarOrfaosDialog } from "./RealocarOrfaosDialog";
 import { UncategorizedBanner } from "./UncategorizedBanner";
 import { PendenciasIndicator } from "./PendenciasIndicator";
+import { SyncAllPluggyButton } from "./SyncAllPluggyButton";
 import { TransferenciaContasDialog } from "./TransferenciaContasDialog";
 import { VincularCardFinanceiroDialog, type CardVinculoTipo } from "./VincularCardFinanceiroDialog";
 import { Button } from "@/components/ui/button";
@@ -846,7 +847,8 @@ export default function FinanceiroDashboard() {
           <TabsTrigger value="caixa">Caixa da Empresa</TabsTrigger>
           <TabsTrigger value="contas-pagar">Contas a Pagar</TabsTrigger>
         </TabsList>
-        <div className="flex items-center gap-2">
+        <SyncAllPluggyButton />
+        <div className="flex items-center gap-2 ml-auto">
           <PendenciasIndicator
             cardsSemVinculo={cardsSemVinculo}
             onCategorizar={() => navigate("/app/financas/extrato?filtro=sem-categoria")}
