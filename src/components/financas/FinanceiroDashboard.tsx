@@ -30,6 +30,7 @@ import { useOrfaosFinanceiros } from "@/hooks/useOrfaosFinanceiros";
 import { RealocarOrfaosDialog } from "./RealocarOrfaosDialog";
 import { UncategorizedBanner } from "./UncategorizedBanner";
 import { PendenciasIndicator } from "./PendenciasIndicator";
+import { SyncAllPluggyButton } from "./SyncAllPluggyButton";
 import { TransferenciaContasDialog } from "./TransferenciaContasDialog";
 import { VincularCardFinanceiroDialog, type CardVinculoTipo } from "./VincularCardFinanceiroDialog";
 import { Button } from "@/components/ui/button";
