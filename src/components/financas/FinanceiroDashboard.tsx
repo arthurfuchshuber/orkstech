@@ -847,7 +847,8 @@ export default function FinanceiroDashboard() {
           <TabsTrigger value="caixa">Caixa da Empresa</TabsTrigger>
           <TabsTrigger value="contas-pagar">Contas a Pagar</TabsTrigger>
         </TabsList>
-        <div className="flex items-center gap-2">
+        <SyncAllPluggyButton />
+        <div className="flex items-center gap-2 ml-auto">
           <PendenciasIndicator
             cardsSemVinculo={cardsSemVinculo}
             onCategorizar={() => navigate("/app/financas/extrato?filtro=sem-categoria")}
