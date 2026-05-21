@@ -216,96 +216,120 @@ Deno.serve(async (req) => {
     let savedTransactions = 0
 
     for (const acc of accounts) {
-      // For credit cards, fetch the actual bill from Pluggy Bills API
-      let billAmount: number | null = null
+      // === Cálculo da FATURA ATUAL EXATA (próximo vencimento) ===
+      // Pluggy não expõe nativamente "fatura atual em formação". Construímos a partir das transações.
+      // Estratégia:
+      //  A) Se existir bill OPEN no /bills → soma todas as txs com creditCardMetadata.billId === openBill.id
+      //  B) Caso contrário, define janela do ciclo via balanceCloseDate (ou projeta de balanceDueDate)
+      //     e soma PENDING + POSTED do ciclo, excluindo tipo CREDIT (estornos/pagamentos)
+      //  Dedup por tx.id. Log detalhado das incluídas/excluídas.
+      let faturaAtualExata: number | null = null
       let billDueDate: string | null = null
-      let openBillAmount: number | null = null
+      let billCloseDate: string | null = null
+      let cycleStart: string | null = null
+      let cycleEnd: string | null = null
+      let openBillId: string | null = null
+      let faturaSource: 'open_bill_id' | 'cycle_window' | null = null
+      const bilhetagem: { incluidas: number; excluidas: number; motivos: Record<string, number> } = {
+        incluidas: 0, excluidas: 0, motivos: {},
+      }
+      let allCardTxs: any[] = []
 
       if (acc.type === 'CREDIT') {
-        // 1) Try the Bills API. The OPEN bill is the partial bill in formation.
+        // 1) Busca TODAS as transações do cartão
+        allCardTxs = await fetchAllTransactions(apiKey, acc.id)
+        // dedup defensivo por id
+        const seenIds = new Set<string>()
+        allCardTxs = allCardTxs.filter((t: any) => {
+          if (!t.id || seenIds.has(t.id)) return false
+          seenIds.add(t.id); return true
+        })
+
+        // 2) Tenta /bills para descobrir OPEN bill
+        let openBill: any = null
         try {
           const billsRes = await fetch(`https://api.pluggy.ai/accounts/${acc.id}/bills`, { headers })
-          const billsBody = await billsRes.text()
-          if (!billsRes.ok) {
-            console.warn(`Bills endpoint ${billsRes.status} for account ${acc.id}: ${billsBody.slice(0, 300)}`)
-          } else {
-            const billsData = JSON.parse(billsBody)
-            const bills = billsData.results || []
-            console.log(`Bills for ${acc.id}: ${bills.length} bills, statuses=${bills.map((b: any) => b.status).join(',')}`)
-            const openBill = bills.find((b: any) => (b.status || '').toUpperCase() === 'OPEN')
-            const today = new Date().toISOString().split('T')[0]
-            const futureBills = bills
-              .filter((b: any) => b.dueDate && b.dueDate.split('T')[0] >= today)
-              .sort((a: any, b: any) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime())
-            const chosen = openBill || futureBills[0] || bills[0]
-            if (chosen) {
-              billAmount = chosen.totalAmount ?? chosen.amount ?? null
-              billDueDate = chosen.dueDate ? chosen.dueDate.split('T')[0] : null
+          if (billsRes.ok) {
+            const billsData = await billsRes.json()
+            const bills: any[] = billsData.results || []
+            openBill = bills.find((b: any) => (b.status || '').toUpperCase() === 'OPEN') || null
+            console.log(`[bills ${acc.id}] ${bills.length} faturas, statuses=${bills.map((b: any) => b.status).join(',')}`)
+            if (openBill) {
+              openBillId = openBill.id
+              billDueDate = openBill.dueDate ? openBill.dueDate.split('T')[0] : null
             }
+          } else {
+            console.warn(`[bills ${acc.id}] HTTP ${billsRes.status}`)
           }
         } catch (e) {
-          console.error('Bills fetch error:', e)
+          console.error(`[bills ${acc.id}] erro:`, e)
         }
 
-        // 2) Fallback: calculate the NEXT BILL TO MATURE (BTG-style: shows only the closing bill,
-        //    not the future bill in formation).
-        //    Strategy:
-        //      a) Find the next billing close date. We derive it from `balanceDueDate` recurring monthly
-        //         (assume close = dueDate - 3 days, typical for most issuers).
-        //      b) Find the previous close date (one month before the next close).
-        //      c) Sum DEBITs in [previousClose+1 .. nextClose] = next bill to mature.
-        if (billAmount == null) {
-          try {
-            const today = new Date()
-            const lookback = new Date(today)
-            lookback.setDate(lookback.getDate() - 90)
-            const fromDate = lookback.toISOString().split('T')[0]
-            const txRes = await fetch(
-              `https://api.pluggy.ai/transactions?accountId=${acc.id}&from=${fromDate}&pageSize=500`,
-              { headers }
-            )
-            if (txRes.ok) {
-              const txData = await txRes.json()
-              const txs: any[] = txData.results || []
+        const countExcl = (motivo: string) => {
+          bilhetagem.excluidas++
+          bilhetagem.motivos[motivo] = (bilhetagem.motivos[motivo] || 0) + 1
+        }
 
-              // Determine the day-of-month for due date (from balanceDueDate, recurring monthly)
-              const rawDue = acc.creditData?.balanceDueDate
-              const dueDay = rawDue ? new Date(rawDue).getUTCDate() : 5
-
-              // Project the NEXT due date >= today (recurring on dueDay each month)
-              const projectNextDue = (): Date => {
-                const d = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), dueDay))
-                if (d.getTime() < today.getTime()) d.setUTCMonth(d.getUTCMonth() + 1)
-                return d
-              }
-              const nextDue = projectNextDue()
-              // Closing date = due date - 3 days (typical "melhor dia de compra" gap)
-              const nextClose = new Date(nextDue)
-              nextClose.setUTCDate(nextClose.getUTCDate() - 3)
-              const prevClose = new Date(nextClose)
-              prevClose.setUTCMonth(prevClose.getUTCMonth() - 1)
-
-              const nextCloseMs = nextClose.getTime()
-              const prevCloseMs = prevClose.getTime()
-
-              // Sum DEBITs in (prevClose, nextClose]
-              openBillAmount = txs
-                .filter((tx) => {
-                  const isDebit = tx.type === 'DEBIT' || tx.amount > 0
-                  if (!isDebit) return false
-                  const t = new Date(tx.date).getTime()
-                  return t > prevCloseMs && t <= nextCloseMs
-                })
-                .reduce((sum, tx) => sum + Math.abs(tx.amount), 0)
-              openBillAmount = Math.round((openBillAmount ?? 0) * 100) / 100
-              console.log(
-                `Next bill to mature: R$ ${openBillAmount} | window: ${prevClose.toISOString().split('T')[0]} → ${nextClose.toISOString().split('T')[0]} | due: ${nextDue.toISOString().split('T')[0]}`
-              )
-              billDueDate = billDueDate || nextDue.toISOString().split('T')[0]
-            }
-          } catch (e) {
-            console.error('Next bill calc error:', e)
+        // 3-A) Caminho preferido: somar por billId
+        if (openBillId) {
+          faturaSource = 'open_bill_id'
+          let total = 0
+          for (const tx of allCardTxs) {
+            const meta = tx.creditCardMetadata || {}
+            const status = (tx.status || 'POSTED').toUpperCase()
+            const isCharge = tx.type === 'DEBIT' && Number(tx.amount) > 0
+            if (meta.billId !== openBillId) { countExcl('outro_ciclo'); continue }
+            if (!isCharge) { countExcl('estorno_ou_pagamento'); continue }
+            if (status !== 'PENDING' && status !== 'POSTED') { countExcl(`status_${status}`); continue }
+            total += Math.abs(Number(tx.amount))
+            bilhetagem.incluidas++
           }
+          faturaAtualExata = Math.round(total * 100) / 100
+          console.log(`[fatura_atual_exata ${acc.id}] via OPEN billId=${openBillId}: R$ ${faturaAtualExata} (in=${bilhetagem.incluidas}, out=${bilhetagem.excluidas})`)
+        } else {
+          // 3-B) Fallback: ciclo atual via balanceCloseDate / projeção
+          faturaSource = 'cycle_window'
+          const today = new Date()
+          const closeRaw = acc.creditData?.balanceCloseDate
+          const dueRaw = acc.creditData?.balanceDueDate
+          let nextClose: Date, nextDue: Date
+
+          if (closeRaw) {
+            nextClose = new Date(closeRaw)
+            if (nextClose.getTime() < today.getTime()) {
+              nextClose = new Date(nextClose); nextClose.setUTCMonth(nextClose.getUTCMonth() + 1)
+            }
+            nextDue = dueRaw ? new Date(dueRaw) : new Date(nextClose.getTime() + 10 * 86400000)
+            if (dueRaw && nextDue.getTime() < today.getTime()) {
+              nextDue = new Date(nextDue); nextDue.setUTCMonth(nextDue.getUTCMonth() + 1)
+            }
+          } else {
+            const dueDay = dueRaw ? new Date(dueRaw).getUTCDate() : 5
+            nextDue = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), dueDay))
+            if (nextDue.getTime() < today.getTime()) nextDue.setUTCMonth(nextDue.getUTCMonth() + 1)
+            nextClose = new Date(nextDue); nextClose.setUTCDate(nextClose.getUTCDate() - 7)
+          }
+          const prevClose = new Date(nextClose); prevClose.setUTCMonth(prevClose.getUTCMonth() - 1)
+
+          billCloseDate = nextClose.toISOString().split('T')[0]
+          billDueDate = nextDue.toISOString().split('T')[0]
+          cycleStart = prevClose.toISOString().split('T')[0]
+          cycleEnd = billCloseDate
+
+          const prevMs = prevClose.getTime(), nextMs = nextClose.getTime()
+          let total = 0
+          for (const tx of allCardTxs) {
+            const status = (tx.status || 'POSTED').toUpperCase()
+            const isCharge = tx.type === 'DEBIT' && Number(tx.amount) > 0
+            const t = new Date(tx.date).getTime()
+            if (!(t > prevMs && t <= nextMs)) { countExcl('fora_do_ciclo'); continue }
+            if (!isCharge) { countExcl('estorno_ou_pagamento'); continue }
+            if (status !== 'PENDING' && status !== 'POSTED') { countExcl(`status_${status}`); continue }
+            total += Math.abs(Number(tx.amount))
+            bilhetagem.incluidas++
+          }
+          faturaAtualExata = Math.round(total * 100) / 100
+          console.log(`[fatura_atual_exata ${acc.id}] via ciclo ${cycleStart}→${cycleEnd}: R$ ${faturaAtualExata} (in=${bilhetagem.incluidas}, out=${bilhetagem.excluidas})`)
         }
       }
 
@@ -321,7 +345,8 @@ Deno.serve(async (req) => {
         currency_code: acc.currencyCode || 'BRL',
         credit_limit: acc.creditData?.limit ?? acc.creditData?.creditLimit ?? null,
         credit_available: acc.creditData?.availableCreditLimit ?? null,
-        credit_bill_amount: acc.type === 'CREDIT' ? (acc.balance ?? billAmount ?? openBillAmount ?? null) : null,
+        // credit_bill_amount agora = fatura_atual_exata (próximo vencimento)
+        credit_bill_amount: acc.type === 'CREDIT' ? faturaAtualExata : null,
         credit_bill_due_date: billDueDate || acc.creditData?.balanceDueDate || null,
         bank_data: {
           ...(acc.bankData || {}),
@@ -331,10 +356,19 @@ Deno.serve(async (req) => {
           marketingName: acc.marketingName || null,
           number: acc.number || null,
           balanceCloseDate: acc.creditData?.balanceCloseDate || null,
-          openBillAmount: openBillAmount,
+          // Fatura atual exata + auditoria
+          fatura_atual_exata: faturaAtualExata,
+          fatura_source: faturaSource,
+          fatura_open_bill_id: openBillId,
+          fatura_cycle_start: cycleStart,
+          fatura_cycle_end: cycleEnd,
+          fatura_close_date: billCloseDate,
+          fatura_breakdown: bilhetagem,
+          // legados (compat com UI atual)
+          openBillAmount: faturaAtualExata,
           totalDebt: acc.type === 'CREDIT' ? (acc.balance ?? null) : null,
-          hasBillData: billAmount != null,
-          hasOpenBillCalc: openBillAmount != null,
+          hasBillData: faturaAtualExata != null,
+          hasOpenBillCalc: faturaAtualExata != null,
           totalInvestments: acc.type !== 'CREDIT' ? totalInvestments : 0,
         },
         updated_at: new Date().toISOString(),
