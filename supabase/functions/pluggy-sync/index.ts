@@ -386,7 +386,8 @@ Deno.serve(async (req) => {
 
       // Fetch and save transactions for this account
       if (action === 'full_sync' || action === 'transactions') {
-        const transactions = await fetchAllTransactions(apiKey, acc.id)
+        // Reaproveita txs do cartão (já buscadas para o cálculo da fatura)
+        const transactions = acc.type === 'CREDIT' ? allCardTxs : await fetchAllTransactions(apiKey, acc.id)
 
         if (transactions.length > 0) {
           const BATCH = 200
@@ -400,7 +401,11 @@ Deno.serve(async (req) => {
               type: tx.type || 'DEBIT',
               date: tx.date ? tx.date.split('T')[0] : new Date().toISOString().split('T')[0],
               category: tx.category || null,
-              payment_data: tx.paymentData || {},
+              payment_data: {
+                ...(tx.paymentData || {}),
+                status: tx.status || null,
+                creditCardMetadata: tx.creditCardMetadata || null,
+              },
               updated_at: new Date().toISOString(),
             }))
 
