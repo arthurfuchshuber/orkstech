@@ -287,33 +287,76 @@ Deno.serve(async (req) => {
           faturaAtualExata = Math.round(total * 100) / 100
           console.log(`[fatura_atual_exata ${acc.id}] via OPEN billId=${openBillId}: R$ ${faturaAtualExata} (in=${bilhetagem.incluidas}, out=${bilhetagem.excluidas})`)
         } else {
-          // 3-B) Fallback: ciclo atual via balanceCloseDate / projeção
-          faturaSource = 'cycle_window'
+          // 3-B) Fallback inteligente — escolhe a melhor estratégia disponível:
+          //   (i)  balanceCloseDate confiável (presente e/ou balanceDueDate futuro) → cycle_window
+          //   (ii) caso contrário, detecta o último PAGAMENTO da fatura anterior (CREDIT grande / desc "pagamento")
+          //        e usa essa data como início do novo ciclo → last_payment_window (preciso quando o banco não envia close)
+          //   (iii) último recurso: heurística de 7 dias antes do próximo vencimento
           const today = new Date()
           const closeRaw = acc.creditData?.balanceCloseDate
           const dueRaw = acc.creditData?.balanceDueDate
-          let nextClose: Date, nextDue: Date
+          const dueRawDate = dueRaw ? new Date(dueRaw) : null
+          const dueIsStale = dueRawDate ? (today.getTime() - dueRawDate.getTime()) > 35 * 86400000 : true
+          const hasReliableCycle = !!closeRaw || (dueRawDate && !dueIsStale)
 
-          if (closeRaw) {
-            nextClose = new Date(closeRaw)
-            if (nextClose.getTime() < today.getTime()) {
-              nextClose = new Date(nextClose); nextClose.setUTCMonth(nextClose.getUTCMonth() + 1)
+          // Detecta último pagamento (entrada de crédito que quita fatura anterior)
+          // Critérios: type CREDIT, amount negativo significativo (>R$ 50 em módulo),
+          // OU descrição que contém "pagamento"/"payment".
+          const payments = allCardTxs
+            .filter((tx: any) => {
+              const desc = String(tx.description || '').toLowerCase()
+              const isCreditType = tx.type === 'CREDIT' || Number(tx.amount) < 0
+              const looksLikePayment = /pagamento|payment|pgto/.test(desc) || Math.abs(Number(tx.amount)) >= 50
+              return isCreditType && looksLikePayment
+            })
+            .sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime())
+          const lastPayment = payments[0] || null
+
+          let prevClose: Date, nextClose: Date, nextDue: Date
+
+          if (hasReliableCycle) {
+            faturaSource = 'cycle_window'
+            if (closeRaw) {
+              nextClose = new Date(closeRaw)
+              if (nextClose.getTime() < today.getTime()) {
+                nextClose = new Date(nextClose); nextClose.setUTCMonth(nextClose.getUTCMonth() + 1)
+              }
+              nextDue = dueRawDate || new Date(nextClose.getTime() + 10 * 86400000)
+              if (dueRawDate && nextDue.getTime() < today.getTime()) {
+                nextDue = new Date(nextDue); nextDue.setUTCMonth(nextDue.getUTCMonth() + 1)
+              }
+            } else {
+              const dueDay = dueRawDate!.getUTCDate()
+              nextDue = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), dueDay))
+              if (nextDue.getTime() < today.getTime()) nextDue.setUTCMonth(nextDue.getUTCMonth() + 1)
+              nextClose = new Date(nextDue); nextClose.setUTCDate(nextClose.getUTCDate() - 7)
             }
-            nextDue = dueRaw ? new Date(dueRaw) : new Date(nextClose.getTime() + 10 * 86400000)
-            if (dueRaw && nextDue.getTime() < today.getTime()) {
-              nextDue = new Date(nextDue); nextDue.setUTCMonth(nextDue.getUTCMonth() + 1)
-            }
+            prevClose = new Date(nextClose); prevClose.setUTCMonth(prevClose.getUTCMonth() - 1)
+          } else if (lastPayment) {
+            faturaSource = 'last_payment_window' as any
+            // Novo ciclo começa na data do último pagamento (inclusiva)
+            prevClose = new Date(lastPayment.date)
+            prevClose.setUTCHours(0, 0, 0, 0)
+            // Subtrai 1ms para que o filtro "> prevMs" inclua transações da própria data do pagamento
+            prevClose = new Date(prevClose.getTime() - 1)
+            // Próximo fechamento ~30 dias após o anterior; vencimento ~7 dias depois (apenas exibição)
+            nextClose = new Date(prevClose.getTime() + 30 * 86400000)
+            if (nextClose.getTime() < today.getTime()) nextClose = new Date(today.getTime() + 7 * 86400000)
+            nextDue = dueRawDate && dueRawDate.getTime() > today.getTime()
+              ? dueRawDate
+              : new Date(nextClose.getTime() + 7 * 86400000)
           } else {
-            const dueDay = dueRaw ? new Date(dueRaw).getUTCDate() : 5
+            faturaSource = 'cycle_window'
+            const dueDay = dueRawDate ? dueRawDate.getUTCDate() : 5
             nextDue = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), dueDay))
             if (nextDue.getTime() < today.getTime()) nextDue.setUTCMonth(nextDue.getUTCMonth() + 1)
             nextClose = new Date(nextDue); nextClose.setUTCDate(nextClose.getUTCDate() - 7)
+            prevClose = new Date(nextClose); prevClose.setUTCMonth(prevClose.getUTCMonth() - 1)
           }
-          const prevClose = new Date(nextClose); prevClose.setUTCMonth(prevClose.getUTCMonth() - 1)
 
           billCloseDate = nextClose.toISOString().split('T')[0]
           billDueDate = nextDue.toISOString().split('T')[0]
-          cycleStart = prevClose.toISOString().split('T')[0]
+          cycleStart = new Date(prevClose.getTime() + 1).toISOString().split('T')[0]
           cycleEnd = billCloseDate
 
           const prevMs = prevClose.getTime(), nextMs = nextClose.getTime()
@@ -329,7 +372,7 @@ Deno.serve(async (req) => {
             bilhetagem.incluidas++
           }
           faturaAtualExata = Math.round(total * 100) / 100
-          console.log(`[fatura_atual_exata ${acc.id}] via ciclo ${cycleStart}→${cycleEnd}: R$ ${faturaAtualExata} (in=${bilhetagem.incluidas}, out=${bilhetagem.excluidas})`)
+          console.log(`[fatura_atual_exata ${acc.id}] via ${faturaSource} ${cycleStart}→${cycleEnd} (lastPayment=${lastPayment?.date || 'n/a'}): R$ ${faturaAtualExata} (in=${bilhetagem.incluidas}, out=${bilhetagem.excluidas})`)
         }
       }
 
