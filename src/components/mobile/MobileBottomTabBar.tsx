@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 
 type Tab = {
   label: string;
-  icon: React.ComponentType<{ className?: string }>;
+  icon: LucideIcon;
   to?: string;
   matches?: (path: string) => boolean;
   action?: "openSheet";
