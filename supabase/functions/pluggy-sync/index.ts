@@ -575,7 +575,9 @@ Deno.serve(async (req) => {
           ;(bilhetagemProx as any).future_tx_count = futureTxCount
           ;(bilhetagemProx as any).bills_count = allBills.length
           ;(bilhetagemProx as any).parcelas_projetadas = Math.round(parceladasProjetadas * 100) / 100
-          console.log(`[fatura_proximo_mes ${acc.id}] source=${proxSource ?? 'NONE'} bills=${allBills.length} futureTx=${futureTxCount} parcelasProj=R$${parceladasProjetadas.toFixed(2)} → ${faturaProximoMes === null ? 'INDISPONÍVEL' : 'R$ ' + faturaProximoMes}`)
+          ;(bilhetagemProx as any).recorrentes_projetadas = Math.round(recorrentesProjetadas * 100) / 100
+          console.log(`[fatura_proximo_mes ${acc.id}] source=${proxSource ?? 'NONE'} bills=${allBills.length} futureTx=${futureTxCount} parcelasProj=R$${parceladasProjetadas.toFixed(2)} recorrentesProj=R$${recorrentesProjetadas.toFixed(2)} → ${faturaProximoMes === null ? 'INDISPONÍVEL' : 'R$ ' + faturaProximoMes}`)
+
         } catch (e) {
           console.error(`[fatura_proximo_mes ${acc.id}] erro:`, e)
         }
