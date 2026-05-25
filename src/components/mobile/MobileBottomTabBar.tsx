@@ -1,5 +1,5 @@
 import { NavLink, useLocation } from "react-router-dom";
-import { Wallet, Receipt, Users, Workflow, Menu, type LucideIcon } from "lucide-react";
+import { Home, Wallet, Receipt, Users, Menu, type LucideIcon } from "lucide-react";
 import { useSidebar } from "@/components/ui/sidebar";
 import { cn } from "@/lib/utils";
 
