@@ -1157,19 +1157,27 @@ export default function ContasAPagar() {
         </div>
       </Card>
 
-      {/* Bulk Action Bar */}
+      {/* Bulk Action Bar — desktop inline, mobile floating bottom */}
       {selectedIds.size > 0 && (
-        <Card className="border-primary/30 bg-primary/5 shadow-sm p-3">
-          <div className="flex items-center justify-between flex-wrap gap-2">
-            <span className="text-sm font-medium text-foreground">
-              {selectedIds.size} item(ns) selecionado(s)
+        <Card
+          className={
+            "shadow-lg p-3 border-primary/30 bg-primary/5 " +
+            "max-md:fixed max-md:left-3 max-md:right-3 max-md:z-40 " +
+            "max-md:bottom-[calc(var(--bottom-tab-h)+env(safe-area-inset-bottom,0px)+0.75rem)] " +
+            "max-md:rounded-2xl max-md:bg-background/95 max-md:backdrop-blur-xl " +
+            "max-md:border-border/60 max-md:shadow-[0_20px_60px_-15px_rgba(0,0,0,0.6)] " +
+            "max-md:p-2.5"
+          }
+        >
+          <div className="flex items-center gap-2 max-md:gap-1.5">
+            <span className="text-xs font-semibold text-foreground shrink-0 px-2 max-md:px-1.5 py-1 rounded-md bg-primary/10 text-primary">
+              {selectedIds.size}
             </span>
-            <div className="flex items-center gap-2 flex-wrap">
-              {/* Bulk: Tipo Financeiro — removido (a árvore já filtra por direção) */}
+            <div className="flex items-center gap-2 max-md:gap-1.5 overflow-x-auto no-scrollbar flex-1">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button size="sm" variant="outline" className="rounded-lg text-xs gap-1">
-                    <FolderTree className="w-3 h-3" /> Subcategoria <ChevronDown className="w-3 h-3" />
+                  <Button size="sm" variant="outline" className="rounded-lg text-xs gap-1 shrink-0">
+                    <FolderTree className="w-3 h-3" /> Subcat. <ChevronDown className="w-3 h-3" />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent className="max-h-[260px] overflow-y-auto custom-scrollbar">
@@ -1183,11 +1191,10 @@ export default function ContasAPagar() {
                 </DropdownMenuContent>
               </DropdownMenu>
 
-              {/* Bulk: Forma Pagamento */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button size="sm" variant="outline" className="rounded-lg text-xs gap-1">
-                    <CreditCard className="w-3 h-3" /> Forma Pgto. <ChevronDown className="w-3 h-3" />
+                  <Button size="sm" variant="outline" className="rounded-lg text-xs gap-1 shrink-0">
+                    <CreditCard className="w-3 h-3" /> Forma <ChevronDown className="w-3 h-3" />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent className="max-h-[260px] overflow-y-auto custom-scrollbar">
@@ -1199,10 +1206,9 @@ export default function ContasAPagar() {
                 </DropdownMenuContent>
               </DropdownMenu>
 
-              {/* Bulk: Conta Bancária */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button size="sm" variant="outline" className="rounded-lg text-xs gap-1">
+                  <Button size="sm" variant="outline" className="rounded-lg text-xs gap-1 shrink-0">
                     <Landmark className="w-3 h-3" /> Conta <ChevronDown className="w-3 h-3" />
                   </Button>
                 </DropdownMenuTrigger>
@@ -1215,10 +1221,9 @@ export default function ContasAPagar() {
                 </DropdownMenuContent>
               </DropdownMenu>
 
-              {/* Bulk: Status */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button size="sm" variant="outline" className="rounded-lg text-xs gap-1">
+                  <Button size="sm" variant="outline" className="rounded-lg text-xs gap-1 shrink-0">
                     <Clock className="w-3 h-3" /> Status <ChevronDown className="w-3 h-3" />
                   </Button>
                 </DropdownMenuTrigger>
@@ -1232,23 +1237,23 @@ export default function ContasAPagar() {
                 </DropdownMenuContent>
               </DropdownMenu>
 
-              {/* Bulk: Cancelar */}
-              <Button size="sm" variant="outline" className="rounded-lg text-xs gap-1" onClick={() => setBulkCancelOpen(true)}>
+              <Button size="sm" variant="outline" className="rounded-lg text-xs gap-1 shrink-0" onClick={() => setBulkCancelOpen(true)}>
                 <Ban className="w-3 h-3" /> Cancelar
               </Button>
 
-              {/* Bulk: Excluir */}
-              <Button size="sm" variant="outline" className="rounded-lg text-xs gap-1 text-destructive hover:text-destructive border-destructive/30" onClick={() => setBulkDeleteOpen(true)}>
+              <Button size="sm" variant="outline" className="rounded-lg text-xs gap-1 shrink-0 text-destructive hover:text-destructive border-destructive/30" onClick={() => setBulkDeleteOpen(true)}>
                 <Trash2 className="w-3 h-3" /> Excluir
               </Button>
-
-              <Button size="sm" variant="ghost" className="rounded-lg text-xs" onClick={() => setSelectedIds(new Set())}>
-                Limpar seleção
-              </Button>
             </div>
+
+            <Button size="sm" variant="ghost" className="rounded-lg text-xs shrink-0 max-md:px-2" onClick={() => setSelectedIds(new Set())}>
+              <span className="max-md:hidden">Limpar seleção</span>
+              <span className="md:hidden">✕</span>
+            </Button>
           </div>
         </Card>
       )}
+
 
       {/* Table */}
       <Card className="border-border/50 shadow-sm overflow-hidden">
@@ -1361,7 +1366,7 @@ export default function ContasAPagar() {
                                 const cfg = statusConfig[item.status] || statusConfig.pending;
                                 const Icon = cfg.icon;
                                 return (
-                                  <Badge variant="outline" className={`${cfg.color} gap-1 font-medium cursor-pointer hover:opacity-80 transition-opacity`}>
+                                  <Badge data-status={item.status} variant="outline" className={`${cfg.color} gap-1 font-medium cursor-pointer hover:opacity-80 transition-opacity`}>
                                     <Icon className="w-3 h-3" />
                                     {cfg.label}
                                     <ChevronDown className="w-3 h-3 ml-0.5 opacity-50" />

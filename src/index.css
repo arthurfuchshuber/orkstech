@@ -323,7 +323,7 @@ html { scroll-behavior: smooth; }
     column-gap: 0.875rem;
     row-gap: 0.3rem;
     position: relative;
-    padding: 1rem 1rem 1rem 1.125rem;
+    padding: 0.875rem 1rem 1rem 1.125rem;
     border-radius: 0.875rem;
     border: 1px solid hsl(var(--border) / 0.5);
     background: hsl(var(--card));
@@ -335,7 +335,7 @@ html { scroll-behavior: smooth; }
   .responsive-table-wrapper tbody tr:hover { border-color: hsl(var(--border)); }
   .responsive-table-wrapper tbody tr:active { transform: scale(0.997); }
 
-  /* Status accent strip (left) — defaults muted, colored when row has status */
+  /* Status accent strip (left) */
   .responsive-table-wrapper tbody tr::before {
     content: "";
     position: absolute;
@@ -344,7 +344,6 @@ html { scroll-behavior: smooth; }
     background: hsl(var(--border));
     border-radius: 3px 0 0 3px;
   }
-  /* Color the strip based on a status badge inside the row */
   .responsive-table-wrapper tbody tr:has([data-status="overdue"])::before,
   .responsive-table-wrapper tbody tr:has(.bg-destructive),
   .responsive-table-wrapper tbody tr:has(.text-destructive)::before { background: hsl(var(--destructive)); }
@@ -359,11 +358,44 @@ html { scroll-behavior: smooth; }
     border: none;
     min-width: 0;
   }
-  .responsive-table-wrapper tbody td:has([role="checkbox"]) { display: none; }
+
+  /* ===== TOP-RIGHT CLUSTER: status + kebab + checkbox ===== */
+  .responsive-table-wrapper tbody td:has([role="checkbox"]) {
+    position: absolute;
+    top: 0.875rem;
+    right: 0.875rem;
+    z-index: 3;
+    display: flex;
+    align-items: center;
+  }
+  .responsive-table-wrapper tbody td[data-role="actions"] {
+    position: absolute;
+    top: 0.5rem;
+    right: 2.25rem;
+    z-index: 3;
+    display: flex;
+    align-items: center;
+    grid-column: unset;
+    border: none;
+    margin: 0;
+    padding: 0;
+  }
+  .responsive-table-wrapper tbody td[data-role="status"] {
+    position: absolute;
+    top: 0.625rem;
+    right: 4.5rem;
+    z-index: 2;
+    grid-column: unset;
+    justify-self: unset;
+    align-self: unset;
+  }
+  .responsive-table-wrapper tbody td[data-role="status"] > * { margin-left: 0; }
 
   /* ===== TITLE ===== */
   .responsive-table-wrapper tbody td[data-role="title"] {
-    grid-column: 1;
+    grid-column: 1 / -1;
+    margin-top: 1.75rem;
+    padding-right: 0.5rem;
     font-size: 1rem;
     font-weight: 600;
     color: hsl(var(--foreground));
@@ -387,7 +419,7 @@ html { scroll-behavior: smooth; }
     font-variant-numeric: tabular-nums;
     white-space: nowrap;
     letter-spacing: -0.02em;
-    align-self: start;
+    align-self: center;
   }
 
   /* ===== PARTY ===== */
@@ -401,15 +433,7 @@ html { scroll-behavior: smooth; }
     align-self: center;
   }
 
-  /* ===== STATUS ===== */
-  .responsive-table-wrapper tbody td[data-role="status"] {
-    grid-column: 2;
-    justify-self: end;
-    align-self: center;
-  }
-  .responsive-table-wrapper tbody td[data-role="status"] > * { margin-left: auto; }
-
-  /* ===== DATE (Vencimento) — divider on top + label + value ===== */
+  /* ===== DATE (Vencimento) ===== */
   .responsive-table-wrapper tbody td[data-role="date"] {
     grid-column: 1 / -1;
     padding-top: 0.75rem;
@@ -432,7 +456,7 @@ html { scroll-behavior: smooth; }
     color: hsl(var(--muted-foreground));
   }
 
-  /* ===== DETAILS — 2-col grid label-over-value ===== */
+  /* ===== DETAILS ===== */
   .responsive-table-wrapper tbody td[data-role="detail"] {
     grid-column: span 1;
     padding: 0.625rem 0 0.25rem;
@@ -442,7 +466,6 @@ html { scroll-behavior: smooth; }
     min-width: 0;
     border-top: 1px solid hsl(var(--border) / 0.25);
   }
-  /* Single trailing detail spans full width */
   .responsive-table-wrapper tbody td[data-role="detail"]:last-of-type:nth-of-type(odd of [data-role="detail"]) {
     grid-column: 1 / -1;
   }
@@ -465,44 +488,28 @@ html { scroll-behavior: smooth; }
     white-space: nowrap;
   }
 
-  /* ===== ACTIONS ===== */
-  .responsive-table-wrapper tbody td[data-role="actions"] {
-    grid-column: 1 / -1;
-    display: flex;
-    justify-content: flex-end;
-    padding-top: 0.625rem;
-    margin-top: 0.25rem;
-    border-top: 1px solid hsl(var(--border) / 0.35);
-  }
-
-  /* ===== Collapsed state ===== */
-  .responsive-table-wrapper tr[data-expanded="false"] td[data-role="detail"],
-  .responsive-table-wrapper tr[data-expanded="false"] td[data-role="actions"] {
+  /* ===== Collapsed: hide details only; top cluster remains visible ===== */
+  .responsive-table-wrapper tr[data-expanded="false"] td[data-role="detail"] {
     display: none;
   }
 
-  /* ===== Expand affordance ===== */
-  .responsive-table-wrapper tbody tr { padding-bottom: 2.5rem; }
-
-  /* Collapsed: small chevron square bottom-right */
+  /* Expand affordance — bottom chevron */
+  .responsive-table-wrapper tbody tr { padding-bottom: 2.25rem; }
   .responsive-table-wrapper tbody tr[data-expanded="false"]::after {
     content: "";
     position: absolute;
-    right: 0.75rem;
-    bottom: 0.625rem;
-    width: 28px;
-    height: 22px;
+    left: 50%;
+    bottom: 0.5rem;
+    transform: translateX(-50%);
+    width: 32px;
+    height: 18px;
     border-radius: 6px;
-    border: 1px solid hsl(var(--border) / 0.6);
     background:
-      linear-gradient(45deg, transparent 46%, hsl(var(--muted-foreground)) 46%, hsl(var(--muted-foreground)) 54%, transparent 54%) no-repeat 9px 9px / 6px 6px,
-      linear-gradient(-45deg, transparent 46%, hsl(var(--muted-foreground)) 46%, hsl(var(--muted-foreground)) 54%, transparent 54%) no-repeat 13px 9px / 6px 6px,
-      hsl(var(--card));
+      linear-gradient(45deg, transparent 46%, hsl(var(--muted-foreground)) 46%, hsl(var(--muted-foreground)) 54%, transparent 54%) no-repeat 11px 7px / 6px 6px,
+      linear-gradient(-45deg, transparent 46%, hsl(var(--muted-foreground)) 46%, hsl(var(--muted-foreground)) 54%, transparent 54%) no-repeat 15px 7px / 6px 6px;
   }
-
-  /* Expanded: centered "VER DETALHES ⌃" */
   .responsive-table-wrapper tbody tr[data-expanded="true"]::after {
-    content: "VER DETALHES  ⌃";
+    content: "VER MENOS  ⌃";
     position: absolute;
     left: 0; right: 0;
     bottom: 0.5rem;
