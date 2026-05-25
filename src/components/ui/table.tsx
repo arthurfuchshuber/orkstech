@@ -88,7 +88,7 @@ const TableBody = React.forwardRef<HTMLTableSectionElement, React.HTMLAttributes
       ref={ref}
       className={cn(
         "[&_tr:last-child]:border-0",
-        "max-md:block max-md:space-y-2",
+        "max-md:block max-md:space-y-3",
         className,
       )}
       {...props}
