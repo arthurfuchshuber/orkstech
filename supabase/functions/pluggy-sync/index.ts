@@ -510,6 +510,59 @@ Deno.serve(async (req) => {
             }
           }
 
+          // P4: PROJEÇÃO de cobranças RECORRENTES (assinaturas, mensalidades)
+          // Detecta DEBITs não-parcelados com mesma descrição+valor aparecendo em ≥2 ciclos anteriores
+          // com espaçamento ~mensal (25-35 dias). Projeta 1 ocorrência no próximo ciclo.
+          let recorrentesProjetadas = 0
+          const closeRefP4 = openBillCloseDate || billCloseDate
+            ? new Date((openBillCloseDate || billCloseDate)!).getTime()
+            : (billDueDate ? new Date(billDueDate).getTime() - 7 * 86400000 : null)
+          if (closeRefP4 != null) {
+            const nextCycleStartP4 = closeRefP4 + 1
+            const nextCycleEndP4 = closeRefP4 + 31 * 86400000
+            // Agrupa por descrição+valor (apenas não-parceladas)
+            const groups = new Map<string, number[]>()
+            for (const tx of allCardTxs) {
+              if (tx.type !== 'DEBIT' || Number(tx.amount) <= 0) continue
+              const status = (tx.status || 'POSTED').toUpperCase()
+              if (status !== 'POSTED' && status !== 'PENDING') continue
+              const meta = tx.creditCardMetadata || {}
+              const totalInst = Number(meta.totalInstallments || 0)
+              if (totalInst > 1) continue // já tratado em P3
+              const valor = Math.round(Math.abs(Number(tx.amount)) * 100) / 100
+              const key = `${(tx.description || '').trim().toUpperCase()}|${valor}`
+              const arr = groups.get(key) || []
+              arr.push(new Date(tx.date).getTime())
+              groups.set(key, arr)
+            }
+            const now = Date.now()
+            for (const [key, dates] of groups.entries()) {
+              if (dates.length < 2) continue
+              dates.sort((a, b) => a - b)
+              // Verifica espaçamento mensal (25-35 dias) entre as últimas 2-3 ocorrências
+              const last = dates[dates.length - 1]
+              const prev = dates[dates.length - 2]
+              const gap = (last - prev) / 86400000
+              if (gap < 25 || gap > 35) continue
+              // A próxima cobrança esperada
+              const nextExpected = last + Math.round(gap) * 86400000
+              if (nextExpected < nextCycleStartP4 || nextExpected > nextCycleEndP4) continue
+              // Evita dupla contagem se já foi pega em P2 (tx_after_close)
+              const alreadyCounted = dates.some(d => d > closeRefP4 && d <= nextCycleEndP4)
+              if (alreadyCounted) continue
+              const valor = Number(key.split('|')[1])
+              recorrentesProjetadas += valor
+              bilhetagemProx.incluidas++
+            }
+            if (recorrentesProjetadas > 0) {
+              totalProx += recorrentesProjetadas
+              proxSource = proxSource
+                ? `${proxSource}+recurring_projected`
+                : 'recurring_projected'
+            }
+          }
+
+
           // Determina o resultado final:
           if (proxSource === null) {
             faturaProximoMes = null
