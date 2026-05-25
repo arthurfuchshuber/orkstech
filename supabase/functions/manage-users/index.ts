@@ -89,6 +89,36 @@ async function isLastAdminOfEmpresa(
   return adminUserIds.size <= 1;
 }
 
+async function isUserInEmpresa(
+  supabaseAdmin: any,
+  targetUserId: string,
+  empresaId: string | null
+): Promise<boolean> {
+  if (!empresaId) return false;
+  const { data: membro } = await supabaseAdmin
+    .from("empresa_membros")
+    .select("user_id")
+    .eq("empresa_id", empresaId)
+    .eq("user_id", targetUserId)
+    .eq("ativo", true)
+    .maybeSingle();
+  if (membro) return true;
+
+  const { data: empresa } = await supabaseAdmin
+    .from("empresas")
+    .select("user_id")
+    .eq("id", empresaId)
+    .maybeSingle();
+  if (empresa?.user_id === targetUserId) return true;
+
+  const { data: profile } = await supabaseAdmin
+    .from("profiles")
+    .select("empresa_id")
+    .eq("user_id", targetUserId)
+    .maybeSingle();
+  return profile?.empresa_id === empresaId;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
