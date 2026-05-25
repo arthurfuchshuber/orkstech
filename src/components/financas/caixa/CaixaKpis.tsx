@@ -82,6 +82,7 @@ export function CaixaKpis({
       label: "Faturas em Aberto",
       flag: "Cartões de Crédito",
       value: fmt(totalCreditBills),
+      sub: totalNextMonthBills > 0 ? `Próximo mês: ${fmt(totalNextMonthBills)}` : undefined,
       tone: "amber",
     },
     {
