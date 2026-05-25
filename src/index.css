@@ -84,6 +84,30 @@
 }
 
 @layer utilities {
+  /* === Mobile shell tokens === */
+  :root {
+    --header-h-mobile: 56px;
+    --bottom-tab-h: 64px;
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+    --safe-top: env(safe-area-inset-top, 0px);
+  }
+
+  .pb-safe { padding-bottom: env(safe-area-inset-bottom, 0px); }
+  .pt-safe { padding-top: env(safe-area-inset-top, 0px); }
+  .pb-tab { padding-bottom: calc(var(--bottom-tab-h) + env(safe-area-inset-bottom, 0px)); }
+  .h-dvh-screen { height: 100dvh; }
+  .min-h-dvh { min-height: 100dvh; }
+
+  /* iOS-friendly tap area helper */
+  .tap-target { min-height: 44px; min-width: 44px; }
+
+  /* Prevent iOS input zoom: ensure ≥16px on form controls in mobile */
+  @media (max-width: 767px) {
+    input, select, textarea {
+      font-size: 16px;
+    }
+  }
+
   .glass {
     @apply bg-card/60 backdrop-blur-xl border border-border/50;
   }
