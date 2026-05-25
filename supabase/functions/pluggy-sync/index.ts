@@ -382,36 +382,70 @@ Deno.serve(async (req) => {
           console.log(`[fatura_atual_exata ${acc.id}] via ${faturaSource} ${cycleStart}→${cycleEnd} (lastPayment=${lastPayment?.date || 'n/a'}): R$ ${faturaAtualExata} (in=${bilhetagem.incluidas}, out=${bilhetagem.excluidas})`)
         }
 
-        // === Cálculo da FATURA do PRÓXIMO MÊS (ciclo após o atual) ===
-        // Soma compras lançadas com data POSTERIOR ao fechamento do ciclo atual
-        // (parcelas futuras + compras feitas após o close date). Mesmas regras:
-        // DEBIT > 0, status PENDING/POSTED, exclui estornos/pagamentos.
+        // === Cálculo da FATURA do PRÓXIMO MÊS ===
+        // Estratégia em cascata:
+        //  P1) Pluggy /bills: somar TOTAL de todas as faturas com dueDate > openBill.dueDate
+        //      (ou status FUTURE). Isso captura parcelas futuras + lançamentos pré-agendados
+        //      com 100% de precisão, pois é exatamente o que o banco já fechou pro próximo ciclo.
+        //  P2) Transações com creditCardMetadata.billId != openBillId E em bill com dueDate posterior.
+        //  P3) Cutoff por data: usa CLOSE date da fatura aberta (não dueDate!) para somar txs futuras.
         try {
-          let cutoffMs: number | null = null
-          if (faturaSource === 'open_bill_id') {
-            // Para open_bill_id usamos a dueDate da fatura aberta como referência
-            // (não temos closeDate explícito; é uma aproximação razoável).
-            cutoffMs = billDueDate ? new Date(billDueDate).getTime() : null
-          } else if (billCloseDate) {
-            cutoffMs = new Date(billCloseDate).getTime()
-          }
-          if (cutoffMs != null) {
-            let totalProx = 0
-            for (const tx of allCardTxs) {
-              const status = (tx.status || 'POSTED').toUpperCase()
-              const isCharge = tx.type === 'DEBIT' && Number(tx.amount) > 0
-              const t = new Date(tx.date).getTime()
-              if (t <= cutoffMs) { continue }
-              if (!isCharge) { continue }
-              if (status !== 'PENDING' && status !== 'POSTED') { continue }
-              // No modo open_bill_id, ignora txs do próprio billId aberto
-              if (faturaSource === 'open_bill_id' && tx.creditCardMetadata?.billId === openBillId) continue
-              totalProx += Math.abs(Number(tx.amount))
-              bilhetagemProx.incluidas++
+          let totalProx = 0
+          let proxSource: string | null = null
+
+          // P1: usa totalAmount/amount das próprias faturas futuras
+          if (allBills.length > 0 && billDueDate) {
+            const openDueMs = new Date(billDueDate).getTime()
+            const futureBills = allBills.filter((b: any) => {
+              const st = (b.status || '').toUpperCase()
+              if (st === 'CLOSED' || st === 'PAID') return false
+              if (b.id === openBillId) return false
+              const d = b.dueDate ? new Date(b.dueDate).getTime() : 0
+              return d > openDueMs
+            })
+            if (futureBills.length > 0) {
+              for (const fb of futureBills) {
+                const amt = Number(fb.totalAmount ?? fb.amount ?? 0)
+                if (amt > 0) totalProx += amt
+                bilhetagemProx.incluidas++
+              }
+              proxSource = 'bills_total'
             }
-            faturaProximoMes = Math.round(totalProx * 100) / 100
-            console.log(`[fatura_proximo_mes ${acc.id}] cutoff=${new Date(cutoffMs).toISOString().split('T')[0]}: R$ ${faturaProximoMes} (in=${bilhetagemProx.incluidas})`)
           }
+
+          // P2/P3: fallback por transações
+          if (totalProx === 0) {
+            let cutoffMs: number | null = null
+            if (openBillCloseDate) {
+              cutoffMs = new Date(openBillCloseDate).getTime()
+              proxSource = 'tx_after_close'
+            } else if (billCloseDate) {
+              cutoffMs = new Date(billCloseDate).getTime()
+              proxSource = 'tx_after_close'
+            } else if (billDueDate) {
+              // Sem closeDate: estima close = due - 7d
+              cutoffMs = new Date(billDueDate).getTime() - 7 * 86400000
+              proxSource = 'tx_after_estimated_close'
+            }
+            if (cutoffMs != null) {
+              for (const tx of allCardTxs) {
+                const status = (tx.status || 'POSTED').toUpperCase()
+                const isCharge = tx.type === 'DEBIT' && Number(tx.amount) > 0
+                const t = new Date(tx.date).getTime()
+                if (t <= cutoffMs) continue
+                if (!isCharge) continue
+                if (status !== 'PENDING' && status !== 'POSTED') continue
+                // Ignora txs do próprio openBill (já contam na fatura atual)
+                if (openBillId && tx.creditCardMetadata?.billId === openBillId) continue
+                totalProx += Math.abs(Number(tx.amount))
+                bilhetagemProx.incluidas++
+              }
+            }
+          }
+
+          faturaProximoMes = Math.round(totalProx * 100) / 100
+          ;(bilhetagemProx as any).source = proxSource
+          console.log(`[fatura_proximo_mes ${acc.id}] source=${proxSource} R$ ${faturaProximoMes} (in=${bilhetagemProx.incluidas})`)
         } catch (e) {
           console.error(`[fatura_proximo_mes ${acc.id}] erro:`, e)
         }
