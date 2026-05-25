@@ -393,8 +393,9 @@ html { scroll-behavior: smooth; }
 
   /* ===== TITLE ===== */
   .responsive-table-wrapper tbody td[data-role="title"] {
-    grid-column: 1 / -1;
-    margin-top: 1.75rem;
+    grid-column: 1;
+    grid-row: 2;
+    margin-top: 1.5rem; /* room for top cluster */
     padding-right: 0.5rem;
     font-size: 1rem;
     font-weight: 600;
@@ -406,12 +407,14 @@ html { scroll-behavior: smooth; }
     display: -webkit-box;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
-    align-self: start;
+    align-self: center;
   }
 
   /* ===== AMOUNT ===== */
   .responsive-table-wrapper tbody td[data-role="amount"] {
     grid-column: 2;
+    grid-row: 2;
+    margin-top: 1.5rem; /* align with title */
     font-size: 1.125rem;
     font-weight: 700;
     color: hsl(var(--foreground));
@@ -424,14 +427,18 @@ html { scroll-behavior: smooth; }
 
   /* ===== PARTY ===== */
   .responsive-table-wrapper tbody td[data-role="party"] {
-    grid-column: 1;
-    font-size: 0.8125rem;
+    grid-column: 1 / -1;
+    grid-row: 3;
+    font-size: 0.75rem;
     color: hsl(var(--muted-foreground));
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
     align-self: center;
   }
+  /* Hide party if it's just a dash/empty */
+  .responsive-table-wrapper tbody td[data-role="party"]:empty { display: none; }
+
 
   /* ===== DATE (Vencimento) ===== */
   .responsive-table-wrapper tbody td[data-role="date"] {
