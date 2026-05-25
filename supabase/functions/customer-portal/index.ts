@@ -67,8 +67,8 @@ serve(async (req) => {
     });
   } catch (error) {
     const msg = error instanceof Error ? error.message : String(error);
-    logStep("ERROR", { message: msg });
-    return new Response(JSON.stringify({ error: msg }), {
+    console.error("[customer-portal] ERROR", msg);
+    return new Response(JSON.stringify({ error: "Não foi possível abrir o portal de assinatura." }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 500,
     });
