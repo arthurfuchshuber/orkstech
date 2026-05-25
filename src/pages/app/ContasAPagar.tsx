@@ -1366,7 +1366,7 @@ export default function ContasAPagar() {
                                 const cfg = statusConfig[item.status] || statusConfig.pending;
                                 const Icon = cfg.icon;
                                 return (
-                                  <Badge variant="outline" className={`${cfg.color} gap-1 font-medium cursor-pointer hover:opacity-80 transition-opacity`}>
+                                  <Badge data-status={item.status} variant="outline" className={`${cfg.color} gap-1 font-medium cursor-pointer hover:opacity-80 transition-opacity`}>
                                     <Icon className="w-3 h-3" />
                                     {cfg.label}
                                     <ChevronDown className="w-3 h-3 ml-0.5 opacity-50" />
