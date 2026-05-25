@@ -97,8 +97,8 @@ serve(async (req) => {
     });
   } catch (error) {
     const msg = error instanceof Error ? error.message : String(error);
-    log("ERROR", { msg });
-    return new Response(JSON.stringify({ error: msg, invoices: [], payment_method: null }), {
+    console.error("[list-invoices] ERROR", msg);
+    return new Response(JSON.stringify({ error: "Não foi possível carregar as faturas.", invoices: [], payment_method: null }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 500,
     });
