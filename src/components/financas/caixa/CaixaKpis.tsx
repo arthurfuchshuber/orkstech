@@ -79,10 +79,10 @@ export function CaixaKpis({
     },
     {
       icon: Receipt,
-      label: "Faturas em Aberto",
+      label: "Fatura Atual Parcial",
       flag: "Cartões de Crédito",
       value: fmt(totalCreditBills),
-      sub: "Fatura parcial atual",
+      sub: "",
       tone: "amber",
     },
     {
