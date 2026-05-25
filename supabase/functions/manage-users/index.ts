@@ -578,6 +578,21 @@ serve(async (req) => {
         });
       }
 
+      // Cross-tenant guard
+      if (!isSuperAdmin) {
+        if (body.empresa_id && body.empresa_id !== callerEmpresaId) {
+          return new Response(JSON.stringify({ error: "Acesso negado a outra empresa" }), {
+            status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        const inEmpresa = await isUserInEmpresa(supabaseAdmin, parsed.data.user_id, callerEmpresaId);
+        if (!inEmpresa) {
+          return new Response(JSON.stringify({ error: "Usuário não pertence à sua empresa" }), {
+            status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+      }
+
       // Prevent deleting the last admin (applies to ALL callers)
       const targetEmpresaId = body.empresa_id ?? await getTargetEmpresaId(supabaseAdmin, parsed.data.user_id);
       const lastAdmin = await isLastAdminOfEmpresa(
