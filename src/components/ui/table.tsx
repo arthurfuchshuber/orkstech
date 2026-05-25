@@ -88,7 +88,7 @@ const TableBody = React.forwardRef<HTMLTableSectionElement, React.HTMLAttributes
       ref={ref}
       className={cn(
         "[&_tr:last-child]:border-0",
-        "max-md:block max-md:space-y-2",
+        "max-md:block max-md:space-y-3",
         className,
       )}
       {...props}
@@ -126,16 +126,22 @@ const TableRow = React.forwardRef<HTMLTableRowElement, React.HTMLAttributes<HTML
         onClick={handleClick}
         className={cn(
           "border-b transition-colors data-[state=selected]:bg-muted hover:bg-muted/50",
-          // Mobile: card empilhado com chevron
-          "max-md:relative max-md:block max-md:rounded-xl max-md:border max-md:border-border/50",
-          "max-md:bg-card/60 max-md:backdrop-blur-sm max-md:p-3.5 max-md:pb-8 max-md:shadow-sm",
-          "max-md:hover:bg-card/80 max-md:cursor-pointer",
-          // Chevron indicador (CSS puro)
+          // ===== Mobile: card premium =====
+          "max-md:relative max-md:block max-md:rounded-2xl max-md:border max-md:border-border/60",
+          "max-md:bg-gradient-to-b max-md:from-card max-md:to-card/70 max-md:backdrop-blur-sm",
+          "max-md:px-4 max-md:pt-3 max-md:pb-11",
+          "max-md:shadow-[0_1px_0_0_hsl(var(--border)/0.3),0_8px_24px_-12px_rgba(0,0,0,0.5)]",
+          "max-md:hover:border-border max-md:active:scale-[0.997] max-md:transition-all max-md:cursor-pointer",
+          // Pill chevron na base
           "max-md:after:content-[''] max-md:after:absolute max-md:after:left-1/2 max-md:after:-translate-x-1/2",
-          "max-md:after:bottom-2.5 max-md:after:w-2.5 max-md:after:h-2.5",
-          "max-md:after:border-r-2 max-md:after:border-b-2 max-md:after:border-muted-foreground/70",
+          "max-md:after:bottom-3 max-md:after:w-2 max-md:after:h-2",
+          "max-md:after:border-r-[1.5px] max-md:after:border-b-[1.5px] max-md:after:border-muted-foreground",
           "max-md:after:rotate-45 max-md:after:transition-transform max-md:after:duration-200",
           "max-md:data-[expanded=true]:after:-rotate-[135deg] max-md:data-[expanded=true]:after:translate-y-1",
+          // Pill background atrás do chevron
+          "max-md:before:content-[''] max-md:before:absolute max-md:before:left-1/2 max-md:before:-translate-x-1/2",
+          "max-md:before:bottom-1.5 max-md:before:w-10 max-md:before:h-6 max-md:before:rounded-full",
+          "max-md:before:bg-muted/40 max-md:before:border max-md:before:border-border/50",
           className,
         )}
         {...props}
@@ -165,16 +171,23 @@ const TableCell = React.forwardRef<HTMLTableCellElement, React.TdHTMLAttributes<
       ref={ref}
       className={cn(
         "p-4 align-middle first:pl-6 last:pr-6 [&:has([role=checkbox])]:pr-0",
-        // Mobile: label/valor lado a lado
+        // ===== Mobile: linha label/valor =====
         "max-md:flex max-md:items-center max-md:justify-between max-md:gap-3",
-        "max-md:py-1.5 max-md:px-0 max-md:first:pl-0 max-md:last:pr-0",
-        "max-md:text-right max-md:text-sm",
-        "max-md:before:content-[attr(data-label)] max-md:before:text-muted-foreground",
-        "max-md:before:text-[11px] max-md:before:uppercase max-md:before:tracking-wider",
-        "max-md:before:font-medium max-md:before:text-left max-md:before:shrink-0",
-        "max-md:before:mr-2",
+        "max-md:py-2 max-md:px-0 max-md:min-h-[34px]",
+        "max-md:border-b max-md:border-border/30 max-md:last:border-b-0",
+        "max-md:text-right max-md:text-[13px] max-md:font-medium max-md:text-foreground",
+        // Label (pseudo)
+        "max-md:before:content-[attr(data-label)] max-md:before:text-muted-foreground/80",
+        "max-md:before:text-[10.5px] max-md:before:uppercase max-md:before:tracking-[0.08em]",
+        "max-md:before:font-semibold max-md:before:text-left max-md:before:shrink-0",
+        "max-md:before:mr-3",
+        // Flags
         "max-md:[&[data-mobile-hide]]:hidden",
         "max-md:[&:not([data-label])]:before:hidden",
+        "max-md:[&:not([data-label])]:justify-start",
+        // Checkbox sozinho — sem borda nem padding
+        "max-md:[&:has([role=checkbox])]:border-b-0 max-md:[&:has([role=checkbox])]:py-0 max-md:[&:has([role=checkbox])]:min-h-0",
+        "max-md:[&:has([role=checkbox])]:absolute max-md:[&:has([role=checkbox])]:top-3 max-md:[&:has([role=checkbox])]:right-3",
         className,
       )}
       {...props}
