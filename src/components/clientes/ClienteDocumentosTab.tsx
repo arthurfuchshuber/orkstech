@@ -127,6 +127,10 @@ export function ClienteDocumentosTab({ clienteId }: Props) {
 
   const uploadFile = async (file: File, asContract: boolean) => {
     if (!user) return;
+    if (!empresa?.id) {
+      toast.error("Selecione uma empresa antes de enviar arquivos");
+      return;
+    }
     if (file.size > 10 * 1024 * 1024) {
       toast.error("Arquivo deve ter no máximo 10MB");
       return;
@@ -134,7 +138,7 @@ export function ClienteDocumentosTab({ clienteId }: Props) {
 
     if (asContract) setUploadingContract(true); else setUploading(true);
     try {
-      const path = `${user.id}/${clienteId}/${Date.now()}_${file.name}`;
+      const path = `${empresa.id}/${clienteId}/${Date.now()}_${file.name}`;
       const { error: uploadError } = await supabase.storage.from("client-documents").upload(path, file);
       if (uploadError) throw uploadError;
 
