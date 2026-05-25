@@ -30,6 +30,14 @@ const Table = React.forwardRef<HTMLTableElement, React.HTMLAttributes<HTMLTableE
       const table = innerRef.current;
       if (!table) return;
 
+      const ROLE_MAP: Array<[RegExp, string]> = [
+        [/^(descri[çc][ãa]o|hist[óo]rico|nome|raz[ãa]o social|t[íi]tulo|categoria)$/i, "title"],
+        [/^(valor|total|saldo|montante|valor total|valor pago)$/i, "amount"],
+        [/^(status|situa[çc][ãa]o)$/i, "status"],
+        [/^(vencimento|data|emiss[ãa]o|data emiss[ãa]o|data vencimento|competência|compet[êe]ncia)$/i, "date"],
+        [/^(fornecedor|benefici[áa]rio|cliente|favorecido|banco|conta)$/i, "party"],
+      ];
+
       const sync = () => {
         const headers = Array.from(
           table.querySelectorAll<HTMLTableCellElement>("thead th"),
@@ -38,29 +46,32 @@ const Table = React.forwardRef<HTMLTableElement, React.HTMLAttributes<HTMLTableE
         const rows = table.querySelectorAll<HTMLTableRowElement>("tbody tr");
         rows.forEach((row) => {
           const cells = Array.from(row.querySelectorAll<HTMLTableCellElement>(":scope > td"));
-          let dataIdx = 0;
+          const usedRoles = new Set<string>();
           cells.forEach((cell, i) => {
             const headerText = headers[i] || "";
-            // injeta o label baseado no thead (ignora "Ações" e cabeçalhos vazios)
             const isActionHeader = /^a[çc][õo]es?$/i.test(headerText);
             if (!cell.getAttribute("data-label") && headerText && !isActionHeader) {
               cell.setAttribute("data-label", headerText);
             }
-            // células sem label viram "full width" no mobile (ex.: ações)
             if (isActionHeader || !headerText) {
-              cell.setAttribute("data-mobile-full", "");
+              cell.setAttribute("data-role", "actions");
+              return;
             }
-            // identifica células "essenciais" vs colapsáveis
-            const isCheckbox = !!cell.querySelector('[role="checkbox"]');
-            const hidden = cell.hasAttribute("data-mobile-hide");
-            const always = cell.hasAttribute("data-mobile-always");
-            if (isCheckbox || hidden || always) return;
-            dataIdx++;
-            if (dataIdx > 2) cell.setAttribute("data-mobile-collapsible", "");
-            else cell.removeAttribute("data-mobile-collapsible");
+            // Atribui um "role" semântico para o layout mobile premium
+            let role = "";
+            for (const [re, r] of ROLE_MAP) {
+              if (re.test(headerText) && !usedRoles.has(r)) {
+                role = r;
+                usedRoles.add(r);
+                break;
+              }
+            }
+            if (role) cell.setAttribute("data-role", role);
+            else cell.setAttribute("data-role", "detail");
           });
         });
       };
+
 
       sync();
       const observer = new MutationObserver(sync);
