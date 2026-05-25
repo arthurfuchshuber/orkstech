@@ -170,28 +170,7 @@ const TableCell = React.forwardRef<HTMLTableCellElement, React.TdHTMLAttributes<
   ({ className, ...props }, ref) => (
     <td
       ref={ref}
-      className={cn(
-        "p-4 align-middle first:pl-6 last:pr-6 [&:has([role=checkbox])]:pr-0",
-        // ===== Mobile: grid label | valor (alinhamento perfeito) =====
-        "max-md:grid max-md:grid-cols-[40%_1fr] max-md:items-center max-md:gap-3",
-        "max-md:py-2.5 max-md:px-0 max-md:min-h-[38px]",
-        "max-md:border-b max-md:border-border/25 max-md:last:border-b-0",
-        "max-md:text-[13px] max-md:font-medium max-md:text-foreground",
-        // Label (pseudo) — coluna esquerda fixa
-        "max-md:before:content-[attr(data-label)] max-md:before:text-muted-foreground",
-        "max-md:before:text-[10px] max-md:before:uppercase max-md:before:tracking-[0.09em]",
-        "max-md:before:font-semibold max-md:before:text-left max-md:before:truncate",
-        // Valor — coluna direita: alinhado à direita, com filhos justificados ao fim
-        "max-md:[&>*]:ml-auto max-md:[&>*]:text-right",
-        "max-md:justify-items-end",
-        // Flags
-        "max-md:[&[data-mobile-hide]]:hidden",
-        "max-md:[&[data-mobile-full]]:grid-cols-1 max-md:[&[data-mobile-full]]:before:hidden max-md:[&[data-mobile-full]]:justify-items-stretch max-md:[&[data-mobile-full]]:[&>*]:ml-0 max-md:[&[data-mobile-full]]:[&>*]:text-left",
-        "max-md:[&:not([data-label])]:before:hidden max-md:[&:not([data-label])]:grid-cols-1 max-md:[&:not([data-label])]:justify-items-stretch",
-        // Checkbox sozinho — flutua no canto superior direito
-        "max-md:[&:has([role=checkbox])]:hidden",
-        className,
-      )}
+      className={cn("p-4 align-middle first:pl-6 last:pr-6 [&:has([role=checkbox])]:pr-0", className)}
       {...props}
     />
   ),
