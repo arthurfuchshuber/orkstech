@@ -693,7 +693,7 @@ serve(async (req) => {
           });
         }
         if (raw.includes("should be at least") || raw.includes("password")) {
-          return new Response(JSON.stringify({ error: "Senha inválida: " + error.message }), {
+          return new Response(JSON.stringify({ error: "Senha inválida. Use ao menos 8 caracteres combinando letras, números e símbolos." }), {
             status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
           });
         }
@@ -710,7 +710,8 @@ serve(async (req) => {
     });
   } catch (error) {
     const msg = error instanceof Error ? error.message : String(error);
-    return new Response(JSON.stringify({ error: msg }), {
+    console.error("[manage-users] ERROR", msg);
+    return new Response(JSON.stringify({ error: "Erro interno. Tente novamente." }), {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
