@@ -487,24 +487,23 @@ export function MonthFlowDetailModal({ open, onOpenChange, monthLabel, monthKey,
               </div>
             </div>
           )}
-        </div>
+      </div>
 
-        <CategoriaFinanceiraModal
-          open={cfModalOpen}
-          onOpenChange={setCfModalOpen}
-          editingId={null}
-          onSaved={() => {
-            queryClient.invalidateQueries({ queryKey: ["dre-categorias-financeiras"] });
-          }}
-        />
+      <CategoriaFinanceiraModal
+        open={cfModalOpen}
+        onOpenChange={setCfModalOpen}
+        editingId={null}
+        onSaved={() => {
+          queryClient.invalidateQueries({ queryKey: ["dre-categorias-financeiras"] });
+        }}
+      />
 
-        <PluggyTransactionEditDialog
-          open={!!pluggyEditTx}
-          onOpenChange={(v) => !v && setPluggyEditTx(null)}
-          transactionId={pluggyEditTx?.id ?? null}
-          readOnly={pluggyEditTx ? { description: pluggyEditTx.description, amount: pluggyEditTx.amount, date: pluggyEditTx.date } : null}
-        />
-      </DialogContent>
-    </Dialog>
+      <PluggyTransactionEditDialog
+        open={!!pluggyEditTx}
+        onOpenChange={(v) => !v && setPluggyEditTx(null)}
+        transactionId={pluggyEditTx?.id ?? null}
+        readOnly={pluggyEditTx ? { description: pluggyEditTx.description, amount: pluggyEditTx.amount, date: pluggyEditTx.date } : null}
+      />
+    </ResponsiveDialog>
   );
 }
