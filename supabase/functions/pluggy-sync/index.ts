@@ -402,8 +402,13 @@ Deno.serve(async (req) => {
         try {
           let totalProx = 0
           let proxSource: string | null = null
+          let proxReason: string | null = null
 
-          // P1: usa totalAmount/amount das próprias faturas futuras
+          // Conta quantas txs são FUTURAS (data > hoje) — usado pra detectar se Pluggy expôs algo
+          const nowMs = Date.now()
+          const futureTxCount = allCardTxs.filter((t: any) => new Date(t.date).getTime() > nowMs).length
+
+          // P1: usa totalAmount/amount das próprias faturas futuras (/bills)
           if (allBills.length > 0 && billDueDate) {
             const openDueMs = new Date(billDueDate).getTime()
             const futureBills = allBills.filter((b: any) => {
@@ -413,18 +418,21 @@ Deno.serve(async (req) => {
               const d = b.dueDate ? new Date(b.dueDate).getTime() : 0
               return d > openDueMs
             })
+            // Próximo mês = a fatura futura mais próxima (menor dueDate), não a soma de todas
             if (futureBills.length > 0) {
-              for (const fb of futureBills) {
-                const amt = Number(fb.totalAmount ?? fb.amount ?? 0)
-                if (amt > 0) totalProx += amt
-                bilhetagemProx.incluidas++
+              futureBills.sort((a: any, b: any) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime())
+              const next = futureBills[0]
+              const amt = Number(next.totalAmount ?? next.amount ?? 0)
+              if (amt > 0) {
+                totalProx = amt
+                bilhetagemProx.incluidas = 1
+                proxSource = 'bills_next'
               }
-              proxSource = 'bills_total'
             }
           }
 
-          // P2/P3: fallback por transações
-          if (totalProx === 0) {
+          // P2/P3: fallback por transações — só vale se houver transações futuras de fato
+          if (proxSource === null && futureTxCount > 0) {
             let cutoffMs: number | null = null
             if (openBillCloseDate) {
               cutoffMs = new Date(openBillCloseDate).getTime()
@@ -433,12 +441,10 @@ Deno.serve(async (req) => {
               cutoffMs = new Date(billCloseDate).getTime()
               proxSource = 'tx_after_close'
             } else if (billDueDate) {
-              // Sem closeDate: estima close = due - 7d
               cutoffMs = new Date(billDueDate).getTime() - 7 * 86400000
               proxSource = 'tx_after_estimated_close'
             }
             if (cutoffMs != null) {
-              // Janela = (cutoff, cutoff + ~31 dias] — apenas o PRÓXIMO ciclo
               const windowEndMs = cutoffMs + 31 * 86400000
               for (const tx of allCardTxs) {
                 const status = (tx.status || 'POSTED').toUpperCase()
@@ -454,9 +460,22 @@ Deno.serve(async (req) => {
             }
           }
 
-          faturaProximoMes = Math.round(totalProx * 100) / 100
+          // Determina o resultado final:
+          // - Se nenhuma fonte funcionou → null (UI mostra "indisponível")
+          // - Se fonte funcionou mas zerou de fato → 0 (cliente realmente não tem lançamentos futuros)
+          if (proxSource === null) {
+            faturaProximoMes = null
+            proxReason = allBills.length === 0 && futureTxCount === 0
+              ? 'banco_nao_expoe_dados_futuros'
+              : 'sem_dados_suficientes'
+          } else {
+            faturaProximoMes = Math.round(totalProx * 100) / 100
+          }
           ;(bilhetagemProx as any).source = proxSource
-          console.log(`[fatura_proximo_mes ${acc.id}] source=${proxSource} R$ ${faturaProximoMes} (in=${bilhetagemProx.incluidas})`)
+          ;(bilhetagemProx as any).reason = proxReason
+          ;(bilhetagemProx as any).future_tx_count = futureTxCount
+          ;(bilhetagemProx as any).bills_count = allBills.length
+          console.log(`[fatura_proximo_mes ${acc.id}] source=${proxSource ?? 'NONE'} reason=${proxReason ?? '-'} bills=${allBills.length} futureTx=${futureTxCount} → ${faturaProximoMes === null ? 'INDISPONÍVEL' : 'R$ ' + faturaProximoMes}`)
         } catch (e) {
           console.error(`[fatura_proximo_mes ${acc.id}] erro:`, e)
         }

@@ -411,10 +411,16 @@ export default function FinanceiroDashboard() {
   };
 
   const totalCreditBills = creditCards.reduce((sum, c) => sum + getCreditBillAmount(c), 0) + totalManualBills;
-  const totalNextMonthBills = creditCards.reduce(
-    (sum, c) => sum + Number((c as any).bank_data?.fatura_proximo_mes ?? 0),
-    0
-  );
+  // Próximo mês: soma só dos cartões que o banco expôs o dado (null = indisponível).
+  // Se NENHUM cartão expuser, mantemos null para a UI mostrar "indisponível".
+  const nextMonthValues = creditCards.map((c) => {
+    const v = (c as any).bank_data?.fatura_proximo_mes;
+    return v === null || v === undefined ? null : Number(v);
+  });
+  const anyNextMonthAvailable = nextMonthValues.some((v) => v !== null);
+  const totalNextMonthBills = anyNextMonthAvailable
+    ? nextMonthValues.reduce((sum: number, v) => sum + (v ?? 0), 0)
+    : null;
   const totalCreditLimit = creditCards.reduce((sum, c) => sum + getCreditLimit(c), 0);
 
   // ── Cheque Especial (overdraft) — Pluggy + ajustes manuais ──

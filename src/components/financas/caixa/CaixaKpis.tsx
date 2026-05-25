@@ -15,7 +15,7 @@ interface KpiProps {
   totalInvestments: number;
   totalCreditAvailable: number;
   totalCreditBills: number;
-  totalNextMonthBills?: number;
+  totalNextMonthBills?: number | null;
   totalCreditLimit: number;
   totalOverdraftAvailable: number;
   totalOverdraftLimit: number;
@@ -34,7 +34,7 @@ export function CaixaKpis({
   totalInvestments,
   totalCreditAvailable,
   totalCreditBills,
-  totalNextMonthBills = 0,
+  totalNextMonthBills = null,
   totalCreditLimit,
   totalOverdraftAvailable,
   totalOverdraftLimit,
@@ -82,7 +82,9 @@ export function CaixaKpis({
       label: "Faturas em Aberto",
       flag: "Cartões de Crédito",
       value: fmt(totalCreditBills),
-      sub: `Próximo mês: ${fmt(totalNextMonthBills)}`,
+      sub: totalNextMonthBills === null
+        ? "Próximo mês: indisponível pelo banco"
+        : `Próximo mês: ${fmt(totalNextMonthBills)}`,
       tone: "amber",
     },
     {
