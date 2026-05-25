@@ -147,10 +147,10 @@ export function CaixaKpis({
                     {c.ajusteCampo && <AjusteContaTrigger campo={c.ajusteCampo} />}
                   </div>
                 </div>
-                <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium">{c.label}</p>
-                <p className="text-2xl font-bold text-foreground mt-1 tabular-nums">{c.value}</p>
+                <p className="text-[10px] sm:text-[11px] uppercase tracking-wider text-muted-foreground font-medium">{c.label}</p>
+                <p className="text-base sm:text-2xl font-bold text-foreground mt-1 tabular-nums truncate">{c.value}</p>
                 {c.sub && (
-                  <p className={cn("text-[11px] mt-1.5", c.subColor || "text-muted-foreground")}>{c.sub}</p>
+                  <p className={cn("text-[10px] sm:text-[11px] mt-1 sm:mt-1.5 truncate", c.subColor || "text-muted-foreground")}>{c.sub}</p>
                 )}
                 {c.ajusteCampo === "saldo" && (
                   <div className="mt-2"><DivergenciaBadge delta={divergenciaSaldoTotal} /></div>
