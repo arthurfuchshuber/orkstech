@@ -40,9 +40,15 @@ const Table = React.forwardRef<HTMLTableElement, React.HTMLAttributes<HTMLTableE
           const cells = Array.from(row.querySelectorAll<HTMLTableCellElement>(":scope > td"));
           let dataIdx = 0;
           cells.forEach((cell, i) => {
-            // injeta o label baseado no thead
-            if (!cell.getAttribute("data-label") && headers[i]) {
-              cell.setAttribute("data-label", headers[i]);
+            const headerText = headers[i] || "";
+            // injeta o label baseado no thead (ignora "Ações" e cabeçalhos vazios)
+            const isActionHeader = /^a[çc][õo]es?$/i.test(headerText);
+            if (!cell.getAttribute("data-label") && headerText && !isActionHeader) {
+              cell.setAttribute("data-label", headerText);
+            }
+            // células sem label viram "full width" no mobile (ex.: ações)
+            if (isActionHeader || !headerText) {
+              cell.setAttribute("data-mobile-full", "");
             }
             // identifica células "essenciais" vs colapsáveis
             const isCheckbox = !!cell.querySelector('[role="checkbox"]');
@@ -171,23 +177,24 @@ const TableCell = React.forwardRef<HTMLTableCellElement, React.TdHTMLAttributes<
       ref={ref}
       className={cn(
         "p-4 align-middle first:pl-6 last:pr-6 [&:has([role=checkbox])]:pr-0",
-        // ===== Mobile: linha label/valor =====
-        "max-md:flex max-md:items-center max-md:justify-between max-md:gap-3",
-        "max-md:py-2 max-md:px-0 max-md:min-h-[34px]",
-        "max-md:border-b max-md:border-border/30 max-md:last:border-b-0",
-        "max-md:text-right max-md:text-[13px] max-md:font-medium max-md:text-foreground",
-        // Label (pseudo)
-        "max-md:before:content-[attr(data-label)] max-md:before:text-muted-foreground/80",
-        "max-md:before:text-[10.5px] max-md:before:uppercase max-md:before:tracking-[0.08em]",
-        "max-md:before:font-semibold max-md:before:text-left max-md:before:shrink-0",
-        "max-md:before:mr-3",
+        // ===== Mobile: grid label | valor (alinhamento perfeito) =====
+        "max-md:grid max-md:grid-cols-[40%_1fr] max-md:items-center max-md:gap-3",
+        "max-md:py-2.5 max-md:px-0 max-md:min-h-[38px]",
+        "max-md:border-b max-md:border-border/25 max-md:last:border-b-0",
+        "max-md:text-[13px] max-md:font-medium max-md:text-foreground",
+        // Label (pseudo) — coluna esquerda fixa
+        "max-md:before:content-[attr(data-label)] max-md:before:text-muted-foreground",
+        "max-md:before:text-[10px] max-md:before:uppercase max-md:before:tracking-[0.09em]",
+        "max-md:before:font-semibold max-md:before:text-left max-md:before:truncate",
+        // Valor — coluna direita: alinhado à direita, com filhos justificados ao fim
+        "max-md:[&>*]:ml-auto max-md:[&>*]:text-right",
+        "max-md:justify-items-end",
         // Flags
         "max-md:[&[data-mobile-hide]]:hidden",
-        "max-md:[&:not([data-label])]:before:hidden",
-        "max-md:[&:not([data-label])]:justify-start",
-        // Checkbox sozinho — sem borda nem padding
-        "max-md:[&:has([role=checkbox])]:border-b-0 max-md:[&:has([role=checkbox])]:py-0 max-md:[&:has([role=checkbox])]:min-h-0",
-        "max-md:[&:has([role=checkbox])]:absolute max-md:[&:has([role=checkbox])]:top-3 max-md:[&:has([role=checkbox])]:right-3",
+        "max-md:[&[data-mobile-full]]:grid-cols-1 max-md:[&[data-mobile-full]]:before:hidden max-md:[&[data-mobile-full]]:justify-items-stretch max-md:[&[data-mobile-full]]:[&>*]:ml-0 max-md:[&[data-mobile-full]]:[&>*]:text-left",
+        "max-md:[&:not([data-label])]:before:hidden max-md:[&:not([data-label])]:grid-cols-1 max-md:[&:not([data-label])]:justify-items-stretch",
+        // Checkbox sozinho — flutua no canto superior direito
+        "max-md:[&:has([role=checkbox])]:hidden",
         className,
       )}
       {...props}
