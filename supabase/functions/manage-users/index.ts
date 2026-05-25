@@ -537,6 +537,22 @@ serve(async (req) => {
         });
       }
       const { user_id, ...fields } = parsed.data;
+
+      // Cross-tenant guard
+      if (!isSuperAdmin) {
+        if (body.empresa_id && body.empresa_id !== callerEmpresaId) {
+          return new Response(JSON.stringify({ error: "Acesso negado a outra empresa" }), {
+            status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        const inEmpresa = await isUserInEmpresa(supabaseAdmin, user_id, callerEmpresaId);
+        if (!inEmpresa) {
+          return new Response(JSON.stringify({ error: "Usuário não pertence à sua empresa" }), {
+            status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+      }
+
       const { error } = await supabaseAdmin
         .from("profiles")
         .update(fields)
