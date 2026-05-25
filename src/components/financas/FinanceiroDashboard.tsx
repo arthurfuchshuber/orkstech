@@ -853,12 +853,11 @@ export default function FinanceiroDashboard() {
     <>
     <Tabs defaultValue="caixa" className="space-y-4 animate-fade-in">
       <div className="flex items-center justify-between gap-2 flex-wrap">
-        <TabsList>
-          <TabsTrigger value="caixa">Caixa da Empresa</TabsTrigger>
-          <TabsTrigger value="contas-pagar">Contas a Pagar</TabsTrigger>
-        </TabsList>
-        <SyncAllPluggyButton />
-        <div className="flex items-center gap-2 ml-auto">
+        <div className="flex items-center gap-2">
+          <TabsList>
+            <TabsTrigger value="caixa">Caixa da Empresa</TabsTrigger>
+            <TabsTrigger value="contas-pagar">Contas a Pagar</TabsTrigger>
+          </TabsList>
           <PendenciasIndicator
             cardsSemVinculo={cardsSemVinculo}
             onCategorizar={() => navigate("/app/financas/extrato?filtro=sem-categoria")}
@@ -880,7 +879,9 @@ export default function FinanceiroDashboard() {
             onVincularCard={(c) => setVincularCard(c)}
           />
         </div>
+        <SyncAllPluggyButton />
       </div>
+
 
       {/* ═══════════ ABA: Caixa da Empresa ═══════════ */}
       <TabsContent value="caixa" className="space-y-4 mt-0">
