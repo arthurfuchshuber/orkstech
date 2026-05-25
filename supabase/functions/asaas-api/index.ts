@@ -843,7 +843,7 @@ Deno.serve(async (req) => {
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     console.error("[asaas-api]", msg);
-    return new Response(JSON.stringify({ error: msg }), {
+    return new Response(JSON.stringify({ error: "Erro ao processar a requisição no Asaas." }), {
       status: 400,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

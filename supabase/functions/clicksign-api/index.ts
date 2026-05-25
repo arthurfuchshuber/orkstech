@@ -152,7 +152,7 @@ Deno.serve(async (req) => {
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     console.error("[clicksign-api]", msg);
-    return new Response(JSON.stringify({ error: msg }), {
+    return new Response(JSON.stringify({ error: "Erro ao processar a requisição no ClickSign." }), {
       status: 400,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

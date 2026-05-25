@@ -1051,17 +1051,9 @@ serve(async (req) => {
       status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error: any) {
-    // Extract a useful message from Error, PostgrestError, or any object
-    let msg = "Erro interno";
-    if (error instanceof Error) {
-      msg = error.message;
-    } else if (error && typeof error === "object") {
-      msg = error.message || error.error_description || error.error || error.details || error.hint || JSON.stringify(error);
-    } else {
-      msg = String(error);
-    }
-    console.error("[admin-dashboard] error:", msg, error);
-    return new Response(JSON.stringify({ error: msg, details: error?.details ?? null, hint: error?.hint ?? null, code: error?.code ?? null }), {
+    // Log full details server-side; return generic message to client
+    console.error("[admin-dashboard] error:", error?.message ?? error, error);
+    return new Response(JSON.stringify({ error: "Erro interno. Tente novamente." }), {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
