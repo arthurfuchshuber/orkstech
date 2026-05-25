@@ -14,6 +14,7 @@ import {
 } from "@/lib/cashflow-helpers";
 import { CashflowKpis } from "@/components/financas/fluxo/CashflowKpis";
 import { CashflowChart } from "@/components/financas/fluxo/CashflowChart";
+import { PageHeader } from "@/components/PageHeader";
 
 function todayISO() {
   const d = new Date();
@@ -62,29 +63,25 @@ export default function Fluxo() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Fluxo de Caixa</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Projeção consolidada a partir de Contas a Pagar, Contas a Receber, Extrato Bancário e
-            previsões importadas. Para importar lançamentos, use diretamente os módulos
-            correspondentes.
-          </p>
-        </div>
-        <div className="flex items-end gap-2">
-          <div>
-            <Label htmlFor="start" className="text-xs text-muted-foreground">De</Label>
-            <Input id="start" type="date" value={start} onChange={(e) => setStart(e.target.value)} className="w-40" />
-          </div>
-          <div>
-            <Label htmlFor="end" className="text-xs text-muted-foreground">Até</Label>
-            <Input id="end" type="date" value={end} onChange={(e) => setEnd(e.target.value)} className="w-40" />
-          </div>
-          <Button variant="outline" size="icon" onClick={() => setReloadKey((k) => k + 1)} disabled={loading}>
-            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
-          </Button>
-        </div>
-      </div>
+      <PageHeader
+        title="Fluxo de Caixa"
+        description="Projeção consolidada a partir de Contas a Pagar, Contas a Receber, Extrato Bancário e previsões importadas."
+        actions={
+          <>
+            <div className="flex flex-col">
+              <Label htmlFor="start" className="text-[10px] text-muted-foreground">De</Label>
+              <Input id="start" type="date" value={start} onChange={(e) => setStart(e.target.value)} className="w-36 h-10" />
+            </div>
+            <div className="flex flex-col">
+              <Label htmlFor="end" className="text-[10px] text-muted-foreground">Até</Label>
+              <Input id="end" type="date" value={end} onChange={(e) => setEnd(e.target.value)} className="w-36 h-10" />
+            </div>
+            <Button variant="outline" size="icon" className="h-10 w-10 self-end" onClick={() => setReloadKey((k) => k + 1)} disabled={loading}>
+              {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+            </Button>
+          </>
+        }
+      />
 
       <CashflowKpis
         inflow={summary.inflow}

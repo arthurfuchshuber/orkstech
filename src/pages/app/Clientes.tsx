@@ -43,6 +43,7 @@ import {
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { PageHeader } from "@/components/PageHeader";
 
 const initialForm: ClientFormData = {
   type: "pf",
@@ -400,15 +401,15 @@ export default function Clientes() {
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground tracking-tight">Clientes</h1>
-          <p className="text-muted-foreground text-sm mt-0.5">Cadastro mestre de clientes da empresa</p>
-        </div>
-        <Button onClick={() => setShowForm(true)} className="rounded-lg gap-2 shadow-sm">
-          <Plus className="w-4 h-4" /> Novo Cliente
-        </Button>
-      </div>
+      <PageHeader
+        title="Clientes"
+        description="Cadastro mestre de clientes da empresa"
+        actions={
+          <Button onClick={() => setShowForm(true)} className="rounded-lg gap-2 shadow-sm h-10">
+            <Plus className="w-4 h-4" /> <span className="whitespace-nowrap">Novo Cliente</span>
+          </Button>
+        }
+      />
 
       {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">

@@ -28,18 +28,18 @@ export function CashflowKpis({ inflow, outflow, startBalance, endBalance }: Prop
     amber: "bg-amber-500/10 text-amber-500",
   };
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
       {cards.map((c) => {
         const Icon = c.icon;
         return (
           <Card key={c.label} className="border-border/50">
-            <CardContent className="p-4">
-              <div className={cn("w-9 h-9 rounded-lg flex items-center justify-center mb-3", tones[c.tone])}>
+            <CardContent className="p-3 sm:p-4">
+              <div className={cn("w-8 h-8 sm:w-9 sm:h-9 rounded-lg flex items-center justify-center mb-2 sm:mb-3", tones[c.tone])}>
                 <Icon className="w-4 h-4" />
               </div>
-              <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium">{c.label}</p>
-              <p className="text-2xl font-bold text-foreground mt-1 tabular-nums">{c.value}</p>
-              <p className="text-[11px] mt-1.5 text-muted-foreground">{c.sub}</p>
+              <p className="text-[10px] sm:text-[11px] uppercase tracking-wider text-muted-foreground font-medium">{c.label}</p>
+              <p className="text-base sm:text-2xl font-bold text-foreground mt-1 tabular-nums truncate">{c.value}</p>
+              <p className="text-[10px] sm:text-[11px] mt-1 sm:mt-1.5 text-muted-foreground truncate">{c.sub}</p>
             </CardContent>
           </Card>
         );

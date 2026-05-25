@@ -14,6 +14,7 @@ import { PluggyConnectButton, PluggyConnectionsList, usePluggyConnections } from
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { CaixinhaMoveDialog } from "@/components/financas/conta/CaixinhaMoveDialog";
 import { LancamentoManualContaDialog } from "@/components/financas/conta/LancamentoManualContaDialog";
+import { PageHeader } from "@/components/PageHeader";
 
 type TipoConta = "corrente" | "poupanca" | "caixa" | "carteira_digital";
 
@@ -237,16 +238,11 @@ export default function ContasBancarias({
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Landmark className="w-6 h-6 text-primary" />
-          <div>
-            <h1 className="text-xl font-bold text-foreground">Contas Bancárias</h1>
-            <p className="text-sm text-muted-foreground">Gerencie as contas da empresa</p>
-          </div>
-        </div>
-        <Button onClick={openNew} className="gap-2"><Plus className="w-4 h-4" /> Nova Conta</Button>
-      </div>
+      <PageHeader
+        title={<span className="flex items-center gap-2"><Landmark className="w-5 h-5 text-primary" /> Contas Bancárias</span>}
+        description="Gerencie as contas da empresa"
+        actions={<Button onClick={openNew} className="gap-2 h-10"><Plus className="w-4 h-4" /> <span className="whitespace-nowrap">Nova Conta</span></Button>}
+      />
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {isLoading ? (
