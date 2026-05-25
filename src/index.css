@@ -316,14 +316,19 @@ html { scroll-behavior: smooth; }
   .responsive-table-wrapper thead { display: none; }
   .responsive-table-wrapper tbody { display: flex; flex-direction: column; gap: 0.75rem; }
 
-  /* ===== Card container ===== */
+  /* ===== Card container — grid-template-areas para layout limpo ===== */
   .responsive-table-wrapper tbody tr {
     display: grid;
-    grid-template-columns: 1fr auto;
-    column-gap: 0.875rem;
+    grid-template-columns: 1fr auto auto auto;
+    grid-template-areas:
+      "title  status kebab check"
+      "amount amount amount amount"
+      "party  party  party  party"
+      "date   date   date   date";
+    column-gap: 0.5rem;
     row-gap: 0.125rem;
     position: relative;
-    padding: 0.75rem 0.875rem 0.625rem 1rem;
+    padding: 0.75rem 0.875rem 2rem 1rem;
     border-radius: 0.875rem;
     border: 1px solid hsl(var(--border) / 0.5);
     background: hsl(var(--card));
@@ -343,14 +348,11 @@ html { scroll-behavior: smooth; }
     width: 3px;
     background: hsl(var(--border));
     border-radius: 3px 0 0 3px;
+    z-index: 1;
   }
-  .responsive-table-wrapper tbody tr:has([data-status="overdue"])::before,
-  .responsive-table-wrapper tbody tr:has(.bg-destructive),
-  .responsive-table-wrapper tbody tr:has(.text-destructive)::before { background: hsl(var(--destructive)); }
-  .responsive-table-wrapper tbody tr:has([data-status="paid"])::before,
-  .responsive-table-wrapper tbody tr:has(.bg-success)::before { background: hsl(var(--success, 142 71% 45%)); }
-  .responsive-table-wrapper tbody tr:has([data-status="pending"])::before,
-  .responsive-table-wrapper tbody tr:has(.bg-warning)::before { background: hsl(var(--warning, 38 92% 50%)); }
+  .responsive-table-wrapper tbody tr:has([data-status="overdue"])::before { background: hsl(var(--destructive)); }
+  .responsive-table-wrapper tbody tr:has([data-status="paid"])::before { background: hsl(var(--success, 142 71% 45%)); }
+  .responsive-table-wrapper tbody tr:has([data-status="pending"])::before { background: hsl(var(--warning, 38 92% 50%)); }
 
   /* ===== Cells reset ===== */
   .responsive-table-wrapper tbody td {
@@ -359,93 +361,79 @@ html { scroll-behavior: smooth; }
     min-width: 0;
   }
 
-  /* ===== TOP-RIGHT CLUSTER: status + kebab + checkbox ===== */
-  .responsive-table-wrapper tbody td:has([role="checkbox"]) {
-    position: absolute;
-    top: 0.875rem;
-    right: 0.875rem;
-    z-index: 3;
-    display: flex;
-    align-items: center;
-  }
-  .responsive-table-wrapper tbody td[data-role="actions"] {
-    position: absolute;
-    top: 0.5rem;
-    right: 2.25rem;
-    z-index: 3;
-    display: flex;
-    align-items: center;
-    grid-column: unset;
-    border: none;
-    margin: 0;
-    padding: 0;
-  }
-  .responsive-table-wrapper tbody td[data-role="status"] {
-    position: absolute;
-    top: 0.625rem;
-    right: 4.5rem;
-    z-index: 2;
-    grid-column: unset;
-    justify-self: unset;
-    align-self: unset;
-  }
-  .responsive-table-wrapper tbody td[data-role="status"] > * { margin-left: 0; }
-
-  /* ===== TITLE ===== */
+  /* ===== TOP ROW: title (left) · status · kebab · checkbox (right) ===== */
   .responsive-table-wrapper tbody td[data-role="title"] {
-    grid-column: 1;
-    grid-row: 2;
-    margin-top: 1.5rem; /* room for top cluster */
-    padding-right: 0.5rem;
-    font-size: 1rem;
+    grid-area: title;
+    align-self: center;
+    font-size: 0.9375rem;
     font-weight: 600;
     color: hsl(var(--foreground));
     line-height: 1.25;
     letter-spacing: -0.01em;
     overflow: hidden;
     text-overflow: ellipsis;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
+    white-space: nowrap;
+  }
+  .responsive-table-wrapper tbody td[data-role="status"] {
+    grid-area: status;
     align-self: center;
+    justify-self: end;
+  }
+  .responsive-table-wrapper tbody td[data-role="status"] > * { margin: 0; }
+
+  .responsive-table-wrapper tbody td[data-role="actions"] {
+    grid-area: kebab;
+    align-self: center;
+    justify-self: center;
+    display: flex;
+  }
+  .responsive-table-wrapper tbody td[data-role="actions"] button {
+    height: 28px;
+    width: 28px;
+    padding: 0;
   }
 
-  /* ===== AMOUNT ===== */
+  .responsive-table-wrapper tbody td:has([role="checkbox"]) {
+    grid-area: check;
+    align-self: center;
+    justify-self: center;
+    display: flex;
+    padding-left: 0.25rem;
+  }
+
+  /* ===== AMOUNT — destaque na 2ª linha, alinhado à direita ===== */
   .responsive-table-wrapper tbody td[data-role="amount"] {
-    grid-column: 2;
-    grid-row: 2;
-    margin-top: 1.5rem; /* align with title */
-    font-size: 1.125rem;
+    grid-area: amount;
+    margin-top: 0.5rem;
+    font-size: 1.375rem;
     font-weight: 700;
     color: hsl(var(--foreground));
     text-align: right;
     font-variant-numeric: tabular-nums;
     white-space: nowrap;
     letter-spacing: -0.02em;
-    align-self: center;
+    line-height: 1.1;
   }
 
-  /* ===== PARTY ===== */
+  /* ===== PARTY (fornecedor) ===== */
   .responsive-table-wrapper tbody td[data-role="party"] {
-    grid-column: 1 / -1;
-    grid-row: 3;
+    grid-area: party;
+    margin-top: 0.125rem;
     font-size: 0.75rem;
     color: hsl(var(--muted-foreground));
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    align-self: center;
   }
-  /* Hide party if it's just a dash/empty */
   .responsive-table-wrapper tbody td[data-role="party"]:empty { display: none; }
+
 
 
   /* ===== DATE (Vencimento) — discreto no rodapé ===== */
   .responsive-table-wrapper tbody td[data-role="date"] {
-    grid-column: 1 / -1;
-    grid-row: 4;
+    grid-area: date;
     padding-top: 0.625rem;
-    margin-top: 0.25rem;
+    margin-top: 0.5rem;
     border-top: 1px solid hsl(var(--border) / 0.35);
     display: flex;
     align-items: center;
@@ -467,16 +455,13 @@ html { scroll-behavior: smooth; }
 
   /* ===== DETAILS ===== */
   .responsive-table-wrapper tbody td[data-role="detail"] {
-    grid-column: span 1;
-    padding: 0.625rem 0 0.25rem;
+    grid-column: 1 / -1;
+    padding: 0.5rem 0 0.125rem;
     display: flex;
     flex-direction: column;
-    gap: 0.2rem;
+    gap: 0.15rem;
     min-width: 0;
     border-top: 1px solid hsl(var(--border) / 0.25);
-  }
-  .responsive-table-wrapper tbody td[data-role="detail"]:last-of-type:nth-of-type(odd of [data-role="detail"]) {
-    grid-column: 1 / -1;
   }
   .responsive-table-wrapper tbody td[data-role="detail"]::before {
     content: attr(data-label);
