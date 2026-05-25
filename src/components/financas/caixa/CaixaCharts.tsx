@@ -1,7 +1,8 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LineChart, Line, ResponsiveContainer, XAxis, YAxis, Tooltip, PieChart, Pie, Cell, BarChart, Bar, Legend, CartesianGrid } from "recharts";
 import { TrendingUp, PieChart as PieIcon, BarChart3 } from "lucide-react";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const fmt = (v: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 }).format(v);
@@ -100,10 +101,25 @@ const tooltipStyle = {
 };
 
 export function CaixaCharts({ evolution, distribution, flow, onFlowBarClick }: ChartsProps) {
+  const isMobile = useIsMobile();
   const flowChartRef = useRef<HTMLDivElement | null>(null);
   const [flowChartWidth, setFlowChartWidth] = useState(0);
   const [flowCoord, setFlowCoord] = useState<{ x: number; y: number } | null>(null);
   const [activeFlowRow, setActiveFlowRow] = useState<any | null>(null);
+
+  // Fecha tooltip ao tocar fora (mobile)
+  useEffect(() => {
+    if (!isMobile || !activeFlowRow) return;
+    const onDocPointer = (e: PointerEvent) => {
+      const el = flowChartRef.current;
+      if (el && !el.contains(e.target as Node)) {
+        setActiveFlowRow(null);
+        setFlowCoord(null);
+      }
+    };
+    document.addEventListener("pointerdown", onDocPointer);
+    return () => document.removeEventListener("pointerdown", onDocPointer);
+  }, [isMobile, activeFlowRow]);
 
   const tooltipPosition = (() => {
     if (!flowCoord) return undefined;
