@@ -249,7 +249,7 @@ Deno.serve(async (req) => {
 
       if (acc.type === 'CREDIT') {
         // 1) Busca TODAS as transações do cartão
-        allCardTxs = await fetchAllTransactions(apiKey, acc.id)
+        allCardTxs = await fetchAllTransactions(apiKey, acc.id, { includeFuture: true })
         // dedup defensivo por id
         const seenIds = new Set<string>()
         allCardTxs = allCardTxs.filter((t: any) => {
