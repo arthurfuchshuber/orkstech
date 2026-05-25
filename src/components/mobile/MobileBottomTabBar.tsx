@@ -13,10 +13,16 @@ type Tab = {
 
 const TABS: Tab[] = [
   {
+    label: "Início",
+    icon: Home,
+    to: "/app",
+    matches: (p) => p === "/app" || p === "/app/" || p.startsWith("/app/inicio") || p.startsWith("/app/dashboard"),
+  },
+  {
     label: "Financeiro",
     icon: Wallet,
     to: "/app/financas/dashboard",
-    matches: (p) => p === "/app" || p.startsWith("/app/financas/dashboard") || p === "/app/dashboard",
+    matches: (p) => p.startsWith("/app/financas/dashboard"),
   },
   {
     label: "Contas",
@@ -40,12 +46,6 @@ const TABS: Tab[] = [
       p.startsWith("/app/fornecedores") ||
       p.startsWith("/app/financas/cadastros") ||
       p.startsWith("/app/rh"),
-  },
-  {
-    label: "Automações",
-    icon: Workflow,
-    to: "/app/automacoes/config",
-    matches: (p) => p.startsWith("/app/automacoes"),
   },
   {
     label: "Mais",
