@@ -400,6 +400,12 @@ html { scroll-behavior: smooth; }
     display: flex;
     padding-left: 0.25rem;
   }
+  .responsive-table-wrapper tbody td [role="checkbox"] {
+    height: 1rem;
+    width: 1rem;
+    border-radius: 0.25rem;
+    border-width: 1px;
+  }
 
   /* ===== AMOUNT — destaque na 2ª linha, alinhado à direita ===== */
   .responsive-table-wrapper tbody td[data-role="amount"] {
