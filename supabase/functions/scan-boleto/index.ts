@@ -33,6 +33,23 @@ serve(async (req) => {
       });
     }
 
+    // Limit payload size: ~7MB base64 ≈ 5MB decoded
+    if (typeof file_base64 !== "string" || file_base64.length > 7_000_000) {
+      return new Response(JSON.stringify({ error: "Arquivo muito grande. Limite de 5MB." }), {
+        status: 413,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const ALLOWED_TYPES = ["application/pdf", "image/png", "image/jpeg", "image/jpg", "image/webp"];
+    if (file_type && !ALLOWED_TYPES.includes(file_type)) {
+      return new Response(JSON.stringify({ error: "Tipo de arquivo não suportado. Use PDF, PNG ou JPEG." }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+
     const mimeType = file_type || "application/pdf";
 
     // Build dynamic context for AI classification
