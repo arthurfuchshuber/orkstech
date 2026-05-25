@@ -189,7 +189,7 @@ IMPORTANTE: Para suggested_categoria_financeira_id e suggested_centro_custo_id, 
     });
   } catch (e) {
     console.error("scan-boleto error:", e);
-    return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Erro desconhecido" }), {
+    return new Response(JSON.stringify({ error: "Erro ao processar o boleto." }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
