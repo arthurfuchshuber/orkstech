@@ -156,7 +156,7 @@ ${JSON.stringify(payload, null, 2)}`;
   } catch (e) {
     console.error("cliente-ai-summary error:", e);
     return new Response(
-      JSON.stringify({ error: e instanceof Error ? e.message : "unknown" }),
+      JSON.stringify({ error: "Não foi possível gerar o resumo do cliente." }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
