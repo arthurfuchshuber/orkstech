@@ -151,6 +151,17 @@ export function CaixaKpis({
                 {c.sub && (
                   <p className={cn("text-[10px] sm:text-[11px] mt-1 sm:mt-1.5 truncate", c.subColor || "text-muted-foreground")}>{c.sub}</p>
                 )}
+                {c.extra && (
+                  <div className="mt-3 pt-2.5 border-t border-border/40 flex items-baseline justify-between gap-2">
+                    <span className="text-[10px] sm:text-[11px] uppercase tracking-wider text-muted-foreground font-medium truncate">
+                      {c.extra.label}
+                    </span>
+                    <span className="text-xs sm:text-sm font-semibold text-foreground tabular-nums whitespace-nowrap">
+                      {c.extra.value}
+                    </span>
+                  </div>
+                )}
+
                 {c.ajusteCampo === "saldo" && (
                   <div className="mt-2"><DivergenciaBadge delta={divergenciaSaldoTotal} /></div>
                 )}
