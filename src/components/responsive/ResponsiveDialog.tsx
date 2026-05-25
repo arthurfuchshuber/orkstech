@@ -46,8 +46,11 @@ export function ResponsiveDialog({
           onOpenChange(o);
         }}
       >
-        <DrawerContent className="max-h-[92dvh] bg-card border-border/50 px-0">
-          <DrawerHeader className="px-5 pt-3 pb-3 text-left border-b border-border/30">
+        <DrawerContent
+          className="left-2 right-2 mx-auto max-h-[90dvh] w-auto rounded-2xl border border-border/60 bg-card px-0 shadow-2xl"
+          style={{ marginBottom: "max(0.5rem, env(safe-area-inset-bottom, 0px))" }}
+        >
+          <DrawerHeader className="px-5 pt-2 pb-3 text-left border-b border-border/40">
             <DrawerTitle className="text-base font-semibold">{title}</DrawerTitle>
             {description && (
               <DrawerDescription className="text-xs text-muted-foreground">
@@ -55,11 +58,12 @@ export function ResponsiveDialog({
               </DrawerDescription>
             )}
           </DrawerHeader>
-          <ScrollArea className="max-h-[calc(92dvh-80px)]">
-            <div className="px-5 py-4 pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))]">
-              {children}
-            </div>
-          </ScrollArea>
+          <div
+            className="flex-1 overflow-y-auto overscroll-contain px-5 py-4"
+            style={{ WebkitOverflowScrolling: "touch", paddingBottom: "calc(1.5rem + env(safe-area-inset-bottom, 0px))" }}
+          >
+            {children}
+          </div>
         </DrawerContent>
       </Drawer>
     );
