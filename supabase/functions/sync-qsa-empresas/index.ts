@@ -163,6 +163,7 @@ serve(async (req) => {
 
     return jsonResponse({ ok: true, processed: results.length, results }, 200, corsHeaders);
   } catch (err: any) {
-    return jsonResponse({ error: err?.message || "Erro interno" }, 500, corsHeaders);
+    console.error('sync-qsa-empresas error:', err?.message || err);
+    return jsonResponse({ error: "Erro interno ao sincronizar QSA." }, 500, corsHeaders);
   }
 });
