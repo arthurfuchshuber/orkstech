@@ -136,7 +136,8 @@ serve(async (req) => {
     });
   } catch (error) {
     const msg = error instanceof Error ? error.message : String(error);
-    return new Response(JSON.stringify({ error: msg }), {
+    console.error("[list-plans] ERROR", msg);
+    return new Response(JSON.stringify({ error: "Não foi possível carregar os planos." }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 500,
     });
