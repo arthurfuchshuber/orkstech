@@ -431,9 +431,9 @@ html { scroll-behavior: smooth; }
 
   /* ===== DATE (Vencimento) — discreto no rodapé ===== */
   .responsive-table-wrapper tbody td[data-role="date"] {
-    grid-column: 1 / -1;
-    grid-row: 4;
+    grid-area: date;
     padding-top: 0.625rem;
+    margin-top: 0.5rem;
     margin-top: 0.25rem;
     border-top: 1px solid hsl(var(--border) / 0.35);
     display: flex;
