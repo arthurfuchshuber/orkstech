@@ -15,7 +15,7 @@ interface KpiProps {
   totalInvestments: number;
   totalCreditAvailable: number;
   totalCreditBills: number;
-  totalNextMonthBills?: number;
+  totalNextMonthBills?: number | null;
   totalCreditLimit: number;
   totalOverdraftAvailable: number;
   totalOverdraftLimit: number;
