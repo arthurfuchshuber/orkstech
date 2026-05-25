@@ -1,5 +1,5 @@
 import { NavLink, useLocation } from "react-router-dom";
-import { LayoutDashboard, Wallet, Users, Workflow, Menu, type LucideIcon } from "lucide-react";
+import { Wallet, Receipt, Users, Workflow, Menu, type LucideIcon } from "lucide-react";
 import { useSidebar } from "@/components/ui/sidebar";
 import { cn } from "@/lib/utils";
 
@@ -13,15 +13,15 @@ type Tab = {
 
 const TABS: Tab[] = [
   {
-    label: "Dashboard",
-    icon: LayoutDashboard,
+    label: "Financeiro",
+    icon: Wallet,
     to: "/app/financas/dashboard",
     matches: (p) => p === "/app" || p.startsWith("/app/financas/dashboard") || p === "/app/dashboard",
   },
   {
-    label: "Financeiro",
-    icon: Wallet,
-    to: "/app/financas",
+    label: "Contas",
+    icon: Receipt,
+    to: "/app/financas/pagar",
     matches: (p) =>
       (p.startsWith("/app/financas") && !p.startsWith("/app/financas/dashboard") && !p.startsWith("/app/financas/cadastros")) ||
       p.startsWith("/app/contas-a-pagar") ||
@@ -32,7 +32,7 @@ const TABS: Tab[] = [
       p.startsWith("/app/dre"),
   },
   {
-    label: "Cadastros",
+    label: "Clientes",
     icon: Users,
     to: "/app/clientes",
     matches: (p) =>
@@ -44,7 +44,7 @@ const TABS: Tab[] = [
   {
     label: "Automações",
     icon: Workflow,
-    to: "/app/automacoes",
+    to: "/app/automacoes/config",
     matches: (p) => p.startsWith("/app/automacoes"),
   },
   {
