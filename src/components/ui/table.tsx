@@ -40,9 +40,15 @@ const Table = React.forwardRef<HTMLTableElement, React.HTMLAttributes<HTMLTableE
           const cells = Array.from(row.querySelectorAll<HTMLTableCellElement>(":scope > td"));
           let dataIdx = 0;
           cells.forEach((cell, i) => {
-            // injeta o label baseado no thead
-            if (!cell.getAttribute("data-label") && headers[i]) {
-              cell.setAttribute("data-label", headers[i]);
+            const headerText = headers[i] || "";
+            // injeta o label baseado no thead (ignora "Ações" e cabeçalhos vazios)
+            const isActionHeader = /^a[çc][õo]es?$/i.test(headerText);
+            if (!cell.getAttribute("data-label") && headerText && !isActionHeader) {
+              cell.setAttribute("data-label", headerText);
+            }
+            // células sem label viram "full width" no mobile (ex.: ações)
+            if (isActionHeader || !headerText) {
+              cell.setAttribute("data-mobile-full", "");
             }
             // identifica células "essenciais" vs colapsáveis
             const isCheckbox = !!cell.querySelector('[role="checkbox"]');
