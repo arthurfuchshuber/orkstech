@@ -443,6 +443,8 @@ Deno.serve(async (req) => {
           fatura_cycle_end: cycleEnd,
           fatura_close_date: billCloseDate,
           fatura_breakdown: bilhetagem,
+          fatura_proximo_mes: faturaProximoMes,
+          fatura_proximo_mes_breakdown: bilhetagemProx,
           // legados (compat com UI atual)
           openBillAmount: faturaAtualExata,
           totalDebt: acc.type === 'CREDIT' ? (acc.balance ?? null) : null,
