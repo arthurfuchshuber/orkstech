@@ -1,7 +1,8 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LineChart, Line, ResponsiveContainer, XAxis, YAxis, Tooltip, PieChart, Pie, Cell, BarChart, Bar, Legend, CartesianGrid } from "recharts";
 import { TrendingUp, PieChart as PieIcon, BarChart3 } from "lucide-react";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const fmt = (v: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 }).format(v);
@@ -100,10 +101,25 @@ const tooltipStyle = {
 };
 
 export function CaixaCharts({ evolution, distribution, flow, onFlowBarClick }: ChartsProps) {
+  const isMobile = useIsMobile();
   const flowChartRef = useRef<HTMLDivElement | null>(null);
   const [flowChartWidth, setFlowChartWidth] = useState(0);
   const [flowCoord, setFlowCoord] = useState<{ x: number; y: number } | null>(null);
   const [activeFlowRow, setActiveFlowRow] = useState<any | null>(null);
+
+  // Fecha tooltip ao tocar fora (mobile)
+  useEffect(() => {
+    if (!isMobile || !activeFlowRow) return;
+    const onDocPointer = (e: PointerEvent) => {
+      const el = flowChartRef.current;
+      if (el && !el.contains(e.target as Node)) {
+        setActiveFlowRow(null);
+        setFlowCoord(null);
+      }
+    };
+    document.addEventListener("pointerdown", onDocPointer);
+    return () => document.removeEventListener("pointerdown", onDocPointer);
+  }, [isMobile, activeFlowRow]);
 
   const tooltipPosition = (() => {
     if (!flowCoord) return undefined;
@@ -221,19 +237,32 @@ export function CaixaCharts({ evolution, distribution, flow, onFlowBarClick }: C
                   data={flow}
                   margin={{ top: 5, right: 10, bottom: 0, left: 0 }}
                   onMouseMove={(e: any) => {
+                    if (isMobile) return;
                     if (e?.isTooltipActive && e?.activeCoordinate) {
                       setFlowCoord({ x: e.activeCoordinate.x, y: e.activeCoordinate.y });
                       setActiveFlowRow(e.activePayload?.[0]?.payload ?? null);
                     }
                   }}
                   onMouseLeave={() => {
+                    if (isMobile) return;
                     setFlowCoord(null);
                     setActiveFlowRow(null);
                   }}
                   onClick={(e: any) => {
-                    if (onFlowBarClick && e?.activePayload?.[0]?.payload) {
-                      onFlowBarClick(e.activePayload[0].payload);
+                    const row = e?.activePayload?.[0]?.payload;
+                    if (!row) return;
+                    if (isMobile) {
+                      // 1º tap: mostra tooltip. 2º tap no mesmo mês: abre modal.
+                      const sameMonth = activeFlowRow && activeFlowRow.month === row.month;
+                      if (sameMonth) {
+                        onFlowBarClick?.(row);
+                      } else {
+                        setFlowCoord(e?.activeCoordinate ?? null);
+                        setActiveFlowRow(row);
+                      }
+                      return;
                     }
+                    onFlowBarClick?.(row);
                   }}
                 >
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
@@ -244,6 +273,8 @@ export function CaixaCharts({ evolution, distribution, flow, onFlowBarClick }: C
                     cursor={{ fill: "hsl(var(--muted) / 0.3)" }}
                     wrapperStyle={{ pointerEvents: "none", zIndex: 50, maxHeight: FLOW_CHART_HEIGHT }}
                     position={tooltipPosition}
+                    active={isMobile ? !!activeFlowRow : undefined}
+                    {...(isMobile && activeFlowRow ? { payload: [{ payload: activeFlowRow, value: activeFlowRow.entradas, name: "entradas" }] as any, label: activeFlowRow.month } : {})}
                   />
                   <Legend wrapperStyle={{ fontSize: 11 }} iconType="circle" formatter={(v) => v === "entradas" ? "Entradas" : "Saídas"} />
                   <Bar dataKey="entradas" fill="hsl(160 84% 39%)" radius={[6, 6, 0, 0]} style={{ cursor: onFlowBarClick ? "pointer" : "default" }} />

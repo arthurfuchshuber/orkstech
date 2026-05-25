@@ -96,19 +96,19 @@ export default function DashboardPrincipal() {
   const empresaName = empresa?.nome_fantasia || empresa?.razao_social || "sua empresa";
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="space-y-4 sm:space-y-6 animate-fade-in">
       {/* Header com saudação */}
-      <div>
+      <div className="min-w-0">
         <div className="flex items-center gap-2 mb-1">
-          <Sparkles className="w-4 h-4 text-primary" />
-          <p className="text-xs text-muted-foreground capitalize">
+          <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primary shrink-0" />
+          <p className="text-[11px] sm:text-xs text-muted-foreground capitalize truncate">
             {format(new Date(), "EEEE, dd 'de' MMMM", { locale: ptBR })}
           </p>
         </div>
-        <h1 className="text-2xl font-bold text-foreground tracking-tight">
+        <h1 className="text-lg sm:text-2xl font-bold text-foreground tracking-tight">
           {getGreeting()}{userName ? `, ${userName}` : ""} 👋
         </h1>
-        <p className="text-sm text-muted-foreground mt-1">
+        <p className="text-xs sm:text-sm text-muted-foreground mt-1 line-clamp-2">
           Bem-vindo ao painel de <span className="font-medium text-foreground">{empresaName}</span>.
         </p>
       </div>

@@ -3,7 +3,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useEmpresa } from "@/hooks/useEmpresa";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { ResponsiveDialog } from "@/components/responsive/ResponsiveDialog";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -98,6 +99,7 @@ export function MonthFlowDetailModal({ open, onOpenChange, monthLabel, monthKey,
   const { user } = useAuth();
   const { empresa } = useEmpresa();
   const queryClient = useQueryClient();
+  const isMobile = useIsMobile();
 
   const [tab, setTab] = useState<"all" | "in" | "out">("all");
   const [search, setSearch] = useState("");
@@ -234,20 +236,16 @@ export function MonthFlowDetailModal({ open, onOpenChange, monthLabel, monthKey,
   const outCountCards = items.length - inCountCards;
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-5xl p-0 gap-0 border-border/50 bg-card shadow-2xl rounded-xl overflow-hidden">
-        <DialogHeader className="px-6 pt-6 pb-4 border-b border-border/30">
-          <DialogTitle className="text-lg font-semibold tracking-tight capitalize">
-            Extrato de {monthLabel}
-          </DialogTitle>
-          <DialogDescription className="text-sm text-muted-foreground">
-            Detalhamento de todas as entradas e saídas computadas no fluxo do mês
-          </DialogDescription>
-        </DialogHeader>
-
-        <div className="px-6 py-5 space-y-4 max-h-[80vh] overflow-y-auto custom-scrollbar">
-          {/* Cards (mantidos) */}
-          <div className="grid grid-cols-3 gap-3">
+    <ResponsiveDialog
+      open={open}
+      onOpenChange={onOpenChange}
+      title={`Extrato de ${monthLabel}`}
+      description="Detalhamento de todas as entradas e saídas computadas no fluxo do mês"
+      size="xl"
+    >
+      <div className="space-y-4">
+        {/* Cards — 3 col desktop, stack mobile */}
+        <div className={cn("grid gap-3", isMobile ? "grid-cols-1" : "grid-cols-3")}>
             <div className="border border-emerald-500/20 bg-emerald-500/5 rounded-lg p-4 flex items-center gap-3">
               <div className="w-10 h-10 rounded-lg bg-emerald-500/10 flex items-center justify-center shrink-0">
                 <TrendingUp className="w-5 h-5 text-emerald-500" />
@@ -289,18 +287,18 @@ export function MonthFlowDetailModal({ open, onOpenChange, monthLabel, monthKey,
           </div>
 
           {/* Filtros + ações em massa */}
-          <div className="flex items-center gap-3 flex-wrap">
-            <Tabs value={tab} onValueChange={(v) => setTab(v as any)}>
-              <TabsList>
-                <TabsTrigger value="all">Todas ({transactions.length})</TabsTrigger>
-                <TabsTrigger value="in">Entradas ({inCount})</TabsTrigger>
-                <TabsTrigger value="out">Saídas ({outCount})</TabsTrigger>
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 sm:flex-wrap">
+            <Tabs value={tab} onValueChange={(v) => setTab(v as any)} className="w-full sm:w-auto">
+              <TabsList className="w-full sm:w-auto grid grid-cols-3 sm:flex">
+                <TabsTrigger value="all" className="text-xs">Todas ({transactions.length})</TabsTrigger>
+                <TabsTrigger value="in" className="text-xs">Entradas ({inCount})</TabsTrigger>
+                <TabsTrigger value="out" className="text-xs">Saídas ({outCount})</TabsTrigger>
               </TabsList>
             </Tabs>
-            <div className="relative flex-1 min-w-[240px]">
+            <div className="relative flex-1 sm:min-w-[240px] w-full">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
               <Input
-                placeholder="Buscar por descrição, categoria ou banco..."
+                placeholder="Buscar por descrição, categoria..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="pl-9 h-9"
@@ -363,21 +361,23 @@ export function MonthFlowDetailModal({ open, onOpenChange, monthLabel, monthKey,
             </div>
           ) : (
             <div className="border border-border/50 rounded-lg overflow-hidden">
-              <div className="grid grid-cols-[36px_110px_minmax(0,1.6fr)_200px_130px] gap-4 border-b border-border/50 bg-muted/30 px-4 py-2.5 text-[10px] uppercase tracking-wider text-muted-foreground font-medium">
-                <div className="flex items-center justify-center">
-                  <Checkbox
-                    checked={filteredTx.length > 0 && filteredTx.every((t) => batchSelection.has(t.id))}
-                    onCheckedChange={(checked) => {
-                      if (checked) setBatchSelection(new Set(filteredTx.map((t) => t.id)));
-                      else setBatchSelection(new Set());
-                    }}
-                  />
+              {!isMobile && (
+                <div className="grid grid-cols-[36px_110px_minmax(0,1.6fr)_200px_130px] gap-4 border-b border-border/50 bg-muted/30 px-4 py-2.5 text-[10px] uppercase tracking-wider text-muted-foreground font-medium">
+                  <div className="flex items-center justify-center">
+                    <Checkbox
+                      checked={filteredTx.length > 0 && filteredTx.every((t) => batchSelection.has(t.id))}
+                      onCheckedChange={(checked) => {
+                        if (checked) setBatchSelection(new Set(filteredTx.map((t) => t.id)));
+                        else setBatchSelection(new Set());
+                      }}
+                    />
+                  </div>
+                  <div>Data</div>
+                  <div>Descrição</div>
+                  <div>Subcategoria</div>
+                  <div className="text-right">Valor</div>
                 </div>
-                <div>Data</div>
-                <div>Descrição</div>
-                <div>Subcategoria</div>
-                <div className="text-right">Valor</div>
-              </div>
+              )}
 
               <div className="divide-y divide-border/30">
                 {filteredTx.map((tx) => {
@@ -392,6 +392,101 @@ export function MonthFlowDetailModal({ open, onOpenChange, monthLabel, monthKey,
                     .filter((c) => !categoriasFinanceiras.some((child: any) => child.categoria_pai_id === c.id));
                   const enhancedDesc = enhanceDescription(tx);
 
+                  const subcategoriaDropdown = (
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <button
+                          className="flex items-center gap-1 text-sm cursor-pointer hover:text-foreground transition-colors group/cat w-full text-left"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <span className="truncate">
+                            {catFin?.nome || <span className="text-muted-foreground/50">Selecionar</span>}
+                          </span>
+                          <ChevronDown className="w-3 h-3 text-muted-foreground opacity-60 group-hover/cat:opacity-100 transition-opacity flex-shrink-0" />
+                        </button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="start" className="max-h-[260px] overflow-y-auto custom-scrollbar">
+                        {subcatOptions.map((c: any) => (
+                          <DropdownMenuItem
+                            key={c.id}
+                            onClick={() => updateCategoriaMutation.mutate({ id: tx.id, categoria_financeira_id: c.id })}
+                          >
+                            {c.nome}
+                          </DropdownMenuItem>
+                        ))}
+                        {catFin && (
+                          <DropdownMenuItem
+                            onClick={() => updateCategoriaMutation.mutate({ id: tx.id, categoria_financeira_id: null })}
+                            className="text-muted-foreground"
+                          >
+                            Limpar
+                          </DropdownMenuItem>
+                        )}
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                          onClick={() => setPluggyEditTx({ id: tx.id, description: tx.description, amount: tx.amount, date: tx.date })}
+                        >
+                          Editar (centro, forma, notas)…
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => setCfModalOpen(true)} className="text-primary">
+                          <Plus className="w-3.5 h-3.5 mr-1.5" /> Nova subcategoria
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  );
+
+                  // ===== Mobile card =====
+                  if (isMobile) {
+                    return (
+                      <div
+                        key={tx.id}
+                        className={cn(
+                          "flex flex-col gap-2 px-3 py-3 transition-colors",
+                          isInternal && "opacity-60",
+                          batchSelection.has(tx.id) && "bg-primary/5"
+                        )}
+                      >
+                        <div className="flex items-start gap-2.5">
+                          <Checkbox
+                            checked={batchSelection.has(tx.id)}
+                            onCheckedChange={() => toggleBatch(tx.id)}
+                            className="mt-0.5 shrink-0"
+                          />
+                          <div className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg ${isCredit ? "bg-emerald-500/10" : "bg-rose-500/10"}`}>
+                            {isCredit ? (
+                              <ArrowDownLeft className="h-4 w-4 text-emerald-500" />
+                            ) : (
+                              <ArrowUpRight className="h-4 w-4 text-rose-500" />
+                            )}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-medium text-foreground leading-tight break-words" title={enhancedDesc}>
+                              {enhancedDesc}
+                            </p>
+                            <p className="text-[11px] text-muted-foreground tabular-nums mt-0.5">{formatDate(tx.date)}</p>
+                          </div>
+                          <p className={`whitespace-nowrap text-right text-sm font-semibold shrink-0 ${isCredit ? "text-emerald-500" : "text-rose-500"}`}>
+                            {isCredit ? "+" : "-"} {fmtBRL(Math.abs(tx.amount))}
+                          </p>
+                        </div>
+                        <div className="flex items-center justify-between gap-2 pl-[44px]">
+                          <div className="min-w-0 flex-1">{subcategoriaDropdown}</div>
+                          <div className="flex gap-1 shrink-0">
+                            {isInternal && (
+                              <Badge variant="outline" className="gap-1 text-[10px] border-muted-foreground/30">Interno</Badge>
+                            )}
+                            {tx.reconciled && (
+                              <Badge variant="outline" className="gap-1 text-[10px]">
+                                <CheckCircle2 className="h-3 w-3" /> Conciliado
+                              </Badge>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  }
+
+                  // ===== Desktop row =====
                   return (
                     <div
                       key={tx.id}
@@ -437,48 +532,7 @@ export function MonthFlowDetailModal({ open, onOpenChange, monthLabel, monthKey,
                         </div>
                       </div>
 
-                      <div className="min-w-0">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <button
-                              className="flex items-center gap-1 text-sm cursor-pointer hover:text-foreground transition-colors group/cat w-full text-left"
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              <span className="truncate">
-                                {catFin?.nome || <span className="text-muted-foreground/50">Selecionar</span>}
-                              </span>
-                              <ChevronDown className="w-3 h-3 text-muted-foreground opacity-0 group-hover/cat:opacity-100 transition-opacity flex-shrink-0" />
-                            </button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="start" className="max-h-[260px] overflow-y-auto custom-scrollbar">
-                            {subcatOptions.map((c: any) => (
-                              <DropdownMenuItem
-                                key={c.id}
-                                onClick={() => updateCategoriaMutation.mutate({ id: tx.id, categoria_financeira_id: c.id })}
-                              >
-                                {c.nome}
-                              </DropdownMenuItem>
-                            ))}
-                            {catFin && (
-                              <DropdownMenuItem
-                                onClick={() => updateCategoriaMutation.mutate({ id: tx.id, categoria_financeira_id: null })}
-                                className="text-muted-foreground"
-                              >
-                                Limpar
-                              </DropdownMenuItem>
-                            )}
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem
-                              onClick={() => setPluggyEditTx({ id: tx.id, description: tx.description, amount: tx.amount, date: tx.date })}
-                            >
-                              Editar (centro, forma, notas)…
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => setCfModalOpen(true)} className="text-primary">
-                              <Plus className="w-3.5 h-3.5 mr-1.5" /> Nova subcategoria
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </div>
+                      <div className="min-w-0">{subcategoriaDropdown}</div>
 
                       <p className={`whitespace-nowrap text-right text-sm font-semibold ${isCredit ? "text-emerald-500" : "text-rose-500"}`}>
                         {isCredit ? "+" : "-"} {fmtBRL(Math.abs(tx.amount))}
@@ -489,24 +543,23 @@ export function MonthFlowDetailModal({ open, onOpenChange, monthLabel, monthKey,
               </div>
             </div>
           )}
-        </div>
+      </div>
 
-        <CategoriaFinanceiraModal
-          open={cfModalOpen}
-          onOpenChange={setCfModalOpen}
-          editingId={null}
-          onSaved={() => {
-            queryClient.invalidateQueries({ queryKey: ["dre-categorias-financeiras"] });
-          }}
-        />
+      <CategoriaFinanceiraModal
+        open={cfModalOpen}
+        onOpenChange={setCfModalOpen}
+        editingId={null}
+        onSaved={() => {
+          queryClient.invalidateQueries({ queryKey: ["dre-categorias-financeiras"] });
+        }}
+      />
 
-        <PluggyTransactionEditDialog
-          open={!!pluggyEditTx}
-          onOpenChange={(v) => !v && setPluggyEditTx(null)}
-          transactionId={pluggyEditTx?.id ?? null}
-          readOnly={pluggyEditTx ? { description: pluggyEditTx.description, amount: pluggyEditTx.amount, date: pluggyEditTx.date } : null}
-        />
-      </DialogContent>
-    </Dialog>
+      <PluggyTransactionEditDialog
+        open={!!pluggyEditTx}
+        onOpenChange={(v) => !v && setPluggyEditTx(null)}
+        transactionId={pluggyEditTx?.id ?? null}
+        readOnly={pluggyEditTx ? { description: pluggyEditTx.description, amount: pluggyEditTx.amount, date: pluggyEditTx.date } : null}
+      />
+    </ResponsiveDialog>
   );
 }
