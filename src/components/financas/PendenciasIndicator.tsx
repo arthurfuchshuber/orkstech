@@ -120,7 +120,12 @@ export function PendenciasIndicator({
         </button>
       </PopoverTrigger>
 
-      <PopoverContent align="start" className="w-[380px] p-2">
+      <PopoverContent
+        align="start"
+        sideOffset={8}
+        collisionPadding={12}
+        className="w-[calc(100vw-24px)] max-w-[380px] p-2"
+      >
         <div className="px-2 py-1.5 mb-1 border-b border-border/50">
           <p className="text-xs font-semibold text-foreground">Pendências do financeiro</p>
           <p className="text-[10px] text-muted-foreground">Clique em uma pendência para resolver.</p>
