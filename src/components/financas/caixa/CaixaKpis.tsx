@@ -71,20 +71,17 @@ export function CaixaKpis({
     },
     {
       icon: CreditCard,
-      label: "Limite Disponível",
-      flag: "Cartões de Crédito",
+      label: "Cartões de Crédito",
+      flag: "Limite / Fatura",
       value: fmt(totalCreditAvailable),
       sub: totalCreditLimit > 0 ? `${utilizacao.toFixed(0)}% utilizado de ${fmt(totalCreditLimit)}` : "Nenhum cartão",
       tone: "blue",
+      extra: {
+        label: "Fatura atual parcial",
+        value: fmt(totalCreditBills),
+      },
     },
-    {
-      icon: Receipt,
-      label: "Fatura Atual Parcial",
-      flag: "Cartões de Crédito",
-      value: fmt(totalCreditBills),
-      sub: "",
-      tone: "amber",
-    },
+
     {
       icon: Wallet,
       label: "Cheque Especial",
