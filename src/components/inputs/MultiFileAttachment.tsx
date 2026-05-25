@@ -69,7 +69,7 @@ export function MultiFileAttachment({
           continue;
         }
 
-        const path = `${user.id}/${folder}/${Date.now()}_${file.name}`;
+        const path = `${empresa.id}/${folder}/${Date.now()}_${file.name}`;
         const { error: uploadError } = await supabase.storage
           .from("client-documents")
           .upload(path, file);
