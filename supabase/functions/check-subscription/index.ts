@@ -55,30 +55,27 @@ serve(async (req) => {
     const force = new URL(req.url).searchParams.get("force") === "true";
 
     // ============ DETECTAR SE O CALLER É MEMBRO (não dono) ============
-    // Buscar o profile do caller para ver se está vinculado a uma empresa de outro dono
-    const { data: callerProfile } = await supabaseAdmin
-      .from("profiles")
-      .select("empresa_id")
-      .eq("user_id", user.id)
-      .maybeSingle();
-
+    // SEGURANÇA: Validar via empresa_membros (ativo=true), NUNCA confiar em profiles.empresa_id
+    // (usuário pode auto-editar profiles.empresa_id e burlar o paywall)
     let ownerUserId: string = user.id;
     let isMember = false;
     let ownerEmail: string = user.email;
 
-    if (callerProfile?.empresa_id) {
-      const { data: empresaRow } = await supabaseAdmin
-        .from("empresas")
-        .select("user_id")
-        .eq("id", callerProfile.empresa_id)
-        .maybeSingle();
-      if (empresaRow?.user_id && empresaRow.user_id !== user.id) {
-        // Caller é membro da empresa de outro dono
-        ownerUserId = empresaRow.user_id;
-        isMember = true;
-        const { data: ownerAuth } = await supabaseAdmin.auth.admin.getUserById(ownerUserId);
-        if (ownerAuth?.user?.email) ownerEmail = ownerAuth.user.email;
-      }
+    const { data: membership } = await supabaseAdmin
+      .from("empresa_membros")
+      .select("empresa_id, empresas!inner(user_id)")
+      .eq("user_id", user.id)
+      .eq("ativo", true)
+      .order("created_at", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+
+    const ownerFromMembership = (membership as any)?.empresas?.user_id as string | undefined;
+    if (ownerFromMembership && ownerFromMembership !== user.id) {
+      ownerUserId = ownerFromMembership;
+      isMember = true;
+      const { data: ownerAuth } = await supabaseAdmin.auth.admin.getUserById(ownerUserId);
+      if (ownerAuth?.user?.email) ownerEmail = ownerAuth.user.email;
     }
 
     // 1) Tenta cache do DONO primeiro (rápido, sempre disponível)
