@@ -1169,11 +1169,11 @@ export default function ContasAPagar() {
             "max-md:p-2.5"
           }
         >
-          <div className="flex items-center gap-2 max-md:gap-1.5">
+          <div className="flex items-center gap-2 max-md:gap-1.5 min-w-0">
             <span className="text-xs font-semibold text-foreground shrink-0 px-2 max-md:px-1.5 py-1 rounded-md bg-primary/10 text-primary">
               {selectedIds.size}
             </span>
-            <div className="flex items-center gap-2 max-md:gap-1.5 overflow-x-auto no-scrollbar flex-1">
+            <div className="flex items-center gap-2 max-md:gap-1.5 overflow-x-auto no-scrollbar flex-1 min-w-0 touch-pan-x" style={{ WebkitOverflowScrolling: "touch" }}>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button size="sm" variant="outline" className="rounded-lg text-xs gap-1 shrink-0">
