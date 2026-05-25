@@ -1,37 +1,78 @@
-## Plano enxuto para 9 correções em ~5 créditos
+## Direção visual confirmada
+Linear/Vercel ultra clean + hierarquia/espaçamentos premium do Stripe, mantendo o dark mode atual. Navegação híbrida: **bottom tab bar fixa** (Dashboard, Reservas, Financeiro, Operações, Mais) + **gaveta (Sheet)** para sub-níveis e telas administrativas. Sidebar atual continua intacta em desktop (≥ md).
 
-Agrupei por arquivo/área para minimizar idas e voltas. Tudo é frontend (sem migração).
+---
 
-### Bloco A — Padronizar Subcategoria (CategoriaTreeSelect) em todos os formulários
-Substituir o `Select` simples de subcategoria pelo `CategoriaTreeSelect` (mesmo do extrato) e **remover** o campo "Tipo Financeiro (DRE)" (a árvore já filtra por direction in/out).
-- `src/components/financas/.../NovaContaPagarModal` (ou equivalente) — item 2
-- `src/components/clientes/NovaContaReceberModal.tsx` — itens 4
-- Edição inline em Contas a Pagar / Contas a Receber — item 2
+## Fase 1 — Shell global (PRIMEIRA ENTREGA)
+**O que muda:** infraestrutura visual presente em 100% das páginas.
 
-### Bloco B — Conta Bancária espelhar 100% o cadastro
-Trocar a fonte do dropdown de contas bancárias no **NovaContaReceberModal** (e similar em Contas a Pagar se divergir) para o mesmo hook usado em Configurações > Financeiro > Contas Bancárias (`useBankAccountOptions` com `nome + banco + secundário`, sem abreviar) — itens 3.
+- **Tokens & utilitários mobile:** adicionar `safe-area-inset` (env safe-area), classes `pb-safe`, `pt-safe`; trocar `h-screen` por `h-dvh` no shell; criar `--header-h-mobile: 56px`, `--bottom-tab-h: 64px`.
+- **AppLayout (`src/components/AppLayout.tsx`):**
+  - `< md`: oculta sidebar permanente; adiciona top header sticky compacto (56px) com logo, busca colapsada (ícone), avatar.
+  - `≥ md`: comportamento atual (sidebar lateral).
+  - Conteúdo recebe `pb-[calc(var(--bottom-tab-h)+env(safe-area-inset-bottom))]` no mobile.
+- **Novo componente `MobileBottomTabBar.tsx`:**
+  - Fixed bottom, blur backdrop, border-top sutil, safe-area-inset-bottom.
+  - 5 slots: Dashboard / Reservas / Financeiro / Operações / Mais.
+  - Indicador ativo (linha superior + label highlight) usando `useLocation`.
+  - Tap target ≥ 56×56, ícones `lucide` 20px.
+- **Novo componente `MobileMenuSheet.tsx`** (acionado por "Mais" e por ícone superior):
+  - Sheet lado direito, full-height, scroll interno, com a árvore completa do menu dinâmico (níveis 2/3), seletor de empresa, link para Configurações, sair.
+- **AppSidebar:** em < md vira inerte (não renderiza), exporta `useSidebarMenu()` que alimenta tanto a sidebar desktop quanto o `MobileMenuSheet`.
+- **CompanySelector:** versão compacta mobile dentro do MobileMenuSheet (não no header).
 
-### Bloco C — NovaContaReceberModal: outros bugs
-- Item 5: capturar o erro real do Supabase e mostrar `toast.error(error.message)` em vez de "Erro ao salvar conta".
-- Item 6: ao selecionar pagador, ler `tipo_pessoa` do cliente/fornecedor e fazer `setTipoPessoa(...)` automaticamente.
-- Item 7: corrigir overflow do `SelectTrigger` (adicionar `truncate min-w-0` e `max-w-full` no container) para não empurrar o footer.
+**Validação:** preview mobile (375×812 iPhone SE, 390×844 iPhone 14, 414×896 Pro Max). Zero scroll horizontal, tap targets ≥44px, bottom bar respeita safe area.
 
-### Bloco D — Extrato: Centro de Custo + Unidade de Negócio editáveis inline
-- Item 1: na tabela do `ExtratoBancario.tsx` e no `UncategorizedTransactionsModal.tsx`, adicionar células editáveis (popover) para **Centro de Custo** e **Unidade de Negócio** — mesmo padrão da Subcategoria inline.
+---
 
-### Bloco E — Tabela responsiva (Contas a Pagar / Contas a Receber)
-- Item 8: revisar larguras % das colunas para caber em 1102px sem cortar "Unidade de Negócio". Reduzir colunas menos críticas e garantir `overflow-x-auto` controlado + última coluna sticky de ações.
+## Fase 2 — Dashboard 360 + KPIs financeiros
+- `FinanceiroDashboard` e `CaixaKpis`: grid 2×N em desktop → stack vertical 1×N em mobile, com KPI cards full-width, tipografia escalando via `text-xs/sm/base` por breakpoint.
+- `KpiHoverCard`: detectar `useIsMobile()` → tap abre Sheet bottom (em vez de Popover hover).
+- Gráficos (Recharts): height adaptativo, eixos com `tickFontSize` menor, tooltip nativo touch-friendly.
+- Filtros do dashboard viram chips horizontais com scroll-snap em mobile.
 
-### Bloco F — Atraso só a partir do dia útil seguinte
-- Item 9: no modal "Registrar Pagamento", trocar `isVencida = hoje > vencimento` por verificação que considera 1 dia útil de tolerância: `isVencida = proximoDiaUtil(vencimento) <= hoje` (helper simples pulando sábado/domingo, sem feriados).
+## Fase 3 — Listas grandes (Contas a Pagar, Extrato, Clientes, Fornecedores, Cartões)
+- Padrão único: componente `ResponsiveDataTable` → em desktop renderiza `<table>` atual com % de largura; em < md renderiza lista de `<ListItemCard>` (uma transação/lançamento por card, descrição em destaque, valor à direita, badges abaixo).
+- Ações (ChevronDown dropdown) em mobile → `Sheet` bottom com lista de ações grandes (≥48px).
+- Filtros e busca: sticky abaixo do header, com chips de filtros ativos.
 
-### Ordem de execução (para garantir entrega completa mesmo se créditos apertarem)
-1. **Bloco A + B + C** (ContaReceberModal) — corrige 5 itens (2, 3, 4, 5, 6, 7) em poucos arquivos. **Prioridade máxima.**
-2. **Bloco F** — fix pequeno e isolado (item 9).
-3. **Bloco D** — extrato inline (item 1).
-4. **Bloco E** — ajuste de larguras (item 8) — mais visual, menor risco.
+## Fase 4 — Formulários e modais
+- Todos os `Dialog` shadcn com `responsive=true` → vira `Drawer` (vaul) em < md, full-height, handle no topo.
+- Inputs: `h-11` no mobile (44px), font-size ≥16px para evitar zoom no iOS.
+- `ManagedSelect`: dropdown em mobile abre como Sheet com busca sticky no topo.
+- Footers de modal com botões empilhados verticais em < sm, com primário em destaque.
 
-### Dúvidas antes de executar
-Nenhuma. Vou usar `useBankAccountOptions` existente para garantir paridade total e o `CategoriaTreeSelect` que já está no extrato. Se algo divergir do esperado em algum bloco, paro e te aviso antes de gastar crédito a mais.
+---
 
-Confirma para mandar bala nessa ordem?
+## Plano técnico (resumo)
+
+```text
+src/
+├── components/
+│   ├── AppLayout.tsx                 [refatorar — shell mobile-first]
+│   ├── AppSidebar.tsx                [extrair hook useSidebarMenu()]
+│   ├── mobile/
+│   │   ├── MobileBottomTabBar.tsx    [NOVO]
+│   │   ├── MobileMenuSheet.tsx       [NOVO]
+│   │   └── MobileTopBar.tsx          [NOVO]
+│   ├── responsive/
+│   │   ├── ResponsiveDataTable.tsx   [Fase 3]
+│   │   ├── ResponsiveDialog.tsx      [Fase 4 — Dialog ↔ Drawer]
+│   │   └── ListItemCard.tsx          [Fase 3]
+│   └── ...
+├── hooks/
+│   └── use-mobile.tsx                [já existe — auditar e padronizar]
+├── index.css                         [safe-area, --bottom-tab-h, --header-h-mobile]
+└── tailwind.config.ts                [garantir h-dvh, safe utilities]
+```
+
+**Mobile breakpoints alvo:** 320 (SE 1ª gen), 360 (Android pequeno), 375 (iPhone SE 3), 390 (iPhone 14), 414 (Pro Max), 768 (iPad mini portrait → ainda mobile shell).
+
+**Sem mudanças funcionais.** Toda lógica de negócio, RLS, queries e edge functions permanecem intactas. Apenas presentation/layout.
+
+---
+
+## Próximo passo
+Se aprovado, começo executando **apenas a Fase 1 (Shell global)** e te mostro o resultado em mobile antes de avançar para a Fase 2. Cada fase será uma entrega validável.
+
+Posso seguir?
