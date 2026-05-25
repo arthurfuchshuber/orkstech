@@ -149,15 +149,15 @@ export default function DREPage() {
 
   return (
     <div className="space-y-4 animate-fade-in">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-bold tracking-tight text-foreground">DRE & Analytics</h1>
-          <p className="text-sm text-muted-foreground">Relatório baseado no plano de contas</p>
-        </div>
-        <Button variant="outline" size="sm" className="gap-2" onClick={exportCSV}>
-          <Download className="w-4 h-4" /> Exportar CSV
-        </Button>
-      </div>
+      <PageHeader
+        title="DRE & Analytics"
+        description="Relatório baseado no plano de contas"
+        actions={
+          <Button variant="outline" size="sm" className="gap-2 h-10" onClick={exportCSV}>
+            <Download className="w-4 h-4" /> <span className="whitespace-nowrap">Exportar CSV</span>
+          </Button>
+        }
+      />
 
       <Tabs defaultValue="mensal" className="w-full">
         <TabsList>

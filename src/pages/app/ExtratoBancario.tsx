@@ -815,15 +815,10 @@ export default function ExtratoBancario() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-3">
-        <Landmark className="w-6 h-6 text-primary" />
-        <div>
-          <h1 className="text-xl font-bold text-foreground">Extrato Bancário</h1>
-          <p className="text-sm text-muted-foreground">
-            Transações sincronizadas via Open Finance + lançamentos manuais
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        title={<span className="flex items-center gap-2"><Landmark className="w-5 h-5 text-primary" /> Extrato Bancário</span>}
+        description="Transações sincronizadas via Open Finance + lançamentos manuais"
+      />
 
       <Tabs defaultValue="lista">
         <div className="flex items-center justify-between gap-2 flex-wrap">

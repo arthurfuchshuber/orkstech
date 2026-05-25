@@ -1047,15 +1047,15 @@ export default function ContasAReceber() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground tracking-tight">Contas a Receber</h1>
-          <p className="text-muted-foreground text-sm mt-0.5">Gerencie suas receitas e recebimentos</p>
-        </div>
-        <Button onClick={() => { setEditingId(null); setForm(initialForm); setShowForm(true); }} className="rounded-lg gap-2 shadow-sm">
-          <Plus className="w-4 h-4" /> Nova Conta
-        </Button>
-      </div>
+      <PageHeader
+        title="Contas a Receber"
+        description="Gerencie suas receitas e recebimentos"
+        actions={
+          <Button onClick={() => { setEditingId(null); setForm(initialForm); setShowForm(true); }} className="rounded-lg gap-2 shadow-sm h-10">
+            <Plus className="w-4 h-4" /> <span className="whitespace-nowrap">Nova Conta</span>
+          </Button>
+        }
+      />
 
       <Tabs defaultValue="lista" className="space-y-6">
         <TabsList>
