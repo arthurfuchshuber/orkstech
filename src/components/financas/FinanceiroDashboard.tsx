@@ -885,6 +885,7 @@ export default function FinanceiroDashboard() {
           totalInvestments={totalInvestments}
           totalCreditAvailable={totalCreditAvailable}
           totalCreditBills={totalCreditBills}
+          totalNextMonthBills={totalNextMonthBills}
           totalCreditLimit={totalCreditLimit}
           totalOverdraftAvailable={totalOverdraftAvailable}
           totalOverdraftLimit={totalOverdraftLimit}
