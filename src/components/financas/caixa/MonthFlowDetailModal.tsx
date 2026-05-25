@@ -287,18 +287,18 @@ export function MonthFlowDetailModal({ open, onOpenChange, monthLabel, monthKey,
           </div>
 
           {/* Filtros + ações em massa */}
-          <div className="flex items-center gap-3 flex-wrap">
-            <Tabs value={tab} onValueChange={(v) => setTab(v as any)}>
-              <TabsList>
-                <TabsTrigger value="all">Todas ({transactions.length})</TabsTrigger>
-                <TabsTrigger value="in">Entradas ({inCount})</TabsTrigger>
-                <TabsTrigger value="out">Saídas ({outCount})</TabsTrigger>
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 sm:flex-wrap">
+            <Tabs value={tab} onValueChange={(v) => setTab(v as any)} className="w-full sm:w-auto">
+              <TabsList className="w-full sm:w-auto grid grid-cols-3 sm:flex">
+                <TabsTrigger value="all" className="text-xs">Todas ({transactions.length})</TabsTrigger>
+                <TabsTrigger value="in" className="text-xs">Entradas ({inCount})</TabsTrigger>
+                <TabsTrigger value="out" className="text-xs">Saídas ({outCount})</TabsTrigger>
               </TabsList>
             </Tabs>
-            <div className="relative flex-1 min-w-[240px]">
+            <div className="relative flex-1 sm:min-w-[240px] w-full">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
               <Input
-                placeholder="Buscar por descrição, categoria ou banco..."
+                placeholder="Buscar por descrição, categoria..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="pl-9 h-9"
