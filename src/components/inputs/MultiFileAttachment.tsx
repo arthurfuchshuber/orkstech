@@ -39,12 +39,17 @@ export function MultiFileAttachment({
   maxFiles = 10,
 }: MultiFileAttachmentProps) {
   const { user } = useAuth();
+  const { empresa } = useEmpresa();
   const [uploading, setUploading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFiles = e.target.files;
     if (!selectedFiles || !user) return;
+    if (!empresa?.id) {
+      toast.error("Selecione uma empresa antes de enviar arquivos");
+      return;
+    }
 
     const remaining = maxFiles - files.length;
     if (remaining <= 0) {
