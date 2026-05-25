@@ -411,6 +411,10 @@ export default function FinanceiroDashboard() {
   };
 
   const totalCreditBills = creditCards.reduce((sum, c) => sum + getCreditBillAmount(c), 0) + totalManualBills;
+  const totalNextMonthBills = creditCards.reduce(
+    (sum, c) => sum + Number((c as any).bank_data?.fatura_proximo_mes ?? 0),
+    0
+  );
   const totalCreditLimit = creditCards.reduce((sum, c) => sum + getCreditLimit(c), 0);
 
   // ── Cheque Especial (overdraft) — Pluggy + ajustes manuais ──
