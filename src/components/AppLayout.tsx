@@ -42,7 +42,7 @@ export default function AppLayout() {
           >
             <div className="flex items-center gap-2 md:gap-3 min-w-0">
               <SidebarTrigger
-                className="text-muted-foreground hover:text-foreground transition-colors tap-target md:tap-target-auto"
+                className="hidden md:flex text-muted-foreground hover:text-foreground transition-colors"
                 aria-label="Abrir menu lateral"
               />
               {/* Desktop search pill */}
@@ -87,7 +87,7 @@ export default function AppLayout() {
           <IntegrationFailureBanner />
           <main
             key={empresa?.id ?? "no-empresa"}
-            className="flex-1 p-3 sm:p-4 md:p-6 overflow-auto pb-tab md:pb-6"
+            className="flex-1 p-3 sm:p-4 md:p-6 overflow-x-hidden overflow-y-auto pb-tab md:pb-6 max-w-full"
           >
             <Outlet />
           </main>
