@@ -73,8 +73,9 @@ export function CaixaKpis({
     },
     {
       icon: CreditCard,
-      label: "Cartões de Crédito",
-      flag: "Limite / Fatura",
+      label: "Limite Disponível",
+      flag: "Cartões de Crédito",
+
       value: fmt(totalCreditAvailable),
       sub: totalCreditLimit > 0 ? `${utilizacao.toFixed(0)}% utilizado de ${fmt(totalCreditLimit)}` : "Nenhum cartão",
       tone: "blue",
