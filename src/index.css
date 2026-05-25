@@ -321,9 +321,9 @@ html { scroll-behavior: smooth; }
     display: grid;
     grid-template-columns: 1fr auto;
     column-gap: 0.875rem;
-    row-gap: 0.3rem;
+    row-gap: 0.125rem;
     position: relative;
-    padding: 0.875rem 1rem 1rem 1.125rem;
+    padding: 0.75rem 0.875rem 0.625rem 1rem;
     border-radius: 0.875rem;
     border: 1px solid hsl(var(--border) / 0.5);
     background: hsl(var(--card));
