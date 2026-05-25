@@ -224,6 +224,7 @@ Deno.serve(async (req) => {
       //     e soma PENDING + POSTED do ciclo, excluindo tipo CREDIT (estornos/pagamentos)
       //  Dedup por tx.id. Log detalhado das incluídas/excluídas.
       let faturaAtualExata: number | null = null
+      let faturaProximoMes: number | null = null
       let billDueDate: string | null = null
       let billCloseDate: string | null = null
       let cycleStart: string | null = null
@@ -233,6 +234,7 @@ Deno.serve(async (req) => {
       const bilhetagem: { incluidas: number; excluidas: number; motivos: Record<string, number> } = {
         incluidas: 0, excluidas: 0, motivos: {},
       }
+      const bilhetagemProx: { incluidas: number; excluidas: number } = { incluidas: 0, excluidas: 0 }
       let allCardTxs: any[] = []
 
       if (acc.type === 'CREDIT') {
@@ -374,6 +376,40 @@ Deno.serve(async (req) => {
           faturaAtualExata = Math.round(total * 100) / 100
           console.log(`[fatura_atual_exata ${acc.id}] via ${faturaSource} ${cycleStart}→${cycleEnd} (lastPayment=${lastPayment?.date || 'n/a'}): R$ ${faturaAtualExata} (in=${bilhetagem.incluidas}, out=${bilhetagem.excluidas})`)
         }
+
+        // === Cálculo da FATURA do PRÓXIMO MÊS (ciclo após o atual) ===
+        // Soma compras lançadas com data POSTERIOR ao fechamento do ciclo atual
+        // (parcelas futuras + compras feitas após o close date). Mesmas regras:
+        // DEBIT > 0, status PENDING/POSTED, exclui estornos/pagamentos.
+        try {
+          let cutoffMs: number | null = null
+          if (faturaSource === 'open_bill_id') {
+            // Para open_bill_id usamos a dueDate da fatura aberta como referência
+            // (não temos closeDate explícito; é uma aproximação razoável).
+            cutoffMs = billDueDate ? new Date(billDueDate).getTime() : null
+          } else if (billCloseDate) {
+            cutoffMs = new Date(billCloseDate).getTime()
+          }
+          if (cutoffMs != null) {
+            let totalProx = 0
+            for (const tx of allCardTxs) {
+              const status = (tx.status || 'POSTED').toUpperCase()
+              const isCharge = tx.type === 'DEBIT' && Number(tx.amount) > 0
+              const t = new Date(tx.date).getTime()
+              if (t <= cutoffMs) { continue }
+              if (!isCharge) { continue }
+              if (status !== 'PENDING' && status !== 'POSTED') { continue }
+              // No modo open_bill_id, ignora txs do próprio billId aberto
+              if (faturaSource === 'open_bill_id' && tx.creditCardMetadata?.billId === openBillId) continue
+              totalProx += Math.abs(Number(tx.amount))
+              bilhetagemProx.incluidas++
+            }
+            faturaProximoMes = Math.round(totalProx * 100) / 100
+            console.log(`[fatura_proximo_mes ${acc.id}] cutoff=${new Date(cutoffMs).toISOString().split('T')[0]}: R$ ${faturaProximoMes} (in=${bilhetagemProx.incluidas})`)
+          }
+        } catch (e) {
+          console.error(`[fatura_proximo_mes ${acc.id}] erro:`, e)
+        }
       }
 
       const accountPayload = {
@@ -407,6 +443,8 @@ Deno.serve(async (req) => {
           fatura_cycle_end: cycleEnd,
           fatura_close_date: billCloseDate,
           fatura_breakdown: bilhetagem,
+          fatura_proximo_mes: faturaProximoMes,
+          fatura_proximo_mes_breakdown: bilhetagemProx,
           // legados (compat com UI atual)
           openBillAmount: faturaAtualExata,
           totalDebt: acc.type === 'CREDIT' ? (acc.balance ?? null) : null,
