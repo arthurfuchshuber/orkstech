@@ -1093,20 +1093,21 @@ export default function ContasAPagar() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground tracking-tight">Contas a Pagar</h1>
-          <p className="text-muted-foreground text-sm mt-0.5">Gerencie suas despesas e pagamentos</p>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={() => setBulkScanOpen(true)} className="rounded-lg gap-2 shadow-sm">
-            <ScanLine className="w-4 h-4" /> Escanear em Massa
-          </Button>
-          <Button onClick={() => { setEditingId(null); setForm(initialForm); setShowForm(true); }} className="rounded-lg gap-2 shadow-sm">
-            <Plus className="w-4 h-4" /> Nova Conta
-          </Button>
-        </div>
-      </div>
+      <PageHeader
+        title="Contas a Pagar"
+        description="Gerencie suas despesas e pagamentos"
+        actions={
+          <>
+            <Button variant="outline" onClick={() => setBulkScanOpen(true)} className="rounded-lg gap-2 shadow-sm h-10">
+              <ScanLine className="w-4 h-4" /> <span className="whitespace-nowrap">Escanear em Massa</span>
+            </Button>
+            <Button onClick={() => { setEditingId(null); setForm(initialForm); setShowForm(true); }} className="rounded-lg gap-2 shadow-sm h-10">
+              <Plus className="w-4 h-4" /> <span className="whitespace-nowrap">Nova Conta</span>
+            </Button>
+          </>
+        }
+      />
+
 
 
       <Tabs defaultValue="lista" className="space-y-6">
