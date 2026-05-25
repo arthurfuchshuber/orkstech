@@ -3,7 +3,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useEmpresa } from "@/hooks/useEmpresa";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { ResponsiveDialog } from "@/components/responsive/ResponsiveDialog";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -98,6 +99,7 @@ export function MonthFlowDetailModal({ open, onOpenChange, monthLabel, monthKey,
   const { user } = useAuth();
   const { empresa } = useEmpresa();
   const queryClient = useQueryClient();
+  const isMobile = useIsMobile();
 
   const [tab, setTab] = useState<"all" | "in" | "out">("all");
   const [search, setSearch] = useState("");
