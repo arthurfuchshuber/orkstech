@@ -89,6 +89,36 @@ async function isLastAdminOfEmpresa(
   return adminUserIds.size <= 1;
 }
 
+async function isUserInEmpresa(
+  supabaseAdmin: any,
+  targetUserId: string,
+  empresaId: string | null
+): Promise<boolean> {
+  if (!empresaId) return false;
+  const { data: membro } = await supabaseAdmin
+    .from("empresa_membros")
+    .select("user_id")
+    .eq("empresa_id", empresaId)
+    .eq("user_id", targetUserId)
+    .eq("ativo", true)
+    .maybeSingle();
+  if (membro) return true;
+
+  const { data: empresa } = await supabaseAdmin
+    .from("empresas")
+    .select("user_id")
+    .eq("id", empresaId)
+    .maybeSingle();
+  if (empresa?.user_id === targetUserId) return true;
+
+  const { data: profile } = await supabaseAdmin
+    .from("profiles")
+    .select("empresa_id")
+    .eq("user_id", targetUserId)
+    .maybeSingle();
+  return profile?.empresa_id === empresaId;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -157,8 +187,18 @@ serve(async (req) => {
     const body = await req.json();
     const { action } = body;
 
-    // LIST - scoped by empresa
+    // LIST - scoped by empresa (Admin/Super Admin only; non-SA cannot query other empresas)
     if (action === "list") {
+      if (!isAdmin && !isSuperAdmin) {
+        return new Response(JSON.stringify({ error: "Apenas administradores podem listar usuários" }), {
+          status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      if (!isSuperAdmin && body.empresa_id && body.empresa_id !== callerEmpresaId) {
+        return new Response(JSON.stringify({ error: "Acesso negado a outra empresa" }), {
+          status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
       // Accept optional empresa_id from request body for scoping
       const requestEmpresaId = body.empresa_id || callerEmpresaId;
 
@@ -363,6 +403,21 @@ serve(async (req) => {
         });
       }
 
+      // Cross-tenant guard: non-SA cannot operate on other empresas or non-members
+      if (!isSuperAdmin) {
+        if (body.empresa_id && body.empresa_id !== callerEmpresaId) {
+          return new Response(JSON.stringify({ error: "Acesso negado a outra empresa" }), {
+            status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        const inEmpresa = await isUserInEmpresa(supabaseAdmin, parsed.data.user_id, callerEmpresaId);
+        if (!inEmpresa) {
+          return new Response(JSON.stringify({ error: "Usuário não pertence à sua empresa" }), {
+            status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+      }
+
       // Prevent removing Admin role from the last admin of the empresa (applies to ALL callers)
       const { data: targetProfile } = await supabaseAdmin
         .from("profiles")
@@ -428,6 +483,21 @@ serve(async (req) => {
         });
       }
 
+      // Cross-tenant guard
+      if (!isSuperAdmin) {
+        if (body.empresa_id && body.empresa_id !== callerEmpresaId) {
+          return new Response(JSON.stringify({ error: "Acesso negado a outra empresa" }), {
+            status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        const inEmpresa = await isUserInEmpresa(supabaseAdmin, parsed.data.user_id, callerEmpresaId);
+        if (!inEmpresa) {
+          return new Response(JSON.stringify({ error: "Usuário não pertence à sua empresa" }), {
+            status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+      }
+
       // Prevent deactivating the last admin (applies to ALL callers)
       if (!parsed.data.ativo) {
         const targetEmpresaId = body.empresa_id ?? await getTargetEmpresaId(supabaseAdmin, parsed.data.user_id);
@@ -467,6 +537,22 @@ serve(async (req) => {
         });
       }
       const { user_id, ...fields } = parsed.data;
+
+      // Cross-tenant guard
+      if (!isSuperAdmin) {
+        if (body.empresa_id && body.empresa_id !== callerEmpresaId) {
+          return new Response(JSON.stringify({ error: "Acesso negado a outra empresa" }), {
+            status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        const inEmpresa = await isUserInEmpresa(supabaseAdmin, user_id, callerEmpresaId);
+        if (!inEmpresa) {
+          return new Response(JSON.stringify({ error: "Usuário não pertence à sua empresa" }), {
+            status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+      }
+
       const { error } = await supabaseAdmin
         .from("profiles")
         .update(fields)
@@ -490,6 +576,21 @@ serve(async (req) => {
         return new Response(JSON.stringify({ error: "Você não pode excluir a si mesmo" }), {
           status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
+      }
+
+      // Cross-tenant guard
+      if (!isSuperAdmin) {
+        if (body.empresa_id && body.empresa_id !== callerEmpresaId) {
+          return new Response(JSON.stringify({ error: "Acesso negado a outra empresa" }), {
+            status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        const inEmpresa = await isUserInEmpresa(supabaseAdmin, parsed.data.user_id, callerEmpresaId);
+        if (!inEmpresa) {
+          return new Response(JSON.stringify({ error: "Usuário não pertence à sua empresa" }), {
+            status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
       }
 
       // Prevent deleting the last admin (applies to ALL callers)
