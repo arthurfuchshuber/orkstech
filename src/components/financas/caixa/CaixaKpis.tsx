@@ -34,6 +34,7 @@ export function CaixaKpis({
   totalInvestments,
   totalCreditAvailable,
   totalCreditBills,
+  totalNextMonthBills = 0,
   totalCreditLimit,
   totalOverdraftAvailable,
   totalOverdraftLimit,
