@@ -61,6 +61,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { OfertaCriarRegraModal } from "@/components/financas/extrato/OfertaCriarRegraModal";
 import { DescricaoComRegra } from "@/components/financas/extrato/DescricaoComRegra";
+import { PageHeader } from "@/components/PageHeader";
 
 type PaymentMode = "avista" | "parcelado" | "recorrente" | "sazonal";
 
