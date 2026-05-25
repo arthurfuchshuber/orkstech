@@ -361,21 +361,23 @@ export function MonthFlowDetailModal({ open, onOpenChange, monthLabel, monthKey,
             </div>
           ) : (
             <div className="border border-border/50 rounded-lg overflow-hidden">
-              <div className="grid grid-cols-[36px_110px_minmax(0,1.6fr)_200px_130px] gap-4 border-b border-border/50 bg-muted/30 px-4 py-2.5 text-[10px] uppercase tracking-wider text-muted-foreground font-medium">
-                <div className="flex items-center justify-center">
-                  <Checkbox
-                    checked={filteredTx.length > 0 && filteredTx.every((t) => batchSelection.has(t.id))}
-                    onCheckedChange={(checked) => {
-                      if (checked) setBatchSelection(new Set(filteredTx.map((t) => t.id)));
-                      else setBatchSelection(new Set());
-                    }}
-                  />
+              {!isMobile && (
+                <div className="grid grid-cols-[36px_110px_minmax(0,1.6fr)_200px_130px] gap-4 border-b border-border/50 bg-muted/30 px-4 py-2.5 text-[10px] uppercase tracking-wider text-muted-foreground font-medium">
+                  <div className="flex items-center justify-center">
+                    <Checkbox
+                      checked={filteredTx.length > 0 && filteredTx.every((t) => batchSelection.has(t.id))}
+                      onCheckedChange={(checked) => {
+                        if (checked) setBatchSelection(new Set(filteredTx.map((t) => t.id)));
+                        else setBatchSelection(new Set());
+                      }}
+                    />
+                  </div>
+                  <div>Data</div>
+                  <div>Descrição</div>
+                  <div>Subcategoria</div>
+                  <div className="text-right">Valor</div>
                 </div>
-                <div>Data</div>
-                <div>Descrição</div>
-                <div>Subcategoria</div>
-                <div className="text-right">Valor</div>
-              </div>
+              )}
 
               <div className="divide-y divide-border/30">
                 {filteredTx.map((tx) => {
@@ -390,6 +392,101 @@ export function MonthFlowDetailModal({ open, onOpenChange, monthLabel, monthKey,
                     .filter((c) => !categoriasFinanceiras.some((child: any) => child.categoria_pai_id === c.id));
                   const enhancedDesc = enhanceDescription(tx);
 
+                  const subcategoriaDropdown = (
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <button
+                          className="flex items-center gap-1 text-sm cursor-pointer hover:text-foreground transition-colors group/cat w-full text-left"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <span className="truncate">
+                            {catFin?.nome || <span className="text-muted-foreground/50">Selecionar</span>}
+                          </span>
+                          <ChevronDown className="w-3 h-3 text-muted-foreground opacity-60 group-hover/cat:opacity-100 transition-opacity flex-shrink-0" />
+                        </button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="start" className="max-h-[260px] overflow-y-auto custom-scrollbar">
+                        {subcatOptions.map((c: any) => (
+                          <DropdownMenuItem
+                            key={c.id}
+                            onClick={() => updateCategoriaMutation.mutate({ id: tx.id, categoria_financeira_id: c.id })}
+                          >
+                            {c.nome}
+                          </DropdownMenuItem>
+                        ))}
+                        {catFin && (
+                          <DropdownMenuItem
+                            onClick={() => updateCategoriaMutation.mutate({ id: tx.id, categoria_financeira_id: null })}
+                            className="text-muted-foreground"
+                          >
+                            Limpar
+                          </DropdownMenuItem>
+                        )}
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                          onClick={() => setPluggyEditTx({ id: tx.id, description: tx.description, amount: tx.amount, date: tx.date })}
+                        >
+                          Editar (centro, forma, notas)…
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => setCfModalOpen(true)} className="text-primary">
+                          <Plus className="w-3.5 h-3.5 mr-1.5" /> Nova subcategoria
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  );
+
+                  // ===== Mobile card =====
+                  if (isMobile) {
+                    return (
+                      <div
+                        key={tx.id}
+                        className={cn(
+                          "flex flex-col gap-2 px-3 py-3 transition-colors",
+                          isInternal && "opacity-60",
+                          batchSelection.has(tx.id) && "bg-primary/5"
+                        )}
+                      >
+                        <div className="flex items-start gap-2.5">
+                          <Checkbox
+                            checked={batchSelection.has(tx.id)}
+                            onCheckedChange={() => toggleBatch(tx.id)}
+                            className="mt-0.5 shrink-0"
+                          />
+                          <div className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg ${isCredit ? "bg-emerald-500/10" : "bg-rose-500/10"}`}>
+                            {isCredit ? (
+                              <ArrowDownLeft className="h-4 w-4 text-emerald-500" />
+                            ) : (
+                              <ArrowUpRight className="h-4 w-4 text-rose-500" />
+                            )}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-medium text-foreground leading-tight break-words" title={enhancedDesc}>
+                              {enhancedDesc}
+                            </p>
+                            <p className="text-[11px] text-muted-foreground tabular-nums mt-0.5">{formatDate(tx.date)}</p>
+                          </div>
+                          <p className={`whitespace-nowrap text-right text-sm font-semibold shrink-0 ${isCredit ? "text-emerald-500" : "text-rose-500"}`}>
+                            {isCredit ? "+" : "-"} {fmtBRL(Math.abs(tx.amount))}
+                          </p>
+                        </div>
+                        <div className="flex items-center justify-between gap-2 pl-[44px]">
+                          <div className="min-w-0 flex-1">{subcategoriaDropdown}</div>
+                          <div className="flex gap-1 shrink-0">
+                            {isInternal && (
+                              <Badge variant="outline" className="gap-1 text-[10px] border-muted-foreground/30">Interno</Badge>
+                            )}
+                            {tx.reconciled && (
+                              <Badge variant="outline" className="gap-1 text-[10px]">
+                                <CheckCircle2 className="h-3 w-3" /> Conciliado
+                              </Badge>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  }
+
+                  // ===== Desktop row =====
                   return (
                     <div
                       key={tx.id}
@@ -435,48 +532,7 @@ export function MonthFlowDetailModal({ open, onOpenChange, monthLabel, monthKey,
                         </div>
                       </div>
 
-                      <div className="min-w-0">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <button
-                              className="flex items-center gap-1 text-sm cursor-pointer hover:text-foreground transition-colors group/cat w-full text-left"
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              <span className="truncate">
-                                {catFin?.nome || <span className="text-muted-foreground/50">Selecionar</span>}
-                              </span>
-                              <ChevronDown className="w-3 h-3 text-muted-foreground opacity-0 group-hover/cat:opacity-100 transition-opacity flex-shrink-0" />
-                            </button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="start" className="max-h-[260px] overflow-y-auto custom-scrollbar">
-                            {subcatOptions.map((c: any) => (
-                              <DropdownMenuItem
-                                key={c.id}
-                                onClick={() => updateCategoriaMutation.mutate({ id: tx.id, categoria_financeira_id: c.id })}
-                              >
-                                {c.nome}
-                              </DropdownMenuItem>
-                            ))}
-                            {catFin && (
-                              <DropdownMenuItem
-                                onClick={() => updateCategoriaMutation.mutate({ id: tx.id, categoria_financeira_id: null })}
-                                className="text-muted-foreground"
-                              >
-                                Limpar
-                              </DropdownMenuItem>
-                            )}
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem
-                              onClick={() => setPluggyEditTx({ id: tx.id, description: tx.description, amount: tx.amount, date: tx.date })}
-                            >
-                              Editar (centro, forma, notas)…
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => setCfModalOpen(true)} className="text-primary">
-                              <Plus className="w-3.5 h-3.5 mr-1.5" /> Nova subcategoria
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </div>
+                      <div className="min-w-0">{subcategoriaDropdown}</div>
 
                       <p className={`whitespace-nowrap text-right text-sm font-semibold ${isCredit ? "text-emerald-500" : "text-rose-500"}`}>
                         {isCredit ? "+" : "-"} {fmtBRL(Math.abs(tx.amount))}
