@@ -26,12 +26,19 @@ serve(async (req) => {
     );
 
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader) throw new Error("No authorization header");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return new Response(JSON.stringify({ error: "Não autorizado", invoices: [], payment_method: null }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
     const token = authHeader.replace("Bearer ", "");
     const { data: userData, error: userErr } = await supabase.auth.getUser(token);
-    if (userErr) throw new Error(userErr.message);
+    if (userErr || !userData?.user?.email) {
+      return new Response(JSON.stringify({ error: "Não autorizado", invoices: [], payment_method: null }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
     const user = userData.user;
-    if (!user?.email) throw new Error("User not authenticated");
     log("User", { email: user.email });
 
     const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
