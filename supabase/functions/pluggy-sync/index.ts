@@ -431,7 +431,7 @@ Deno.serve(async (req) => {
             }
           }
 
-          // P2/P3: fallback por transações — só vale se houver transações futuras de fato
+          // P2: fallback por transações futuras devolvidas pela própria API
           if (proxSource === null && futureTxCount > 0) {
             let cutoffMs: number | null = null
             if (openBillCloseDate) {
@@ -460,14 +460,60 @@ Deno.serve(async (req) => {
             }
           }
 
+          // P3: PROJEÇÃO de parcelas futuras a partir das compras parceladas já lançadas
+          // Pluggy retorna creditCardMetadata.installmentNumber + totalInstallments.
+          // Ex: compra 12x R$100, parcela 3/12 lançada → projetamos 4/12 no próximo mês.
+          // Funciona para QUALQUER banco que devolva metadata de parcelas no /transactions.
+          let parceladasProjetadas = 0
+          if (proxSource === null || proxSource?.startsWith('tx_')) {
+            // Define janela do próximo ciclo (mês +1 a partir do close)
+            const closeRef = openBillCloseDate || billCloseDate
+              ? new Date((openBillCloseDate || billCloseDate)!).getTime()
+              : (billDueDate ? new Date(billDueDate).getTime() - 7 * 86400000 : null)
+            if (closeRef != null) {
+              const nextCycleStart = closeRef + 1
+              const nextCycleEnd = closeRef + 31 * 86400000
+              // Agrupa por "compra original" para não duplicar quando existem múltiplas parcelas já lançadas
+              const seenPurchase = new Set<string>()
+              for (const tx of allCardTxs) {
+                const meta = tx.creditCardMetadata || {}
+                const installNum = Number(meta.installmentNumber || 0)
+                const totalInst = Number(meta.totalInstallments || 0)
+                if (!installNum || !totalInst || totalInst <= 1) continue
+                if (Number(tx.amount) <= 0 || tx.type !== 'DEBIT') continue
+                const status = (tx.status || 'POSTED').toUpperCase()
+                if (status !== 'PENDING' && status !== 'POSTED') continue
+
+                // Chave da compra: descrição + valor + totalInstallments
+                const key = `${tx.description}|${tx.amount}|${totalInst}|${meta.payeeMCC || ''}`
+                if (seenPurchase.has(key)) continue
+                seenPurchase.add(key)
+
+                // Calcula data esperada de CADA parcela futura (1 por mês a partir da data da compra/parcela 1)
+                const baseDate = new Date(tx.date)
+                const baseInstall = installNum
+                const valor = Math.abs(Number(tx.amount))
+                for (let n = baseInstall + 1; n <= totalInst; n++) {
+                  const expected = new Date(baseDate)
+                  expected.setUTCMonth(expected.getUTCMonth() + (n - baseInstall))
+                  const tMs = expected.getTime()
+                  if (tMs >= nextCycleStart && tMs <= nextCycleEnd) {
+                    parceladasProjetadas += valor
+                    bilhetagemProx.incluidas++
+                  }
+                }
+              }
+              if (parceladasProjetadas > 0) {
+                totalProx += parceladasProjetadas
+                proxSource = proxSource ? `${proxSource}+installments_projected` : 'installments_projected'
+              }
+            }
+          }
+
           // Determina o resultado final:
-          // - Se nenhuma fonte funcionou → null (UI mostra "indisponível")
-          // - Se fonte funcionou mas zerou de fato → 0 (cliente realmente não tem lançamentos futuros)
           if (proxSource === null) {
             faturaProximoMes = null
-            proxReason = allBills.length === 0 && futureTxCount === 0
-              ? 'banco_nao_expoe_dados_futuros'
-              : 'sem_dados_suficientes'
+            proxReason = 'banco_nao_expoe_dados_futuros_nem_parcelas'
           } else {
             faturaProximoMes = Math.round(totalProx * 100) / 100
           }
@@ -475,7 +521,8 @@ Deno.serve(async (req) => {
           ;(bilhetagemProx as any).reason = proxReason
           ;(bilhetagemProx as any).future_tx_count = futureTxCount
           ;(bilhetagemProx as any).bills_count = allBills.length
-          console.log(`[fatura_proximo_mes ${acc.id}] source=${proxSource ?? 'NONE'} reason=${proxReason ?? '-'} bills=${allBills.length} futureTx=${futureTxCount} → ${faturaProximoMes === null ? 'INDISPONÍVEL' : 'R$ ' + faturaProximoMes}`)
+          ;(bilhetagemProx as any).parcelas_projetadas = Math.round(parceladasProjetadas * 100) / 100
+          console.log(`[fatura_proximo_mes ${acc.id}] source=${proxSource ?? 'NONE'} bills=${allBills.length} futureTx=${futureTxCount} parcelasProj=R$${parceladasProjetadas.toFixed(2)} → ${faturaProximoMes === null ? 'INDISPONÍVEL' : 'R$ ' + faturaProximoMes}`)
         } catch (e) {
           console.error(`[fatura_proximo_mes ${acc.id}] erro:`, e)
         }
