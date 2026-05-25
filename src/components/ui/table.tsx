@@ -143,22 +143,6 @@ const TableRow = React.forwardRef<HTMLTableRowElement, React.HTMLAttributes<HTML
         onClick={handleClick}
         className={cn(
           "border-b transition-colors data-[state=selected]:bg-muted hover:bg-muted/50",
-          // ===== Mobile: card premium =====
-          "max-md:relative max-md:block max-md:rounded-2xl max-md:border max-md:border-border/60",
-          "max-md:bg-gradient-to-b max-md:from-card max-md:to-card/70 max-md:backdrop-blur-sm",
-          "max-md:px-4 max-md:pt-3 max-md:pb-11",
-          "max-md:shadow-[0_1px_0_0_hsl(var(--border)/0.3),0_8px_24px_-12px_rgba(0,0,0,0.5)]",
-          "max-md:hover:border-border max-md:active:scale-[0.997] max-md:transition-all max-md:cursor-pointer",
-          // Pill chevron na base
-          "max-md:after:content-[''] max-md:after:absolute max-md:after:left-1/2 max-md:after:-translate-x-1/2",
-          "max-md:after:bottom-3 max-md:after:w-2 max-md:after:h-2",
-          "max-md:after:border-r-[1.5px] max-md:after:border-b-[1.5px] max-md:after:border-muted-foreground",
-          "max-md:after:rotate-45 max-md:after:transition-transform max-md:after:duration-200",
-          "max-md:data-[expanded=true]:after:-rotate-[135deg] max-md:data-[expanded=true]:after:translate-y-1",
-          // Pill background atrás do chevron
-          "max-md:before:content-[''] max-md:before:absolute max-md:before:left-1/2 max-md:before:-translate-x-1/2",
-          "max-md:before:bottom-1.5 max-md:before:w-10 max-md:before:h-6 max-md:before:rounded-full",
-          "max-md:before:bg-muted/40 max-md:before:border max-md:before:border-border/50",
           className,
         )}
         {...props}
