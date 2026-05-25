@@ -396,14 +396,9 @@ html { scroll-behavior: smooth; }
   .responsive-table-wrapper tbody td:has([role="checkbox"]) {
     grid-area: check;
     align-self: center;
-    justify-self: center;
+    justify-self: end;
     display: flex;
     padding-left: 0.25rem;
-  }
-  .responsive-table-wrapper tbody td [role="checkbox"] {
-    height: 0.875rem;
-    width: 0.875rem;
-    border-radius: 0.25rem;
   }
 
   /* ===== AMOUNT — destaque na 2ª linha, alinhado à direita ===== */
