@@ -106,18 +106,20 @@ export function PendenciasIndicator({
       <PopoverTrigger asChild>
         <button
           type="button"
-          className="relative inline-flex items-center gap-2 rounded-full border border-amber-500/40 bg-amber-500/10 hover:bg-amber-500/20 hover:border-amber-500/60 transition-colors px-3 py-1.5 cursor-pointer"
+          className="relative inline-flex items-center gap-1.5 rounded-full border border-amber-500/40 bg-amber-500/10 hover:bg-amber-500/20 hover:border-amber-500/60 transition-colors px-2 py-1 cursor-pointer"
           aria-label={`${items.length} pendência(s)`}
+          title={`${items.length} pendência${items.length !== 1 ? "s" : ""}`}
         >
           <span className="relative flex h-4 w-4 items-center justify-center">
             <span className="absolute inline-flex h-full w-full rounded-full bg-amber-500/40 animate-ping" />
-            <AlertTriangle className="relative w-4 h-4 text-amber-400" />
+            <AlertTriangle className="relative w-3.5 h-3.5 text-amber-400" />
           </span>
-          <span className="text-xs font-semibold text-amber-200">
-            {items.length} pendência{items.length !== 1 ? "s" : ""}
+          <span className="text-xs font-semibold text-amber-200 tabular-nums leading-none">
+            {items.length}
           </span>
         </button>
       </PopoverTrigger>
+
       <PopoverContent align="start" className="w-[380px] p-2">
         <div className="px-2 py-1.5 mb-1 border-b border-border/50">
           <p className="text-xs font-semibold text-foreground">Pendências do financeiro</p>
