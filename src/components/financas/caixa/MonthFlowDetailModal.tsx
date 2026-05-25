@@ -236,20 +236,16 @@ export function MonthFlowDetailModal({ open, onOpenChange, monthLabel, monthKey,
   const outCountCards = items.length - inCountCards;
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-5xl p-0 gap-0 border-border/50 bg-card shadow-2xl rounded-xl overflow-hidden">
-        <DialogHeader className="px-6 pt-6 pb-4 border-b border-border/30">
-          <DialogTitle className="text-lg font-semibold tracking-tight capitalize">
-            Extrato de {monthLabel}
-          </DialogTitle>
-          <DialogDescription className="text-sm text-muted-foreground">
-            Detalhamento de todas as entradas e saídas computadas no fluxo do mês
-          </DialogDescription>
-        </DialogHeader>
-
-        <div className="px-6 py-5 space-y-4 max-h-[80vh] overflow-y-auto custom-scrollbar">
-          {/* Cards (mantidos) */}
-          <div className="grid grid-cols-3 gap-3">
+    <ResponsiveDialog
+      open={open}
+      onOpenChange={onOpenChange}
+      title={`Extrato de ${monthLabel}`}
+      description="Detalhamento de todas as entradas e saídas computadas no fluxo do mês"
+      size="xl"
+    >
+      <div className="space-y-4">
+        {/* Cards — 3 col desktop, stack mobile */}
+        <div className={cn("grid gap-3", isMobile ? "grid-cols-1" : "grid-cols-3")}>
             <div className="border border-emerald-500/20 bg-emerald-500/5 rounded-lg p-4 flex items-center gap-3">
               <div className="w-10 h-10 rounded-lg bg-emerald-500/10 flex items-center justify-center shrink-0">
                 <TrendingUp className="w-5 h-5 text-emerald-500" />
