@@ -307,10 +307,186 @@ html { scroll-behavior: smooth; }
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
-/* Responsive table — collapse extra rows on mobile cards */
+/* ============================================================
+   Responsive Table — Mobile card layout (Linear/Stripe inspired)
+   ============================================================ */
 @media (max-width: 767px) {
-  .responsive-table-wrapper tr[data-expanded="false"] td[data-mobile-collapsible] {
-    display: none !important;
+  .responsive-table-wrapper { overflow-x: visible; }
+  .responsive-table-wrapper table { display: block; min-width: 0; }
+  .responsive-table-wrapper thead { display: none; }
+  .responsive-table-wrapper tbody { display: flex; flex-direction: column; gap: 0.75rem; }
+
+  /* ===== Card container ===== */
+  .responsive-table-wrapper tbody tr {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "title  amount"
+      "party  status"
+      "date   date"
+      "detail detail"
+      "actions actions";
+    column-gap: 0.75rem;
+    row-gap: 0.35rem;
+    position: relative;
+    padding: 0.875rem 1rem 1rem;
+    border-radius: 1rem;
+    border: 1px solid hsl(var(--border) / 0.55);
+    background:
+      linear-gradient(180deg, hsl(var(--card)) 0%, hsl(var(--card) / 0.6) 100%);
+    box-shadow:
+      0 1px 0 0 hsl(var(--border) / 0.25),
+      0 8px 24px -16px rgba(0, 0, 0, 0.6);
+    cursor: pointer;
+    transition: border-color 0.15s, transform 0.15s;
+  }
+  .responsive-table-wrapper tbody tr:hover { border-color: hsl(var(--border)); }
+  .responsive-table-wrapper tbody tr:active { transform: scale(0.997); }
+
+  /* ===== Cells reset ===== */
+  .responsive-table-wrapper tbody td {
+    padding: 0;
+    border: none;
+    min-width: 0;
+  }
+
+  /* ===== Hide checkbox column in mobile cards ===== */
+  .responsive-table-wrapper tbody td:has([role="checkbox"]) { display: none; }
+
+  /* ===== TITLE (Descrição/Nome) ===== */
+  .responsive-table-wrapper tbody td[data-role="title"] {
+    grid-area: title;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: hsl(var(--foreground));
+    line-height: 1.3;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+  }
+
+  /* ===== AMOUNT (Valor) ===== */
+  .responsive-table-wrapper tbody td[data-role="amount"] {
+    grid-area: amount;
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: hsl(var(--foreground));
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    align-self: start;
+  }
+
+  /* ===== PARTY (Fornecedor/Cliente) ===== */
+  .responsive-table-wrapper tbody td[data-role="party"] {
+    grid-area: party;
+    font-size: 0.78rem;
+    color: hsl(var(--muted-foreground));
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* ===== STATUS ===== */
+  .responsive-table-wrapper tbody td[data-role="status"] {
+    grid-area: status;
+    justify-self: end;
+    align-self: center;
+  }
+  .responsive-table-wrapper tbody td[data-role="status"] > * { margin-left: auto; }
+
+  /* ===== DATE (Vencimento) ===== */
+  .responsive-table-wrapper tbody td[data-role="date"] {
+    grid-area: date;
+    font-size: 0.72rem;
+    color: hsl(var(--muted-foreground));
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding-top: 0.5rem;
+    margin-top: 0.25rem;
+    border-top: 1px solid hsl(var(--border) / 0.35);
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+  .responsive-table-wrapper tbody td[data-role="date"]::before {
+    content: attr(data-label);
+    font-weight: 600;
+    color: hsl(var(--muted-foreground) / 0.7);
+  }
+
+  /* ===== DETAIL (secondary fields — collapsed by default) ===== */
+  .responsive-table-wrapper tbody td[data-role="detail"] {
+    grid-area: auto;
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    min-height: 32px;
+    padding: 0.4rem 0;
+    border-bottom: 1px solid hsl(var(--border) / 0.25);
+    font-size: 0.8rem;
+    color: hsl(var(--foreground));
+  }
+  .responsive-table-wrapper tbody td[data-role="detail"]::before {
+    content: attr(data-label);
+    font-size: 0.65rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: hsl(var(--muted-foreground));
+    flex-shrink: 0;
+  }
+  .responsive-table-wrapper tbody td[data-role="detail"] > * {
+    margin-left: auto;
+    text-align: right;
+    min-width: 0;
+    max-width: 65%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .responsive-table-wrapper tbody td[data-role="detail"]:last-of-type {
+    border-bottom: none;
+  }
+
+  /* ===== ACTIONS ===== */
+  .responsive-table-wrapper tbody td[data-role="actions"] {
+    grid-area: actions;
+    display: flex;
+    justify-content: flex-end;
+    padding-top: 0.5rem;
+    margin-top: 0.25rem;
+    border-top: 1px solid hsl(var(--border) / 0.35);
+  }
+
+  /* ===== Collapsed: hide details + actions + date, show only header ===== */
+  .responsive-table-wrapper tr[data-expanded="false"] td[data-role="detail"],
+  .responsive-table-wrapper tr[data-expanded="false"] td[data-role="actions"] {
+    display: none;
+  }
+
+  /* ===== Chevron indicator at bottom of card ===== */
+  .responsive-table-wrapper tbody tr {
+    padding-bottom: 2.25rem;
+  }
+  .responsive-table-wrapper tbody tr::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    bottom: 0.6rem;
+    width: 28px;
+    height: 4px;
+    border-radius: 999px;
+    background: hsl(var(--muted-foreground) / 0.35);
+    transform: translateX(-50%);
+    transition: background 0.2s;
+  }
+  .responsive-table-wrapper tbody tr[data-expanded="true"]::after {
+    background: hsl(var(--primary) / 0.6);
   }
 }
+
 

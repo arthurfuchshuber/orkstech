@@ -30,6 +30,14 @@ const Table = React.forwardRef<HTMLTableElement, React.HTMLAttributes<HTMLTableE
       const table = innerRef.current;
       if (!table) return;
 
+      const ROLE_MAP: Array<[RegExp, string]> = [
+        [/^(descri[çc][ãa]o|hist[óo]rico|nome|raz[ãa]o social|t[íi]tulo|categoria)$/i, "title"],
+        [/^(valor|total|saldo|montante|valor total|valor pago)$/i, "amount"],
+        [/^(status|situa[çc][ãa]o)$/i, "status"],
+        [/^(vencimento|data|emiss[ãa]o|data emiss[ãa]o|data vencimento|competência|compet[êe]ncia)$/i, "date"],
+        [/^(fornecedor|benefici[áa]rio|cliente|favorecido|banco|conta)$/i, "party"],
+      ];
+
       const sync = () => {
         const headers = Array.from(
           table.querySelectorAll<HTMLTableCellElement>("thead th"),
@@ -38,29 +46,32 @@ const Table = React.forwardRef<HTMLTableElement, React.HTMLAttributes<HTMLTableE
         const rows = table.querySelectorAll<HTMLTableRowElement>("tbody tr");
         rows.forEach((row) => {
           const cells = Array.from(row.querySelectorAll<HTMLTableCellElement>(":scope > td"));
-          let dataIdx = 0;
+          const usedRoles = new Set<string>();
           cells.forEach((cell, i) => {
             const headerText = headers[i] || "";
-            // injeta o label baseado no thead (ignora "Ações" e cabeçalhos vazios)
             const isActionHeader = /^a[çc][õo]es?$/i.test(headerText);
             if (!cell.getAttribute("data-label") && headerText && !isActionHeader) {
               cell.setAttribute("data-label", headerText);
             }
-            // células sem label viram "full width" no mobile (ex.: ações)
             if (isActionHeader || !headerText) {
-              cell.setAttribute("data-mobile-full", "");
+              cell.setAttribute("data-role", "actions");
+              return;
             }
-            // identifica células "essenciais" vs colapsáveis
-            const isCheckbox = !!cell.querySelector('[role="checkbox"]');
-            const hidden = cell.hasAttribute("data-mobile-hide");
-            const always = cell.hasAttribute("data-mobile-always");
-            if (isCheckbox || hidden || always) return;
-            dataIdx++;
-            if (dataIdx > 2) cell.setAttribute("data-mobile-collapsible", "");
-            else cell.removeAttribute("data-mobile-collapsible");
+            // Atribui um "role" semântico para o layout mobile premium
+            let role = "";
+            for (const [re, r] of ROLE_MAP) {
+              if (re.test(headerText) && !usedRoles.has(r)) {
+                role = r;
+                usedRoles.add(r);
+                break;
+              }
+            }
+            if (role) cell.setAttribute("data-role", role);
+            else cell.setAttribute("data-role", "detail");
           });
         });
       };
+
 
       sync();
       const observer = new MutationObserver(sync);
@@ -132,22 +143,6 @@ const TableRow = React.forwardRef<HTMLTableRowElement, React.HTMLAttributes<HTML
         onClick={handleClick}
         className={cn(
           "border-b transition-colors data-[state=selected]:bg-muted hover:bg-muted/50",
-          // ===== Mobile: card premium =====
-          "max-md:relative max-md:block max-md:rounded-2xl max-md:border max-md:border-border/60",
-          "max-md:bg-gradient-to-b max-md:from-card max-md:to-card/70 max-md:backdrop-blur-sm",
-          "max-md:px-4 max-md:pt-3 max-md:pb-11",
-          "max-md:shadow-[0_1px_0_0_hsl(var(--border)/0.3),0_8px_24px_-12px_rgba(0,0,0,0.5)]",
-          "max-md:hover:border-border max-md:active:scale-[0.997] max-md:transition-all max-md:cursor-pointer",
-          // Pill chevron na base
-          "max-md:after:content-[''] max-md:after:absolute max-md:after:left-1/2 max-md:after:-translate-x-1/2",
-          "max-md:after:bottom-3 max-md:after:w-2 max-md:after:h-2",
-          "max-md:after:border-r-[1.5px] max-md:after:border-b-[1.5px] max-md:after:border-muted-foreground",
-          "max-md:after:rotate-45 max-md:after:transition-transform max-md:after:duration-200",
-          "max-md:data-[expanded=true]:after:-rotate-[135deg] max-md:data-[expanded=true]:after:translate-y-1",
-          // Pill background atrás do chevron
-          "max-md:before:content-[''] max-md:before:absolute max-md:before:left-1/2 max-md:before:-translate-x-1/2",
-          "max-md:before:bottom-1.5 max-md:before:w-10 max-md:before:h-6 max-md:before:rounded-full",
-          "max-md:before:bg-muted/40 max-md:before:border max-md:before:border-border/50",
           className,
         )}
         {...props}
@@ -175,28 +170,7 @@ const TableCell = React.forwardRef<HTMLTableCellElement, React.TdHTMLAttributes<
   ({ className, ...props }, ref) => (
     <td
       ref={ref}
-      className={cn(
-        "p-4 align-middle first:pl-6 last:pr-6 [&:has([role=checkbox])]:pr-0",
-        // ===== Mobile: grid label | valor (alinhamento perfeito) =====
-        "max-md:grid max-md:grid-cols-[40%_1fr] max-md:items-center max-md:gap-3",
-        "max-md:py-2.5 max-md:px-0 max-md:min-h-[38px]",
-        "max-md:border-b max-md:border-border/25 max-md:last:border-b-0",
-        "max-md:text-[13px] max-md:font-medium max-md:text-foreground",
-        // Label (pseudo) — coluna esquerda fixa
-        "max-md:before:content-[attr(data-label)] max-md:before:text-muted-foreground",
-        "max-md:before:text-[10px] max-md:before:uppercase max-md:before:tracking-[0.09em]",
-        "max-md:before:font-semibold max-md:before:text-left max-md:before:truncate",
-        // Valor — coluna direita: alinhado à direita, com filhos justificados ao fim
-        "max-md:[&>*]:ml-auto max-md:[&>*]:text-right",
-        "max-md:justify-items-end",
-        // Flags
-        "max-md:[&[data-mobile-hide]]:hidden",
-        "max-md:[&[data-mobile-full]]:grid-cols-1 max-md:[&[data-mobile-full]]:before:hidden max-md:[&[data-mobile-full]]:justify-items-stretch max-md:[&[data-mobile-full]]:[&>*]:ml-0 max-md:[&[data-mobile-full]]:[&>*]:text-left",
-        "max-md:[&:not([data-label])]:before:hidden max-md:[&:not([data-label])]:grid-cols-1 max-md:[&:not([data-label])]:justify-items-stretch",
-        // Checkbox sozinho — flutua no canto superior direito
-        "max-md:[&:has([role=checkbox])]:hidden",
-        className,
-      )}
+      className={cn("p-4 align-middle first:pl-6 last:pr-6 [&:has([role=checkbox])]:pr-0", className)}
       {...props}
     />
   ),
