@@ -24,14 +24,24 @@ async function getPluggyApiKey(): Promise<string> {
   return apiKey
 }
 
-async function fetchAllTransactions(apiKey: string, accountId: string): Promise<any[]> {
+async function fetchAllTransactions(apiKey: string, accountId: string, opts?: { includeFuture?: boolean }): Promise<any[]> {
   const headers = { 'X-API-KEY': apiKey, 'Content-Type': 'application/json' }
   const allTxs: any[] = []
   let page = 1
   const pageSize = 500
 
+  // Para cartões de crédito precisamos puxar parcelas FUTURAS (12 meses à frente)
+  // — Pluggy por padrão devolve só até hoje. Forçamos um range explícito.
+  let rangeQS = ''
+  if (opts?.includeFuture) {
+    const today = new Date()
+    const from = new Date(today); from.setUTCFullYear(from.getUTCFullYear() - 1)
+    const to = new Date(today); to.setUTCMonth(to.getUTCMonth() + 12)
+    rangeQS = `&from=${from.toISOString().split('T')[0]}&to=${to.toISOString().split('T')[0]}`
+  }
+
   while (true) {
-    const url = `https://api.pluggy.ai/transactions?accountId=${accountId}&pageSize=${pageSize}&page=${page}`
+    const url = `https://api.pluggy.ai/transactions?accountId=${accountId}&pageSize=${pageSize}&page=${page}${rangeQS}`
     const res = await fetch(url, { headers })
     if (!res.ok) {
       console.error(`Transactions fetch error page ${page}: ${res.status}`)
