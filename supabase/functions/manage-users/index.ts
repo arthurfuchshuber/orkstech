@@ -157,8 +157,18 @@ serve(async (req) => {
     const body = await req.json();
     const { action } = body;
 
-    // LIST - scoped by empresa
+    // LIST - scoped by empresa (Admin/Super Admin only; non-SA cannot query other empresas)
     if (action === "list") {
+      if (!isAdmin && !isSuperAdmin) {
+        return new Response(JSON.stringify({ error: "Apenas administradores podem listar usuários" }), {
+          status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      if (!isSuperAdmin && body.empresa_id && body.empresa_id !== callerEmpresaId) {
+        return new Response(JSON.stringify({ error: "Acesso negado a outra empresa" }), {
+          status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
       // Accept optional empresa_id from request body for scoping
       const requestEmpresaId = body.empresa_id || callerEmpresaId;
 
