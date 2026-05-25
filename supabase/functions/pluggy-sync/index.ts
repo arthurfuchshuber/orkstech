@@ -438,14 +438,15 @@ Deno.serve(async (req) => {
               proxSource = 'tx_after_estimated_close'
             }
             if (cutoffMs != null) {
+              // Janela = (cutoff, cutoff + ~31 dias] — apenas o PRÓXIMO ciclo
+              const windowEndMs = cutoffMs + 31 * 86400000
               for (const tx of allCardTxs) {
                 const status = (tx.status || 'POSTED').toUpperCase()
                 const isCharge = tx.type === 'DEBIT' && Number(tx.amount) > 0
                 const t = new Date(tx.date).getTime()
-                if (t <= cutoffMs) continue
+                if (t <= cutoffMs || t > windowEndMs) continue
                 if (!isCharge) continue
                 if (status !== 'PENDING' && status !== 'POSTED') continue
-                // Ignora txs do próprio openBill (já contam na fatura atual)
                 if (openBillId && tx.creditCardMetadata?.billId === openBillId) continue
                 totalProx += Math.abs(Number(tx.amount))
                 bilhetagemProx.incluidas++
