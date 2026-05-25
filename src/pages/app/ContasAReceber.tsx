@@ -60,6 +60,7 @@ import {
 import { AsaasChargeDialog } from "@/components/asaas/AsaasChargeDialog";
 import { OfertaCriarRegraModal } from "@/components/financas/extrato/OfertaCriarRegraModal";
 import { DescricaoComRegra } from "@/components/financas/extrato/DescricaoComRegra";
+import { PageHeader } from "@/components/PageHeader";
 
 type PaymentMode = "avista" | "parcelado" | "recorrente" | "sazonal";
 type PayerKind = "cliente" | "fornecedor";

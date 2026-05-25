@@ -14,6 +14,7 @@ import { PluggyConnectButton, PluggyConnectionsList, usePluggyConnections } from
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { CaixinhaMoveDialog } from "@/components/financas/conta/CaixinhaMoveDialog";
 import { LancamentoManualContaDialog } from "@/components/financas/conta/LancamentoManualContaDialog";
+import { PageHeader } from "@/components/PageHeader";
 
 type TipoConta = "corrente" | "poupanca" | "caixa" | "carteira_digital";
 

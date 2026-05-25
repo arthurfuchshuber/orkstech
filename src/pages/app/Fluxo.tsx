@@ -14,6 +14,7 @@ import {
 } from "@/lib/cashflow-helpers";
 import { CashflowKpis } from "@/components/financas/fluxo/CashflowKpis";
 import { CashflowChart } from "@/components/financas/fluxo/CashflowChart";
+import { PageHeader } from "@/components/PageHeader";
 
 function todayISO() {
   const d = new Date();

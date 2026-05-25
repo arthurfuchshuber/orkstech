@@ -73,6 +73,7 @@ import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { PluggyLastSyncBadge } from "@/components/PluggyLastSyncBadge";
+import { PageHeader } from "@/components/PageHeader";
 
 // Movimentos internos (aplicações/resgates/transferências entre contas próprias)
 // são identificados centralmente pela flag is_internal_transfer no banco.
