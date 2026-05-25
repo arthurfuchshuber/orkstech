@@ -247,18 +247,23 @@ Deno.serve(async (req) => {
           seenIds.add(t.id); return true
         })
 
-        // 2) Tenta /bills para descobrir OPEN bill
+        // 2) Tenta /bills para descobrir OPEN bill + faturas futuras
         let openBill: any = null
+        let allBills: any[] = []
+        let openBillCloseDate: string | null = null
         try {
           const billsRes = await fetch(`https://api.pluggy.ai/accounts/${acc.id}/bills`, { headers })
           if (billsRes.ok) {
             const billsData = await billsRes.json()
-            const bills: any[] = billsData.results || []
-            openBill = bills.find((b: any) => (b.status || '').toUpperCase() === 'OPEN') || null
-            console.log(`[bills ${acc.id}] ${bills.length} faturas, statuses=${bills.map((b: any) => b.status).join(',')}`)
+            allBills = billsData.results || []
+            openBill = allBills.find((b: any) => (b.status || '').toUpperCase() === 'OPEN') || null
+            console.log(`[bills ${acc.id}] ${allBills.length} faturas, statuses=${allBills.map((b: any) => `${b.status}@${b.dueDate?.split('T')[0]}=${b.totalAmount ?? b.amount}`).join(' | ')}`)
             if (openBill) {
               openBillId = openBill.id
               billDueDate = openBill.dueDate ? openBill.dueDate.split('T')[0] : null
+              // Pluggy expõe finishDate/closeDate em alguns conectores
+              openBillCloseDate = (openBill.finishDate || openBill.closeDate || openBill.billDate || null)
+              if (openBillCloseDate) openBillCloseDate = String(openBillCloseDate).split('T')[0]
             }
           } else {
             console.warn(`[bills ${acc.id}] HTTP ${billsRes.status}`)
