@@ -53,7 +53,9 @@ export function CaixaKpis({
     icon: any; label: string; flag: string; value: string;
     sub?: string; subColor?: string; tone: "primary" | "emerald" | "blue" | "amber" | "violet";
     trend?: "up" | "down" | null; ajusteCampo?: AjusteCampo;
+    extra?: { label: string; value: string };
   }> = [
+
     {
       icon: Landmark,
       label: "Saldo em Contas",
@@ -71,20 +73,17 @@ export function CaixaKpis({
     },
     {
       icon: CreditCard,
-      label: "Limite Disponível",
-      flag: "Cartões de Crédito",
+      label: "Cartões de Crédito",
+      flag: "Limite / Fatura",
       value: fmt(totalCreditAvailable),
       sub: totalCreditLimit > 0 ? `${utilizacao.toFixed(0)}% utilizado de ${fmt(totalCreditLimit)}` : "Nenhum cartão",
       tone: "blue",
+      extra: {
+        label: "Fatura atual parcial",
+        value: fmt(totalCreditBills),
+      },
     },
-    {
-      icon: Receipt,
-      label: "Fatura Atual Parcial",
-      flag: "Cartões de Crédito",
-      value: fmt(totalCreditBills),
-      sub: "",
-      tone: "amber",
-    },
+
     {
       icon: Wallet,
       label: "Cheque Especial",
@@ -120,7 +119,7 @@ export function CaixaKpis({
           <PluggyLastSyncBadge lastSyncAt={lastSyncAt} status={syncStatus} />
         </div>
       )}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 sm:gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         {cards.map((c) => {
           const Icon = c.icon;
           return (
@@ -152,6 +151,17 @@ export function CaixaKpis({
                 {c.sub && (
                   <p className={cn("text-[10px] sm:text-[11px] mt-1 sm:mt-1.5 truncate", c.subColor || "text-muted-foreground")}>{c.sub}</p>
                 )}
+                {c.extra && (
+                  <div className="mt-3 pt-2.5 border-t border-border/40 flex items-baseline justify-between gap-2">
+                    <span className="text-[10px] sm:text-[11px] uppercase tracking-wider text-muted-foreground font-medium truncate">
+                      {c.extra.label}
+                    </span>
+                    <span className="text-xs sm:text-sm font-semibold text-foreground tabular-nums whitespace-nowrap">
+                      {c.extra.value}
+                    </span>
+                  </div>
+                )}
+
                 {c.ajusteCampo === "saldo" && (
                   <div className="mt-2"><DivergenciaBadge delta={divergenciaSaldoTotal} /></div>
                 )}
