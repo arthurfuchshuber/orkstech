@@ -461,20 +461,22 @@ Deno.serve(async (req) => {
           }
 
           // P3: PROJEÇÃO de parcelas futuras a partir das compras parceladas já lançadas
-          // Pluggy retorna creditCardMetadata.installmentNumber + totalInstallments.
-          // Ex: compra 12x R$100, parcela 3/12 lançada → projetamos 4/12 no próximo mês.
-          // Funciona para QUALQUER banco que devolva metadata de parcelas no /transactions.
+          // Estratégia robusta: agrupar por "identidade da compra" (descrição + nº total de parcelas + MCC),
+          // encontrar a ÚLTIMA parcela já lançada (maior installmentNumber), e projetar AS PRÓXIMAS
+          // parcelas (uma por mês) que caiam dentro da janela do próximo ciclo.
+          // Funciona tanto se Pluggy devolve 1 tx por compra quanto 1 tx por parcela lançada.
           let parceladasProjetadas = 0
           if (proxSource === null || proxSource?.startsWith('tx_')) {
-            // Define janela do próximo ciclo (mês +1 a partir do close)
             const closeRef = openBillCloseDate || billCloseDate
               ? new Date((openBillCloseDate || billCloseDate)!).getTime()
               : (billDueDate ? new Date(billDueDate).getTime() - 7 * 86400000 : null)
             if (closeRef != null) {
               const nextCycleStart = closeRef + 1
               const nextCycleEnd = closeRef + 31 * 86400000
-              // Agrupa por "compra original" para não duplicar quando existem múltiplas parcelas já lançadas
-              const seenPurchase = new Set<string>()
+
+              // Agrupa por identidade da compra
+              type Lancada = { date: number; installNum: number; valor: number }
+              const compras = new Map<string, { totalInst: number; lancadas: Lancada[] }>()
               for (const tx of allCardTxs) {
                 const meta = tx.creditCardMetadata || {}
                 const installNum = Number(meta.installmentNumber || 0)
@@ -484,23 +486,30 @@ Deno.serve(async (req) => {
                 const status = (tx.status || 'POSTED').toUpperCase()
                 if (status !== 'PENDING' && status !== 'POSTED') continue
 
-                // Chave da compra: descrição + valor + totalInstallments
-                const key = `${tx.description}|${tx.amount}|${totalInst}|${meta.payeeMCC || ''}`
-                if (seenPurchase.has(key)) continue
-                seenPurchase.add(key)
-
-                // Calcula data esperada de CADA parcela futura (1 por mês a partir da data da compra/parcela 1)
-                const baseDate = new Date(tx.date)
-                const baseInstall = installNum
                 const valor = Math.abs(Number(tx.amount))
-                for (let n = baseInstall + 1; n <= totalInst; n++) {
-                  const expected = new Date(baseDate)
-                  expected.setUTCMonth(expected.getUTCMonth() + (n - baseInstall))
+                // Chave por compra: descrição (normalizada) + totalInst + MCC + valor da parcela (arredondado)
+                const key = `${(tx.description || '').trim().toUpperCase()}|${totalInst}|${meta.payeeMCC || ''}|${Math.round(valor * 100)}`
+                const entry = compras.get(key) || { totalInst, lancadas: [] }
+                entry.lancadas.push({ date: new Date(tx.date).getTime(), installNum, valor })
+                compras.set(key, entry)
+              }
+
+              for (const [, { totalInst, lancadas }] of compras.entries()) {
+                if (lancadas.length === 0) continue
+                // Ordena por installNum desc para pegar a ÚLTIMA parcela já lançada
+                lancadas.sort((a, b) => b.installNum - a.installNum)
+                const ultima = lancadas[0]
+                if (ultima.installNum >= totalInst) continue // já quitada
+                const valor = ultima.valor
+                // Projeta as próximas parcelas (1/mês) e inclui as que caem na janela do próximo ciclo
+                for (let n = ultima.installNum + 1; n <= totalInst; n++) {
+                  const expected = new Date(ultima.date)
+                  expected.setUTCMonth(expected.getUTCMonth() + (n - ultima.installNum))
                   const tMs = expected.getTime()
-                  if (tMs >= nextCycleStart && tMs <= nextCycleEnd) {
-                    parceladasProjetadas += valor
-                    bilhetagemProx.incluidas++
-                  }
+                  if (tMs < nextCycleStart) continue
+                  if (tMs > nextCycleEnd) break
+                  parceladasProjetadas += valor
+                  bilhetagemProx.incluidas++
                 }
               }
               if (parceladasProjetadas > 0) {
@@ -510,57 +519,7 @@ Deno.serve(async (req) => {
             }
           }
 
-          // P4: PROJEÇÃO de cobranças RECORRENTES (assinaturas, mensalidades)
-          // Detecta DEBITs não-parcelados com mesma descrição+valor aparecendo em ≥2 ciclos anteriores
-          // com espaçamento ~mensal (25-35 dias). Projeta 1 ocorrência no próximo ciclo.
-          let recorrentesProjetadas = 0
-          const closeRefP4 = openBillCloseDate || billCloseDate
-            ? new Date((openBillCloseDate || billCloseDate)!).getTime()
-            : (billDueDate ? new Date(billDueDate).getTime() - 7 * 86400000 : null)
-          if (closeRefP4 != null) {
-            const nextCycleStartP4 = closeRefP4 + 1
-            const nextCycleEndP4 = closeRefP4 + 31 * 86400000
-            // Agrupa por descrição+valor (apenas não-parceladas)
-            const groups = new Map<string, number[]>()
-            for (const tx of allCardTxs) {
-              if (tx.type !== 'DEBIT' || Number(tx.amount) <= 0) continue
-              const status = (tx.status || 'POSTED').toUpperCase()
-              if (status !== 'POSTED' && status !== 'PENDING') continue
-              const meta = tx.creditCardMetadata || {}
-              const totalInst = Number(meta.totalInstallments || 0)
-              if (totalInst > 1) continue // já tratado em P3
-              const valor = Math.round(Math.abs(Number(tx.amount)) * 100) / 100
-              const key = `${(tx.description || '').trim().toUpperCase()}|${valor}`
-              const arr = groups.get(key) || []
-              arr.push(new Date(tx.date).getTime())
-              groups.set(key, arr)
-            }
-            const now = Date.now()
-            for (const [key, dates] of groups.entries()) {
-              if (dates.length < 2) continue
-              dates.sort((a, b) => a - b)
-              // Verifica espaçamento mensal (25-35 dias) entre as últimas 2-3 ocorrências
-              const last = dates[dates.length - 1]
-              const prev = dates[dates.length - 2]
-              const gap = (last - prev) / 86400000
-              if (gap < 25 || gap > 35) continue
-              // A próxima cobrança esperada
-              const nextExpected = last + Math.round(gap) * 86400000
-              if (nextExpected < nextCycleStartP4 || nextExpected > nextCycleEndP4) continue
-              // Evita dupla contagem se já foi pega em P2 (tx_after_close)
-              const alreadyCounted = dates.some(d => d > closeRefP4 && d <= nextCycleEndP4)
-              if (alreadyCounted) continue
-              const valor = Number(key.split('|')[1])
-              recorrentesProjetadas += valor
-              bilhetagemProx.incluidas++
-            }
-            if (recorrentesProjetadas > 0) {
-              totalProx += recorrentesProjetadas
-              proxSource = proxSource
-                ? `${proxSource}+recurring_projected`
-                : 'recurring_projected'
-            }
-          }
+
 
 
           // Determina o resultado final:
