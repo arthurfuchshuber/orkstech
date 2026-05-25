@@ -224,6 +224,7 @@ Deno.serve(async (req) => {
       //     e soma PENDING + POSTED do ciclo, excluindo tipo CREDIT (estornos/pagamentos)
       //  Dedup por tx.id. Log detalhado das incluídas/excluídas.
       let faturaAtualExata: number | null = null
+      let faturaProximoMes: number | null = null
       let billDueDate: string | null = null
       let billCloseDate: string | null = null
       let cycleStart: string | null = null
@@ -233,6 +234,7 @@ Deno.serve(async (req) => {
       const bilhetagem: { incluidas: number; excluidas: number; motivos: Record<string, number> } = {
         incluidas: 0, excluidas: 0, motivos: {},
       }
+      const bilhetagemProx: { incluidas: number; excluidas: number } = { incluidas: 0, excluidas: 0 }
       let allCardTxs: any[] = []
 
       if (acc.type === 'CREDIT') {
