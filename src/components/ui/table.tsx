@@ -171,16 +171,23 @@ const TableCell = React.forwardRef<HTMLTableCellElement, React.TdHTMLAttributes<
       ref={ref}
       className={cn(
         "p-4 align-middle first:pl-6 last:pr-6 [&:has([role=checkbox])]:pr-0",
-        // Mobile: label/valor lado a lado
+        // ===== Mobile: linha label/valor =====
         "max-md:flex max-md:items-center max-md:justify-between max-md:gap-3",
-        "max-md:py-1.5 max-md:px-0 max-md:first:pl-0 max-md:last:pr-0",
-        "max-md:text-right max-md:text-sm",
-        "max-md:before:content-[attr(data-label)] max-md:before:text-muted-foreground",
-        "max-md:before:text-[11px] max-md:before:uppercase max-md:before:tracking-wider",
-        "max-md:before:font-medium max-md:before:text-left max-md:before:shrink-0",
-        "max-md:before:mr-2",
+        "max-md:py-2 max-md:px-0 max-md:min-h-[34px]",
+        "max-md:border-b max-md:border-border/30 max-md:last:border-b-0",
+        "max-md:text-right max-md:text-[13px] max-md:font-medium max-md:text-foreground",
+        // Label (pseudo)
+        "max-md:before:content-[attr(data-label)] max-md:before:text-muted-foreground/80",
+        "max-md:before:text-[10.5px] max-md:before:uppercase max-md:before:tracking-[0.08em]",
+        "max-md:before:font-semibold max-md:before:text-left max-md:before:shrink-0",
+        "max-md:before:mr-3",
+        // Flags
         "max-md:[&[data-mobile-hide]]:hidden",
         "max-md:[&:not([data-label])]:before:hidden",
+        "max-md:[&:not([data-label])]:justify-start",
+        // Checkbox sozinho — sem borda nem padding
+        "max-md:[&:has([role=checkbox])]:border-b-0 max-md:[&:has([role=checkbox])]:py-0 max-md:[&:has([role=checkbox])]:min-h-0",
+        "max-md:[&:has([role=checkbox])]:absolute max-md:[&:has([role=checkbox])]:top-3 max-md:[&:has([role=checkbox])]:right-3",
         className,
       )}
       {...props}
