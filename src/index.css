@@ -306,3 +306,11 @@ html { scroll-behavior: smooth; }
 /* Hide scrollbar utility (mobile horizontal carousels) */
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* Responsive table — collapse extra rows on mobile cards */
+@media (max-width: 767px) {
+  .responsive-table-wrapper tr[data-expanded="false"] td[data-mobile-collapsible] {
+    display: none !important;
+  }
+}
+
