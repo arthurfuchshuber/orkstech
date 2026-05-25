@@ -434,7 +434,6 @@ html { scroll-behavior: smooth; }
     grid-area: date;
     padding-top: 0.625rem;
     margin-top: 0.5rem;
-    margin-top: 0.25rem;
     border-top: 1px solid hsl(var(--border) / 0.35);
     display: flex;
     align-items: center;
