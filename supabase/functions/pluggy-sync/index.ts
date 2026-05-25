@@ -24,14 +24,24 @@ async function getPluggyApiKey(): Promise<string> {
   return apiKey
 }
 
-async function fetchAllTransactions(apiKey: string, accountId: string): Promise<any[]> {
+async function fetchAllTransactions(apiKey: string, accountId: string, opts?: { includeFuture?: boolean }): Promise<any[]> {
   const headers = { 'X-API-KEY': apiKey, 'Content-Type': 'application/json' }
   const allTxs: any[] = []
   let page = 1
   const pageSize = 500
 
+  // Para cartões de crédito precisamos puxar parcelas FUTURAS (12 meses à frente)
+  // — Pluggy por padrão devolve só até hoje. Forçamos um range explícito.
+  let rangeQS = ''
+  if (opts?.includeFuture) {
+    const today = new Date()
+    const from = new Date(today); from.setUTCFullYear(from.getUTCFullYear() - 1)
+    const to = new Date(today); to.setUTCMonth(to.getUTCMonth() + 12)
+    rangeQS = `&from=${from.toISOString().split('T')[0]}&to=${to.toISOString().split('T')[0]}`
+  }
+
   while (true) {
-    const url = `https://api.pluggy.ai/transactions?accountId=${accountId}&pageSize=${pageSize}&page=${page}`
+    const url = `https://api.pluggy.ai/transactions?accountId=${accountId}&pageSize=${pageSize}&page=${page}${rangeQS}`
     const res = await fetch(url, { headers })
     if (!res.ok) {
       console.error(`Transactions fetch error page ${page}: ${res.status}`)
@@ -239,7 +249,7 @@ Deno.serve(async (req) => {
 
       if (acc.type === 'CREDIT') {
         // 1) Busca TODAS as transações do cartão
-        allCardTxs = await fetchAllTransactions(apiKey, acc.id)
+        allCardTxs = await fetchAllTransactions(apiKey, acc.id, { includeFuture: true })
         // dedup defensivo por id
         const seenIds = new Set<string>()
         allCardTxs = allCardTxs.filter((t: any) => {
@@ -428,14 +438,15 @@ Deno.serve(async (req) => {
               proxSource = 'tx_after_estimated_close'
             }
             if (cutoffMs != null) {
+              // Janela = (cutoff, cutoff + ~31 dias] — apenas o PRÓXIMO ciclo
+              const windowEndMs = cutoffMs + 31 * 86400000
               for (const tx of allCardTxs) {
                 const status = (tx.status || 'POSTED').toUpperCase()
                 const isCharge = tx.type === 'DEBIT' && Number(tx.amount) > 0
                 const t = new Date(tx.date).getTime()
-                if (t <= cutoffMs) continue
+                if (t <= cutoffMs || t > windowEndMs) continue
                 if (!isCharge) continue
                 if (status !== 'PENDING' && status !== 'POSTED') continue
-                // Ignora txs do próprio openBill (já contam na fatura atual)
                 if (openBillId && tx.creditCardMetadata?.billId === openBillId) continue
                 totalProx += Math.abs(Number(tx.amount))
                 bilhetagemProx.incluidas++
