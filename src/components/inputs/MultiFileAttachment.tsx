@@ -1,6 +1,7 @@
 import { useState, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useEmpresa } from "@/hooks/useEmpresa";
 import { toast } from "sonner";
 import { Paperclip, X, FileText, Image, Loader2, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -38,12 +39,17 @@ export function MultiFileAttachment({
   maxFiles = 10,
 }: MultiFileAttachmentProps) {
   const { user } = useAuth();
+  const { empresa } = useEmpresa();
   const [uploading, setUploading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFiles = e.target.files;
     if (!selectedFiles || !user) return;
+    if (!empresa?.id) {
+      toast.error("Selecione uma empresa antes de enviar arquivos");
+      return;
+    }
 
     const remaining = maxFiles - files.length;
     if (remaining <= 0) {
@@ -63,7 +69,7 @@ export function MultiFileAttachment({
           continue;
         }
 
-        const path = `${user.id}/${folder}/${Date.now()}_${file.name}`;
+        const path = `${empresa.id}/${folder}/${Date.now()}_${file.name}`;
         const { error: uploadError } = await supabase.storage
           .from("client-documents")
           .upload(path, file);
