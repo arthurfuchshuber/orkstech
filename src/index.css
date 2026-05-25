@@ -308,7 +308,7 @@ html { scroll-behavior: smooth; }
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
 /* ============================================================
-   Responsive Table — Mobile card layout (Linear/Stripe inspired)
+   Responsive Table — Mobile card layout (Premium dark SaaS)
    ============================================================ */
 @media (max-width: 767px) {
   .responsive-table-wrapper { overflow-x: visible; }
@@ -319,29 +319,39 @@ html { scroll-behavior: smooth; }
   /* ===== Card container ===== */
   .responsive-table-wrapper tbody tr {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
-    grid-template-areas:
-      "title  amount"
-      "party  status"
-      "date   date"
-      "detail detail"
-      "actions actions";
-    column-gap: 0.75rem;
-    row-gap: 0.35rem;
+    grid-template-columns: 1fr auto;
+    column-gap: 0.875rem;
+    row-gap: 0.3rem;
     position: relative;
-    padding: 0.875rem 1rem 1rem;
-    border-radius: 1rem;
-    border: 1px solid hsl(var(--border) / 0.55);
-    background:
-      linear-gradient(180deg, hsl(var(--card)) 0%, hsl(var(--card) / 0.6) 100%);
-    box-shadow:
-      0 1px 0 0 hsl(var(--border) / 0.25),
-      0 8px 24px -16px rgba(0, 0, 0, 0.6);
+    padding: 1rem 1rem 1rem 1.125rem;
+    border-radius: 0.875rem;
+    border: 1px solid hsl(var(--border) / 0.5);
+    background: hsl(var(--card));
+    box-shadow: 0 1px 0 hsl(var(--border) / 0.2), 0 6px 18px -12px rgba(0,0,0,0.55);
     cursor: pointer;
-    transition: border-color 0.15s, transform 0.15s;
+    transition: border-color 0.15s, transform 0.12s;
+    overflow: hidden;
   }
   .responsive-table-wrapper tbody tr:hover { border-color: hsl(var(--border)); }
   .responsive-table-wrapper tbody tr:active { transform: scale(0.997); }
+
+  /* Status accent strip (left) — defaults muted, colored when row has status */
+  .responsive-table-wrapper tbody tr::before {
+    content: "";
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 3px;
+    background: hsl(var(--border));
+    border-radius: 3px 0 0 3px;
+  }
+  /* Color the strip based on a status badge inside the row */
+  .responsive-table-wrapper tbody tr:has([data-status="overdue"])::before,
+  .responsive-table-wrapper tbody tr:has(.bg-destructive),
+  .responsive-table-wrapper tbody tr:has(.text-destructive)::before { background: hsl(var(--destructive)); }
+  .responsive-table-wrapper tbody tr:has([data-status="paid"])::before,
+  .responsive-table-wrapper tbody tr:has(.bg-success)::before { background: hsl(var(--success, 142 71% 45%)); }
+  .responsive-table-wrapper tbody tr:has([data-status="pending"])::before,
+  .responsive-table-wrapper tbody tr:has(.bg-warning)::before { background: hsl(var(--warning, 38 92% 50%)); }
 
   /* ===== Cells reset ===== */
   .responsive-table-wrapper tbody td {
@@ -349,143 +359,158 @@ html { scroll-behavior: smooth; }
     border: none;
     min-width: 0;
   }
-
-  /* ===== Hide checkbox column in mobile cards ===== */
   .responsive-table-wrapper tbody td:has([role="checkbox"]) { display: none; }
 
-  /* ===== TITLE (Descrição/Nome) ===== */
+  /* ===== TITLE ===== */
   .responsive-table-wrapper tbody td[data-role="title"] {
-    grid-area: title;
-    font-size: 0.95rem;
+    grid-column: 1;
+    font-size: 1rem;
     font-weight: 600;
     color: hsl(var(--foreground));
-    line-height: 1.3;
+    line-height: 1.25;
+    letter-spacing: -0.01em;
     overflow: hidden;
     text-overflow: ellipsis;
     display: -webkit-box;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
+    align-self: start;
   }
 
-  /* ===== AMOUNT (Valor) ===== */
+  /* ===== AMOUNT ===== */
   .responsive-table-wrapper tbody td[data-role="amount"] {
-    grid-area: amount;
-    font-size: 1.05rem;
+    grid-column: 2;
+    font-size: 1.125rem;
     font-weight: 700;
     color: hsl(var(--foreground));
     text-align: right;
     font-variant-numeric: tabular-nums;
     white-space: nowrap;
+    letter-spacing: -0.02em;
     align-self: start;
   }
 
-  /* ===== PARTY (Fornecedor/Cliente) ===== */
+  /* ===== PARTY ===== */
   .responsive-table-wrapper tbody td[data-role="party"] {
-    grid-area: party;
-    font-size: 0.78rem;
+    grid-column: 1;
+    font-size: 0.8125rem;
     color: hsl(var(--muted-foreground));
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    align-self: center;
   }
 
   /* ===== STATUS ===== */
   .responsive-table-wrapper tbody td[data-role="status"] {
-    grid-area: status;
+    grid-column: 2;
     justify-self: end;
     align-self: center;
   }
   .responsive-table-wrapper tbody td[data-role="status"] > * { margin-left: auto; }
 
-  /* ===== DATE (Vencimento) ===== */
+  /* ===== DATE (Vencimento) — divider on top + label + value ===== */
   .responsive-table-wrapper tbody td[data-role="date"] {
-    grid-area: date;
-    font-size: 0.72rem;
-    color: hsl(var(--muted-foreground));
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    padding-top: 0.5rem;
-    margin-top: 0.25rem;
-    border-top: 1px solid hsl(var(--border) / 0.35);
+    grid-column: 1 / -1;
+    padding-top: 0.75rem;
+    margin-top: 0.4rem;
+    border-top: 1px solid hsl(var(--border) / 0.4);
     display: flex;
     align-items: center;
-    gap: 0.4rem;
+    gap: 0.5rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: hsl(var(--foreground));
+    font-variant-numeric: tabular-nums;
   }
   .responsive-table-wrapper tbody td[data-role="date"]::before {
-    content: attr(data-label);
-    font-weight: 600;
-    color: hsl(var(--muted-foreground) / 0.7);
-  }
-
-  /* ===== DETAIL (secondary fields — collapsed by default) ===== */
-  .responsive-table-wrapper tbody td[data-role="detail"] {
-    grid-area: auto;
-    grid-column: 1 / -1;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 0.75rem;
-    min-height: 32px;
-    padding: 0.4rem 0;
-    border-bottom: 1px solid hsl(var(--border) / 0.25);
-    font-size: 0.8rem;
-    color: hsl(var(--foreground));
-  }
-  .responsive-table-wrapper tbody td[data-role="detail"]::before {
-    content: attr(data-label);
+    content: attr(data-label) " ·";
     font-size: 0.65rem;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.08em;
     color: hsl(var(--muted-foreground));
-    flex-shrink: 0;
+  }
+
+  /* ===== DETAILS — 2-col grid label-over-value ===== */
+  .responsive-table-wrapper tbody td[data-role="detail"] {
+    grid-column: span 1;
+    padding: 0.625rem 0 0.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    min-width: 0;
+    border-top: 1px solid hsl(var(--border) / 0.25);
+  }
+  /* Single trailing detail spans full width */
+  .responsive-table-wrapper tbody td[data-role="detail"]:last-of-type:nth-of-type(odd of [data-role="detail"]) {
+    grid-column: 1 / -1;
+  }
+  .responsive-table-wrapper tbody td[data-role="detail"]::before {
+    content: attr(data-label);
+    font-size: 0.625rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.09em;
+    color: hsl(var(--muted-foreground));
   }
   .responsive-table-wrapper tbody td[data-role="detail"] > * {
-    margin-left: auto;
-    text-align: right;
-    min-width: 0;
-    max-width: 65%;
+    margin: 0;
+    text-align: left;
+    max-width: 100%;
+    font-size: 0.8125rem;
+    color: hsl(var(--foreground));
     overflow: hidden;
     text-overflow: ellipsis;
-  }
-  .responsive-table-wrapper tbody td[data-role="detail"]:last-of-type {
-    border-bottom: none;
+    white-space: nowrap;
   }
 
   /* ===== ACTIONS ===== */
   .responsive-table-wrapper tbody td[data-role="actions"] {
-    grid-area: actions;
+    grid-column: 1 / -1;
     display: flex;
     justify-content: flex-end;
-    padding-top: 0.5rem;
+    padding-top: 0.625rem;
     margin-top: 0.25rem;
     border-top: 1px solid hsl(var(--border) / 0.35);
   }
 
-  /* ===== Collapsed: hide details + actions + date, show only header ===== */
+  /* ===== Collapsed state ===== */
   .responsive-table-wrapper tr[data-expanded="false"] td[data-role="detail"],
   .responsive-table-wrapper tr[data-expanded="false"] td[data-role="actions"] {
     display: none;
   }
 
-  /* ===== Chevron indicator at bottom of card ===== */
-  .responsive-table-wrapper tbody tr {
-    padding-bottom: 2.25rem;
-  }
-  .responsive-table-wrapper tbody tr::after {
+  /* ===== Expand affordance ===== */
+  .responsive-table-wrapper tbody tr { padding-bottom: 2.5rem; }
+
+  /* Collapsed: small chevron square bottom-right */
+  .responsive-table-wrapper tbody tr[data-expanded="false"]::after {
     content: "";
     position: absolute;
-    left: 50%;
-    bottom: 0.6rem;
+    right: 0.75rem;
+    bottom: 0.625rem;
     width: 28px;
-    height: 4px;
-    border-radius: 999px;
-    background: hsl(var(--muted-foreground) / 0.35);
-    transform: translateX(-50%);
-    transition: background 0.2s;
+    height: 22px;
+    border-radius: 6px;
+    border: 1px solid hsl(var(--border) / 0.6);
+    background:
+      linear-gradient(45deg, transparent 46%, hsl(var(--muted-foreground)) 46%, hsl(var(--muted-foreground)) 54%, transparent 54%) no-repeat 9px 9px / 6px 6px,
+      linear-gradient(-45deg, transparent 46%, hsl(var(--muted-foreground)) 46%, hsl(var(--muted-foreground)) 54%, transparent 54%) no-repeat 13px 9px / 6px 6px,
+      hsl(var(--card));
   }
+
+  /* Expanded: centered "VER DETALHES ⌃" */
   .responsive-table-wrapper tbody tr[data-expanded="true"]::after {
-    background: hsl(var(--primary) / 0.6);
+    content: "VER DETALHES  ⌃";
+    position: absolute;
+    left: 0; right: 0;
+    bottom: 0.5rem;
+    text-align: center;
+    font-size: 0.6875rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    color: hsl(var(--primary));
   }
 }
 
