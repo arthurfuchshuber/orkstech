@@ -170,8 +170,20 @@ serve(async (req) => {
   const isSuperAdmin = callerProfile?.nivel_permissao_id === superAdminLevel?.id;
   let callerEmpresaId = callerProfile?.empresa_id ?? null;
 
-  // Fallback: if caller has no empresa_id on profile, check if they own an empresa
-  // (owners are linked via empresas.user_id and may not have empresa_id set on their profile)
+  // Fallback 1: empresa_membros (N:N) — caller may belong to an empresa without it being on profile
+  if (!callerEmpresaId) {
+    const { data: membro } = await supabaseAdmin
+      .from("empresa_membros")
+      .select("empresa_id")
+      .eq("user_id", caller.id)
+      .eq("ativo", true)
+      .order("created_at", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+    if (membro?.empresa_id) callerEmpresaId = membro.empresa_id;
+  }
+
+  // Fallback 2: owned empresa (legacy)
   if (!callerEmpresaId) {
     const { data: ownedEmpresa } = await supabaseAdmin
       .from("empresas")
@@ -186,6 +198,21 @@ serve(async (req) => {
   try {
     const body = await req.json();
     const { action } = body;
+
+    // If caller still has no empresa, accept body.empresa_id when caller is owner/member of it
+    if (!callerEmpresaId && body.empresa_id) {
+      const { data: owned } = await supabaseAdmin
+        .from("empresas").select("id").eq("id", body.empresa_id).eq("user_id", caller.id).maybeSingle();
+      if (owned?.id) {
+        callerEmpresaId = owned.id;
+      } else {
+        const { data: mem } = await supabaseAdmin
+          .from("empresa_membros").select("empresa_id")
+          .eq("empresa_id", body.empresa_id).eq("user_id", caller.id).eq("ativo", true).maybeSingle();
+        if (mem?.empresa_id) callerEmpresaId = mem.empresa_id;
+      }
+    }
+
 
     // LIST - scoped by empresa (Admin/Super Admin only; non-SA cannot query other empresas)
     if (action === "list") {
