@@ -1,5 +1,8 @@
 import { useState, useCallback } from "react";
-import { Building2, Pencil, Trash2, UserPlus, Users, ShieldAlert, ShieldCheck } from "lucide-react";
+import { Building2, Pencil, Trash2, UserPlus, Users, ShieldAlert, ShieldCheck, MoreHorizontal, ChevronDown } from "lucide-react";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { PermissionsModal } from "@/components/admin/PermissionsModal";
 import { DocumentInput } from "@/components/inputs/DocumentInput";
 import { PhoneInput } from "@/components/inputs/PhoneInput";
