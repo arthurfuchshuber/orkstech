@@ -342,8 +342,10 @@ serve(async (req) => {
         });
       }
 
-      if (!callerEmpresaId) {
-        return new Response(JSON.stringify({ error: "Você precisa ter uma empresa cadastrada para criar usuários" }), {
+      // Super Admin can target any empresa via body.empresa_id
+      const targetEmpresaId = (isSuperAdmin && body.empresa_id) ? body.empresa_id : callerEmpresaId;
+      if (!targetEmpresaId) {
+        return new Response(JSON.stringify({ error: isSuperAdmin ? "Selecione uma empresa de destino (empresa_id) para criar o usuário" : "Você precisa ter uma empresa cadastrada para criar usuários" }), {
           status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
@@ -392,7 +394,7 @@ serve(async (req) => {
         .update({
           nome: parsed.data.nome,
           nivel_permissao_id: nivelPermissaoId,
-          empresa_id: callerEmpresaId,
+          empresa_id: targetEmpresaId,
         })
         .eq("user_id", newUser.user.id);
 
@@ -401,7 +403,7 @@ serve(async (req) => {
         .from("empresa_membros")
         .upsert(
           {
-            empresa_id: callerEmpresaId,
+            empresa_id: targetEmpresaId,
             user_id: newUser.user.id,
             nivel_permissao_id: nivelPermissaoId,
             invited_by: caller.id,

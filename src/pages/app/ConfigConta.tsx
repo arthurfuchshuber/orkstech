@@ -287,6 +287,9 @@ function UsuariosTab() {
       if (password.length < 6) {
         throw new Error("A senha temporária precisa ter no mínimo 6 caracteres");
       }
+      if (!empresa?.id) {
+        throw new Error("Selecione uma empresa ativa antes de criar usuários");
+      }
 
       const { data, error } = await supabase.functions.invoke("manage-users", {
         body: { action: "create_user", nome, email, password, empresa_id: empresa?.id },
