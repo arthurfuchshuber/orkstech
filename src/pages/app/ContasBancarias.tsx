@@ -210,6 +210,7 @@ export default function ContasBancarias({
                     </div>
                   );
                 })}
+                <CartoesCreditoSection bare readOnly={readOnly} hideOpenFinanceButton />
               </div>
             )}
           </CardContent>
