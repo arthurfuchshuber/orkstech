@@ -264,6 +264,7 @@ function UsuariosTab() {
   const [adminBlockMsg, setAdminBlockMsg] = useState<string | null>(null);
   const [createForm, setCreateForm] = useState({ email: "", password: "", nome: "" });
   const [permModal, setPermModal] = useState<{ userId: string; email: string; isOwner: boolean } | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<UserRow | null>(null);
   const { data, isLoading } = useUserManagementData();
   const users = data?.users ?? [];
   const niveis = data?.niveis ?? [];
