@@ -236,7 +236,7 @@ export default function DREMensalView() {
                     {pagedMonths.map((m) => (
                       <Fragment key={`h-${m}`}>
                         <th className={cn("text-right font-medium py-2.5 px-2 bg-muted/20", isMobile ? "" : "min-w-[90px]")}>
-                          {monthLabels[m]}
+                          {monthLabels[m]}{isMobile ? ` ${year}` : ""}
                         </th>
                         {showAV && <th className={cn("text-right font-normal text-muted-foreground py-2.5 px-1 bg-muted/20", isMobile ? "" : "min-w-[44px]")}>A.V.</th>}
                         {showAH && <th className={cn("text-right font-normal text-muted-foreground py-2.5 px-1 bg-muted/20", isMobile ? "" : "min-w-[44px]")}>A.H.</th>}
