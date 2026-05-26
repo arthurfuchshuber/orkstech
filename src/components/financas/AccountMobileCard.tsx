@@ -107,7 +107,7 @@ export function AccountMobileCard({
                 <span className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium shrink-0">
                   {d.label}
                 </span>
-                <div className="flex-1 min-w-0 flex justify-end [&_*]:!text-right">{d.content}</div>
+                <div className="flex-1 min-w-0 flex justify-end text-right [&>button]:!w-auto [&>button]:!justify-end [&>button]:!text-right">{d.content}</div>
               </div>
             );
           })}
