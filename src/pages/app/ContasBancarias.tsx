@@ -138,8 +138,8 @@ export default function ContasBancarias({
                 <Landmark className="w-3.5 h-3.5 text-primary" />
               </div>
               <div className="min-w-0">
-                <CardTitle className="text-sm font-semibold truncate">Contas Bancárias</CardTitle>
-                <p className="text-[11px] text-muted-foreground mt-0.5 truncate">Gerencie contas e integrações</p>
+                <CardTitle className="text-sm font-semibold truncate">Contas Bancárias & Cartões</CardTitle>
+                <p className="text-[11px] text-muted-foreground mt-0.5 truncate">Contas correntes, integrações e cartões de crédito</p>
               </div>
             </div>
             <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap sm:justify-end">
