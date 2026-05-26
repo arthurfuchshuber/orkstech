@@ -107,7 +107,7 @@ export function AccountMobileCard({
                 <span className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium shrink-0">
                   {d.label}
                 </span>
-                <div className="flex-1 min-w-0 flex justify-end text-right [&_button]:!px-0 [&_button]:!justify-end [&_button]:!text-right [&_button]:!w-auto [&_*]:!text-right">{d.content}</div>
+                <div className="flex-1 min-w-0 flex justify-end [&_*]:!text-right">{d.content}</div>
               </div>
             );
           })}
@@ -126,7 +126,7 @@ export function AccountMobileCard({
             <button
               type="button"
               onClick={() => setExpanded(false)}
-              className="flex items-center gap-1 text-xs font-semibold text-primary hover:text-primary/80 uppercase tracking-wider py-1 pr-0"
+              className="flex items-center gap-1 text-xs font-semibold text-primary hover:text-primary/80 uppercase tracking-wider px-2 py-1"
             >
               Ver menos <ChevronUp className="w-3.5 h-3.5" />
             </button>
