@@ -29,9 +29,12 @@ const fmtDate = (d: string | null) =>
 export function CartoesCreditoSection({
   readOnly = false,
   hideOpenFinanceButton = false,
+  bare = false,
 }: {
   readOnly?: boolean;
   hideOpenFinanceButton?: boolean;
+  /** When true, renders only the list rows (no Card wrapper, no header). */
+  bare?: boolean;
 }) {
   const { user } = useAuth();
   const { empresa } = useEmpresa();
@@ -75,6 +78,62 @@ export function CartoesCreditoSection({
 
   const hasAny = cards.length > 0;
 
+  const rows = isLoading ? (
+    <div className="py-8 text-center text-muted-foreground text-xs">Carregando...</div>
+  ) : !hasAny ? (
+    bare ? null : (
+      <div className="py-8 text-center text-muted-foreground text-xs">
+        Nenhum cartão de crédito vinculado. Conecte uma instituição via Open Finance.
+      </div>
+    )
+  ) : (
+    <div className="space-y-0.5">
+      {cards.map((card) => {
+        const conn = connections.find((c) => c.pluggy_item_id === card.pluggy_item_id);
+        return (
+          <div
+            key={card.id}
+            className="flex items-center gap-2 py-1.5 px-2 rounded-md transition-colors hover:bg-muted/30"
+          >
+            <Link2 className="w-3.5 h-3.5 text-muted-foreground/60 flex-shrink-0" />
+            <div className="flex-1 min-w-0">
+              <span className="text-xs font-medium text-foreground truncate block">
+                {getDisplayName(card)}
+              </span>
+              <span className="text-[10px] text-muted-foreground truncate block">
+                Sincronizado: {fmtDate(conn?.last_sync_at ?? null)}
+              </span>
+            </div>
+            <Badge
+              variant="outline"
+              className="text-[9px] px-1 py-0 leading-4 flex-shrink-0 bg-purple-500/10 text-purple-400 border-purple-500/20"
+            >
+              Cartão
+            </Badge>
+            <Badge
+              variant={
+                conn?.status === "connected"
+                  ? "default"
+                  : conn?.status === "updating"
+                  ? "secondary"
+                  : "destructive"
+              }
+              className="text-[9px] px-1 py-0 leading-4 flex-shrink-0"
+            >
+              {conn?.status === "connected"
+                ? "Conectado"
+                : conn?.status === "updating"
+                ? "Sincronizando"
+                : "Reconectar"}
+            </Badge>
+          </div>
+        );
+      })}
+    </div>
+  );
+
+  if (bare) return <>{rows}</>;
+
   return (
     <Card className="border-border/40 shadow-sm flex flex-col">
       <CardHeader className="pb-3 pt-4 px-4 flex flex-col items-stretch gap-2 space-y-0 sm:flex-row sm:items-center sm:justify-between">
@@ -93,54 +152,7 @@ export function CartoesCreditoSection({
           <div className="sm:shrink-0"><PluggyConnectButton size="sm" /></div>
         )}
       </CardHeader>
-
-      <CardContent className="px-2 pb-3 flex-1 overflow-auto">
-        {isLoading ? (
-          <div className="py-8 text-center text-muted-foreground text-xs">Carregando...</div>
-        ) : !hasAny ? (
-          <div className="py-8 text-center text-muted-foreground text-xs">
-            Nenhum cartão de crédito vinculado. Conecte uma instituição via Open Finance.
-          </div>
-        ) : (
-          <div className="space-y-0.5">
-            {cards.map((card) => {
-              const conn = connections.find((c) => c.pluggy_item_id === card.pluggy_item_id);
-              return (
-                <div
-                  key={card.id}
-                  className="flex items-center gap-2 py-1.5 px-2 rounded-md transition-colors hover:bg-muted/30"
-                >
-                  <Link2 className="w-3.5 h-3.5 text-muted-foreground/60 flex-shrink-0" />
-                  <div className="flex-1 min-w-0">
-                    <span className="text-xs font-medium text-foreground truncate block">
-                      {getDisplayName(card)}
-                    </span>
-                    <span className="text-[10px] text-muted-foreground truncate block">
-                      Sincronizado: {fmtDate(conn?.last_sync_at ?? null)}
-                    </span>
-                  </div>
-                  <Badge
-                    variant={
-                      conn?.status === "connected"
-                        ? "default"
-                        : conn?.status === "updating"
-                        ? "secondary"
-                        : "destructive"
-                    }
-                    className="text-[9px] px-1 py-0 leading-4 flex-shrink-0"
-                  >
-                    {conn?.status === "connected"
-                      ? "Conectado"
-                      : conn?.status === "updating"
-                      ? "Sincronizando"
-                      : "Reconectar"}
-                  </Badge>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </CardContent>
+      <CardContent className="px-2 pb-3 flex-1 overflow-auto">{rows}</CardContent>
     </Card>
   );
 }

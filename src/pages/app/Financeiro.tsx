@@ -2,7 +2,7 @@ import { Settings2 } from "lucide-react";
 import { PlanoDeContasSection } from "@/components/financas/PlanoDeContasSection";
 import { CentrosCustoSection } from "@/components/financas/CentrosCustoSection";
 import { FormasPagamentoSection } from "@/components/financas/FormasPagamentoSection";
-import { CartoesCreditoSection } from "@/components/financas/CartoesCreditoSection";
+
 import { usePermissions } from "@/hooks/usePermissions";
 import ContasBancarias from "./ContasBancarias";
 
@@ -88,14 +88,6 @@ export default function Financeiro() {
               />
             )}
 
-            {showContas && (
-              <ReadOnlyWrap readOnly={!editContas}>
-                <CartoesCreditoSection
-                  readOnly={!editContas}
-                  hideOpenFinanceButton={!viewOpenFinance || !editOpenFinance}
-                />
-              </ReadOnlyWrap>
-            )}
 
             {showFormas && (
               <ReadOnlyWrap readOnly={!editFormas}>

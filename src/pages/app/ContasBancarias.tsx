@@ -15,6 +15,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { CaixinhaMoveDialog } from "@/components/financas/conta/CaixinhaMoveDialog";
 import { LancamentoManualContaDialog } from "@/components/financas/conta/LancamentoManualContaDialog";
 import { PageHeader } from "@/components/PageHeader";
+import { CartoesCreditoSection } from "@/components/financas/CartoesCreditoSection";
 
 type TipoConta = "corrente" | "poupanca" | "caixa" | "carteira_digital";
 
@@ -137,8 +138,8 @@ export default function ContasBancarias({
                 <Landmark className="w-3.5 h-3.5 text-primary" />
               </div>
               <div className="min-w-0">
-                <CardTitle className="text-sm font-semibold truncate">Contas Bancárias</CardTitle>
-                <p className="text-[11px] text-muted-foreground mt-0.5 truncate">Gerencie contas e integrações</p>
+                <CardTitle className="text-sm font-semibold truncate">Contas Bancárias & Cartões</CardTitle>
+                <p className="text-[11px] text-muted-foreground mt-0.5 truncate">Contas correntes, integrações e cartões de crédito</p>
               </div>
             </div>
             <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap sm:justify-end">
@@ -179,7 +180,8 @@ export default function ContasBancarias({
                           <span className="text-[10px] text-emerald-500 whitespace-nowrap" title="Aplicação">+ {formatCurrency(caixinha)}</span>
                         )}
                       </div>
-                      <Badge variant="outline" className="text-[9px] px-1 py-0 leading-4 flex-shrink-0">{tipoLabels[item.tipo]}</Badge>
+                      <Badge variant="outline" className="text-[9px] px-1 py-0 leading-4 flex-shrink-0 bg-sky-500/10 text-sky-400 border-sky-500/20">Conta</Badge>
+                      <Badge variant="outline" className="text-[9px] px-1 py-0 leading-4 flex-shrink-0 hidden sm:inline-flex">{tipoLabels[item.tipo]}</Badge>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button variant="ghost" size="icon" className="h-5 w-5">
@@ -208,6 +210,7 @@ export default function ContasBancarias({
                     </div>
                   );
                 })}
+                <CartoesCreditoSection bare readOnly={readOnly} hideOpenFinanceButton />
               </div>
             )}
           </CardContent>
