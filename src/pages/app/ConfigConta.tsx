@@ -380,67 +380,100 @@ function UsuariosTab() {
                 const isSelf = u.id === user?.id;
                 const isOwner = u.id === ownerUserId;
                 const nivel = isOwner ? "Acesso total" : "Permissões personalizadas";
+                const isExpanded = expandedUserId === u.id;
                 return (
                   <li
                     key={u.id}
-                    className={`flex items-center gap-3 px-4 py-3 hover:bg-muted/30 transition-colors ${!u.ativo ? "opacity-60" : ""}`}
+                    className={`${!u.ativo ? "opacity-60" : ""}`}
                   >
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-1.5 min-w-0">
-                        <span className="text-sm font-medium text-foreground truncate">
-                          {u.nome || u.email.split("@")[0]}
-                        </span>
-                        {isSelf && (
-                          <Badge variant="secondary" className="text-[9px] px-1 py-0 h-4 shrink-0">
-                            Você
-                          </Badge>
-                        )}
-                        {isOwner && (
-                          <Badge
-                            variant="outline"
-                            className="text-[9px] px-1 py-0 h-4 bg-primary/10 text-primary border-primary/30 shrink-0 gap-0.5"
-                          >
-                            <ShieldCheck className="h-2 w-2" /> Dono
-                          </Badge>
-                        )}
+                    <button
+                      type="button"
+                      onClick={() => setExpandedUserId(isExpanded ? null : u.id)}
+                      className="w-full flex items-center gap-3 px-4 py-3 hover:bg-muted/30 transition-colors text-left"
+                    >
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <span className="text-sm font-medium text-foreground truncate">
+                            {u.nome || u.email.split("@")[0]}
+                          </span>
+                          {isSelf && (
+                            <Badge variant="secondary" className="text-[9px] px-1 py-0 h-4 shrink-0">
+                              Você
+                            </Badge>
+                          )}
+                          {isOwner && (
+                            <Badge
+                              variant="outline"
+                              className="text-[9px] px-1 py-0 h-4 bg-primary/10 text-primary border-primary/30 shrink-0 gap-0.5"
+                            >
+                              <ShieldCheck className="h-2 w-2" /> Dono
+                            </Badge>
+                          )}
+                        </div>
+                        <p className="text-[11px] text-muted-foreground truncate">{nivel}</p>
                       </div>
-                      <p className="text-[11px] text-muted-foreground truncate">{nivel}</p>
-                    </div>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0">
-                          <ChevronDown className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="w-44">
-                        <DropdownMenuItem
-                          onClick={() => setPermModal({ userId: u.id, email: u.email, isOwner })}
-                        >
-                          <ShieldCheck className="h-3.5 w-3.5 mr-2" /> Permissões
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => openEdit(u)}>
-                          <Pencil className="h-3.5 w-3.5 mr-2" /> Editar
-                        </DropdownMenuItem>
-                        {!isSelf && !isOwner && (
-                          <>
-                            <DropdownMenuSeparator />
+                      <div onClick={(e) => e.stopPropagation()}>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0">
+                              <ChevronDown className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-44">
                             <DropdownMenuItem
-                              onClick={() =>
-                                toggleActive.mutate({ user_id: u.id, ativo: !u.ativo })
-                              }
+                              onClick={() => setPermModal({ userId: u.id, email: u.email, isOwner })}
                             >
-                              {u.ativo ? "Desativar" : "Ativar"}
+                              <ShieldCheck className="h-3.5 w-3.5 mr-2" /> Permissões
                             </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() => setDeleteTarget(u)}
-                              className="text-destructive focus:text-destructive"
-                            >
-                              <Trash2 className="h-3.5 w-3.5 mr-2" /> Excluir
+                            <DropdownMenuItem onClick={() => openEdit(u)}>
+                              <Pencil className="h-3.5 w-3.5 mr-2" /> Editar
                             </DropdownMenuItem>
-                          </>
-                        )}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                            {!isSelf && !isOwner && (
+                              <>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                                  onClick={() =>
+                                    toggleActive.mutate({ user_id: u.id, ativo: !u.ativo })
+                                  }
+                                >
+                                  {u.ativo ? "Desativar" : "Ativar"}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={() => setDeleteTarget(u)}
+                                  className="text-destructive focus:text-destructive"
+                                >
+                                  <Trash2 className="h-3.5 w-3.5 mr-2" /> Excluir
+                                </DropdownMenuItem>
+                              </>
+                            )}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                    </button>
+                    {isExpanded && (
+                      <div className="px-4 pb-3 pt-1 grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1.5 text-[11px] border-t border-border/40 bg-muted/10">
+                        <div className="pt-2">
+                          <span className="text-muted-foreground">E-mail</span>
+                          <p className="text-foreground truncate">{u.email}</p>
+                        </div>
+                        <div className="pt-2">
+                          <span className="text-muted-foreground">Telefone</span>
+                          <p className="text-foreground">{u.telefone || "—"}</p>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">CPF</span>
+                          <p className="text-foreground">{u.cpf || "—"}</p>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">Criado em</span>
+                          <p className="text-foreground">{new Date(u.created_at).toLocaleDateString("pt-BR")}</p>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">Status</span>
+                          <p className="text-foreground">{u.ativo ? "Ativo" : "Inativo"}</p>
+                        </div>
+                      </div>
+                    )}
                   </li>
                 );
               })}
