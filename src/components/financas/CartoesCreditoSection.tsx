@@ -77,19 +77,21 @@ export function CartoesCreditoSection({
 
   return (
     <Card className="border-border/40 shadow-sm flex flex-col">
-      <CardHeader className="pb-3 pt-4 px-4 flex-row items-center justify-between space-y-0">
-        <div className="flex items-center gap-2.5">
-          <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center">
+      <CardHeader className="pb-3 pt-4 px-4 flex flex-col items-stretch gap-2 space-y-0 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
             <CreditCard className="w-3.5 h-3.5 text-primary" />
           </div>
-          <div>
-            <CardTitle className="text-sm font-semibold">Cartões de Crédito</CardTitle>
-            <p className="text-[11px] text-muted-foreground mt-0.5">
+          <div className="min-w-0">
+            <CardTitle className="text-sm font-semibold truncate">Cartões de Crédito</CardTitle>
+            <p className="text-[11px] text-muted-foreground mt-0.5 truncate">
               Cartões sincronizados via Open Finance
             </p>
           </div>
         </div>
-        {!hideOpenFinanceButton && !readOnly && <PluggyConnectButton size="sm" />}
+        {!hideOpenFinanceButton && !readOnly && (
+          <div className="sm:shrink-0"><PluggyConnectButton size="sm" /></div>
+        )}
       </CardHeader>
 
       <CardContent className="px-2 pb-3 flex-1 overflow-auto">
