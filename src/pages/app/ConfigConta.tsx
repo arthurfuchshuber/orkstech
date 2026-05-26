@@ -353,8 +353,7 @@ function UsuariosTab() {
 
   return (
     <div className="space-y-4">
-  return (
-    <div className="space-y-4">
+
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0">
           <h2 className="text-base font-semibold text-foreground">Usuários & Permissões</h2>
