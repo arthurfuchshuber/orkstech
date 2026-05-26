@@ -292,7 +292,7 @@ export default function DREMensalView() {
                             <span className={cn("text-xs", labelColor, line.categoryId && !isIndicator && "hover:text-primary transition-colors")}>{line.label}</span>
                           </div>
                         </td>
-                        {visibleMonths.map((m) => {
+                        {pagedMonths.map((m) => {
                           const v = line.monthly[m] ?? 0;
                           const prev = m > 0 ? (line.monthly[m - 1] ?? 0) : 0;
                           const ah = prev !== 0 ? ((v - prev) / Math.abs(prev)) * 100 : null;
