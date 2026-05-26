@@ -227,7 +227,7 @@ export default function DREMensalView() {
 
                     return (
                       <tr key={line.id} className={cn("group border-b border-border/15 transition-colors", rowClass)}>
-                        <td className={cn("sticky left-0 z-10 py-1.5 px-3 transition-colors group-hover:!bg-primary/20", isSummary ? "bg-muted/40" : "bg-card")}>
+                        <td className={cn("sticky left-0 z-10 py-1.5 px-3 transition-colors group-hover:!bg-primary/20 shadow-[1px_0_0_0_hsl(var(--border))]", isSummary ? "bg-muted" : "bg-background")}>
                           <div
                             className={cn(
                               "flex items-center gap-1.5 select-none",
