@@ -456,7 +456,7 @@ function UsuariosTab() {
               </p>
             </div>
           </div>
-          <DialogFooter><Button variant="outline" onClick={() => setShowCreateModal(false)}>Cancelar</Button><Button onClick={() => createUser.mutate()} disabled={createUser.isPending || !createForm.email.trim() || !createForm.password.trim() || !createForm.nome.trim() || createForm.password.trim().length < 6}>{createUser.isPending ? "Criando..." : "Criar Usuário"}</Button></DialogFooter>
+          <DialogFooter><Button variant="outline" onClick={() => setShowCreateModal(false)}>Cancelar</Button><Button onClick={() => createUser.mutate()} disabled={createUser.isPending || !emailRegex.test(createForm.email.trim().toLowerCase()) || !createForm.password.trim() || !createForm.nome.trim() || createForm.password.trim().length < 6}>{createUser.isPending ? "Criando..." : "Criar Usuário"}</Button></DialogFooter>
         </DialogContent>
       </Dialog>
 
