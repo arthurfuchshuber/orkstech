@@ -10,6 +10,7 @@ import {
   Users, UserRound, Zap, Calendar, CalendarDays,
 } from "lucide-react";
 import { DueStatCard } from "@/components/financas/DueStatCard";
+import { AccountMobileCard } from "@/components/financas/AccountMobileCard";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { FormModal } from "@/components/FormModal";
