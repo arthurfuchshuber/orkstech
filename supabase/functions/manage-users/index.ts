@@ -170,8 +170,20 @@ serve(async (req) => {
   const isSuperAdmin = callerProfile?.nivel_permissao_id === superAdminLevel?.id;
   let callerEmpresaId = callerProfile?.empresa_id ?? null;
 
-  // Fallback: if caller has no empresa_id on profile, check if they own an empresa
-  // (owners are linked via empresas.user_id and may not have empresa_id set on their profile)
+  // Fallback 1: empresa_membros (N:N) — caller may belong to an empresa without it being on profile
+  if (!callerEmpresaId) {
+    const { data: membro } = await supabaseAdmin
+      .from("empresa_membros")
+      .select("empresa_id")
+      .eq("user_id", caller.id)
+      .eq("ativo", true)
+      .order("created_at", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+    if (membro?.empresa_id) callerEmpresaId = membro.empresa_id;
+  }
+
+  // Fallback 2: owned empresa (legacy)
   if (!callerEmpresaId) {
     const { data: ownedEmpresa } = await supabaseAdmin
       .from("empresas")
