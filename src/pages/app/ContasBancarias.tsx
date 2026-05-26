@@ -15,6 +15,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { CaixinhaMoveDialog } from "@/components/financas/conta/CaixinhaMoveDialog";
 import { LancamentoManualContaDialog } from "@/components/financas/conta/LancamentoManualContaDialog";
 import { PageHeader } from "@/components/PageHeader";
+import { CartoesCreditoSection } from "@/components/financas/CartoesCreditoSection";
 
 type TipoConta = "corrente" | "poupanca" | "caixa" | "carteira_digital";
 
