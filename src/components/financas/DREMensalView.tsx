@@ -73,6 +73,17 @@ export default function DREMensalView() {
     return arr;
   }, [monthRange]);
 
+  const isMobile = useIsMobile();
+  // Mobile pagination: 1 month per page if A.V. or A.H. on, else 2 months
+  const monthsPerPage = isMobile ? ((showAV || showAH) ? 1 : 2) : visibleMonths.length;
+  const [monthPage, setMonthPage] = useState(0);
+  const totalPages = Math.max(1, Math.ceil(visibleMonths.length / Math.max(1, monthsPerPage)));
+  useEffect(() => { setMonthPage(0); }, [monthRange, showAV, showAH, isMobile]);
+  const safePage = Math.min(monthPage, totalPages - 1);
+  const pagedMonths = isMobile
+    ? visibleMonths.slice(safePage * monthsPerPage, safePage * monthsPerPage + monthsPerPage)
+    : visibleMonths;
+
   const toggle = (id: string) => {
     setExpanded(prev => {
       const next = new Set(prev);
