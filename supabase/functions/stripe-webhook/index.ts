@@ -177,7 +177,7 @@ serve(async (req) => {
       .from("stripe_webhooks_log")
       .update({ processed: false, error_message: msg })
       .eq("stripe_event_id", event.id);
-    return new Response(JSON.stringify({ error: msg }), {
+    return new Response(JSON.stringify({ error: 'Erro interno ao processar evento.' }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 500,
     });
