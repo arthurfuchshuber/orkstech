@@ -1670,6 +1670,7 @@ export default function ContasAReceber() {
             </TableBody>
           </Table>
           </div>
+          </>
         )}
       </Card>
 
