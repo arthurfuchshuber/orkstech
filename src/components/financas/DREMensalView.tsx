@@ -78,7 +78,17 @@ export default function DREMensalView() {
   const monthsPerPage = isMobile ? ((showAV || showAH) ? 1 : 2) : visibleMonths.length;
   const [monthPage, setMonthPage] = useState(0);
   const totalPages = Math.max(1, Math.ceil(visibleMonths.length / Math.max(1, monthsPerPage)));
-  useEffect(() => { setMonthPage(0); }, [monthRange, showAV, showAH, isMobile]);
+  // Default: abrir na página que contém o mês atual (quando ano = ano atual)
+  useEffect(() => {
+    if (year === currentYear) {
+      const idx = visibleMonths.indexOf(currentMonth);
+      if (idx >= 0) {
+        setMonthPage(Math.floor(idx / Math.max(1, monthsPerPage)));
+        return;
+      }
+    }
+    setMonthPage(0);
+  }, [monthRange, showAV, showAH, isMobile, year, currentMonth, currentYear, visibleMonths, monthsPerPage]);
   const safePage = Math.min(monthPage, totalPages - 1);
   const pagedMonths = isMobile
     ? visibleMonths.slice(safePage * monthsPerPage, safePage * monthsPerPage + monthsPerPage)
