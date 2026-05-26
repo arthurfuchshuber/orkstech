@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -140,6 +140,19 @@ export function PlanoDeContasSection() {
 
   const tree = buildTree(categorias);
   const flatItems = flattenTree(tree);
+
+  // Collapse all parent nodes by default on first load
+  const didInitCollapse = useRef(false);
+  useEffect(() => {
+    if (didInitCollapse.current) return;
+    if (categorias.length === 0) return;
+    const parentIds = new Set<string>();
+    categorias.forEach((c) => {
+      if (c.categoria_pai_id) parentIds.add(c.categoria_pai_id);
+    });
+    setCollapsedIds(parentIds);
+    didInitCollapse.current = true;
+  }, [categorias]);
 
   const visibleItems = flatItems.filter((item) => {
     let current = item.parentId;
