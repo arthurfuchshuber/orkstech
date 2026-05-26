@@ -208,7 +208,7 @@ export default function DREMensalView() {
             <ChevronLeft className="w-4 h-4" />
           </Button>
           <span className="text-xs font-medium text-foreground">
-            {pagedMonths.map(m => monthLabels[m]).join(" · ")}
+            {pagedMonths.map(m => `${monthLabels[m]} ${year}`).join(" · ")}
             <span className="text-muted-foreground ml-2">({safePage + 1}/{totalPages})</span>
           </span>
           <Button
