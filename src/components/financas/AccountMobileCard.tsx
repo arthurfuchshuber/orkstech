@@ -104,10 +104,10 @@ export function AccountMobileCard({
                 )}
               >
                 <Icon className="w-4 h-4 text-muted-foreground/70 shrink-0" />
-                <span className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium w-32 shrink-0">
+                <span className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium shrink-0">
                   {d.label}
                 </span>
-                <div className="flex-1 min-w-0 flex justify-end">{d.content}</div>
+                <div className="flex-1 min-w-0 flex justify-end [&_*]:!text-right">{d.content}</div>
               </div>
             );
           })}
@@ -116,8 +116,8 @@ export function AccountMobileCard({
             {actions ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="sm" className="h-8 px-2 text-xs">
-                    <MoreHorizontal className="w-4 h-4 mr-1" /> Ações
+                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                    <MoreHorizontal className="w-4 h-4" />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="start">{actions}</DropdownMenuContent>
