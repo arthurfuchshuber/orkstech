@@ -317,9 +317,11 @@ export default function DREMensalView() {
                             </Fragment>
                           );
                         })}
-                        <td className={cn("text-right py-1.5 px-3 font-semibold tabular-nums bg-muted/20 transition-colors group-hover:!bg-primary/20", valueColor(line.total))}>
-                          {line.isPercentual ? fmtPct(line.total) : fmtBRL(line.total)}
-                        </td>
+                        {!isMobile && (
+                          <td className={cn("text-right py-1.5 px-3 font-semibold tabular-nums bg-muted/20 transition-colors group-hover:!bg-primary/20", valueColor(line.total))}>
+                            {line.isPercentual ? fmtPct(line.total) : fmtBRL(line.total)}
+                          </td>
+                        )}
                       </tr>
 
                     );
