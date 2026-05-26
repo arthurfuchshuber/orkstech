@@ -241,6 +241,12 @@ export function PluggyConnectionsList() {
             </span>
           </div>
           <Badge
+            variant="outline"
+            className="text-[9px] px-1 py-0 leading-4 flex-shrink-0 bg-sky-500/10 text-sky-400 border-sky-500/20"
+          >
+            Conta
+          </Badge>
+          <Badge
             variant={conn.status === "connected" ? "default" : conn.status === "updating" ? "secondary" : "destructive"}
             className="text-[9px] px-1 py-0 leading-4 flex-shrink-0"
           >
