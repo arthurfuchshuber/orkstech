@@ -10,6 +10,7 @@ import {
   Calendar, CalendarDays, Users,
 } from "lucide-react";
 import { DueStatCard } from "@/components/financas/DueStatCard";
+import { AccountMobileCard } from "@/components/financas/AccountMobileCard";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { FormModal } from "@/components/FormModal";
@@ -1269,7 +1270,164 @@ export default function ContasAPagar() {
             <p className="text-sm text-muted-foreground font-medium">Nenhuma conta encontrada</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
+          <>
+          {/* Mobile cards */}
+          <div className="lg:hidden p-2 space-y-2">
+            {(() => {
+              const rows: any[] = [];
+              for (const item of filtered) rows.push(item);
+              return rows.map((item: any) => {
+                const dueDate = new Date(item.due_date);
+                const isOverdueRow = (item.status === "pending" || item.status === "overdue") && isPast(dueDate) && format(dueDate, "yyyy-MM-dd") !== format(new Date(), "yyyy-MM-dd");
+                const isNearDueRow = item.status === "pending" && !isOverdueRow && isBefore(dueDate, addDays(new Date(), 7));
+                const isPaidRow = item.status === "paid";
+                const accent: "overdue" | "near" | "paid" | "neutral" =
+                  isOverdueRow ? "overdue" : isNearDueRow ? "near" : isPaidRow ? "paid" : "neutral";
+                const cfg = statusConfig[item.status] || statusConfig.pending;
+                return (
+                  <AccountMobileCard
+                    key={`m-${item.id}`}
+                    title={
+                      <>
+                        <span className="block">{item.description}</span>
+                        {item.supplier_name && (
+                          <span className="block text-[11px] text-muted-foreground font-normal truncate">
+                            {item.supplier_name}
+                          </span>
+                        )}
+                      </>
+                    }
+                    amount={formatCurrency(item.amount)}
+                    dueDateLabel={format(dueDate, "dd/MM/yyyy")}
+                    status={cfg}
+                    accent={accent}
+                    onTitleClick={() => requestEditAccount(item)}
+                    statusDropdown={
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <button className="cursor-pointer shrink-0">
+                            <Badge variant="outline" className={`${cfg.color} gap-1 font-medium`}>
+                              <cfg.icon className="w-3 h-3" />
+                              {cfg.label}
+                              <ChevronDown className="w-3 h-3 ml-0.5 opacity-50" />
+                            </Badge>
+                          </button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          {Object.entries(statusConfig).filter(([key]) => key !== "cancelled").map(([key, sc]) => {
+                            if (key === item.status) return null;
+                            return (
+                              <DropdownMenuItem key={key} onClick={() => handleChangeStatus(item.id, key)}>
+                                <sc.icon className="w-4 h-4 mr-2" />
+                                {sc.label}
+                              </DropdownMenuItem>
+                            );
+                          })}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    }
+                    details={[
+                      {
+                        icon: FolderTree, label: "Subcategoria",
+                        content: (
+                          <CategoriaTreeSelect
+                            categorias={categoriasFinanceiras as any}
+                            value={item.categoria_financeira_id}
+                            onChange={(v) => updateMutation.mutate({ id: item.id, data: { categoria_financeira_id: v } })}
+                            direction="out"
+                            placeholder="Selecionar"
+                          />
+                        ),
+                      },
+                      {
+                        icon: Target, label: "Centro de Custo",
+                        content: (
+                          <InlineManagedCell
+                            value={item.cost_center_id}
+                            options={costCenters.map((c: any) => ({ value: c.id, label: c.nome }))}
+                            onChange={(v) => updateMutation.mutate({ id: item.id, data: { cost_center_id: v } })}
+                            onAddModal={() => { setCcEditingId(null); setCcModalOpen(true); }}
+                            onEditModal={(id) => { setCcEditingId(id); setCcModalOpen(true); }}
+                            onDelete={centrosCrud.onDelete}
+                            placeholder="Selecionar"
+                            addLabel="Novo centro de custo"
+                          />
+                        ),
+                      },
+                      {
+                        icon: Building2, label: "Unidade de Negócio",
+                        content: (
+                          <InlineManagedCell
+                            value={item.business_unit_id}
+                            options={businessUnits.map((u: any) => ({ value: u.id, label: u.nome }))}
+                            onChange={(v) => updateMutation.mutate({ id: item.id, data: { business_unit_id: v } })}
+                            onAddModal={() => { setBuEditingId(null); setBuModalOpen(true); }}
+                            onEditModal={(id) => { setBuEditingId(id); setBuModalOpen(true); }}
+                            onDelete={businessUnitsCrud.onDelete}
+                            placeholder="Selecionar"
+                            addLabel="Nova unidade de negócio"
+                          />
+                        ),
+                      },
+                      {
+                        icon: CreditCard, label: "Forma Pagamento",
+                        content: (
+                          <InlineManagedCell
+                            value={item.payment_method_id}
+                            options={paymentMethods.map((m: any) => ({ value: m.id, label: m.nome }))}
+                            onChange={(v) => updateMutation.mutate({ id: item.id, data: { payment_method_id: v } })}
+                            onAddModal={() => { setFpEditingId(null); setFpModalOpen(true); }}
+                            onEditModal={(id) => { setFpEditingId(id); setFpModalOpen(true); }}
+                            onDelete={formasCrud.onDelete}
+                            placeholder="Selecionar"
+                            addLabel="Nova forma de pagamento"
+                          />
+                        ),
+                      },
+                      {
+                        icon: Landmark, label: "Conta Bancária",
+                        content: (
+                          <InlineManagedCell
+                            value={item.bank_account_id}
+                            options={bankAccounts.map((b: any) => ({ value: b.id, label: b.nome }))}
+                            onChange={(v) => updateMutation.mutate({ id: item.id, data: { bank_account_id: v } })}
+                            onAddModal={() => { setCbEditingId(null); setCbModalOpen(true); }}
+                            onEditModal={(id) => { setCbEditingId(id); setCbModalOpen(true); }}
+                            onDelete={contasCrud.onDelete}
+                            placeholder="Selecionar"
+                            addLabel="Nova conta bancária"
+                          />
+                        ),
+                      },
+                    ]}
+                    actions={
+                      <>
+                        {item.status === "pending" && (
+                          <DropdownMenuItem onClick={() => openPaymentDialog(item.id)}>
+                            <Banknote className="w-4 h-4 mr-2" /> Registrar Pagamento
+                          </DropdownMenuItem>
+                        )}
+                        {(item.status === "pending" || item.status === "overdue") && (
+                          <DropdownMenuItem onClick={() => handleEdit(item)}>
+                            <Pencil className="w-4 h-4 mr-2" /> Editar
+                          </DropdownMenuItem>
+                        )}
+                        <DropdownMenuItem onClick={() => handleDuplicate(item)}>
+                          <Copy className="w-4 h-4 mr-2" /> Duplicar
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => setDeleteId(item.id)} className="text-destructive">
+                          <Trash2 className="w-4 h-4 mr-2" /> Excluir
+                        </DropdownMenuItem>
+                      </>
+                    }
+                  />
+                );
+              });
+            })()}
+          </div>
+
+          {/* Desktop table */}
+          <div className="overflow-x-auto hidden lg:block">
           <Table className="w-full">
             <TableHeader>
               <TableRow>
@@ -1568,6 +1726,7 @@ export default function ContasAPagar() {
             </TableBody>
           </Table>
           </div>
+          </>
         )}
       </Card>
 
