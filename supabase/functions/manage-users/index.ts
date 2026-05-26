@@ -403,7 +403,7 @@ serve(async (req) => {
         .from("empresa_membros")
         .upsert(
           {
-            empresa_id: callerEmpresaId,
+            empresa_id: targetEmpresaId,
             user_id: newUser.user.id,
             nivel_permissao_id: nivelPermissaoId,
             invited_by: caller.id,
