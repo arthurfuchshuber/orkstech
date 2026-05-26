@@ -40,9 +40,11 @@ const isCard = (c: any) => {
  * Exportada para permitir testes de consistência sem precisar mockar Supabase.
  */
 export function buildBankAccountOption(r: any, connector: string | null): BankAccountOption {
-  const primaryLabel = connector || r.nome;
+  // Primário = nome real da conta (ex.: "BTG Empresas", "Cartão PME GOLD")
+  // Secundário = banco/instituição (connector Pluggy ou banco manual)
+  const primaryLabel = r.nome || connector || "Conta";
   let secondaryLabel: string | null = null;
-  if (connector && r.nome && r.nome !== connector) secondaryLabel = r.nome;
+  if (connector && connector !== r.nome) secondaryLabel = connector;
   else if (!connector && r.banco) secondaryLabel = r.banco;
   return {
     id: r.id,
