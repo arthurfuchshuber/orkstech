@@ -95,16 +95,16 @@ export default function DREMensalView() {
   const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
 
   return (
-    <div className="space-y-4">
-      {/* Filters */}
-      <div className="flex flex-wrap gap-3 items-center">
+    <div className="space-y-3">
+      {/* Filters — mobile: 2-col grid; desktop: inline */}
+      <div className="grid grid-cols-2 gap-2 md:flex md:flex-wrap md:items-center md:gap-3">
         <Select value={String(year)} onValueChange={(v) => {
           const y = Number(v);
           setYear(y);
           if (y === currentYear) setMonthRange([Math.max(0, currentMonth - 2), currentMonth]);
           else setMonthRange([0, 11]);
         }}>
-          <SelectTrigger className="w-[120px] h-9 text-sm"><SelectValue /></SelectTrigger>
+          <SelectTrigger className="w-full md:w-[120px] h-9 text-sm"><SelectValue /></SelectTrigger>
           <SelectContent>{years.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}</SelectContent>
         </Select>
 
@@ -112,7 +112,7 @@ export default function DREMensalView() {
           const [a, b] = v.split("-").map(Number);
           setMonthRange([a, b]);
         }}>
-          <SelectTrigger className="w-[180px] h-9 text-sm"><SelectValue /></SelectTrigger>
+          <SelectTrigger className="w-full md:w-[180px] h-9 text-sm"><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="0-11">Ano completo</SelectItem>
             <SelectItem value={`${Math.max(0, (year === currentYear ? currentMonth : 11) - 2)}-${year === currentYear ? currentMonth : 11}`}>Últimos 3 meses</SelectItem>
@@ -125,7 +125,7 @@ export default function DREMensalView() {
         </Select>
 
         <Select value={bankAccountId || "all"} onValueChange={(v) => setBankAccountId(v === "all" ? undefined : v)}>
-          <SelectTrigger className="w-[220px] h-9 text-sm"><SelectValue placeholder="Conta bancária" /></SelectTrigger>
+          <SelectTrigger className="w-full md:w-[220px] h-9 text-sm"><SelectValue placeholder="Conta bancária" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Todas as contas</SelectItem>
             {bankAccounts.map((b) => (
@@ -140,7 +140,7 @@ export default function DREMensalView() {
         </Select>
 
         <Select value={costCenterId || "all"} onValueChange={(v) => setCostCenterId(v === "all" ? undefined : v)}>
-          <SelectTrigger className="w-[170px] h-9 text-sm"><SelectValue placeholder="Centro de custo" /></SelectTrigger>
+          <SelectTrigger className="w-full md:w-[170px] h-9 text-sm"><SelectValue placeholder="Centro de custo" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Todos os centros</SelectItem>
             {costCenters.map((c: any) => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}
@@ -148,7 +148,7 @@ export default function DREMensalView() {
         </Select>
 
         <Select value={businessUnitId} onValueChange={setBusinessUnitId}>
-          <SelectTrigger className="w-[200px] h-9 text-sm">
+          <SelectTrigger className="col-span-2 w-full md:w-[200px] h-9 text-sm">
             <SelectValue placeholder="Unidade de negócio" />
           </SelectTrigger>
           <SelectContent>
@@ -159,7 +159,7 @@ export default function DREMensalView() {
           </SelectContent>
         </Select>
 
-        <div className="flex items-center gap-4 ml-auto">
+        <div className="col-span-2 flex items-center justify-between gap-4 rounded-md border border-border/40 bg-muted/10 px-3 py-2 md:ml-auto md:justify-end md:border-0 md:bg-transparent md:p-0">
           <div className="flex items-center gap-2">
             <Switch id="av" checked={showAV} onCheckedChange={setShowAV} />
             <Label htmlFor="av" className="text-xs cursor-pointer">A.V. <span className="text-muted-foreground">(vertical)</span></Label>
@@ -179,18 +179,18 @@ export default function DREMensalView() {
             <div className="overflow-x-auto custom-scrollbar">
               <table className="w-full text-xs border-collapse">
                 <thead>
-                  <tr className="border-b border-border/40 bg-muted/20">
-                    <th className="sticky left-0 z-10 bg-muted/20 text-left font-medium py-2.5 px-3 min-w-[280px]">Conta</th>
+                  <tr className="border-b border-border/40">
+                    <th className="sticky left-0 z-20 bg-background text-left font-medium py-2.5 px-3 min-w-[180px] md:min-w-[280px] shadow-[1px_0_0_0_hsl(var(--border))]">Conta</th>
                     {visibleMonths.map((m) => (
                       <Fragment key={`h-${m}`}>
-                        <th className="text-right font-medium py-2.5 px-2 min-w-[90px]">
+                        <th className="text-right font-medium py-2.5 px-2 min-w-[80px] md:min-w-[90px] bg-muted/20">
                           {monthLabels[m]}
                         </th>
-                        {showAV && <th className="text-right font-normal text-muted-foreground py-2.5 px-1 min-w-[44px]">A.V.</th>}
-                        {showAH && <th className="text-right font-normal text-muted-foreground py-2.5 px-1 min-w-[44px]">A.H.</th>}
+                        {showAV && <th className="text-right font-normal text-muted-foreground py-2.5 px-1 min-w-[44px] bg-muted/20">A.V.</th>}
+                        {showAH && <th className="text-right font-normal text-muted-foreground py-2.5 px-1 min-w-[44px] bg-muted/20">A.H.</th>}
                       </Fragment>
                     ))}
-                    <th className="text-right font-semibold py-2.5 px-3 min-w-[110px] bg-muted/30">Total</th>
+                    <th className="text-right font-semibold py-2.5 px-3 min-w-[100px] md:min-w-[110px] bg-muted/30">Total</th>
                   </tr>
                 </thead>
                 <tbody>
