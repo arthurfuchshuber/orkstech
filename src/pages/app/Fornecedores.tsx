@@ -361,10 +361,33 @@ export default function Fornecedores() {
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <StatCard icon={Truck} title="Fornecedores Ativos" value={String(totalAtivos)} />
-        <StatCard icon={Building2} title="Empresas (PJ)" value={String(totalEmpresas)} />
-        <StatCard icon={UserRound} title="Pessoa Física (PF)" value={String(totalPf)} />
+        <Card className="p-4 border-border/50 shadow-sm">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Por Tipo</span>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                <Building2 className="w-3.5 h-3.5 text-primary" />
+              </div>
+              <div className="min-w-0">
+                <div className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">PJ</div>
+                <div className="text-xl font-bold text-foreground leading-tight">{totalEmpresas}</div>
+              </div>
+            </div>
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                <UserRound className="w-3.5 h-3.5 text-primary" />
+              </div>
+              <div className="min-w-0">
+                <div className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">PF</div>
+                <div className="text-xl font-bold text-foreground leading-tight">{totalPf}</div>
+              </div>
+            </div>
+          </div>
+        </Card>
       </div>
 
       <div className="relative max-w-sm">
