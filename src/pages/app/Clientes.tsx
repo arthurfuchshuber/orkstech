@@ -412,7 +412,7 @@ export default function Clientes() {
       />
 
       {/* Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <Card className="p-4 border-border/50 shadow-sm">
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Total Ativos</span>
@@ -424,21 +424,28 @@ export default function Clientes() {
         </Card>
         <Card className="p-4 border-border/50 shadow-sm">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Pessoa Jurídica</span>
-            <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
-              <Building2 className="w-3.5 h-3.5 text-primary" />
+            <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Por Tipo</span>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                <Building2 className="w-3.5 h-3.5 text-primary" />
+              </div>
+              <div className="min-w-0">
+                <div className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">PJ</div>
+                <div className="text-xl font-bold text-foreground leading-tight">{totalPJ}</div>
+              </div>
+            </div>
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                <UserRound className="w-3.5 h-3.5 text-primary" />
+              </div>
+              <div className="min-w-0">
+                <div className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">PF</div>
+                <div className="text-xl font-bold text-foreground leading-tight">{totalPF}</div>
+              </div>
             </div>
           </div>
-          <div className="text-2xl font-bold text-foreground">{totalPJ}</div>
-        </Card>
-        <Card className="p-4 border-border/50 shadow-sm">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Pessoa Física</span>
-            <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
-              <UserRound className="w-3.5 h-3.5 text-primary" />
-            </div>
-          </div>
-          <div className="text-2xl font-bold text-foreground">{totalPF}</div>
         </Card>
       </div>
 
