@@ -199,6 +199,21 @@ serve(async (req) => {
     const body = await req.json();
     const { action } = body;
 
+    // If caller still has no empresa, accept body.empresa_id when caller is owner/member of it
+    if (!callerEmpresaId && body.empresa_id) {
+      const { data: owned } = await supabaseAdmin
+        .from("empresas").select("id").eq("id", body.empresa_id).eq("user_id", caller.id).maybeSingle();
+      if (owned?.id) {
+        callerEmpresaId = owned.id;
+      } else {
+        const { data: mem } = await supabaseAdmin
+          .from("empresa_membros").select("empresa_id")
+          .eq("empresa_id", body.empresa_id).eq("user_id", caller.id).eq("ativo", true).maybeSingle();
+        if (mem?.empresa_id) callerEmpresaId = mem.empresa_id;
+      }
+    }
+
+
     // LIST - scoped by empresa (Admin/Super Admin only; non-SA cannot query other empresas)
     if (action === "list") {
       if (!isAdmin && !isSuperAdmin) {
