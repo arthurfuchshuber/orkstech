@@ -1,5 +1,8 @@
 import { useState, useCallback } from "react";
-import { Building2, Pencil, Trash2, UserPlus, Users, ShieldAlert, ShieldCheck } from "lucide-react";
+import { Building2, Pencil, Trash2, UserPlus, Users, ShieldAlert, ShieldCheck, MoreHorizontal, ChevronDown } from "lucide-react";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { PermissionsModal } from "@/components/admin/PermissionsModal";
 import { DocumentInput } from "@/components/inputs/DocumentInput";
 import { PhoneInput } from "@/components/inputs/PhoneInput";
@@ -261,6 +264,7 @@ function UsuariosTab() {
   const [adminBlockMsg, setAdminBlockMsg] = useState<string | null>(null);
   const [createForm, setCreateForm] = useState({ email: "", password: "", nome: "" });
   const [permModal, setPermModal] = useState<{ userId: string; email: string; isOwner: boolean } | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<UserRow | null>(null);
   const { data, isLoading } = useUserManagementData();
   const users = data?.users ?? [];
   const niveis = data?.niveis ?? [];
@@ -349,91 +353,128 @@ function UsuariosTab() {
 
   return (
     <div className="space-y-4">
-      <div className="rounded-xl border border-primary/20 bg-primary/5 p-4">
-        <div className="flex items-start gap-3">
-          <ShieldCheck className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
-          <div className="space-y-1">
-            <p className="text-sm font-semibold text-foreground">Permissões personalizadas por usuário</p>
-            <p className="text-xs leading-relaxed text-muted-foreground">
-              Cada usuário pode ter permissões individuais de visualização e edição para cada página e área do sistema.
-              O dono da empresa sempre tem acesso total.
-            </p>
-          </div>
-        </div>
-      </div>
 
-      <div className="flex items-center justify-between">
-        <p className="text-sm text-muted-foreground">Gerencie os usuários e suas permissões de acesso.</p>
-        <Button size="sm" onClick={() => setShowCreateModal(true)} className="gap-1.5"><UserPlus className="h-3.5 w-3.5" /> Novo Usuário</Button>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0">
+          <h2 className="text-base font-semibold text-foreground">Usuários & Permissões</h2>
+          <p className="text-xs text-muted-foreground">
+            {users.length} {users.length === 1 ? "usuário" : "usuários"} · permissões individuais por página
+          </p>
+        </div>
+        <Button size="sm" onClick={() => setShowCreateModal(true)} className="gap-1.5 self-start sm:self-auto">
+          <UserPlus className="h-3.5 w-3.5" /> Novo Usuário
+        </Button>
       </div>
 
       <Card className="overflow-hidden">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>E-mail</TableHead>
-              <TableHead className="w-[130px]">Criado em</TableHead>
-              <TableHead className="w-[140px]">Tipo</TableHead>
-              <TableHead className="w-[80px] text-center">Ativo</TableHead>
-              <TableHead className="w-[170px] text-right">Ações</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {users.length === 0 ? (
-              <TableRow><TableCell colSpan={5} className="py-8 text-center text-muted-foreground">Nenhum usuário encontrado</TableCell></TableRow>
-            ) : users.map((u) => {
-              const isSelf = u.id === user?.id;
-              const isOwner = u.id === ownerUserId;
-              return (
-                <TableRow key={u.id} className={!u.ativo ? "opacity-50" : ""}>
-                  <TableCell className="text-sm">
-                    <div className="flex items-center gap-2">
-                      <div>
-                        <span>{u.email}</span>
-                        {u.nome && <p className="text-xs text-muted-foreground">{u.nome}</p>}
-                      </div>
-                      {isSelf && <Badge variant="secondary" className="text-[10px]">Você</Badge>}
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-xs text-muted-foreground">{new Date(u.created_at).toLocaleDateString("pt-BR")}</TableCell>
-                  <TableCell>
-                    {isOwner ? (
-                      <Badge variant="outline" className="text-[10px] bg-primary/10 text-primary border-primary/30 whitespace-nowrap gap-1">
-                        <ShieldCheck className="h-2.5 w-2.5" /> Dono
-                      </Badge>
-                    ) : (
-                      <Badge variant="outline" className="text-[10px] whitespace-nowrap">Personalizadas</Badge>
-                    )}
-                  </TableCell>
-                  <TableCell className="text-center"><Switch checked={u.ativo} onCheckedChange={(v) => toggleActive.mutate({ user_id: u.id, ativo: v })} disabled={isSelf || isOwner} /></TableCell>
-                  <TableCell>
-                    <div className="flex items-center justify-end gap-1">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-7 px-2 text-xs gap-1"
-                        onClick={() => setPermModal({ userId: u.id, email: u.email, isOwner })}
-                      >
-                        <ShieldCheck className="h-3 w-3" /> Permissões
-                      </Button>
-                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEdit(u)}><Pencil className="h-3.5 w-3.5" /></Button>
-                      {!isSelf && !isOwner && (
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild><Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive"><Trash2 className="h-3.5 w-3.5" /></Button></AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader><AlertDialogTitle>Excluir usuário</AlertDialogTitle><AlertDialogDescription>Tem certeza que deseja excluir <strong>{u.email}</strong>? Esta ação é irreversível.</AlertDialogDescription></AlertDialogHeader>
-                            <AlertDialogFooter><AlertDialogCancel>Cancelar</AlertDialogCancel><AlertDialogAction onClick={() => deleteUser.mutate(u.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Excluir</AlertDialogAction></AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
-                      )}
-                    </div>
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-[55%] sm:w-auto">Usuário</TableHead>
+                <TableHead className="hidden md:table-cell w-[130px]">Criado em</TableHead>
+                <TableHead className="hidden sm:table-cell w-[130px]">Tipo</TableHead>
+                <TableHead className="w-[70px] text-center">Ativo</TableHead>
+                <TableHead className="w-[60px] text-right">Ações</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {users.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={5} className="py-8 text-center text-sm text-muted-foreground">
+                    Nenhum usuário encontrado
                   </TableCell>
                 </TableRow>
-              );
-            })}
-          </TableBody>
-        </Table>
+              ) : users.map((u) => {
+                const isSelf = u.id === user?.id;
+                const isOwner = u.id === ownerUserId;
+                return (
+                  <TableRow key={u.id} className={!u.ativo ? "opacity-60" : ""}>
+                    <TableCell className="py-2.5">
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <span className="text-sm font-medium text-foreground truncate">{u.nome || u.email.split("@")[0]}</span>
+                          {isSelf && <Badge variant="secondary" className="text-[9px] px-1 py-0 h-4 shrink-0">Você</Badge>}
+                          {isOwner && (
+                            <Badge variant="outline" className="text-[9px] px-1 py-0 h-4 bg-primary/10 text-primary border-primary/30 shrink-0 gap-0.5">
+                              <ShieldCheck className="h-2 w-2" /> Dono
+                            </Badge>
+                          )}
+                        </div>
+                        <p className="text-[11px] text-muted-foreground truncate">{u.email}</p>
+                      </div>
+                    </TableCell>
+                    <TableCell className="hidden md:table-cell text-xs text-muted-foreground">
+                      {new Date(u.created_at).toLocaleDateString("pt-BR")}
+                    </TableCell>
+                    <TableCell className="hidden sm:table-cell">
+                      <Badge variant="outline" className="text-[10px] whitespace-nowrap">
+                        {isOwner ? "Acesso total" : "Personalizadas"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <Switch
+                        checked={u.ativo}
+                        onCheckedChange={(v) => toggleActive.mutate({ user_id: u.id, ativo: v })}
+                        disabled={isSelf || isOwner}
+                      />
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-7 w-7">
+                            <ChevronDown className="h-3.5 w-3.5" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-44">
+                          <DropdownMenuItem onClick={() => setPermModal({ userId: u.id, email: u.email, isOwner })}>
+                            <ShieldCheck className="h-3.5 w-3.5 mr-2" /> Permissões
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => openEdit(u)}>
+                            <Pencil className="h-3.5 w-3.5 mr-2" /> Editar
+                          </DropdownMenuItem>
+                          {!isSelf && !isOwner && (
+                            <>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem
+                                onClick={() => setDeleteTarget(u)}
+                                className="text-destructive focus:text-destructive"
+                              >
+                                <Trash2 className="h-3.5 w-3.5 mr-2" /> Excluir
+                              </DropdownMenuItem>
+                            </>
+                          )}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </div>
       </Card>
+
+      <AlertDialog open={!!deleteTarget} onOpenChange={(o) => !o && setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir usuário</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir <strong>{deleteTarget?.email}</strong>? Esta ação é irreversível.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => { if (deleteTarget) { deleteUser.mutate(deleteTarget.id); setDeleteTarget(null); } }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
 
       {/* Permissions Modal */}
       <PermissionsModal
