@@ -180,7 +180,8 @@ export default function ContasBancarias({
                           <span className="text-[10px] text-emerald-500 whitespace-nowrap" title="Aplicação">+ {formatCurrency(caixinha)}</span>
                         )}
                       </div>
-                      <Badge variant="outline" className="text-[9px] px-1 py-0 leading-4 flex-shrink-0">{tipoLabels[item.tipo]}</Badge>
+                      <Badge variant="outline" className="text-[9px] px-1 py-0 leading-4 flex-shrink-0 bg-sky-500/10 text-sky-400 border-sky-500/20">Conta</Badge>
+                      <Badge variant="outline" className="text-[9px] px-1 py-0 leading-4 flex-shrink-0 hidden sm:inline-flex">{tipoLabels[item.tipo]}</Badge>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button variant="ghost" size="icon" className="h-5 w-5">
