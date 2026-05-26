@@ -367,92 +367,84 @@ function UsuariosTab() {
       </div>
 
       <Card className="overflow-hidden">
-        <div className="overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-[55%] sm:w-auto">Usuário</TableHead>
-                <TableHead className="hidden md:table-cell w-[130px]">Criado em</TableHead>
-                <TableHead className="hidden sm:table-cell w-[130px]">Tipo</TableHead>
-                <TableHead className="w-[70px] text-center">Ativo</TableHead>
-                <TableHead className="w-[60px] text-right">Ações</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {users.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={5} className="py-8 text-center text-sm text-muted-foreground">
-                    Nenhum usuário encontrado
-                  </TableCell>
-                </TableRow>
-              ) : users.map((u) => {
+        {users.length === 0 ? (
+          <p className="py-8 text-center text-sm text-muted-foreground">Nenhum usuário encontrado</p>
+        ) : (
+          <ul className="divide-y divide-border">
+            {[...users]
+              .sort((a, b) =>
+                (a.nome || a.email).localeCompare(b.nome || b.email, "pt-BR", { sensitivity: "base" }),
+              )
+              .map((u) => {
                 const isSelf = u.id === user?.id;
                 const isOwner = u.id === ownerUserId;
+                const nivel = isOwner ? "Acesso total" : "Permissões personalizadas";
                 return (
-                  <TableRow key={u.id} className={!u.ativo ? "opacity-60" : ""}>
-                    <TableCell className="py-2.5">
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-1.5 min-w-0">
-                          <span className="text-sm font-medium text-foreground truncate">{u.nome || u.email.split("@")[0]}</span>
-                          {isSelf && <Badge variant="secondary" className="text-[9px] px-1 py-0 h-4 shrink-0">Você</Badge>}
-                          {isOwner && (
-                            <Badge variant="outline" className="text-[9px] px-1 py-0 h-4 bg-primary/10 text-primary border-primary/30 shrink-0 gap-0.5">
-                              <ShieldCheck className="h-2 w-2" /> Dono
-                            </Badge>
-                          )}
-                        </div>
-                        <p className="text-[11px] text-muted-foreground truncate">{u.email}</p>
+                  <li
+                    key={u.id}
+                    className={`flex items-center gap-3 px-4 py-3 hover:bg-muted/30 transition-colors ${!u.ativo ? "opacity-60" : ""}`}
+                  >
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <span className="text-sm font-medium text-foreground truncate">
+                          {u.nome || u.email.split("@")[0]}
+                        </span>
+                        {isSelf && (
+                          <Badge variant="secondary" className="text-[9px] px-1 py-0 h-4 shrink-0">
+                            Você
+                          </Badge>
+                        )}
+                        {isOwner && (
+                          <Badge
+                            variant="outline"
+                            className="text-[9px] px-1 py-0 h-4 bg-primary/10 text-primary border-primary/30 shrink-0 gap-0.5"
+                          >
+                            <ShieldCheck className="h-2 w-2" /> Dono
+                          </Badge>
+                        )}
                       </div>
-                    </TableCell>
-                    <TableCell className="hidden md:table-cell text-xs text-muted-foreground">
-                      {new Date(u.created_at).toLocaleDateString("pt-BR")}
-                    </TableCell>
-                    <TableCell className="hidden sm:table-cell">
-                      <Badge variant="outline" className="text-[10px] whitespace-nowrap">
-                        {isOwner ? "Acesso total" : "Personalizadas"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <Switch
-                        checked={u.ativo}
-                        onCheckedChange={(v) => toggleActive.mutate({ user_id: u.id, ativo: v })}
-                        disabled={isSelf || isOwner}
-                      />
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-7 w-7">
-                            <ChevronDown className="h-3.5 w-3.5" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-44">
-                          <DropdownMenuItem onClick={() => setPermModal({ userId: u.id, email: u.email, isOwner })}>
-                            <ShieldCheck className="h-3.5 w-3.5 mr-2" /> Permissões
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => openEdit(u)}>
-                            <Pencil className="h-3.5 w-3.5 mr-2" /> Editar
-                          </DropdownMenuItem>
-                          {!isSelf && !isOwner && (
-                            <>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem
-                                onClick={() => setDeleteTarget(u)}
-                                className="text-destructive focus:text-destructive"
-                              >
-                                <Trash2 className="h-3.5 w-3.5 mr-2" /> Excluir
-                              </DropdownMenuItem>
-                            </>
-                          )}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
+                      <p className="text-[11px] text-muted-foreground truncate">{nivel}</p>
+                    </div>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0">
+                          <ChevronDown className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-44">
+                        <DropdownMenuItem
+                          onClick={() => setPermModal({ userId: u.id, email: u.email, isOwner })}
+                        >
+                          <ShieldCheck className="h-3.5 w-3.5 mr-2" /> Permissões
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => openEdit(u)}>
+                          <Pencil className="h-3.5 w-3.5 mr-2" /> Editar
+                        </DropdownMenuItem>
+                        {!isSelf && !isOwner && (
+                          <>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              onClick={() =>
+                                toggleActive.mutate({ user_id: u.id, ativo: !u.ativo })
+                              }
+                            >
+                              {u.ativo ? "Desativar" : "Ativar"}
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => setDeleteTarget(u)}
+                              className="text-destructive focus:text-destructive"
+                            >
+                              <Trash2 className="h-3.5 w-3.5 mr-2" /> Excluir
+                            </DropdownMenuItem>
+                          </>
+                        )}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </li>
                 );
               })}
-            </TableBody>
-          </Table>
-        </div>
+          </ul>
+        )}
       </Card>
 
       <AlertDialog open={!!deleteTarget} onOpenChange={(o) => !o && setDeleteTarget(null)}>
