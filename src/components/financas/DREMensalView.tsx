@@ -78,7 +78,17 @@ export default function DREMensalView() {
   const monthsPerPage = isMobile ? ((showAV || showAH) ? 1 : 2) : visibleMonths.length;
   const [monthPage, setMonthPage] = useState(0);
   const totalPages = Math.max(1, Math.ceil(visibleMonths.length / Math.max(1, monthsPerPage)));
-  useEffect(() => { setMonthPage(0); }, [monthRange, showAV, showAH, isMobile]);
+  // Default: abrir na página que contém o mês atual (quando ano = ano atual)
+  useEffect(() => {
+    if (year === currentYear) {
+      const idx = visibleMonths.indexOf(currentMonth);
+      if (idx >= 0) {
+        setMonthPage(Math.floor(idx / Math.max(1, monthsPerPage)));
+        return;
+      }
+    }
+    setMonthPage(0);
+  }, [monthRange, showAV, showAH, isMobile, year, currentMonth, currentYear, visibleMonths, monthsPerPage]);
   const safePage = Math.min(monthPage, totalPages - 1);
   const pagedMonths = isMobile
     ? visibleMonths.slice(safePage * monthsPerPage, safePage * monthsPerPage + monthsPerPage)
@@ -198,7 +208,7 @@ export default function DREMensalView() {
             <ChevronLeft className="w-4 h-4" />
           </Button>
           <span className="text-xs font-medium text-foreground">
-            {pagedMonths.map(m => monthLabels[m]).join(" · ")}
+            {pagedMonths.map(m => `${monthLabels[m]} ${year}`).join(" · ")}
             <span className="text-muted-foreground ml-2">({safePage + 1}/{totalPages})</span>
           </span>
           <Button
@@ -226,7 +236,7 @@ export default function DREMensalView() {
                     {pagedMonths.map((m) => (
                       <Fragment key={`h-${m}`}>
                         <th className={cn("text-right font-medium py-2.5 px-2 bg-muted/20", isMobile ? "" : "min-w-[90px]")}>
-                          {monthLabels[m]}
+                          {monthLabels[m]}{isMobile ? ` ${year}` : ""}
                         </th>
                         {showAV && <th className={cn("text-right font-normal text-muted-foreground py-2.5 px-1 bg-muted/20", isMobile ? "" : "min-w-[44px]")}>A.V.</th>}
                         {showAH && <th className={cn("text-right font-normal text-muted-foreground py-2.5 px-1 bg-muted/20", isMobile ? "" : "min-w-[44px]")}>A.H.</th>}
