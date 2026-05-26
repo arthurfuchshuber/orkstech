@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { DragDropContext, Droppable, Draggable, type DropResult } from "@hello-pangea/dnd";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 type TipoFinanceiro = "receita" | "despesa" | "despesa_comercial" | "custo" | "deducao" | "imposto" | "receita_financeira" | "despesa_financeira" | "resultado_financeiro" | "distribuicao_lucros" | "ajuste";
 
