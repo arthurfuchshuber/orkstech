@@ -340,7 +340,7 @@ export function PlanoDeContasSection() {
                           <div
                             ref={provided.innerRef} {...provided.draggableProps}
                             className={`flex items-center gap-1.5 py-1.5 px-2 rounded-md transition-colors group ${!node.ativo ? "opacity-40" : ""} ${snapshot.isDragging ? "bg-muted/60 shadow-lg" : "hover:bg-muted/30"}`}
-                            style={{ ...provided.draggableProps.style, paddingLeft: `${item.level * 18 + 8}px` }}
+                            style={{ ...provided.draggableProps.style, paddingLeft: `${item.level * (isMobile ? 10 : 18) + 8}px` }}
                           >
                             <div {...provided.dragHandleProps} className="cursor-grab active:cursor-grabbing flex-shrink-0">
                               <GripVertical className="w-3 h-3 text-muted-foreground/30" />
@@ -348,12 +348,12 @@ export function PlanoDeContasSection() {
                             <button onClick={() => toggleCollapse(node.id)} className="w-4 h-4 flex items-center justify-center flex-shrink-0">
                               {hasChildren ? (isCollapsed ? <ChevronRight className="w-3 h-3 text-muted-foreground" /> : <ChevronDown className="w-3 h-3 text-muted-foreground" />) : <div className="w-1 h-1 rounded-full bg-muted-foreground/25" />}
                             </button>
-                            <Icon className="w-3 h-3 text-muted-foreground/60 flex-shrink-0" />
-                            <span className="text-[10px] font-mono text-muted-foreground flex-shrink-0 min-w-[2rem]">{item.number}</span>
-                            <span className="text-xs font-medium text-foreground flex-1 truncate">{node.nome}</span>
-                            <Badge variant="outline" className={`text-[9px] px-1 py-0 leading-4 ${tipoColors[node.tipo]}`}>{tipoLabels[node.tipo]}</Badge>
+                            <Icon className="w-3 h-3 text-muted-foreground/60 flex-shrink-0 hidden sm:block" />
+                            <span className="text-[10px] font-mono text-muted-foreground flex-shrink-0 min-w-[1.75rem] sm:min-w-[2rem]">{item.number}</span>
+                            <span className="text-xs font-medium text-foreground flex-1 min-w-0 truncate">{node.nome}</span>
+                            <Badge variant="outline" className={`text-[9px] px-1 py-0 leading-4 shrink-0 hidden sm:inline-flex ${tipoColors[node.tipo]}`}>{tipoLabels[node.tipo]}</Badge>
                             {!!node.origem_socio_id && (
-                              <Badge variant="outline" className="text-[9px] px-1 py-0 leading-4 bg-muted/50 text-muted-foreground border-border" title="Sincronizado automaticamente do Quadro Societário">
+                              <Badge variant="outline" className="text-[9px] px-1 py-0 leading-4 bg-muted/50 text-muted-foreground border-border shrink-0" title="Sincronizado automaticamente do Quadro Societário">
                                 Sócio
                               </Badge>
                             )}
@@ -363,7 +363,7 @@ export function PlanoDeContasSection() {
                               return (
                                 <DropdownMenu>
                                   <DropdownMenuTrigger asChild>
-                                    <Button variant="ghost" size="icon" className="h-5 w-5 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                                       <ChevronDown className="w-3 h-3" />
                                     </Button>
                                   </DropdownMenuTrigger>
