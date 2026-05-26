@@ -395,19 +395,16 @@ export default function FinanceiroDashboard() {
   };
 
   // Fatura PARCIAL atual (em formação, ainda não fechada).
-  // Prioridade: (1) /bills da Pluggy (campo persistido `credit_bill_amount`)
-  //             (2) cálculo via transações do ciclo aberto (`bank_data.openBillAmount`)
-  //             (3) último recurso: total utilizado (limite - disponível) — não é a fatura parcial
-  //                 mas é o melhor número quando o emissor não expõe ciclo (ex.: BTG sem balanceCloseDate)
+  // Usa SOMENTE dados reais do ciclo aberto:
+  //   (1) /bills da Pluggy (campo persistido `credit_bill_amount`)
+  //   (2) cálculo via transações do ciclo aberto (`bank_data.openBillAmount`)
+  // NÃO usa `limite - disponível`, pois isso inclui faturas anteriores em
+  // aberto + parcelamentos futuros e superestima a fatura parcial real.
   const getCreditBillAmount = (account: BankAccount) => {
     if (account.credit_bill_amount != null && account.credit_bill_amount > 0) return account.credit_bill_amount;
     const openBill = account.bank_data?.openBillAmount;
     if (openBill != null && openBill > 0) return openBill;
-    if (account.credit_limit && account.credit_available != null) {
-      const diff = account.credit_limit - account.credit_available;
-      return diff > 0 ? diff : 0;
-    }
-    return Math.abs(account.balance ?? 0);
+    return 0;
   };
 
   const totalCreditBills = creditCards.reduce((sum, c) => sum + getCreditBillAmount(c), 0) + totalManualBills;
