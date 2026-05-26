@@ -1,4 +1,7 @@
-import { useState, useMemo, Fragment } from "react";
+import { useState, useMemo, useEffect, Fragment } from "react";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { Button } from "@/components/ui/button";
+import { ChevronLeft } from "lucide-react";
 import { useDREMonthly, type DREMonthlyLine } from "@/hooks/useDREMonthly";
 import { Card, CardContent } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
@@ -69,6 +72,17 @@ export default function DREMensalView() {
     for (let i = monthRange[0]; i <= monthRange[1]; i++) arr.push(i);
     return arr;
   }, [monthRange]);
+
+  const isMobile = useIsMobile();
+  // Mobile pagination: 1 month per page if A.V. or A.H. on, else 2 months
+  const monthsPerPage = isMobile ? ((showAV || showAH) ? 1 : 2) : visibleMonths.length;
+  const [monthPage, setMonthPage] = useState(0);
+  const totalPages = Math.max(1, Math.ceil(visibleMonths.length / Math.max(1, monthsPerPage)));
+  useEffect(() => { setMonthPage(0); }, [monthRange, showAV, showAH, isMobile]);
+  const safePage = Math.min(monthPage, totalPages - 1);
+  const pagedMonths = isMobile
+    ? visibleMonths.slice(safePage * monthsPerPage, safePage * monthsPerPage + monthsPerPage)
+    : visibleMonths;
 
   const toggle = (id: string) => {
     setExpanded(prev => {
@@ -171,26 +185,54 @@ export default function DREMensalView() {
         </div>
       </div>
 
+      {/* Mobile month pager */}
+      {isMobile && totalPages > 1 && (
+        <div className="flex items-center justify-between rounded-md border border-border/40 bg-muted/10 px-2 py-1.5">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 px-2"
+            disabled={safePage === 0}
+            onClick={() => setMonthPage(p => Math.max(0, p - 1))}
+          >
+            <ChevronLeft className="w-4 h-4" />
+          </Button>
+          <span className="text-xs font-medium text-foreground">
+            {pagedMonths.map(m => monthLabels[m]).join(" · ")}
+            <span className="text-muted-foreground ml-2">({safePage + 1}/{totalPages})</span>
+          </span>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 px-2"
+            disabled={safePage >= totalPages - 1}
+            onClick={() => setMonthPage(p => Math.min(totalPages - 1, p + 1))}
+          >
+            <ChevronRight className="w-4 h-4" />
+          </Button>
+        </div>
+      )}
+
       <Card className="border-border/50">
         <CardContent className="p-0">
           {isLoading ? (
             <div className="py-12 text-center text-muted-foreground text-sm">Carregando...</div>
           ) : (
-            <div className="overflow-x-auto custom-scrollbar">
-              <table className="w-full text-xs border-collapse">
+            <div className={cn(isMobile ? "" : "overflow-x-auto custom-scrollbar")}>
+              <table className="w-full text-xs border-collapse table-fixed md:table-auto">
                 <thead>
                   <tr className="border-b border-border/40">
-                    <th className="sticky left-0 z-20 bg-background text-left font-medium py-2.5 px-3 min-w-[180px] md:min-w-[280px] shadow-[1px_0_0_0_hsl(var(--border))]">Conta</th>
-                    {visibleMonths.map((m) => (
+                    <th className={cn("sticky left-0 z-20 bg-background text-left font-medium py-2.5 px-3 shadow-[1px_0_0_0_hsl(var(--border))]", isMobile ? "w-[42%]" : "min-w-[280px]")}>Conta</th>
+                    {pagedMonths.map((m) => (
                       <Fragment key={`h-${m}`}>
-                        <th className="text-right font-medium py-2.5 px-2 min-w-[80px] md:min-w-[90px] bg-muted/20">
+                        <th className={cn("text-right font-medium py-2.5 px-2 bg-muted/20", isMobile ? "" : "min-w-[90px]")}>
                           {monthLabels[m]}
                         </th>
-                        {showAV && <th className="text-right font-normal text-muted-foreground py-2.5 px-1 min-w-[44px] bg-muted/20">A.V.</th>}
-                        {showAH && <th className="text-right font-normal text-muted-foreground py-2.5 px-1 min-w-[44px] bg-muted/20">A.H.</th>}
+                        {showAV && <th className={cn("text-right font-normal text-muted-foreground py-2.5 px-1 bg-muted/20", isMobile ? "" : "min-w-[44px]")}>A.V.</th>}
+                        {showAH && <th className={cn("text-right font-normal text-muted-foreground py-2.5 px-1 bg-muted/20", isMobile ? "" : "min-w-[44px]")}>A.H.</th>}
                       </Fragment>
                     ))}
-                    <th className="text-right font-semibold py-2.5 px-3 min-w-[100px] md:min-w-[110px] bg-muted/30">Total</th>
+                    {!isMobile && <th className="text-right font-semibold py-2.5 px-3 min-w-[110px] bg-muted/30">Total</th>}
                   </tr>
                 </thead>
                 <tbody>
@@ -250,7 +292,7 @@ export default function DREMensalView() {
                             <span className={cn("text-xs", labelColor, line.categoryId && !isIndicator && "hover:text-primary transition-colors")}>{line.label}</span>
                           </div>
                         </td>
-                        {visibleMonths.map((m) => {
+                        {pagedMonths.map((m) => {
                           const v = line.monthly[m] ?? 0;
                           const prev = m > 0 ? (line.monthly[m - 1] ?? 0) : 0;
                           const ah = prev !== 0 ? ((v - prev) / Math.abs(prev)) * 100 : null;
@@ -275,9 +317,11 @@ export default function DREMensalView() {
                             </Fragment>
                           );
                         })}
-                        <td className={cn("text-right py-1.5 px-3 font-semibold tabular-nums bg-muted/20 transition-colors group-hover:!bg-primary/20", valueColor(line.total))}>
-                          {line.isPercentual ? fmtPct(line.total) : fmtBRL(line.total)}
-                        </td>
+                        {!isMobile && (
+                          <td className={cn("text-right py-1.5 px-3 font-semibold tabular-nums bg-muted/20 transition-colors group-hover:!bg-primary/20", valueColor(line.total))}>
+                            {line.isPercentual ? fmtPct(line.total) : fmtBRL(line.total)}
+                          </td>
+                        )}
                       </tr>
 
                     );
