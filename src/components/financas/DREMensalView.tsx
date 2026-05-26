@@ -219,10 +219,10 @@ export default function DREMensalView() {
             <div className="py-12 text-center text-muted-foreground text-sm">Carregando...</div>
           ) : (
             <div className={cn(isMobile ? "" : "overflow-x-auto custom-scrollbar")}>
-              <table className="w-full text-xs border-collapse table-fixed md:table-auto">
+              <table className="w-full text-xs border-collapse table-auto">
                 <thead>
                   <tr className="border-b border-border/40">
-                    <th className={cn("sticky left-0 z-20 bg-background text-left font-medium py-2.5 px-3 shadow-[1px_0_0_0_hsl(var(--border))]", isMobile ? "w-[42%]" : "min-w-[280px]")}>Conta</th>
+                    <th className={cn("sticky left-0 z-20 bg-background text-left font-medium py-2.5 px-3 shadow-[1px_0_0_0_hsl(var(--border))]", isMobile ? "w-auto max-w-[60vw]" : "min-w-[280px]")}>Conta</th>
                     {pagedMonths.map((m) => (
                       <Fragment key={`h-${m}`}>
                         <th className={cn("text-right font-medium py-2.5 px-2 bg-muted/20", isMobile ? "" : "min-w-[90px]")}>
