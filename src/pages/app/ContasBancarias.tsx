@@ -131,19 +131,19 @@ export default function ContasBancarias({
     return (
       <>
         <Card className="border-border/40 shadow-sm flex flex-col">
-          <CardHeader className="pb-3 pt-4 px-4 flex-row items-center justify-between space-y-0">
-            <div className="flex items-center gap-2.5">
-              <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center">
+          <CardHeader className="pb-3 pt-4 px-4 flex flex-col items-stretch gap-2 space-y-0 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
                 <Landmark className="w-3.5 h-3.5 text-primary" />
               </div>
-              <div>
-                <CardTitle className="text-sm font-semibold">Contas Bancárias</CardTitle>
-                <p className="text-[11px] text-muted-foreground mt-0.5">Gerencie contas e integrações</p>
+              <div className="min-w-0">
+                <CardTitle className="text-sm font-semibold truncate">Contas Bancárias</CardTitle>
+                <p className="text-[11px] text-muted-foreground mt-0.5 truncate">Gerencie contas e integrações</p>
               </div>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap sm:justify-end">
               {!readOnly && (
-                <Button onClick={openNew} size="sm" variant="outline" className="h-7 text-xs gap-1.5 rounded-md">
+                <Button onClick={openNew} size="sm" variant="outline" className="h-7 text-xs gap-1.5 rounded-md flex-1 sm:flex-none">
                   <Plus className="w-3 h-3" /> Nova Conta Manual
                 </Button>
               )}

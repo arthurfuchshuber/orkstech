@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { DragDropContext, Droppable, Draggable, type DropResult } from "@hello-pangea/dnd";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 type TipoFinanceiro = "receita" | "despesa" | "despesa_comercial" | "custo" | "deducao" | "imposto" | "receita_financeira" | "despesa_financeira" | "resultado_financeiro" | "distribuicao_lucros" | "ajuste";
 
@@ -112,6 +113,7 @@ function buildTree(items: Categoria[]): Categoria[] {
 }
 
 export function PlanoDeContasSection() {
+  const isMobile = useIsMobile();
   const { user } = useAuth();
   const { empresa } = useEmpresa();
   const qc = useQueryClient();
@@ -297,21 +299,21 @@ export function PlanoDeContasSection() {
 
   return (
     <Card className="border-border/40 shadow-sm flex flex-col">
-      <CardHeader className="pb-3 pt-4 px-4 flex-row items-center justify-between space-y-0">
-        <div className="flex items-center gap-2.5">
-          <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center">
+      <CardHeader className="pb-3 pt-4 px-4 flex flex-col items-stretch gap-2 space-y-0 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
             <FolderTree className="w-3.5 h-3.5 text-primary" />
           </div>
-          <div>
-            <CardTitle className="text-sm font-semibold">Plano de Contas</CardTitle>
-            <p className="text-[11px] text-muted-foreground mt-0.5">Arraste para reordenar ou mover entre níveis</p>
+          <div className="min-w-0">
+            <CardTitle className="text-sm font-semibold truncate">Plano de Contas</CardTitle>
+            <p className="text-[11px] text-muted-foreground mt-0.5 truncate">Arraste para reordenar ou mover entre níveis</p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <Button onClick={() => setPreviewOpen(true)} size="sm" variant="outline" className="h-7 text-xs gap-1.5 rounded-md" title="Pré-visualizar DRE com base na estrutura">
+        <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap sm:justify-end">
+          <Button onClick={() => setPreviewOpen(true)} size="sm" variant="outline" className="h-7 text-xs gap-1.5 rounded-md flex-1 sm:flex-none" title="Pré-visualizar DRE com base na estrutura">
             <Eye className="w-3 h-3" /> Prévia DRE
           </Button>
-          <Button onClick={() => openNew()} size="sm" variant="outline" className="h-7 text-xs gap-1.5 rounded-md">
+          <Button onClick={() => openNew()} size="sm" variant="outline" className="h-7 text-xs gap-1.5 rounded-md flex-1 sm:flex-none">
             <Plus className="w-3 h-3" /> Nova
           </Button>
         </div>
@@ -338,7 +340,7 @@ export function PlanoDeContasSection() {
                           <div
                             ref={provided.innerRef} {...provided.draggableProps}
                             className={`flex items-center gap-1.5 py-1.5 px-2 rounded-md transition-colors group ${!node.ativo ? "opacity-40" : ""} ${snapshot.isDragging ? "bg-muted/60 shadow-lg" : "hover:bg-muted/30"}`}
-                            style={{ ...provided.draggableProps.style, paddingLeft: `${item.level * 18 + 8}px` }}
+                            style={{ ...provided.draggableProps.style, paddingLeft: `${item.level * (isMobile ? 10 : 18) + 8}px` }}
                           >
                             <div {...provided.dragHandleProps} className="cursor-grab active:cursor-grabbing flex-shrink-0">
                               <GripVertical className="w-3 h-3 text-muted-foreground/30" />
@@ -346,12 +348,12 @@ export function PlanoDeContasSection() {
                             <button onClick={() => toggleCollapse(node.id)} className="w-4 h-4 flex items-center justify-center flex-shrink-0">
                               {hasChildren ? (isCollapsed ? <ChevronRight className="w-3 h-3 text-muted-foreground" /> : <ChevronDown className="w-3 h-3 text-muted-foreground" />) : <div className="w-1 h-1 rounded-full bg-muted-foreground/25" />}
                             </button>
-                            <Icon className="w-3 h-3 text-muted-foreground/60 flex-shrink-0" />
-                            <span className="text-[10px] font-mono text-muted-foreground flex-shrink-0 min-w-[2rem]">{item.number}</span>
-                            <span className="text-xs font-medium text-foreground flex-1 truncate">{node.nome}</span>
-                            <Badge variant="outline" className={`text-[9px] px-1 py-0 leading-4 ${tipoColors[node.tipo]}`}>{tipoLabels[node.tipo]}</Badge>
+                            <Icon className="w-3 h-3 text-muted-foreground/60 flex-shrink-0 hidden sm:block" />
+                            <span className="text-[10px] font-mono text-muted-foreground flex-shrink-0 min-w-[1.75rem] sm:min-w-[2rem]">{item.number}</span>
+                            <span className="text-xs font-medium text-foreground flex-1 min-w-0 truncate">{node.nome}</span>
+                            <Badge variant="outline" className={`text-[9px] px-1 py-0 leading-4 shrink-0 hidden sm:inline-flex ${tipoColors[node.tipo]}`}>{tipoLabels[node.tipo]}</Badge>
                             {!!node.origem_socio_id && (
-                              <Badge variant="outline" className="text-[9px] px-1 py-0 leading-4 bg-muted/50 text-muted-foreground border-border" title="Sincronizado automaticamente do Quadro Societário">
+                              <Badge variant="outline" className="text-[9px] px-1 py-0 leading-4 bg-muted/50 text-muted-foreground border-border shrink-0" title="Sincronizado automaticamente do Quadro Societário">
                                 Sócio
                               </Badge>
                             )}
@@ -361,7 +363,7 @@ export function PlanoDeContasSection() {
                               return (
                                 <DropdownMenu>
                                   <DropdownMenuTrigger asChild>
-                                    <Button variant="ghost" size="icon" className="h-5 w-5 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                                       <ChevronDown className="w-3 h-3" />
                                     </Button>
                                   </DropdownMenuTrigger>
