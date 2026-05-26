@@ -289,7 +289,7 @@ export default function DREMensalView() {
                             ) : (
                               <span className="w-3.5 flex-shrink-0" />
                             )}
-                            <span className={cn("text-xs", labelColor, line.categoryId && !isIndicator && "hover:text-primary transition-colors")}>{line.label}</span>
+                            <span className={cn("text-[11px] md:text-xs whitespace-nowrap overflow-hidden text-ellipsis", labelColor, line.categoryId && !isIndicator && "hover:text-primary transition-colors")}>{line.label}</span>
                           </div>
                         </td>
                         {pagedMonths.map((m) => {
