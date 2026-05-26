@@ -29,9 +29,12 @@ const fmtDate = (d: string | null) =>
 export function CartoesCreditoSection({
   readOnly = false,
   hideOpenFinanceButton = false,
+  bare = false,
 }: {
   readOnly?: boolean;
   hideOpenFinanceButton?: boolean;
+  /** When true, renders only the list rows (no Card wrapper, no header). */
+  bare?: boolean;
 }) {
   const { user } = useAuth();
   const { empresa } = useEmpresa();
