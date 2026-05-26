@@ -113,6 +113,7 @@ function buildTree(items: Categoria[]): Categoria[] {
 }
 
 export function PlanoDeContasSection() {
+  const isMobile = useIsMobile();
   const { user } = useAuth();
   const { empresa } = useEmpresa();
   const qc = useQueryClient();
