@@ -394,7 +394,7 @@ serve(async (req) => {
         .update({
           nome: parsed.data.nome,
           nivel_permissao_id: nivelPermissaoId,
-          empresa_id: callerEmpresaId,
+          empresa_id: targetEmpresaId,
         })
         .eq("user_id", newUser.user.id);
 
