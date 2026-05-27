@@ -108,6 +108,13 @@ export default function FinanceiroDashboard() {
     enabled: !!user && !!targetUserId,
   });
 
+  // Última sincronização agregada (mais recente entre todas as conexões Pluggy)
+  const latestSyncAt = useMemo(() => {
+    const stamps = connections.map((c) => c.last_sync_at).filter(Boolean) as string[];
+    if (stamps.length === 0) return null;
+    return stamps.sort().reverse()[0];
+  }, [connections]);
+
   // ── Pluggy investments (real source of truth) ──
   const { data: pluggyInvestmentsTotal = 0 } = useQuery({
     queryKey: ["pluggy_investments_total", targetUserId],
@@ -836,14 +843,7 @@ export default function FinanceiroDashboard() {
 
   const hasPluggyData = accounts.length > 0;
 
-  // Última sincronização agregada (mais recente entre todas as conexões Pluggy)
   // Status: "connected" se ao menos 1 OK; senão usa o pior status para alertar reconexão
-  const latestSyncAt = useMemo(() => {
-    const stamps = connections.map((c) => c.last_sync_at).filter(Boolean) as string[];
-    if (stamps.length === 0) return null;
-    return stamps.sort().reverse()[0];
-  }, [connections]);
-
   const aggregatedSyncStatus = useMemo(() => {
     if (connections.length === 0) return null;
     const hasConnected = connections.some((c) => c.status === "connected" || c.status === "updating");
