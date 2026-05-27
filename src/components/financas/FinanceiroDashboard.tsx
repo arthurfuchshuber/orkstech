@@ -446,7 +446,7 @@ export default function FinanceiroDashboard() {
 
   useEffect(() => {
     const activeConnections = connections.filter((c) => c.status !== "disabled" && c.pluggy_item_id);
-    const attemptKey = `${targetUserId || ""}:${activeConnections.map((c) => c.pluggy_item_id).sort().join("|")}:${latestSyncAt || "never"}`;
+    const attemptKey = `${targetUserId || ""}:${activeConnections.map((c) => c.pluggy_item_id).sort().join("|")}`;
     if (!creditBillNeedsFreshSync || !targetUserId || activeConnections.length === 0 || autoSyncAttemptKey === attemptKey) return;
 
     let cancelled = false;
