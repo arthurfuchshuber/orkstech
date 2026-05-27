@@ -432,7 +432,7 @@ export default function FinanceiroDashboard() {
   const totalCreditLimit = creditCards.reduce((sum, c) => sum + getCreditLimit(c), 0);
 
   const creditBillNeedsFreshSync = useMemo(() => {
-    if (connections.length === 0 || creditCards.length === 0 || autoSyncing) return false;
+    if (connections.length === 0 || creditCards.length === 0) return false;
     const hasMissingBillData = creditCards.some((card) => {
       const bankData = card.bank_data as any;
       const hasBillPayload = bankData?.hasBillData === true || bankData?.hasOpenBillCalc === true;
@@ -441,7 +441,7 @@ export default function FinanceiroDashboard() {
     if (!hasMissingBillData) return false;
     if (!latestSyncAt) return true;
     return Date.now() - new Date(latestSyncAt).getTime() > 10 * 60_000;
-  }, [autoSyncing, connections.length, creditCards, latestSyncAt]);
+  }, [connections.length, creditCards, latestSyncAt]);
 
   useEffect(() => {
     const activeConnections = connections.filter((c) => c.status !== "disabled" && c.pluggy_item_id);
