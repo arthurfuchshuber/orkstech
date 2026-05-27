@@ -433,14 +433,15 @@ export default function FinanceiroDashboard() {
 
   const creditBillNeedsFreshSync = useMemo(() => {
     if (connections.length === 0 || creditCards.length === 0) return false;
+    if (!latestSyncAt) return true;
+    const syncIsStale = Date.now() - new Date(latestSyncAt).getTime() > 10 * 60_000;
+    if (syncIsStale) return true;
     const hasMissingBillData = creditCards.some((card) => {
       const bankData = card.bank_data as any;
       const hasBillPayload = bankData?.hasBillData === true || bankData?.hasOpenBillCalc === true;
       return !hasBillPayload || card.credit_bill_amount == null || bankData?.openBillAmount == null;
     });
-    if (!hasMissingBillData) return false;
-    if (!latestSyncAt) return true;
-    return Date.now() - new Date(latestSyncAt).getTime() > 10 * 60_000;
+    return hasMissingBillData;
   }, [connections.length, creditCards, latestSyncAt]);
 
   useEffect(() => {
