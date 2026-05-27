@@ -423,6 +423,18 @@ export default function FinanceiroDashboard() {
     : null;
   const totalCreditLimit = creditCards.reduce((sum, c) => sum + getCreditLimit(c), 0);
 
+  const creditBillNeedsFreshSync = useMemo(() => {
+    if (connections.length === 0 || creditCards.length === 0 || autoSyncing) return false;
+    const hasMissingBillData = creditCards.some((card) => {
+      const bankData = card.bank_data as any;
+      const hasBillPayload = bankData?.hasBillData === true || bankData?.hasOpenBillCalc === true;
+      return !hasBillPayload || card.credit_bill_amount == null || bankData?.openBillAmount == null;
+    });
+    if (!hasMissingBillData) return false;
+    if (!latestSyncAt) return true;
+    return Date.now() - new Date(latestSyncAt).getTime() > 10 * 60_000;
+  }, [autoSyncing, connections.length, creditCards, latestSyncAt]);
+
   // ── Cheque Especial (overdraft) — Pluggy + ajustes manuais ──
   const totalOverdraftLimit = bankAccounts.reduce(
     (s, a) => s + Number(a.bank_data?.overdraftContractedLimit ?? 0),
