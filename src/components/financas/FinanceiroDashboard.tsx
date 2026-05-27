@@ -79,6 +79,7 @@ export default function FinanceiroDashboard() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [autoSyncing, setAutoSyncing] = useState(false);
+  const [autoSyncAttemptKey, setAutoSyncAttemptKey] = useState<string | null>(null);
 
   // ── Pluggy accounts ──
   const { data: accounts = [] } = useQuery({
