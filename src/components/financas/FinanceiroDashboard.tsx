@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useEmpresa } from "@/hooks/useEmpresa";
@@ -35,6 +35,7 @@ import { TransferenciaContasDialog } from "./TransferenciaContasDialog";
 import { VincularCardFinanceiroDialog, type CardVinculoTipo } from "./VincularCardFinanceiroDialog";
 import { Button } from "@/components/ui/button";
 import { ArrowRightLeft } from "lucide-react";
+import { refreshQueries } from "@/lib/query-refresh";
 
 interface BankAccount {
   id: string;
@@ -76,6 +77,8 @@ export default function FinanceiroDashboard() {
   const empresaId = empresa?.id;
   const targetUserId = empresa?.user_id ?? user?.id;
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const [autoSyncing, setAutoSyncing] = useState(false);
 
   // ── Pluggy accounts ──
   const { data: accounts = [] } = useQuery({
