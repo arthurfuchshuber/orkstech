@@ -27,6 +27,7 @@ interface KpiProps {
   syncStatus?: string | null;
   /** True se existe ao menos uma conexão Pluggy ativa */
   hasPluggy?: boolean;
+  isAutoSyncing?: boolean;
 }
 
 export function CaixaKpis({
@@ -43,6 +44,7 @@ export function CaixaKpis({
   lastSyncAt,
   syncStatus,
   hasPluggy,
+  isAutoSyncing = false,
 }: KpiProps) {
   const utilizacao = totalCreditLimit > 0 ? ((totalCreditLimit - totalCreditAvailable) / totalCreditLimit) * 100 : 0;
   const odUtilizacao = totalOverdraftLimit > 0 ? (totalOverdraftUsed / totalOverdraftLimit) * 100 : 0;
@@ -116,7 +118,10 @@ export function CaixaKpis({
   return (
     <div className="space-y-2">
       {hasPluggy && (
-        <div className="flex items-center justify-end px-1 min-h-[16px]">
+        <div className="flex items-center justify-end gap-2 px-1 min-h-[16px]">
+          {isAutoSyncing && (
+            <span className="text-[10px] font-medium text-muted-foreground">Atualizando dados…</span>
+          )}
           <PluggyLastSyncBadge lastSyncAt={lastSyncAt} status={syncStatus} />
         </div>
       )}

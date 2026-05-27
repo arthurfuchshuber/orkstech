@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useEmpresa } from "@/hooks/useEmpresa";
@@ -35,6 +35,7 @@ import { TransferenciaContasDialog } from "./TransferenciaContasDialog";
 import { VincularCardFinanceiroDialog, type CardVinculoTipo } from "./VincularCardFinanceiroDialog";
 import { Button } from "@/components/ui/button";
 import { ArrowRightLeft } from "lucide-react";
+import { refreshQueries } from "@/lib/query-refresh";
 
 interface BankAccount {
   id: string;
@@ -76,6 +77,9 @@ export default function FinanceiroDashboard() {
   const empresaId = empresa?.id;
   const targetUserId = empresa?.user_id ?? user?.id;
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const [autoSyncing, setAutoSyncing] = useState(false);
+  const [autoSyncAttemptKey, setAutoSyncAttemptKey] = useState<string | null>(null);
 
   // ── Pluggy accounts ──
   const { data: accounts = [] } = useQuery({
@@ -104,6 +108,13 @@ export default function FinanceiroDashboard() {
     },
     enabled: !!user && !!targetUserId,
   });
+
+  // Última sincronização agregada (mais recente entre todas as conexões Pluggy)
+  const latestSyncAt = useMemo(() => {
+    const stamps = connections.map((c) => c.last_sync_at).filter(Boolean) as string[];
+    if (stamps.length === 0) return null;
+    return stamps.sort().reverse()[0];
+  }, [connections]);
 
   // ── Pluggy investments (real source of truth) ──
   const { data: pluggyInvestmentsTotal = 0 } = useQuery({
@@ -419,6 +430,67 @@ export default function FinanceiroDashboard() {
     ? nextMonthValues.reduce((sum: number, v) => sum + (v ?? 0), 0)
     : null;
   const totalCreditLimit = creditCards.reduce((sum, c) => sum + getCreditLimit(c), 0);
+
+  const creditBillNeedsFreshSync = useMemo(() => {
+    if (connections.length === 0 || creditCards.length === 0) return false;
+    if (!latestSyncAt) return true;
+    const syncIsStale = Date.now() - new Date(latestSyncAt).getTime() > 10 * 60_000;
+    if (syncIsStale) return true;
+    const hasMissingBillData = creditCards.some((card) => {
+      const bankData = card.bank_data as any;
+      const hasBillPayload = bankData?.hasBillData === true || bankData?.hasOpenBillCalc === true;
+      return !hasBillPayload || card.credit_bill_amount == null || bankData?.openBillAmount == null;
+    });
+    return hasMissingBillData;
+  }, [connections.length, creditCards, latestSyncAt]);
+
+  useEffect(() => {
+    const activeConnections = connections.filter((c) => c.status !== "disabled" && c.pluggy_item_id);
+    const attemptKey = `${targetUserId || ""}:${activeConnections.map((c) => c.pluggy_item_id).sort().join("|")}`;
+    if (!creditBillNeedsFreshSync || !targetUserId || activeConnections.length === 0 || autoSyncAttemptKey === attemptKey) return;
+
+    let cancelled = false;
+    setAutoSyncAttemptKey(attemptKey);
+    setAutoSyncing(true);
+
+    const sync = async () => {
+      try {
+        const session = await supabase.auth.getSession();
+        const token = session.data.session?.access_token;
+        const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+        if (!token || !projectId) return;
+
+        await Promise.allSettled(
+          activeConnections.map((connection) =>
+            fetch(
+              `https://${projectId}.supabase.co/functions/v1/pluggy-sync?itemId=${connection.pluggy_item_id}&action=full_sync`,
+              { headers: { Authorization: `Bearer ${token}` } }
+            )
+          )
+        );
+
+        if (cancelled) return;
+        await refreshQueries(queryClient, [
+          ["pluggy_connections"],
+          ["pluggy_connections_names", targetUserId],
+          ["pluggy_bank_accounts"],
+          ["pluggy_bank_accounts", targetUserId],
+          ["pluggy_transactions"],
+          ["dashboard-tx-history"],
+        ]);
+      } catch (error) {
+        console.error("Auto sync dashboard error:", error);
+      } finally {
+        if (!cancelled) setAutoSyncing(false);
+      }
+    };
+
+    sync();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [autoSyncAttemptKey, connections, creditBillNeedsFreshSync, latestSyncAt, queryClient, targetUserId]);
 
   // ── Cheque Especial (overdraft) — Pluggy + ajustes manuais ──
   const totalOverdraftLimit = bankAccounts.reduce(
@@ -821,14 +893,7 @@ export default function FinanceiroDashboard() {
 
   const hasPluggyData = accounts.length > 0;
 
-  // Última sincronização agregada (mais recente entre todas as conexões Pluggy)
   // Status: "connected" se ao menos 1 OK; senão usa o pior status para alertar reconexão
-  const latestSyncAt = useMemo(() => {
-    const stamps = connections.map((c) => c.last_sync_at).filter(Boolean) as string[];
-    if (stamps.length === 0) return null;
-    return stamps.sort().reverse()[0];
-  }, [connections]);
-
   const aggregatedSyncStatus = useMemo(() => {
     if (connections.length === 0) return null;
     const hasConnected = connections.some((c) => c.status === "connected" || c.status === "updating");
@@ -898,6 +963,7 @@ export default function FinanceiroDashboard() {
           lastSyncAt={latestSyncAt}
           syncStatus={aggregatedSyncStatus}
           hasPluggy={hasPluggyData}
+          isAutoSyncing={autoSyncing}
         />
 
         {/* Visualizações */}
