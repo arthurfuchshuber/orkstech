@@ -963,6 +963,7 @@ export default function FinanceiroDashboard() {
           lastSyncAt={latestSyncAt}
           syncStatus={aggregatedSyncStatus}
           hasPluggy={hasPluggyData}
+          isAutoSyncing={autoSyncing}
         />
 
         {/* Visualizações */}
