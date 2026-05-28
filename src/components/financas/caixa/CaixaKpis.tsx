@@ -68,6 +68,8 @@ export function CaixaKpis({
       extra: {
         label: "Caixinhas",
         value: fmt(totalInvestments),
+        variant: "asset",
+        icon: PiggyBank,
       },
     },
     {
