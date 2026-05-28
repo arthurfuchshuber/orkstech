@@ -61,17 +61,14 @@ export function CaixaKpis({
     {
       icon: Landmark,
       label: "Saldo em Contas",
-      flag: "Contas Correntes",
+      flag: "Contas & Caixinhas",
       value: fmt(totalBalance),
       tone: "primary",
       trend: null,
-    },
-    {
-      icon: PiggyBank,
-      label: "Investimentos",
-      flag: "Aplicações",
-      value: fmt(totalInvestments),
-      tone: "emerald",
+      extra: {
+        label: "Caixinhas",
+        value: fmt(totalInvestments),
+      },
     },
     {
       icon: CreditCard,
