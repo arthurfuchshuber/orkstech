@@ -55,7 +55,7 @@ export function CaixaKpis({
     icon: any; label: string; flag: string; value: string;
     sub?: string; subColor?: string; tone: "primary" | "emerald" | "blue" | "amber" | "violet";
     trend?: "up" | "down" | null; ajusteCampo?: AjusteCampo;
-    extra?: { label: string; value: string };
+    extra?: { label: string; value: string; variant?: "debit" | "asset"; icon?: any };
   }> = [
 
     {
@@ -68,6 +68,8 @@ export function CaixaKpis({
       extra: {
         label: "Caixinhas",
         value: fmt(totalInvestments),
+        variant: "asset",
+        icon: PiggyBank,
       },
     },
     {
@@ -158,16 +160,29 @@ export function CaixaKpis({
                 {c.sub && (
                   <p className={cn("text-[10px] sm:text-[11px] mt-1 sm:mt-1.5 truncate", c.subColor || "text-muted-foreground")}>{c.sub}</p>
                 )}
-                {c.extra && (
-                  <div className="mt-3 pt-2.5 border-t border-border/40 flex items-baseline justify-between gap-2">
-                    <span className="text-[10px] sm:text-[11px] uppercase tracking-wider text-muted-foreground font-medium truncate">
-                      {c.extra.label}
-                    </span>
-                    <span className="text-xs sm:text-sm font-semibold text-foreground tabular-nums whitespace-nowrap">
-                      {c.extra.value}
-                    </span>
-                  </div>
-                )}
+                {c.extra && (() => {
+                  const isAsset = c.extra.variant === "asset";
+                  const ExtraIcon = c.extra.icon;
+                  return (
+                    <div className={cn(
+                      "mt-3 pt-2.5 border-t flex items-center justify-between gap-2",
+                      isAsset ? "border-emerald-500/20" : "border-border/40"
+                    )}>
+                      <span className="flex items-center gap-1.5 text-[10px] sm:text-[11px] uppercase tracking-wider font-medium truncate text-muted-foreground">
+                        {ExtraIcon && (
+                          <ExtraIcon className={cn("w-3.5 h-3.5 shrink-0", isAsset ? "text-emerald-400" : "text-muted-foreground")} />
+                        )}
+                        {c.extra.label}
+                      </span>
+                      <span className={cn(
+                        "text-xs sm:text-sm font-semibold tabular-nums whitespace-nowrap",
+                        isAsset ? "text-emerald-400" : "text-foreground"
+                      )}>
+                        {isAsset ? "+ " : ""}{c.extra.value}
+                      </span>
+                    </div>
+                  );
+                })()}
 
                 {c.ajusteCampo === "saldo" && (
                   <div className="mt-2"><DivergenciaBadge delta={divergenciaSaldoTotal} /></div>
