@@ -89,13 +89,17 @@ export function CaixaKpis({
 
     {
       icon: Wallet,
-      label: "Cheque Especial",
-      flag: "Limite Disponível",
+      label: "Limite Disponível",
+      flag: "Cheque Especial",
       value: fmt(totalOverdraftAvailable),
       sub: totalOverdraftLimit > 0
         ? `${odUtilizacao.toFixed(0)}% utilizado de ${fmt(totalOverdraftLimit)}`
         : "Nenhum limite contratado",
       tone: "violet",
+      extra: {
+        label: "Fatura atual parcial",
+        value: fmt(totalOverdraftUsed),
+      },
     },
   ];
 
