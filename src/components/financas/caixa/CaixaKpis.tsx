@@ -55,7 +55,7 @@ export function CaixaKpis({
     icon: any; label: string; flag: string; value: string;
     sub?: string; subColor?: string; tone: "primary" | "emerald" | "blue" | "amber" | "violet";
     trend?: "up" | "down" | null; ajusteCampo?: AjusteCampo;
-    extra?: { label: string; value: string };
+    extra?: { label: string; value: string; variant?: "debit" | "asset"; icon?: any };
   }> = [
 
     {
