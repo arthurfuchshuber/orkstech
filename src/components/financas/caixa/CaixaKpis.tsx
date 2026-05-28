@@ -61,17 +61,14 @@ export function CaixaKpis({
     {
       icon: Landmark,
       label: "Saldo em Contas",
-      flag: "Contas Correntes",
+      flag: "Contas & Caixinhas",
       value: fmt(totalBalance),
       tone: "primary",
       trend: null,
-    },
-    {
-      icon: PiggyBank,
-      label: "Investimentos",
-      flag: "Aplicações",
-      value: fmt(totalInvestments),
-      tone: "emerald",
+      extra: {
+        label: "Caixinhas",
+        value: fmt(totalInvestments),
+      },
     },
     {
       icon: CreditCard,
@@ -129,7 +126,7 @@ export function CaixaKpis({
           <PluggyLastSyncBadge lastSyncAt={lastSyncAt} status={syncStatus} />
         </div>
       )}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
         {cards.map((c) => {
           const Icon = c.icon;
           return (
