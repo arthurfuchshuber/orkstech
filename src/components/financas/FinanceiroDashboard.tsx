@@ -26,6 +26,8 @@ import { useNavigate } from "react-router-dom";
 import { CaixaKpis } from "./caixa/CaixaKpis";
 import { CaixaCharts } from "./caixa/CaixaCharts";
 import { HeroPatrimonio } from "@/components/dashboard/HeroPatrimonio";
+import { HeroContasPagar } from "@/components/dashboard/HeroContasPagar";
+import { cn } from "@/lib/utils";
 import { MonthFlowDetailModal, type MonthFlowItem } from "./caixa/MonthFlowDetailModal";
 import { useOrfaosFinanceiros } from "@/hooks/useOrfaosFinanceiros";
 import { RealocarOrfaosDialog } from "./RealocarOrfaosDialog";
@@ -1012,189 +1014,105 @@ export default function FinanceiroDashboard() {
 
       {/* ═══════════ ABA: Contas a Pagar ═══════════ */}
       <TabsContent value="contas-pagar" className="space-y-4 mt-0">
-        {/* KPIs */}
-        <TooltipProvider delayDuration={150}>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {/* 1. Total em Aberto */}
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button
-                  type="button"
-                  onClick={() => navigate("/app/financas/contas-pagar")}
-                  className="text-left"
-                >
-                  <Card className="border-border/50 hover:border-primary/40 hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer">
-                    <CardContent className="p-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center">
-                          <Receipt className="w-4 h-4 text-primary" />
-                        </div>
-                        <div>
-                          <p className="text-xs text-muted-foreground flex items-center gap-1">
-                            Total em Aberto <Info className="w-2.5 h-2.5 opacity-50" />
-                          </p>
-                          <p className="text-xl font-bold text-foreground tabular-nums">{fmt(totalPendente + totalVencido)}</p>
-                          <span className="text-[10px] text-muted-foreground">{pendentes.length + vencidas.length} título(s)</span>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </button>
-              </TooltipTrigger>
-              <TooltipContent side="bottom" className="max-w-[220px] text-xs">
-                Soma de todas as contas pendentes e vencidas. Clique para abrir Contas a Pagar.
-              </TooltipContent>
-            </Tooltip>
+        {(() => {
+          const totalAberto = totalPendente + totalVencido;
+          const qtdTitulos = pendentes.length + vencidas.length;
+          const totalProx7 = proximasVencer.reduce((s, c) => s + Number(c.amount), 0);
+          const proxVenc = [...(contasPagar ?? [])]
+            .filter((c) => c.status === "pending" || c.status === "overdue")
+            .sort((a, b) => new Date(a.due_date).getTime() - new Date(b.due_date).getTime())[0];
+          const proxLabel = proxVenc
+            ? format(new Date(proxVenc.due_date), "dd/MM/yyyy")
+            : "Sem data";
+          const subtitle = qtdTitulos === 0
+            ? "Nenhum título em aberto"
+            : `${qtdTitulos} título${qtdTitulos > 1 ? "s" : ""} · ${proximasVencer.length} vencendo em 7 dias`;
 
-            {/* 2. Vencendo em 7 Dias */}
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button
-                  type="button"
-                  onClick={() => navigate("/app/financas/contas-pagar")}
-                  className="text-left"
-                >
-                  <Card className="border-border/50 hover:border-warning/40 hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer">
-                    <CardContent className="p-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-lg bg-warning/10 flex items-center justify-center">
-                          <Clock className="w-4 h-4 text-warning" />
-                        </div>
-                        <div>
-                          <p className="text-xs text-muted-foreground flex items-center gap-1">
-                            Vencendo em 7 dias <Info className="w-2.5 h-2.5 opacity-50" />
-                          </p>
-                          <p className="text-xl font-bold text-foreground tabular-nums">{fmt(proximasVencer.reduce((s, c) => s + Number(c.amount), 0))}</p>
-                          <span className="text-[10px] text-muted-foreground">{proximasVencer.length} título(s)</span>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </button>
-              </TooltipTrigger>
-              <TooltipContent side="bottom" className="max-w-[220px] text-xs">
-                Contas com vencimento nos próximos 7 dias. Priorize esses pagamentos.
-              </TooltipContent>
-            </Tooltip>
+          return (
+            <HeroContasPagar
+              totalLabel="Total em aberto"
+              totalValue={totalAberto}
+              subtitle={subtitle}
+              onTotalClick={() => navigate("/app/financas/contas-pagar")}
+              metrics={[
+                {
+                  label: "Vencendo em 7 dias",
+                  value: totalProx7,
+                  sub: `${proximasVencer.length} título(s)`,
+                  tone: totalProx7 > 0 ? "warn" : "dim",
+                  onClick: () => navigate("/app/financas/contas-pagar"),
+                },
+                {
+                  label: "Vencidas",
+                  value: totalVencido,
+                  sub: `${vencidas.length} título(s)`,
+                  tone: totalVencido > 0 ? "neg" : "dim",
+                  onClick: () => navigate("/app/financas/contas-pagar"),
+                },
+                {
+                  label: "Juros / Multa",
+                  value: jurosMultaTotal,
+                  tone: jurosMultaTotal > 0 ? "warn" : "dim",
+                },
+                {
+                  label: "Próx. vencimento",
+                  value: proxLabel,
+                  asText: true,
+                  tone: proxVenc ? "neutral" : "dim",
+                },
+              ]}
+              months={monthlyData}
+            />
+          );
+        })()}
 
-            {/* 3. Juros/Multa */}
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <div>
-                  <Card className="border-border/50 hover:border-border transition-colors">
-                    <CardContent className="p-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-lg bg-warning/10 flex items-center justify-center">
-                          <Receipt className="w-4 h-4 text-warning" />
-                        </div>
-                        <div>
-                          <p className="text-xs text-muted-foreground flex items-center gap-1">
-                            Juros/Multa <Info className="w-2.5 h-2.5 opacity-50" />
-                          </p>
-                          <p className="text-xl font-bold text-foreground tabular-nums">{fmt(jurosMultaTotal)}</p>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
-              </TooltipTrigger>
-              <TooltipContent side="bottom" className="max-w-[220px] text-xs">
-                Total acumulado de juros e multas pagos por atraso em contas já quitadas.
-              </TooltipContent>
-            </Tooltip>
-
-            {/* 4. Vencidas */}
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button
-                  type="button"
-                  onClick={() => navigate("/app/financas/contas-pagar")}
-                  className="text-left"
-                >
-                  <Card className="border-border/50 hover:border-destructive/40 hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer">
-                    <CardContent className="p-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-lg bg-destructive/10 flex items-center justify-center">
-                          <AlertTriangle className="w-4 h-4 text-destructive" />
-                        </div>
-                        <div>
-                          <p className="text-xs text-muted-foreground flex items-center gap-1">
-                            Vencidas <Info className="w-2.5 h-2.5 opacity-50" />
-                          </p>
-                          <p className="text-xl font-bold text-foreground tabular-nums">{fmt(totalVencido)}</p>
-                          <span className="text-[10px] text-muted-foreground">{vencidas.length} título(s)</span>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </button>
-              </TooltipTrigger>
-              <TooltipContent side="bottom" className="max-w-[220px] text-xs">
-                Contas com prazo expirado. Atenção: podem gerar juros e bloqueios. Clique para revisar.
-              </TooltipContent>
-            </Tooltip>
-          </div>
-        </TooltipProvider>
-
-        {/* Gráfico + Próximas a vencer */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          <Card className="lg:col-span-2 border-border/50">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium flex items-center gap-2">
-                <TrendingUp className="w-4 h-4 text-primary" />
-                Contas a Pagar — Próximos 6 meses + Vencidas (meses anteriores)
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-end gap-3 h-44">
-                {monthlyData.map((m, i) => (
-                  <div key={i} className="flex-1 flex flex-col items-center gap-1">
-                    <span className="text-[10px] text-muted-foreground">{fmt(m.total)}</span>
-                    <div
-                      className={`w-full rounded-t-md transition-all duration-500 ${m.isOverdue ? "bg-destructive/80" : "bg-primary/80"}`}
-                      style={{ height: `${Math.max((m.total / maxMonthly) * 140, 4)}px` }}
-                    />
-                    <span className="text-[11px] text-muted-foreground capitalize">{m.label}</span>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="border-border/50">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium flex items-center gap-2">
-                <Clock className="w-4 h-4 text-warning" />
-                Vencendo em 7 dias
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {proximasVencer.length === 0 ? (
-                <p className="text-xs text-muted-foreground py-4 text-center">Nenhuma conta próxima do vencimento</p>
-              ) : (
-                <div className="space-y-2">
-                  {proximasVencer.map((c) => (
-                    <div key={c.id} className="flex items-center justify-between py-1.5 border-b border-border/30 last:border-0">
-                      <div>
-                        <p className="text-xs text-foreground truncate max-w-[140px]">{(c as any).description || fmt(Number(c.amount))}</p>
+        {/* Próximas a vencer — lista */}
+        <Card className="border-border/50">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <Clock className="w-4 h-4 text-warning" />
+              Vencendo em 7 dias
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {proximasVencer.length === 0 ? (
+              <p className="text-xs text-muted-foreground py-4 text-center">Nenhuma conta próxima do vencimento</p>
+            ) : (
+              <div className="space-y-2">
+                {proximasVencer.map((c) => {
+                  const dias = differenceInDays(new Date(c.due_date), new Date());
+                  const tone = dias <= 2 ? "destructive" : "warning";
+                  return (
+                    <button
+                      key={c.id}
+                      type="button"
+                      onClick={() => navigate("/app/financas/contas-pagar")}
+                      className="w-full flex items-center gap-3 py-2 border-b border-border/30 last:border-0 hover:bg-card/60 transition-colors px-1 rounded"
+                    >
+                      <span className={cn(
+                        "w-2 h-2 rounded-full shrink-0",
+                        tone === "destructive" ? "bg-destructive" : "bg-warning"
+                      )} />
+                      <div className="flex-1 text-left min-w-0">
+                        <p className="text-xs text-foreground truncate">
+                          {(c as any).description || fmt(Number(c.amount))}
+                        </p>
                         <p className="text-[10px] text-muted-foreground">
-                          {format(new Date(c.due_date), "dd/MM/yyyy")}
+                          Vence em {dias}d · {format(new Date(c.due_date), "dd/MM/yyyy")}
                         </p>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-semibold text-foreground">{fmt(Number(c.amount))}</span>
-                        <Badge variant="outline" className="text-[10px] border-warning/30 text-warning">
-                          {differenceInDays(new Date(c.due_date), new Date())}d
-                        </Badge>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
+                      <span className="text-xs font-semibold text-foreground tabular-nums whitespace-nowrap">
+                        {fmt(Number(c.amount))}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </TabsContent>
+
     </Tabs>
     <RealocarOrfaosDialog open={showRealocar} onOpenChange={setShowRealocar} />
     <TransferenciaContasDialog open={showTransferencia} onOpenChange={setShowTransferencia} />
