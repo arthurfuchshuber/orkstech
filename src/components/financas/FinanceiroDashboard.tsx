@@ -26,6 +26,8 @@ import { useNavigate } from "react-router-dom";
 import { CaixaKpis } from "./caixa/CaixaKpis";
 import { CaixaCharts } from "./caixa/CaixaCharts";
 import { HeroPatrimonio } from "@/components/dashboard/HeroPatrimonio";
+import { HeroContasPagar } from "@/components/dashboard/HeroContasPagar";
+import { cn } from "@/lib/utils";
 import { MonthFlowDetailModal, type MonthFlowItem } from "./caixa/MonthFlowDetailModal";
 import { useOrfaosFinanceiros } from "@/hooks/useOrfaosFinanceiros";
 import { RealocarOrfaosDialog } from "./RealocarOrfaosDialog";
