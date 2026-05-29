@@ -25,6 +25,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { CaixaKpis } from "./caixa/CaixaKpis";
 import { CaixaCharts } from "./caixa/CaixaCharts";
+import { HeroPatrimonio } from "@/components/dashboard/HeroPatrimonio";
 import { MonthFlowDetailModal, type MonthFlowItem } from "./caixa/MonthFlowDetailModal";
 import { useOrfaosFinanceiros } from "@/hooks/useOrfaosFinanceiros";
 import { RealocarOrfaosDialog } from "./RealocarOrfaosDialog";
@@ -947,6 +948,32 @@ export default function FinanceiroDashboard() {
 
       {/* ═══════════ ABA: Caixa da Empresa ═══════════ */}
       <TabsContent value="caixa" className="space-y-4 mt-0">
+
+        {/* HERO — Patrimônio líquido */}
+        {(() => {
+          const lastMonth = flowData[flowData.length - 1];
+          const monthEntradas = lastMonth?.entradas ?? 0;
+          const monthSaidas = lastMonth?.saidas ?? 0;
+          const patrimonio = totalNetWorth - totalCreditBills - totalOverdraftUsed;
+          const deltaAbs =
+            evolutionData.length >= 2
+              ? evolutionData[evolutionData.length - 1].saldo - evolutionData[0].saldo
+              : null;
+          return (
+            <HeroPatrimonio
+              patrimonio={patrimonio}
+              deltaPct={balanceDeltaPct}
+              deltaAbs={deltaAbs}
+              series={evolutionData}
+              metrics={[
+                { label: "Caixinhas", value: totalInvestments, tone: totalInvestments > 0 ? "pos" : "dim" },
+                { label: "Saldo em conta", value: totalBankBalance, tone: totalBankBalance > 0 ? "neutral" : "dim" },
+                { label: `Entradas ${lastMonth?.month ?? "mês"}`, value: monthEntradas, tone: "pos" },
+                { label: `Saídas ${lastMonth?.month ?? "mês"}`, value: monthSaidas, tone: "neg" },
+              ]}
+            />
+          );
+        })()}
 
         {/* KPIs aprimorados */}
         <CaixaKpis
