@@ -954,7 +954,7 @@ export default function FinanceiroDashboard() {
           const lastMonth = flowData[flowData.length - 1];
           const monthEntradas = lastMonth?.entradas ?? 0;
           const monthSaidas = lastMonth?.saidas ?? 0;
-          const patrimonio = totalNetWorth - totalCreditBills - totalOverdraftUsed;
+          const patrimonio = totalNetWorth;
           const deltaAbs =
             evolutionData.length >= 2
               ? evolutionData[evolutionData.length - 1].saldo - evolutionData[0].saldo
