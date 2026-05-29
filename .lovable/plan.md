@@ -1,78 +1,85 @@
-## Direção visual confirmada
-Linear/Vercel ultra clean + hierarquia/espaçamentos premium do Stripe, mantendo o dark mode atual. Navegação híbrida: **bottom tab bar fixa** (Dashboard, Reservas, Financeiro, Operações, Mais) + **gaveta (Sheet)** para sub-níveis e telas administrativas. Sidebar atual continua intacta em desktop (≥ md).
+# Refatoração UX — Início + Financeiro
+
+Refazer a **camada visual** das duas telas seguindo o estilo dos mockups (Linear/Vercel dark, seções verticais com bordas finas `#1a1d27`, cards `#131720` border-radius 14px, números grandes `weight 500`, paletas semânticas success/warn/destructive). **Mantemos todos os dados, hooks e funcionalidades existentes** — só trocamos a apresentação.
 
 ---
 
-## Fase 1 — Shell global (PRIMEIRA ENTREGA)
-**O que muda:** infraestrutura visual presente em 100% das páginas.
+## Página Início (`/app` → `DashboardPrincipal.tsx`)
 
-- **Tokens & utilitários mobile:** adicionar `safe-area-inset` (env safe-area), classes `pb-safe`, `pt-safe`; trocar `h-screen` por `h-dvh` no shell; criar `--header-h-mobile: 56px`, `--bottom-tab-h: 64px`.
-- **AppLayout (`src/components/AppLayout.tsx`):**
-  - `< md`: oculta sidebar permanente; adiciona top header sticky compacto (56px) com logo, busca colapsada (ícone), avatar.
-  - `≥ md`: comportamento atual (sidebar lateral).
-  - Conteúdo recebe `pb-[calc(var(--bottom-tab-h)+env(safe-area-inset-bottom))]` no mobile.
-- **Novo componente `MobileBottomTabBar.tsx`:**
-  - Fixed bottom, blur backdrop, border-top sutil, safe-area-inset-bottom.
-  - 5 slots: Dashboard / Reservas / Financeiro / Operações / Mais.
-  - Indicador ativo (linha superior + label highlight) usando `useLocation`.
-  - Tap target ≥ 56×56, ícones `lucide` 20px.
-- **Novo componente `MobileMenuSheet.tsx`** (acionado por "Mais" e por ícone superior):
-  - Sheet lado direito, full-height, scroll interno, com a árvore completa do menu dinâmico (níveis 2/3), seletor de empresa, link para Configurações, sair.
-- **AppSidebar:** em < md vira inerte (não renderiza), exporta `useSidebarMenu()` que alimenta tanto a sidebar desktop quanto o `MobileMenuSheet`.
-- **CompanySelector:** versão compacta mobile dentro do MobileMenuSheet (não no header).
+Combinando Inicio1 + Inicio2 numa única tela contínua (mobile = stack vertical, desktop = grid 2 colunas a partir de `lg`).
 
-**Validação:** preview mobile (375×812 iPhone SE, 390×844 iPhone 14, 414×896 Pro Max). Zero scroll horizontal, tap targets ≥44px, bottom bar respeita safe area.
+### Seções (na ordem)
 
----
+1. **Greeting hero** — "Boa noite, Arthur" + data por extenso (já existe; refinar tipografia).
+2. **Visão geral** — grid 2×2 de KPIs operacionais (clientes ativos, contratos ativos, fornecedores, contas a pagar). Estilo `.mcard` do mockup: ícone topo, número 22px, label muted. Já temos os dados em `kpis`.
+3. **Requer atenção** — lista de alertas com 3 estados (`danger`, `warn`, `ok`). Puxar de: contas a pagar vencidas (danger), contratos vencendo em ≤15 dias (warn), pendências de categorização (warn). Se vazio, mostra linha "Tudo em dia".
+4. **Saúde da empresa** — score 0-100 calculado de 4 indicadores (clientes ativos, contratos OK, % categorizado, contas em dia) com barras horizontais coloridas. Card único.
+5. **Clientes recentes** — top 3 clientes (avatar com iniciais, nome, sub status, badge). Link "Ver todos" → `/app/clientes`.
+6. **Atividade recente** — timeline vertical (dot + linha) das últimas 5 `notificacoes_sistema`. Já temos os dados em `notifs`.
+7. **Acesso rápido** — grid 2×2/4 de atalhos para módulos permitidos (já existe `shortcuts`). Re-estilizar como `.ac-btn`.
 
-## Fase 2 — Dashboard 360 + KPIs financeiros
-- `FinanceiroDashboard` e `CaixaKpis`: grid 2×N em desktop → stack vertical 1×N em mobile, com KPI cards full-width, tipografia escalando via `text-xs/sm/base` por breakpoint.
-- `KpiHoverCard`: detectar `useIsMobile()` → tap abre Sheet bottom (em vez de Popover hover).
-- Gráficos (Recharts): height adaptativo, eixos com `tickFontSize` menor, tooltip nativo touch-friendly.
-- Filtros do dashboard viram chips horizontais com scroll-snap em mobile.
+### Responsivo
 
-## Fase 3 — Listas grandes (Contas a Pagar, Extrato, Clientes, Fornecedores, Cartões)
-- Padrão único: componente `ResponsiveDataTable` → em desktop renderiza `<table>` atual com % de largura; em < md renderiza lista de `<ListItemCard>` (uma transação/lançamento por card, descrição em destaque, valor à direita, badges abaixo).
-- Ações (ChevronDown dropdown) em mobile → `Sheet` bottom com lista de ações grandes (≥48px).
-- Filtros e busca: sticky abaixo do header, com chips de filtros ativos.
-
-## Fase 4 — Formulários e modais
-- Todos os `Dialog` shadcn com `responsive=true` → vira `Drawer` (vaul) em < md, full-height, handle no topo.
-- Inputs: `h-11` no mobile (44px), font-size ≥16px para evitar zoom no iOS.
-- `ManagedSelect`: dropdown em mobile abre como Sheet com busca sticky no topo.
-- Footers de modal com botões empilhados verticais em < sm, com primário em destaque.
+- Mobile (default): 1 coluna, padding lateral 16px, seções separadas por `border-b border-border/40`.
+- `md`: KPIs viram 4 colunas.
+- `lg`: layout 2 colunas — esquerda (KPIs + Alertas + Saúde), direita (Clientes + Atividade + Acesso rápido).
 
 ---
 
-## Plano técnico (resumo)
+## Página Financeiro (`/app/financas` → `FinanceiroDashboard.tsx`)
 
-```text
-src/
-├── components/
-│   ├── AppLayout.tsx                 [refatorar — shell mobile-first]
-│   ├── AppSidebar.tsx                [extrair hook useSidebarMenu()]
-│   ├── mobile/
-│   │   ├── MobileBottomTabBar.tsx    [NOVO]
-│   │   ├── MobileMenuSheet.tsx       [NOVO]
-│   │   └── MobileTopBar.tsx          [NOVO]
-│   ├── responsive/
-│   │   ├── ResponsiveDataTable.tsx   [Fase 3]
-│   │   ├── ResponsiveDialog.tsx      [Fase 4 — Dialog ↔ Drawer]
-│   │   └── ListItemCard.tsx          [Fase 3]
-│   └── ...
-├── hooks/
-│   └── use-mobile.tsx                [já existe — auditar e padronizar]
-├── index.css                         [safe-area, --bottom-tab-h, --header-h-mobile]
-└── tailwind.config.ts                [garantir h-dvh, safe utilities]
-```
+Combinando Financeiro1 (hero + métricas) + Financeiro2 (gráficos). **Preserva toda lógica de Pluggy, vínculos, transferências, banners e cards de KPI existentes**, só reorganiza a apresentação.
 
-**Mobile breakpoints alvo:** 320 (SE 1ª gen), 360 (Android pequeno), 375 (iPhone SE 3), 390 (iPhone 14), 414 (Pro Max), 768 (iPad mini portrait → ainda mobile shell).
+### Nova estrutura
 
-**Sem mudanças funcionais.** Toda lógica de negócio, RLS, queries e edge functions permanecem intactas. Apenas presentation/layout.
+1. **Banners de sistema** (mantém como está): `IntegrationFailureBanner`, `UncategorizedBanner`, `PendenciasIndicator`, banner de órfãos.
+
+2. **Hero — Patrimônio líquido** (novo, estilo Financeiro1)
+   - Label "Patrimônio líquido" + valor R$ grande (36px) = `totalBankBalance + totalInvestments - totalCreditBills - totalOverdraftUsed`.
+   - Badge variação 90 dias com seta (calculada do `txHistory`).
+   - Sparkline SVG abaixo (90 dias de evolução de saldo).
+
+3. **Métricas resumo 2×2** (estilo `.metrics` Financeiro1) — manter como visão rápida antes dos cards detalhados:
+   - Caixinhas, Saldo em conta, Entradas mês, Saídas mês.
+
+4. **Cards detalhados** (mantém `CaixaKpis` atual com os 3 cards Contas/Cartões/Cheque especial — já está bem desenhado e contém AjusteContaTrigger). Apenas reduz protagonismo (vem depois do hero).
+
+5. **Fluxo mensal** (novo, estilo Financeiro2) — gráfico de barras dual (entradas verde / saídas vermelho) últimos 6 meses + card "Resultado do mês" abaixo. Dados de `txHistory + manualTx`. Substitui parte do `CaixaCharts` atual.
+
+6. **Distribuição por banco** (novo, estilo Financeiro2) — donut + legenda com valor/% por conta. Dados de `bankAccounts + manualAccounts`.
+
+7. **Evolução do patrimônio — 90 dias** (novo) — line chart com grid + labels eixo. Reusa série do sparkline do hero em maior tamanho.
+
+8. **Contas a Pagar** (mantém `CartõesCreditoSection`/seções existentes se houver) — reordenado para o final.
+
+### Responsivo
+
+- Mobile: 1 coluna, hero full-width.
+- `md`: métricas 4 colunas.
+- `lg`: 2 colunas — esquerda (Hero + Métricas + CaixaKpis), direita (Fluxo mensal + Distribuição banco + Evolução).
+- `xl`: 3 colunas para os gráficos.
 
 ---
 
-## Próximo passo
-Se aprovado, começo executando **apenas a Fase 1 (Shell global)** e te mostro o resultado em mobile antes de avançar para a Fase 2. Cada fase será uma entrega validável.
+## Implementação técnica
 
-Posso seguir?
+- **Sem mudanças no schema** nem em hooks de dados — só refatoração de componentes de apresentação.
+- Tokens semânticos do `index.css` (success, warning, destructive, muted, card, border) — nunca cores hex direto.
+- Cores do mockup serão mapeadas: `#34c97a` → `text-success`, `#e24b4a` → `text-destructive`, `#ef9f27` → `text-warning`, `#5aabf7` → `text-primary`, `#131720` → `bg-card`, `#1a1d27` → `border-border/40`.
+- Gráficos SVG inline (sparkline, barras, donut, line) ou usando `recharts` já no projeto — escolho SVG inline para os pequenos (sparkline, donut) e `recharts` para o de barras 6 meses (reusando `CaixaCharts`).
+- Novos componentes:
+  - `src/components/dashboard/HeroPatrimonio.tsx`
+  - `src/components/dashboard/FluxoMensalChart.tsx` (refatora o existente)
+  - `src/components/dashboard/DistribuicaoBancoDonut.tsx`
+  - `src/components/dashboard/EvolucaoPatrimonioChart.tsx`
+  - `src/components/dashboard/AlertasRequerAtencao.tsx`
+  - `src/components/dashboard/SaudeEmpresaCard.tsx`
+  - `src/components/dashboard/ClientesRecentesList.tsx`
+  - `src/components/dashboard/AtividadeRecenteTimeline.tsx`
+- `DashboardPrincipal.tsx` e `FinanceiroDashboard.tsx` viram orquestradores enxutos.
+
+## Fora do escopo
+
+- Não mexe na sidebar, navbar mobile, ou rotas.
+- Não mexe na lógica de Pluggy, sincronização, transferências ou vínculos.
+- Não cria novas tabelas, edge functions ou migrations.
