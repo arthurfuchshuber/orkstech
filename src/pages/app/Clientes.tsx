@@ -411,38 +411,38 @@ export default function Clientes() {
         }
       />
 
-      {/* Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <Card className="p-4 border-border/50 shadow-sm">
+      {/* Stats — mobile: 2 colunas estilo mockup (Total | Por tipo PJ/PF) */}
+      <div className="grid grid-cols-2 gap-px bg-border/40 rounded-xl overflow-hidden border border-border/40 md:gap-4 md:bg-transparent md:border-0 md:rounded-none">
+        <Card className="rounded-none md:rounded-xl p-4 border-0 md:border-border/50 shadow-none md:shadow-sm bg-card">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Total Ativos</span>
-            <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+            <span className="text-[11px] md:text-xs font-medium text-muted-foreground uppercase tracking-wider">Total ativos</span>
+            <div className="hidden md:flex w-8 h-8 rounded-lg bg-primary/10 items-center justify-center">
               <Users className="w-3.5 h-3.5 text-primary" />
             </div>
           </div>
-          <div className="text-2xl font-bold text-foreground">{totalAtivos}</div>
+          <div className="text-2xl md:text-2xl font-semibold text-foreground tabular-nums">{totalAtivos}</div>
         </Card>
-        <Card className="p-4 border-border/50 shadow-sm">
+        <Card className="rounded-none md:rounded-xl p-4 border-0 md:border-border/50 shadow-none md:shadow-sm bg-card">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Por Tipo</span>
+            <span className="text-[11px] md:text-xs font-medium text-muted-foreground uppercase tracking-wider">Por tipo</span>
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="flex items-end gap-5 md:gap-3 md:grid md:grid-cols-2">
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+              <div className="hidden md:flex w-8 h-8 rounded-lg bg-primary/10 items-center justify-center shrink-0">
                 <Building2 className="w-3.5 h-3.5 text-primary" />
               </div>
               <div className="min-w-0">
                 <div className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">PJ</div>
-                <div className="text-xl font-bold text-foreground leading-tight">{totalPJ}</div>
+                <div className={`text-xl font-semibold leading-tight tabular-nums ${totalPJ === 0 ? "text-muted-foreground/40" : "text-foreground"}`}>{totalPJ}</div>
               </div>
             </div>
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+              <div className="hidden md:flex w-8 h-8 rounded-lg bg-primary/10 items-center justify-center shrink-0">
                 <UserRound className="w-3.5 h-3.5 text-primary" />
               </div>
               <div className="min-w-0">
                 <div className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">PF</div>
-                <div className="text-xl font-bold text-foreground leading-tight">{totalPF}</div>
+                <div className={`text-xl font-semibold leading-tight tabular-nums ${totalPF === 0 ? "text-muted-foreground/40" : "text-foreground"}`}>{totalPF}</div>
               </div>
             </div>
           </div>
@@ -518,8 +518,55 @@ export default function Clientes() {
         </Popover>
       </div>
 
-      {/* Table */}
-      <Card className="border-border/50 shadow-sm overflow-hidden">
+      {/* Mobile list (cards estilo mockup Clientes01) */}
+      <div className="md:hidden">
+        {isLoading ? (
+          <div className="py-12 text-center"><Loader2 className="w-5 h-5 animate-spin mx-auto text-muted-foreground" /></div>
+        ) : filtered.length === 0 ? (
+          <div className="py-12 text-center flex flex-col items-center gap-2">
+            <Users className="w-8 h-8 text-muted-foreground/30" />
+            <p className="text-sm text-muted-foreground">
+              {search || hasFilters ? "Nenhum cliente encontrado" : "Nenhum cliente cadastrado"}
+            </p>
+          </div>
+        ) : (
+          <div className="flex flex-col gap-px rounded-xl overflow-hidden border border-border/40 bg-border/40">
+            {filtered.map((c) => {
+              const nome = (c.tipo === "pf" ? c.nome_completo : (c.nome_fantasia || c.razao_social)) || "—";
+              const initial = nome.charAt(0).toUpperCase();
+              return (
+                <button
+                  key={c.id}
+                  onClick={() => navigate(`/app/clientes/${c.id}`)}
+                  className="w-full text-left bg-card px-4 py-3.5 flex items-center gap-3 active:bg-muted/40 transition-colors tap-target"
+                >
+                  <div className="w-9 h-9 rounded-full bg-primary/10 text-primary flex items-center justify-center text-sm font-semibold shrink-0">
+                    {initial}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-medium text-foreground truncate">{nome}</div>
+                    <div className="text-[11px] text-muted-foreground mt-0.5 truncate">
+                      {c.tipo === "pf" ? "PF" : "PJ"} · {formatDoc(c.tipo, c.cpf, c.cnpj)}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <Badge
+                      variant="outline"
+                      className={`text-[10px] px-2 py-0.5 whitespace-nowrap ${c.ativo ? "border-emerald-500/30 text-emerald-400 bg-emerald-500/10" : "border-border text-muted-foreground"}`}
+                    >
+                      {c.ativo ? "Ativo" : "Inativo"}
+                    </Badge>
+                    <ChevronDown className="w-4 h-4 -rotate-90 text-muted-foreground/50" />
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* Desktop Table */}
+      <Card className="hidden md:block border-border/50 shadow-sm overflow-hidden">
         <Table className="w-full">
           <TableHeader>
             <TableRow className="hover:bg-transparent border-border/30">
