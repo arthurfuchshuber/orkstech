@@ -845,45 +845,48 @@ export default function ExtratoBancario() {
       <Card className="p-4">
         <div className="flex flex-wrap items-center gap-3">
 
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button variant="outline" className={cn("w-[150px] justify-start text-left font-normal text-sm", allPeriod && "opacity-50")}>
-                <CalendarIcon className="mr-2 h-3.5 w-3.5" />
-                {allPeriod ? "Início" : format(dateFrom, "dd/MM/yyyy")}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
-              <Calendar
-                mode="single"
-                selected={dateFrom}
-                onSelect={(d) => { if (d) { setAllPeriod(false); setDateFrom(d); } }}
-                locale={ptBR}
-                initialFocus
-                className={cn("p-3 pointer-events-auto")}
-              />
-            </PopoverContent>
-          </Popover>
+          <div className="flex w-full md:w-auto items-center gap-2">
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" className={cn("flex-1 md:w-[150px] md:flex-none justify-start text-left font-normal text-sm", allPeriod && "opacity-50")}>
+                  <CalendarIcon className="mr-2 h-3.5 w-3.5" />
+                  {allPeriod ? "Início" : format(dateFrom, "dd/MM/yyyy")}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={dateFrom}
+                  onSelect={(d) => { if (d) { setAllPeriod(false); setDateFrom(d); } }}
+                  locale={ptBR}
+                  initialFocus
+                  className={cn("p-3 pointer-events-auto")}
+                />
+              </PopoverContent>
+            </Popover>
 
-          <span className="text-sm text-muted-foreground">até</span>
+            <span className="text-sm text-muted-foreground">até</span>
 
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button variant="outline" className={cn("w-[150px] justify-start text-left font-normal text-sm", allPeriod && "opacity-50")}>
-                <CalendarIcon className="mr-2 h-3.5 w-3.5" />
-                {allPeriod ? "Hoje" : format(dateTo, "dd/MM/yyyy")}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
-              <Calendar
-                mode="single"
-                selected={dateTo}
-                onSelect={(d) => { if (d) { setAllPeriod(false); setDateTo(d); } }}
-                locale={ptBR}
-                initialFocus
-                className={cn("p-3 pointer-events-auto")}
-              />
-            </PopoverContent>
-          </Popover>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" className={cn("flex-1 md:w-[150px] md:flex-none justify-start text-left font-normal text-sm", allPeriod && "opacity-50")}>
+                  <CalendarIcon className="mr-2 h-3.5 w-3.5" />
+                  {allPeriod ? "Hoje" : format(dateTo, "dd/MM/yyyy")}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={dateTo}
+                  onSelect={(d) => { if (d) { setAllPeriod(false); setDateTo(d); } }}
+                  locale={ptBR}
+                  initialFocus
+                  className={cn("p-3 pointer-events-auto")}
+                />
+              </PopoverContent>
+            </Popover>
+          </div>
+
 
           <div className="flex gap-2 w-full overflow-x-auto md:w-auto md:overflow-visible md:flex-wrap -mx-1 px-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             <Button
