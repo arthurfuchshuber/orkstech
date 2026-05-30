@@ -40,6 +40,7 @@ export function HeroContasPagar({
   metrics,
   months,
   onTotalClick,
+  overdue,
 }: Props) {
   const max = Math.max(...months.map((m) => m.total), 1);
   const toneText: Record<Tone, string> = {
