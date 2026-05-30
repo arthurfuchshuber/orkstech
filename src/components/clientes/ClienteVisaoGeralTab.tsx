@@ -725,22 +725,29 @@ export function ClienteVisaoGeralTab({ cliente, onEdit: _onEdit }: Props) {
       )}
 
       {/* Timeline header */}
-      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+      <div className="flex items-center justify-between gap-2">
         <h3 className="text-base font-bold text-foreground">Linha do Tempo</h3>
-        <div className="flex items-center gap-2 w-full md:w-auto">
+        <div className="flex items-center gap-1.5 shrink-0">
           <Button
             size="sm"
             variant="outline"
-            className="gap-2 rounded-lg flex-1 md:flex-none"
+            className="gap-1.5 rounded-lg h-8 px-2.5 text-xs md:h-9 md:px-3 md:text-sm"
             onClick={() => setShowForm(!showForm)}
           >
-            <Plus className="w-4 h-4" /> <span className="truncate">Adicionar Atividade</span>
+            <Plus className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Adicionar Atividade</span>
+            <span className="sm:hidden">Atividade</span>
           </Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button size="sm" className="gap-2 rounded-lg shadow-sm flex-1 md:flex-none">
-                <Receipt className="w-4 h-4" /> <span className="truncate">Gerar Conta a Receber</span>
-                <ChevronDown className="w-3.5 h-3.5 opacity-70 shrink-0" />
+              <Button
+                size="sm"
+                className="gap-1.5 rounded-lg shadow-sm h-8 px-2.5 text-xs md:h-9 md:px-3 md:text-sm"
+              >
+                <Receipt className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Gerar Conta a Receber</span>
+                <span className="sm:hidden">Cobrar</span>
+                <ChevronDown className="w-3 h-3 opacity-70 shrink-0" />
               </Button>
             </DropdownMenuTrigger>
 
@@ -779,6 +786,7 @@ export function ClienteVisaoGeralTab({ cliente, onEdit: _onEdit }: Props) {
           </DropdownMenu>
         </div>
       </div>
+
 
       {/* New activity form */}
       {showForm && (
