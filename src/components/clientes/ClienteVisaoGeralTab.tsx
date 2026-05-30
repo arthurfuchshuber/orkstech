@@ -154,6 +154,32 @@ export function ClienteVisaoGeralTab({ cliente, onEdit: _onEdit }: Props) {
     },
   });
 
+  const timelineInteracoes = useMemo(() => {
+    const kept: typeof interacoes = [];
+    const normalize = (value?: string | null) => (value || "").replace(/\s+/g, " ").trim().toLowerCase();
+
+    interacoes.forEach((item) => {
+      const isAutoFinancial = item.tipo === "Financeiro" && item.usuario_nome === "Sistema";
+      if (!isAutoFinancial) {
+        kept.push(item);
+        return;
+      }
+
+      const itemTime = new Date(item.created_at).getTime();
+      const itemDescription = normalize(item.descricao);
+      const alreadyShown = kept.some((shown) => {
+        if (shown.tipo !== item.tipo || shown.usuario_nome !== item.usuario_nome) return false;
+        if (normalize(shown.descricao) !== itemDescription) return false;
+        const shownTime = new Date(shown.created_at).getTime();
+        return Number.isFinite(itemTime) && Number.isFinite(shownTime) && Math.abs(shownTime - itemTime) <= 120_000;
+      });
+
+      if (!alreadyShown) kept.push(item);
+    });
+
+    return kept;
+  }, [interacoes]);
+
   // Realtime: refresh timeline whenever any module writes to cliente_interacoes / cliente_documentos for this client
   useEffect(() => {
     const channel = supabase
@@ -179,7 +205,7 @@ export function ClienteVisaoGeralTab({ cliente, onEdit: _onEdit }: Props) {
   }, [cliente.id, queryClient]);
 
   // Fetch docs linked to interações for display
-  const interacaoIds = interacoes.map((i) => i.id);
+  const interacaoIds = timelineInteracoes.map((i) => i.id);
   const { data: interacaoDocs = [] } = useQuery({
     queryKey: ["cliente-interacao-docs", cliente.id, interacaoIds],
     queryFn: async () => {
@@ -370,10 +396,10 @@ export function ClienteVisaoGeralTab({ cliente, onEdit: _onEdit }: Props) {
     },
     receber: macro.receber,
     pagar: macro.pagar,
-    interacoes_total: interacoes.length,
-    ultima_interacao: interacoes[0]?.created_at || null,
-    ultimos_tipos: interacoes.slice(0, 5).map((i) => i.tipo),
-  }), [cliente, macro, interacoes]);
+    interacoes_total: timelineInteracoes.length,
+    ultima_interacao: timelineInteracoes[0]?.created_at || null,
+    ultimos_tipos: timelineInteracoes.slice(0, 5).map((i) => i.tipo),
+  }), [cliente, macro, timelineInteracoes]);
 
   const fingerprint = useMemo(() => JSON.stringify({
     id: cliente.id,
@@ -383,9 +409,9 @@ export function ClienteVisaoGeralTab({ cliente, onEdit: _onEdit }: Props) {
     rP: macro.receber.paidCount,
     pO: macro.pagar.overdueCount,
     pD: macro.pagar.dueSoonCount,
-    iT: interacoes.length,
-    iL: interacoes[0]?.created_at || "",
-  }), [cliente.id, cliente.ativo, macro, interacoes]);
+    iT: timelineInteracoes.length,
+    iL: timelineInteracoes[0]?.created_at || "",
+  }), [cliente.id, cliente.ativo, macro, timelineInteracoes]);
 
   const { data: aiData, isLoading: aiLoading, isError: aiError } = useQuery({
     queryKey: ["cliente-ai-summary", fingerprint],
@@ -400,17 +426,36 @@ export function ClienteVisaoGeralTab({ cliente, onEdit: _onEdit }: Props) {
     retry: 1,
   });
 
-  const toneStyles: Record<string, string> = {
-    danger: "text-destructive",
-    warn: "text-amber-400",
-    ok: "text-emerald-400",
-    info: "text-muted-foreground",
+  const toneConfig: Record<string, { bar: string; heading: string; label: string }> = {
+    danger: { bar: "bg-destructive", heading: "text-destructive", label: "Risco" },
+    warn: { bar: "bg-warning", heading: "text-warning", label: "Atenção" },
+    ok: { bar: "bg-success", heading: "text-success", label: "Oportunidade" },
+    info: { bar: "bg-primary", heading: "text-primary", label: "Sinal" },
   };
-  const toneDot: Record<string, string> = {
-    danger: "bg-destructive",
-    warn: "bg-amber-400",
-    ok: "bg-emerald-400",
-    info: "bg-muted-foreground/50",
+
+  const getInsightArea = (text: string) => {
+    const t = text.toLowerCase();
+    if (t.includes("finance") || t.includes("débito") || t.includes("debito") || t.includes("inadimpl") || t.includes("vencid")) return "Financeiro";
+    if (t.includes("intera") || t.includes("engaj") || t.includes("contato") || t.includes("relacion")) return "Engajamento";
+    if (t.includes("perfil") || t.includes("pf") || t.includes("pj") || t.includes("negocia")) return "Perfil";
+    if (t.includes("churn") || t.includes("reten") || t.includes("fidel")) return "Retenção";
+    return "Cliente";
+  };
+
+  const formatInsight = (tone: string, text: string) => {
+    const cleaned = text.trim();
+    const match = cleaned.match(/^(risco|atenção|atencao|oportunidade|sinal|observação|observacao)\s*[·:\-–—]\s*([^:\-–—]+?)\s*[\-–—:]\s*(.+)$/i);
+    if (match) {
+      return {
+        heading: `${match[1].replace("atencao", "atenção")} · ${match[2]}`.toUpperCase(),
+        body: match[3].trim(),
+      };
+    }
+    const cfg = toneConfig[tone] || toneConfig.info;
+    return {
+      heading: `${cfg.label} · ${getInsightArea(cleaned)}`.toUpperCase(),
+      body: cleaned,
+    };
   };
 
   // ---------- Macro overview lines (above timeline) ----------
@@ -453,14 +498,14 @@ export function ClienteVisaoGeralTab({ cliente, onEdit: _onEdit }: Props) {
         text: `Ainda há ${payRemaining} ${payRemaining === 1 ? "outra conta a pagar" : "outras contas a pagar"} no valor de ${fmt(remAmount)}.`,
       });
     }
-    if (interacoes.length > 0) {
+    if (timelineInteracoes.length > 0) {
       out.push({
         icon: FileText, tone: "text-muted-foreground",
-        text: `${interacoes.length} ${interacoes.length === 1 ? "interação registrada" : "interações registradas"} na linha do tempo.`,
+        text: `${timelineInteracoes.length} ${timelineInteracoes.length === 1 ? "interação registrada" : "interações registradas"} na linha do tempo.`,
       });
     }
     return out;
-  }, [macro, interacoes]);
+  }, [macro, timelineInteracoes]);
 
   // ---------- QuickList modal state & filter resolvers ----------
   const [quickList, setQuickList] = useState<{
@@ -636,16 +681,21 @@ export function ClienteVisaoGeralTab({ cliente, onEdit: _onEdit }: Props) {
   return (
     <div className="space-y-6">
       {/* AI Summary (strategic, non-redundant with macro card) */}
-      <Card className="p-5 border-border/50 shadow-sm">
-        <div className="flex items-start gap-3">
-          <div className="w-9 h-9 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
-            <Sparkles className="w-4 h-4 text-muted-foreground" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-2">
-              <p className="text-sm font-semibold text-foreground">Resumo IA</p>
-              <span className="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-muted text-muted-foreground font-medium">Live</span>
+      <Card className="overflow-hidden border-border/50 bg-card/70 shadow-sm">
+        <div className="flex items-center justify-between gap-3 border-b border-border/50 px-5 py-4">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+              <Sparkles className="w-4 h-4 text-primary" />
             </div>
+            <p className="text-lg font-bold tracking-tight text-foreground">Resumo IA</p>
+          </div>
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/40 bg-primary/10 px-3 py-1 text-[10px] uppercase tracking-wider text-primary font-bold">
+            <span className="h-2 w-2 rounded-full bg-primary" />
+            Live
+          </span>
+        </div>
+
+        <div className="px-5 py-4">
 
             {aiLoading && (
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -660,40 +710,48 @@ export function ClienteVisaoGeralTab({ cliente, onEdit: _onEdit }: Props) {
               </p>
             )}
 
-            {aiData && !aiLoading && (
-              <>
-                <ul className="space-y-1.5">
-                  {aiData.insights.map((ins, i) => {
-                    const onClick = resolveInsightClick(ins.text);
-                    return (
-                      <li key={i} className="flex items-start gap-2 text-sm">
-                        <span className={`w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0 ${toneDot[ins.tone]}`} />
-                        {onClick ? (
-                          <button
-                            onClick={onClick}
-                            className={`${toneStyles[ins.tone]} text-left hover:underline underline-offset-2 cursor-pointer`}
-                          >
-                            {ins.text}
-                          </button>
-                        ) : (
-                          <span className={toneStyles[ins.tone]}>{ins.text}</span>
-                        )}
-                      </li>
-                    );
-                  })}
-                </ul>
-                {aiData.recommendation && (
-                  <div className="mt-3 pt-3 border-t border-border/60 flex items-start gap-2">
-                    <Sparkles className="w-3.5 h-3.5 text-muted-foreground mt-0.5 flex-shrink-0" />
-                    <p className="text-sm text-foreground/90">
-                      <span className="font-semibold text-foreground">Recomendação: </span>
-                      {aiData.recommendation}
-                    </p>
-                  </div>
-                )}
-              </>
-            )}
-          </div>
+          {aiData && !aiLoading && (
+            <>
+              <ul className="divide-y divide-border/50">
+                {aiData.insights.map((ins, i) => {
+                  const onClick = resolveInsightClick(ins.text);
+                  const cfg = toneConfig[ins.tone] || toneConfig.info;
+                  const formatted = formatInsight(ins.tone, ins.text);
+                  const content = (
+                    <>
+                      <span className={`absolute left-0 top-4 bottom-4 w-1 rounded-full ${cfg.bar}`} />
+                      <span className={`block text-[11px] font-bold uppercase tracking-wider ${cfg.heading}`}>
+                        {formatted.heading}
+                      </span>
+                      <span className="mt-1 block text-sm leading-snug text-foreground/85">
+                        {formatted.body}
+                      </span>
+                    </>
+                  );
+                  return (
+                    <li key={i} className="relative py-3.5 pl-6">
+                      {onClick ? (
+                        <button onClick={onClick} className="block w-full text-left hover:opacity-90 transition-opacity">
+                          {content}
+                        </button>
+                      ) : (
+                        <div>{content}</div>
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
+              {aiData.recommendation && (
+                <div className="mt-3 rounded-xl border border-warning/30 bg-warning/10 px-4 py-3.5 flex items-start gap-3">
+                  <Zap className="w-3.5 h-3.5 text-warning mt-0.5 flex-shrink-0" />
+                  <p className="text-sm leading-snug text-foreground/90">
+                    <span className="block text-[11px] font-bold uppercase tracking-wider text-warning mb-1">Recomendação</span>
+                    {aiData.recommendation}
+                  </p>
+                </div>
+              )}
+            </>
+          )}
         </div>
       </Card>
 
@@ -846,7 +904,7 @@ export function ClienteVisaoGeralTab({ cliente, onEdit: _onEdit }: Props) {
         <div className="flex justify-center py-12">
           <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
         </div>
-      ) : interacoes.length === 0 ? (
+      ) : timelineInteracoes.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-16 gap-3">
           <div className="w-10 h-10 rounded-full bg-muted/50 flex items-center justify-center">
             <Sparkles className="w-5 h-5 text-muted-foreground/40" />
@@ -857,7 +915,7 @@ export function ClienteVisaoGeralTab({ cliente, onEdit: _onEdit }: Props) {
         <div className="relative pl-6 space-y-0">
           <div className="absolute left-[11px] top-3 bottom-3 w-px bg-border/40" />
 
-          {interacoes.map((item) => {
+          {timelineInteracoes.map((item) => {
             const { title, body } = parseInteracao(item.descricao);
             const colorClass = tipoColors[item.tipo] || "text-muted-foreground";
             const linkedDocs = getDocsForInteracao(item.id);
