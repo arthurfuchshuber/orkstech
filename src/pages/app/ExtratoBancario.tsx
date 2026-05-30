@@ -888,7 +888,9 @@ export default function ExtratoBancario() {
           </div>
 
 
-          <div className="flex gap-2 w-full overflow-x-auto md:w-auto md:overflow-visible md:flex-wrap -mx-1 px-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <div className="no-scrollbar flex gap-2 w-full overflow-x-auto md:w-auto md:overflow-visible md:flex-wrap -mx-1 px-1 pt-1 pb-1">
+
+
             <Button
               variant={!allPeriod && format(dateFrom, "yyyy-MM") === format(now, "yyyy-MM") ? "default" : "secondary"}
               size="sm"
