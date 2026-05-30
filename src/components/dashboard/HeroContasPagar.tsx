@@ -29,6 +29,8 @@ interface Props {
   metrics: Metric[];
   months: MonthBar[];
   onTotalClick?: () => void;
+  /** Alerta vermelho proeminente para títulos vencidos */
+  overdue?: { count: number; total: number; onClick?: () => void };
 }
 
 export function HeroContasPagar({
