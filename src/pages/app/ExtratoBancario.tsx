@@ -844,7 +844,6 @@ export default function ExtratoBancario() {
       {/* Date range filter */}
       <Card className="p-4">
         <div className="flex flex-wrap items-center gap-3">
-          <span className="text-sm font-medium text-foreground">Período:</span>
 
           <Popover>
             <PopoverTrigger asChild>
