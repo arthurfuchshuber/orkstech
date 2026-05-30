@@ -1303,7 +1303,72 @@ export default function ExtratoBancario() {
           </div>
         ) : (
           <>
-            <div className="grid grid-cols-[36px_100px_minmax(0,1.4fr)_180px_140px_130px_120px] gap-3 border-b border-border/50 bg-card px-4 py-3 text-xs text-muted-foreground uppercase tracking-wider">
+            {/* MOBILE: lista agrupada por data */}
+            <div className="md:hidden divide-y divide-border/30">
+              {(() => {
+                const groups = new Map<string, typeof filteredTx>();
+                filteredTx.forEach((tx) => {
+                  const arr = groups.get(tx.date) ?? [];
+                  arr.push(tx);
+                  groups.set(tx.date, arr);
+                });
+                return Array.from(groups.entries()).map(([date, txs]) => (
+                  <div key={date} className="py-2">
+                    <div className="flex items-center gap-2 px-3 pb-2 pt-1">
+                      <span className="text-[11px] text-muted-foreground tabular-nums">{formatDate(date)}</span>
+                      <div className="flex-1 h-px bg-border/40" />
+                    </div>
+                    <div className="space-y-1 px-2">
+                      {txs.map((tx) => {
+                        const isCredit = isInflow(tx);
+                        const isInternal = isInternalTransaction(tx, creditAccountIds);
+                        const enhancedDesc = stripTypePrefix(enhanceDescription(tx));
+                        // pega "tipo | contraparte" para subtítulo (PIX saída / TED entrada)
+                        const fullDesc = enhanceDescription(tx);
+                        const subtitle = fullDesc.includes("|")
+                          ? fullDesc.split("|")[0].trim()
+                          : (isCredit ? "Entrada" : "Saída");
+                        return (
+                          <button
+                            key={tx.id}
+                            type="button"
+                            onClick={() => setPluggyEditTx({ id: tx.id, description: tx.description, amount: tx.amount, date: tx.date })}
+                            className={cn(
+                              "w-full flex items-center gap-3 rounded-lg bg-muted/20 hover:bg-muted/40 active:bg-muted/50 px-3 py-2.5 text-left transition-colors",
+                              isInternal && "opacity-60",
+                            )}
+                          >
+                            <div className={cn(
+                              "flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full",
+                              isCredit ? "bg-emerald-500/15" : "bg-destructive/15",
+                            )}>
+                              {isCredit ? (
+                                <ArrowDownLeft className="h-3.5 w-3.5 text-emerald-500" />
+                              ) : (
+                                <ArrowUpRight className="h-3.5 w-3.5 text-destructive" />
+                              )}
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <p className="truncate text-sm font-medium text-foreground leading-tight">{enhancedDesc}</p>
+                              <p className="truncate text-[11px] text-muted-foreground mt-0.5">{subtitle}</p>
+                            </div>
+                            <p className={cn(
+                              "whitespace-nowrap text-sm font-semibold tabular-nums",
+                              isCredit ? "text-emerald-500" : "text-destructive",
+                            )}>
+                              {isCredit ? "+" : "-"}R$ {Math.abs(tx.amount).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            </p>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ));
+              })()}
+            </div>
+
+            {/* DESKTOP: tabela completa */}
+            <div className="hidden md:grid grid-cols-[36px_100px_minmax(0,1.4fr)_180px_140px_130px_120px] gap-3 border-b border-border/50 bg-card px-4 py-3 text-xs text-muted-foreground uppercase tracking-wider">
               <div className="flex items-center justify-center">
                 <Checkbox
                   checked={
