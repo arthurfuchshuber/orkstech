@@ -854,21 +854,22 @@ export default function FinanceiroDashboard() {
     const months = [];
     // Include past months with overdue accounts + next 6 months
     // First, find overdue accounts in past months
+    // Meses passados: incluir SOMENTE se ainda houver títulos em aberto (pending/overdue).
+    // Quando todas as contas daquele mês forem liquidadas, o mês some da projeção.
     const pastMonthsWithData = new Map<string, { d: Date; total: number }>();
     contasPagar.forEach((c) => {
+      if (c.status !== "pending" && c.status !== "overdue") return;
       const due = new Date(c.due_date);
-      const monthKey = format(due, "yyyy-MM");
       const monthStart = startOfMonth(due);
-      if (isBefore(monthStart, currentMonthStart)) {
-        const existing = pastMonthsWithData.get(monthKey);
-        if (existing) {
-          existing.total += Number(c.amount);
-        } else {
-          pastMonthsWithData.set(monthKey, { d: due, total: Number(c.amount) });
-        }
+      if (!isBefore(monthStart, currentMonthStart)) return;
+      const monthKey = format(due, "yyyy-MM");
+      const existing = pastMonthsWithData.get(monthKey);
+      if (existing) {
+        existing.total += Number(c.amount);
+      } else {
+        pastMonthsWithData.set(monthKey, { d: due, total: Number(c.amount) });
       }
     });
-    // Add past months (sorted)
     const sortedPast = Array.from(pastMonthsWithData.entries())
       .sort(([a], [b]) => a.localeCompare(b));
     for (const [, { d, total }] of sortedPast) {
