@@ -1392,7 +1392,7 @@ export default function ExtratoBancario() {
               <div className="text-right">Valor</div>
             </div>
 
-            <div className="divide-y divide-border/30">
+            <div className="hidden md:block divide-y divide-border/30">
               {filteredTx.map((tx) => {
                 const isCredit = isInflow(tx);
                 const isInternal = isInternalTransaction(tx, creditAccountIds);
