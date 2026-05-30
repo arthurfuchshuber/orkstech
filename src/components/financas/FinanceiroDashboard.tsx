@@ -1060,11 +1060,6 @@ export default function FinanceiroDashboard() {
               totalValue={totalAberto}
               subtitle={subtitle}
               onTotalClick={() => navigate("/app/financas/contas-pagar")}
-              overdue={{
-                count: vencidas.length,
-                total: totalVencido,
-                onClick: () => navigate("/app/financas/contas-pagar?filter=vencido"),
-              }}
               metrics={[
                 {
                   label: "Vencendo em 7 dias",
@@ -1097,47 +1092,53 @@ export default function FinanceiroDashboard() {
           );
         })()}
 
-        {/* Próximas a vencer — lista */}
+        {/* Títulos vencidos — agrupados por mês e ordenados por vencimento */}
         <Card className="border-border/50">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <Clock className="w-4 h-4 text-warning" />
-              Vencendo em 7 dias
+              <AlertTriangle className="w-4 h-4 text-destructive" />
+              Títulos vencidos
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {proximasVencer.length === 0 ? (
-              <p className="text-xs text-muted-foreground py-4 text-center">Nenhuma conta próxima do vencimento</p>
+            {vencidasPorMes.length === 0 ? (
+              <p className="text-xs text-muted-foreground py-4 text-center">Nenhum título vencido</p>
             ) : (
-              <div className="space-y-2">
-                {proximasVencer.map((c) => {
-                  const dias = differenceInDays(new Date(c.due_date), new Date());
-                  const tone = dias <= 2 ? "destructive" : "warning";
-                  return (
-                    <button
-                      key={c.id}
-                      type="button"
-                      onClick={() => navigate("/app/financas/contas-pagar")}
-                      className="w-full flex items-center gap-3 py-2 border-b border-border/30 last:border-0 hover:bg-card/60 transition-colors px-1 rounded"
-                    >
-                      <span className={cn(
-                        "w-2 h-2 rounded-full shrink-0",
-                        tone === "destructive" ? "bg-destructive" : "bg-warning"
-                      )} />
-                      <div className="flex-1 text-left min-w-0">
-                        <p className="text-xs text-foreground truncate">
-                          {(c as any).description || fmt(Number(c.amount))}
-                        </p>
-                        <p className="text-[10px] text-muted-foreground">
-                          Vence em {dias}d · {format(new Date(c.due_date), "dd/MM/yyyy")}
-                        </p>
-                      </div>
-                      <span className="text-xs font-semibold text-foreground tabular-nums whitespace-nowrap">
-                        {fmt(Number(c.amount))}
-                      </span>
-                    </button>
-                  );
-                })}
+              <div className="space-y-4">
+                {vencidasPorMes.map((month) => (
+                  <div key={month.label} className="space-y-2">
+                    <div className="flex items-center justify-between gap-3 text-[11px] uppercase tracking-wider text-muted-foreground font-medium">
+                      <span className="capitalize">{month.label}</span>
+                      <span className="text-destructive tabular-nums">{fmt(month.total)}</span>
+                    </div>
+                    <div className="divide-y divide-border/30 rounded-lg border border-border/30 overflow-hidden bg-card/20">
+                      {month.items.map((c) => {
+                        const dias = Math.abs(differenceInDays(new Date(c.due_date), new Date()));
+                        return (
+                          <button
+                            key={c.id}
+                            type="button"
+                            onClick={() => navigate("/app/financas/contas-pagar?filter=vencido")}
+                            className="w-full flex items-center gap-3 py-2.5 px-3 hover:bg-card/60 transition-colors text-left"
+                          >
+                            <span className="w-2 h-2 rounded-full bg-destructive shrink-0" />
+                            <div className="flex-1 min-w-0">
+                              <p className="text-xs text-foreground truncate">
+                                {(c as any).description || "Título vencido"}
+                              </p>
+                              <p className="text-[10px] text-muted-foreground">
+                                Venceu em {format(new Date(c.due_date), "dd/MM/yyyy")} · há {dias}d
+                              </p>
+                            </div>
+                            <span className="text-xs font-semibold text-destructive tabular-nums whitespace-nowrap">
+                              {fmt(Number(c.amount))}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
           </CardContent>
