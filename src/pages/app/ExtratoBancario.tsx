@@ -937,21 +937,8 @@ export default function ExtratoBancario() {
       </Card>
 
       {/* KPIs — empilhadas no mobile (label esquerda, valor direita); grid no desktop */}
-      <div className="grid grid-cols-1 gap-2 md:grid-cols-4 md:gap-4">
-        <Card className="p-3 md:p-4 flex items-center justify-between md:block">
-          <div className="flex items-center gap-2 md:mb-1">
-            <Landmark className="hidden md:inline h-4 w-4 text-primary" />
-            <span className="text-xs text-muted-foreground">Saldo Total</span>
-          </div>
-          <div className="text-right md:text-left">
-            <p className="text-base md:text-xl font-bold text-foreground tabular-nums">{formatCurrency(totalBalance)}</p>
-            <div className="hidden md:flex mt-1 items-center gap-2 text-[11px] text-muted-foreground">
-              <span>Em conta: <span className="font-medium text-foreground">{formatCurrency(bankAccounts.reduce((s, a) => s + a.balance, 0))}</span></span>
-              <span>·</span>
-              <span>Aplicações: <span className="font-medium text-emerald-500">{formatCurrency(bankAccounts.reduce((s, a) => s + getStoredBalance(a), 0))}</span></span>
-            </div>
-          </div>
-        </Card>
+      <div className="grid grid-cols-1 gap-2 md:grid-cols-3 md:gap-4">
+
 
         <Card className="p-3 md:p-4 flex items-center justify-between md:block">
           <div className="flex items-center gap-2 md:mb-1">
