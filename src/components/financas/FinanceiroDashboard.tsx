@@ -847,6 +847,35 @@ export default function FinanceiroDashboard() {
       .slice(0, 5);
   }, [contasPagar]);
 
+  const vencidasPorMes = useMemo(() => {
+    const groups = new Map<string, { label: string; sortDate: Date; total: number; items: typeof vencidas }>();
+
+    vencidas.forEach((c) => {
+      const due = new Date(c.due_date);
+      const key = format(due, "yyyy-MM");
+      const current = groups.get(key);
+
+      if (current) {
+        current.total += Number(c.amount);
+        current.items.push(c);
+      } else {
+        groups.set(key, {
+          label: format(due, "MMMM yyyy", { locale: ptBR }),
+          sortDate: startOfMonth(due),
+          total: Number(c.amount),
+          items: [c],
+        });
+      }
+    });
+
+    return Array.from(groups.values())
+      .map((group) => ({
+        ...group,
+        items: [...group.items].sort((a, b) => new Date(a.due_date).getTime() - new Date(b.due_date).getTime()),
+      }))
+      .sort((a, b) => a.sortDate.getTime() - b.sortDate.getTime());
+  }, [vencidas]);
+
   const monthlyData = useMemo(() => {
     if (!contasPagar) return [];
     const today = new Date();
@@ -892,8 +921,6 @@ export default function FinanceiroDashboard() {
     }
     return months;
   }, [contasPagar]);
-
-  const maxMonthly = Math.max(...monthlyData.map((m) => m.total), 1);
 
   const hasPluggyData = accounts.length > 0;
 
