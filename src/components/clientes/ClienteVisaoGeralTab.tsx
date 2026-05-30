@@ -396,10 +396,10 @@ export function ClienteVisaoGeralTab({ cliente, onEdit: _onEdit }: Props) {
     },
     receber: macro.receber,
     pagar: macro.pagar,
-    interacoes_total: interacoes.length,
-    ultima_interacao: interacoes[0]?.created_at || null,
-    ultimos_tipos: interacoes.slice(0, 5).map((i) => i.tipo),
-  }), [cliente, macro, interacoes]);
+    interacoes_total: timelineInteracoes.length,
+    ultima_interacao: timelineInteracoes[0]?.created_at || null,
+    ultimos_tipos: timelineInteracoes.slice(0, 5).map((i) => i.tipo),
+  }), [cliente, macro, timelineInteracoes]);
 
   const fingerprint = useMemo(() => JSON.stringify({
     id: cliente.id,
@@ -409,9 +409,9 @@ export function ClienteVisaoGeralTab({ cliente, onEdit: _onEdit }: Props) {
     rP: macro.receber.paidCount,
     pO: macro.pagar.overdueCount,
     pD: macro.pagar.dueSoonCount,
-    iT: interacoes.length,
-    iL: interacoes[0]?.created_at || "",
-  }), [cliente.id, cliente.ativo, macro, interacoes]);
+    iT: timelineInteracoes.length,
+    iL: timelineInteracoes[0]?.created_at || "",
+  }), [cliente.id, cliente.ativo, macro, timelineInteracoes]);
 
   const { data: aiData, isLoading: aiLoading, isError: aiError } = useQuery({
     queryKey: ["cliente-ai-summary", fingerprint],
@@ -479,14 +479,14 @@ export function ClienteVisaoGeralTab({ cliente, onEdit: _onEdit }: Props) {
         text: `Ainda há ${payRemaining} ${payRemaining === 1 ? "outra conta a pagar" : "outras contas a pagar"} no valor de ${fmt(remAmount)}.`,
       });
     }
-    if (interacoes.length > 0) {
+    if (timelineInteracoes.length > 0) {
       out.push({
         icon: FileText, tone: "text-muted-foreground",
-        text: `${interacoes.length} ${interacoes.length === 1 ? "interação registrada" : "interações registradas"} na linha do tempo.`,
+        text: `${timelineInteracoes.length} ${timelineInteracoes.length === 1 ? "interação registrada" : "interações registradas"} na linha do tempo.`,
       });
     }
     return out;
-  }, [macro, interacoes]);
+  }, [macro, timelineInteracoes]);
 
   // ---------- QuickList modal state & filter resolvers ----------
   const [quickList, setQuickList] = useState<{
