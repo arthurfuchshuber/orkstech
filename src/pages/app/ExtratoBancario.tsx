@@ -885,10 +885,11 @@ export default function ExtratoBancario() {
             </PopoverContent>
           </Popover>
 
-          <div className="flex gap-2">
+          <div className="flex gap-2 w-full overflow-x-auto md:w-auto md:overflow-visible md:flex-wrap -mx-1 px-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             <Button
               variant={!allPeriod && format(dateFrom, "yyyy-MM") === format(now, "yyyy-MM") ? "default" : "secondary"}
               size="sm"
+              className="shrink-0"
               onClick={() => {
                 setAllPeriod(false);
                 setDateFrom(startOfMonth(now));
@@ -900,6 +901,7 @@ export default function ExtratoBancario() {
             <Button
               variant={!allPeriod && format(dateFrom, "yyyy-MM") === format(new Date(now.getFullYear(), now.getMonth() - 1, 1), "yyyy-MM") ? "default" : "secondary"}
               size="sm"
+              className="shrink-0"
               onClick={() => {
                 setAllPeriod(false);
                 const prev = new Date(now.getFullYear(), now.getMonth() - 1, 1);
@@ -912,6 +914,7 @@ export default function ExtratoBancario() {
             <Button
               variant={!allPeriod && format(dateFrom, "yyyy-MM-dd") === format(new Date(now.getFullYear(), 0, 1), "yyyy-MM-dd") && format(dateTo, "yyyy-MM") === format(now, "yyyy-MM") ? "default" : "secondary"}
               size="sm"
+              className="shrink-0"
               onClick={() => {
                 setAllPeriod(false);
                 setDateFrom(new Date(now.getFullYear(), 0, 1));
@@ -923,11 +926,13 @@ export default function ExtratoBancario() {
             <Button
               variant={allPeriod ? "default" : "secondary"}
               size="sm"
+              className="shrink-0"
               onClick={() => setAllPeriod(true)}
             >
               Todo o período
             </Button>
           </div>
+
         </div>
       </Card>
 
