@@ -1320,37 +1320,81 @@ export default function ExtratoBancario() {
                           ? fullDesc.split("|")[0].trim()
                           : (isCredit ? "Entrada" : "Saída");
                         return (
-                          <button
+                          <div
                             key={tx.id}
-                            type="button"
-                            onClick={() => setPluggyEditTx({ id: tx.id, description: tx.description, amount: tx.amount, date: tx.date })}
                             className={cn(
-                              "w-full flex items-center gap-3 rounded-lg bg-muted/20 hover:bg-muted/40 active:bg-muted/50 px-3 py-2.5 text-left transition-colors",
+                              "w-full rounded-lg bg-muted/20 px-3 py-2.5 transition-colors",
                               isInternal && "opacity-60",
                             )}
                           >
-                            <div className={cn(
-                              "flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full",
-                              isCredit ? "bg-emerald-500/15" : "bg-destructive/15",
-                            )}>
-                              {isCredit ? (
-                                <ArrowDownLeft className="h-3.5 w-3.5 text-emerald-500" />
-                              ) : (
-                                <ArrowUpRight className="h-3.5 w-3.5 text-destructive" />
-                              )}
-                            </div>
-                            <div className="min-w-0 flex-1">
-                              <p className="truncate text-sm font-medium text-foreground leading-tight">{enhancedDesc}</p>
-                              <p className="truncate text-[11px] text-muted-foreground mt-0.5">{subtitle}</p>
-                            </div>
-                            <p className={cn(
-                              "whitespace-nowrap text-sm font-semibold tabular-nums",
-                              isCredit ? "text-emerald-500" : "text-destructive",
-                            )}>
-                              {isCredit ? "+" : "-"}R$ {Math.abs(tx.amount).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                            </p>
-                          </button>
+                            <button
+                              type="button"
+                              onClick={() => setPluggyEditTx({ id: tx.id, description: tx.description, amount: tx.amount, date: tx.date })}
+                              className="w-full flex items-center gap-3 text-left"
+                            >
+                              <div className={cn(
+                                "flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full",
+                                isCredit ? "bg-emerald-500/15" : "bg-destructive/15",
+                              )}>
+                                {isCredit ? (
+                                  <ArrowDownLeft className="h-3.5 w-3.5 text-emerald-500" />
+                                ) : (
+                                  <ArrowUpRight className="h-3.5 w-3.5 text-destructive" />
+                                )}
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <p className="truncate text-sm font-medium text-foreground leading-tight">{enhancedDesc}</p>
+                                <p className="truncate text-[11px] text-muted-foreground mt-0.5">{subtitle}</p>
+                              </div>
+                              <p className={cn(
+                                "whitespace-nowrap text-sm font-semibold tabular-nums",
+                                isCredit ? "text-emerald-500" : "text-destructive",
+                              )}>
+                                {isCredit ? "+" : "-"}R$ {Math.abs(tx.amount).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                              </p>
+                            </button>
+                            {!isInternal && (
+                              <div className="mt-2 grid grid-cols-1 gap-1.5 pl-10">
+                                <CategoriaTreeSelect
+                                  categorias={categoriasFinanceiras as any}
+                                  value={tx.categoria_financeira_id}
+                                  onChange={(v) =>
+                                    updateCategoriaMutation.mutate({
+                                      id: tx.id,
+                                      categoria_financeira_id: v,
+                                      description: tx.description,
+                                    })
+                                  }
+                                  direction={isCredit ? "in" : "out"}
+                                  placeholder="Subcategoria"
+                                />
+                                <div className="grid grid-cols-2 gap-1.5">
+                                  <InlineManagedCell
+                                    value={tx.cost_center_id}
+                                    options={centrosCusto.map((c) => ({ value: c.id, label: c.nome }))}
+                                    onChange={(v) => updateExtraFieldMutation.mutate({ id: tx.id, field: "cost_center_id", value: v })}
+                                    onAddModal={() => { setCcEditingId(null); setCcModalOpen(true); }}
+                                    onEditModal={(id) => { setCcEditingId(id); setCcModalOpen(true); }}
+                                    onDelete={centrosCrud.onDelete}
+                                    placeholder="Centro de custo"
+                                    addLabel="Novo centro de custo"
+                                  />
+                                  <InlineManagedCell
+                                    value={tx.business_unit_id}
+                                    options={businessUnits.map((b) => ({ value: b.id, label: b.nome }))}
+                                    onChange={(v) => updateExtraFieldMutation.mutate({ id: tx.id, field: "business_unit_id", value: v })}
+                                    onAddModal={() => { setBuEditingId(null); setBuModalOpen(true); }}
+                                    onEditModal={(id) => { setBuEditingId(id); setBuModalOpen(true); }}
+                                    onDelete={buCrud.onDelete}
+                                    placeholder="Unidade"
+                                    addLabel="Nova unidade de negócio"
+                                  />
+                                </div>
+                              </div>
+                            )}
+                          </div>
                         );
+
                       })}
                     </div>
                   </div>
