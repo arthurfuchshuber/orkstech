@@ -888,7 +888,11 @@ export default function ExtratoBancario() {
           </div>
 
 
-          <div className="flex gap-2 w-full overflow-x-auto md:w-auto md:overflow-visible md:flex-wrap -mx-1 px-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <div
+            className="flex gap-2 w-full overflow-x-auto md:w-auto md:overflow-visible md:flex-wrap -mx-1 px-1 pt-1 pb-0.5"
+            style={{ scrollbarWidth: "none", msOverflowStyle: "none" } as React.CSSProperties}
+          >
+
             <Button
               variant={!allPeriod && format(dateFrom, "yyyy-MM") === format(now, "yyyy-MM") ? "default" : "secondary"}
               size="sm"
