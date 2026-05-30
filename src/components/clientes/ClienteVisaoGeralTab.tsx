@@ -725,24 +725,25 @@ export function ClienteVisaoGeralTab({ cliente, onEdit: _onEdit }: Props) {
       )}
 
       {/* Timeline header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <h3 className="text-base font-bold text-foreground">Linha do Tempo</h3>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 w-full md:w-auto">
           <Button
             size="sm"
             variant="outline"
-            className="gap-2 rounded-lg"
+            className="gap-2 rounded-lg flex-1 md:flex-none"
             onClick={() => setShowForm(!showForm)}
           >
-            <Plus className="w-4 h-4" /> Adicionar Atividade
+            <Plus className="w-4 h-4" /> <span className="truncate">Adicionar Atividade</span>
           </Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button size="sm" className="gap-2 rounded-lg shadow-sm">
-                <Receipt className="w-4 h-4" /> Gerar Conta a Receber
-                <ChevronDown className="w-3.5 h-3.5 opacity-70" />
+              <Button size="sm" className="gap-2 rounded-lg shadow-sm flex-1 md:flex-none">
+                <Receipt className="w-4 h-4" /> <span className="truncate">Gerar Conta a Receber</span>
+                <ChevronDown className="w-3.5 h-3.5 opacity-70 shrink-0" />
               </Button>
             </DropdownMenuTrigger>
+
             <DropdownMenuContent align="end" className="w-60">
               <DropdownMenuLabel className="text-xs">Como deseja gerar?</DropdownMenuLabel>
               <DropdownMenuSeparator />
