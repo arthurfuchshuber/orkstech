@@ -1032,6 +1032,11 @@ export default function FinanceiroDashboard() {
               totalValue={totalAberto}
               subtitle={subtitle}
               onTotalClick={() => navigate("/app/financas/contas-pagar")}
+              overdue={{
+                count: vencidas.length,
+                total: totalVencido,
+                onClick: () => navigate("/app/financas/contas-pagar?filter=vencido"),
+              }}
               metrics={[
                 {
                   label: "Vencendo em 7 dias",
