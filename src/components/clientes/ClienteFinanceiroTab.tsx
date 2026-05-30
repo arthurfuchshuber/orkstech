@@ -53,25 +53,56 @@ export function ClienteFinanceiroTab({ clienteId }: Props) {
     .reduce((sum, f) => sum + (f.amount || 0), 0);
 
   return (
-    <div className="space-y-5">
-      {/* Stats */}
-      <div className="grid grid-cols-3 gap-4">
-        <Card className="p-5 border-emerald-500/20 bg-emerald-500/[0.04] shadow-sm">
-          <p className="text-xs font-medium text-emerald-400 uppercase tracking-wider mb-1">A Receber</p>
-          <p className="text-2xl font-bold text-emerald-400">{currency(aReceber)}</p>
+    <div className="space-y-4 md:space-y-5">
+      {/* Stats — mobile: 3 colunas compactas estilo mockup */}
+      <div className="grid grid-cols-3 gap-px md:gap-4 bg-border/40 md:bg-transparent rounded-xl md:rounded-none overflow-hidden border border-border/40 md:border-0">
+        <Card className="p-3 md:p-5 rounded-none md:rounded-xl border-0 md:border-emerald-500/20 bg-card md:bg-emerald-500/[0.04] shadow-none md:shadow-sm">
+          <p className="text-[10px] md:text-xs font-medium text-emerald-400 uppercase tracking-wider mb-1">A Receber</p>
+          <p className="text-sm md:text-2xl font-semibold md:font-bold text-emerald-400 tabular-nums truncate">{currency(aReceber)}</p>
         </Card>
-        <Card className="p-5 border-primary/20 bg-primary/[0.04] shadow-sm">
-          <p className="text-xs font-medium text-primary uppercase tracking-wider mb-1">Total Recebido</p>
-          <p className="text-2xl font-bold text-primary">{currency(recebido)}</p>
+        <Card className="p-3 md:p-5 rounded-none md:rounded-xl border-0 md:border-primary/20 bg-card md:bg-primary/[0.04] shadow-none md:shadow-sm">
+          <p className="text-[10px] md:text-xs font-medium text-primary uppercase tracking-wider mb-1">Recebido</p>
+          <p className={`text-sm md:text-2xl font-semibold md:font-bold tabular-nums truncate ${recebido === 0 ? "text-muted-foreground/50" : "text-primary"}`}>{currency(recebido)}</p>
         </Card>
-        <Card className="p-5 border-amber-500/20 bg-amber-500/[0.04] shadow-sm">
-          <p className="text-xs font-medium text-amber-400 uppercase tracking-wider mb-1">A Pagar</p>
-          <p className="text-2xl font-bold text-amber-400">{currency(aPagar)}</p>
+        <Card className="p-3 md:p-5 rounded-none md:rounded-xl border-0 md:border-amber-500/20 bg-card md:bg-amber-500/[0.04] shadow-none md:shadow-sm">
+          <p className="text-[10px] md:text-xs font-medium text-amber-400 uppercase tracking-wider mb-1">A Pagar</p>
+          <p className={`text-sm md:text-2xl font-semibold md:font-bold tabular-nums truncate ${aPagar === 0 ? "text-muted-foreground/50" : "text-amber-400"}`}>{currency(aPagar)}</p>
         </Card>
       </div>
 
-      {/* Table */}
-      <Card className="border-border/50 shadow-sm overflow-hidden">
+      {/* Mobile list */}
+      <div className="md:hidden">
+        {isLoading ? (
+          <div className="py-12 text-center"><Loader2 className="w-5 h-5 animate-spin mx-auto text-muted-foreground" /></div>
+        ) : financeiro.length === 0 ? (
+          <div className="py-12 text-center text-sm text-muted-foreground">Nenhum registro financeiro</div>
+        ) : (
+          <div className="flex flex-col gap-px rounded-xl overflow-hidden border border-border/40 bg-border/40">
+            {financeiro.map((f) => {
+              const st = statusMap[f.status] || statusMap.pending;
+              const isOverdue = f.status === "overdue";
+              return (
+                <div key={`${f.kind}-${f.id}`} className="bg-card px-3.5 py-3 flex items-center gap-3">
+                  <div className={`w-2 h-2 rounded-full shrink-0 ${isOverdue ? "bg-destructive" : f.status === "paid" ? "bg-emerald-500" : f.kind === "receber" ? "bg-emerald-500/60" : "bg-amber-500/60"}`} />
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-medium text-foreground truncate">{f.description}</div>
+                    <div className="text-[11px] text-muted-foreground mt-0.5">
+                      {f.kind === "receber" ? "Receber" : "Pagar"} · venc. {format(new Date(f.due_date), "dd/MM/yyyy", { locale: ptBR })}
+                    </div>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <div className={`text-sm font-semibold tabular-nums ${isOverdue ? "text-destructive" : "text-foreground"}`}>{currency(f.amount)}</div>
+                    <Badge variant={st.variant} className="text-[10px] mt-1 px-1.5 py-0">{st.label}</Badge>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* Desktop Table */}
+      <Card className="hidden md:block border-border/50 shadow-sm overflow-hidden">
         <Table className="table-fixed w-full">
           <TableHeader>
             <TableRow className="hover:bg-transparent border-border/30">
