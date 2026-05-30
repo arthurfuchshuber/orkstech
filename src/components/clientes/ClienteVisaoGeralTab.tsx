@@ -154,6 +154,32 @@ export function ClienteVisaoGeralTab({ cliente, onEdit: _onEdit }: Props) {
     },
   });
 
+  const timelineInteracoes = useMemo(() => {
+    const kept: typeof interacoes = [];
+    const normalize = (value?: string | null) => (value || "").replace(/\s+/g, " ").trim().toLowerCase();
+
+    interacoes.forEach((item) => {
+      const isAutoFinancial = item.tipo === "Financeiro" && item.usuario_nome === "Sistema";
+      if (!isAutoFinancial) {
+        kept.push(item);
+        return;
+      }
+
+      const itemTime = new Date(item.created_at).getTime();
+      const itemDescription = normalize(item.descricao);
+      const alreadyShown = kept.some((shown) => {
+        if (shown.tipo !== item.tipo || shown.usuario_nome !== item.usuario_nome) return false;
+        if (normalize(shown.descricao) !== itemDescription) return false;
+        const shownTime = new Date(shown.created_at).getTime();
+        return Number.isFinite(itemTime) && Number.isFinite(shownTime) && Math.abs(shownTime - itemTime) <= 120_000;
+      });
+
+      if (!alreadyShown) kept.push(item);
+    });
+
+    return kept;
+  }, [interacoes]);
+
   // Realtime: refresh timeline whenever any module writes to cliente_interacoes / cliente_documentos for this client
   useEffect(() => {
     const channel = supabase
@@ -179,7 +205,7 @@ export function ClienteVisaoGeralTab({ cliente, onEdit: _onEdit }: Props) {
   }, [cliente.id, queryClient]);
 
   // Fetch docs linked to interações for display
-  const interacaoIds = interacoes.map((i) => i.id);
+  const interacaoIds = timelineInteracoes.map((i) => i.id);
   const { data: interacaoDocs = [] } = useQuery({
     queryKey: ["cliente-interacao-docs", cliente.id, interacaoIds],
     queryFn: async () => {
