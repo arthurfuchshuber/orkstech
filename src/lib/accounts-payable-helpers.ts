@@ -78,21 +78,7 @@ export async function createAccountPayable(records: AccountPayableInsert[]) {
     .select();
   if (error) throw error;
 
-  // Log to cliente history (only for first installment to avoid spam)
-  for (const rec of (data ?? [])) {
-    if (rec.cliente_id && (!rec.installment_number || rec.installment_number === 1)) {
-      logFinancialCreated({
-        clienteId: rec.cliente_id,
-        userId: rec.user_id,
-        empresaId: rec.empresa_id,
-        kind: "pagar",
-        description: rec.description,
-        amount: Number(rec.amount),
-        dueDate: rec.due_date,
-        installmentTotal: rec.installment_total,
-      });
-    }
-  }
+  // Log to cliente history is handled by DB trigger `log_payable_event` (avoids duplicate timeline entries)
   return data;
 }
 

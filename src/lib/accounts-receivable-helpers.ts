@@ -76,20 +76,7 @@ export async function createAccountReceivable(records: AccountReceivableInsert[]
     .select();
   if (error) throw error;
 
-  for (const rec of (data ?? [])) {
-    if (rec.cliente_id && (!rec.installment_number || rec.installment_number === 1)) {
-      logFinancialCreated({
-        clienteId: rec.cliente_id,
-        userId: rec.user_id,
-        empresaId: rec.empresa_id,
-        kind: "receber",
-        description: rec.description,
-        amount: Number(rec.amount),
-        dueDate: rec.due_date,
-        installmentTotal: rec.installment_total,
-      });
-    }
-  }
+  // Log to cliente history is handled by DB trigger `log_receivable_event` (avoids duplicate timeline entries)
   return data;
 }
 
