@@ -932,49 +932,52 @@ export default function ExtratoBancario() {
         </div>
       </Card>
 
-      <div className="grid gap-4 md:grid-cols-4">
-        <Card className="p-4">
-          <div className="mb-1 flex items-center gap-2">
-            <Landmark className="h-4 w-4 text-primary" />
+      {/* KPIs — empilhadas no mobile (label esquerda, valor direita); grid no desktop */}
+      <div className="grid grid-cols-1 gap-2 md:grid-cols-4 md:gap-4">
+        <Card className="p-3 md:p-4 flex items-center justify-between md:block">
+          <div className="flex items-center gap-2 md:mb-1">
+            <Landmark className="hidden md:inline h-4 w-4 text-primary" />
             <span className="text-xs text-muted-foreground">Saldo Total</span>
           </div>
-          <p className="text-xl font-bold text-foreground">{formatCurrency(totalBalance)}</p>
-          <div className="mt-1 flex items-center gap-2 text-[11px] text-muted-foreground">
-            <span>Em conta: <span className="font-medium text-foreground">{formatCurrency(bankAccounts.reduce((s, a) => s + a.balance, 0))}</span></span>
-            <span>·</span>
-            <span>Aplicações: <span className="font-medium text-emerald-500">{formatCurrency(bankAccounts.reduce((s, a) => s + getStoredBalance(a), 0))}</span></span>
+          <div className="text-right md:text-left">
+            <p className="text-base md:text-xl font-bold text-foreground tabular-nums">{formatCurrency(totalBalance)}</p>
+            <div className="hidden md:flex mt-1 items-center gap-2 text-[11px] text-muted-foreground">
+              <span>Em conta: <span className="font-medium text-foreground">{formatCurrency(bankAccounts.reduce((s, a) => s + a.balance, 0))}</span></span>
+              <span>·</span>
+              <span>Aplicações: <span className="font-medium text-emerald-500">{formatCurrency(bankAccounts.reduce((s, a) => s + getStoredBalance(a), 0))}</span></span>
+            </div>
           </div>
         </Card>
 
-        <Card className="p-4">
-          <div className="mb-1 flex items-center gap-2">
-            <TrendingUp className="h-4 w-4 text-primary" />
+        <Card className="p-3 md:p-4 flex items-center justify-between md:block">
+          <div className="flex items-center gap-2 md:mb-1">
+            <TrendingUp className="hidden md:inline h-4 w-4 text-primary" />
             <span className="text-xs text-muted-foreground">Entradas</span>
           </div>
-          <p className="text-xl font-bold text-foreground">{formatCurrency(totalIncome)}</p>
+          <p className="text-base md:text-xl font-bold text-emerald-500 md:text-foreground tabular-nums">{formatCurrency(totalIncome)}</p>
         </Card>
 
-        <Card className="p-4">
-          <div className="mb-1 flex items-center gap-2">
-            <TrendingDown className="h-4 w-4 text-destructive" />
+        <Card className="p-3 md:p-4 flex items-center justify-between md:block">
+          <div className="flex items-center gap-2 md:mb-1">
+            <TrendingDown className="hidden md:inline h-4 w-4 text-destructive" />
             <span className="text-xs text-muted-foreground">Saídas</span>
           </div>
-          <p className="text-xl font-bold text-destructive">{formatCurrency(totalExpense)}</p>
+          <p className="text-base md:text-xl font-bold text-destructive tabular-nums">{formatCurrency(totalExpense)}</p>
         </Card>
 
         {(() => {
           const isPositive = resultado >= 0;
           return (
-            <Card className={cn("p-4 border-l-4", isPositive ? "border-l-primary" : "border-l-destructive")}>
-              <div className="mb-1 flex items-center gap-2">
+            <Card className={cn("p-3 md:p-4 flex items-center justify-between md:block md:border-l-4", isPositive ? "md:border-l-primary" : "md:border-l-destructive")}>
+              <div className="flex items-center gap-2 md:mb-1">
                 {isPositive ? (
-                  <TrendingUp className="h-4 w-4 text-primary" />
+                  <TrendingUp className="hidden md:inline h-4 w-4 text-primary" />
                 ) : (
-                  <TrendingDown className="h-4 w-4 text-destructive" />
+                  <TrendingDown className="hidden md:inline h-4 w-4 text-destructive" />
                 )}
                 <span className="text-xs text-muted-foreground">Resultado</span>
               </div>
-              <p className={cn("text-xl font-bold", isPositive ? "text-primary" : "text-destructive")}>
+              <p className={cn("text-base md:text-xl font-bold tabular-nums", isPositive ? "text-primary" : "text-destructive")}>
                 {isPositive ? "+" : ""}{formatCurrency(resultado)}
               </p>
             </Card>
@@ -1300,7 +1303,72 @@ export default function ExtratoBancario() {
           </div>
         ) : (
           <>
-            <div className="grid grid-cols-[36px_100px_minmax(0,1.4fr)_180px_140px_130px_120px] gap-3 border-b border-border/50 bg-card px-4 py-3 text-xs text-muted-foreground uppercase tracking-wider">
+            {/* MOBILE: lista agrupada por data */}
+            <div className="md:hidden divide-y divide-border/30">
+              {(() => {
+                const groups = new Map<string, typeof filteredTx>();
+                filteredTx.forEach((tx) => {
+                  const arr = groups.get(tx.date) ?? [];
+                  arr.push(tx);
+                  groups.set(tx.date, arr);
+                });
+                return Array.from(groups.entries()).map(([date, txs]) => (
+                  <div key={date} className="py-2">
+                    <div className="flex items-center gap-2 px-3 pb-2 pt-1">
+                      <span className="text-[11px] text-muted-foreground tabular-nums">{formatDate(date)}</span>
+                      <div className="flex-1 h-px bg-border/40" />
+                    </div>
+                    <div className="space-y-1 px-2">
+                      {txs.map((tx) => {
+                        const isCredit = isInflow(tx);
+                        const isInternal = isInternalTransaction(tx, creditAccountIds);
+                        const enhancedDesc = stripTypePrefix(enhanceDescription(tx));
+                        // pega "tipo | contraparte" para subtítulo (PIX saída / TED entrada)
+                        const fullDesc = enhanceDescription(tx);
+                        const subtitle = fullDesc.includes("|")
+                          ? fullDesc.split("|")[0].trim()
+                          : (isCredit ? "Entrada" : "Saída");
+                        return (
+                          <button
+                            key={tx.id}
+                            type="button"
+                            onClick={() => setPluggyEditTx({ id: tx.id, description: tx.description, amount: tx.amount, date: tx.date })}
+                            className={cn(
+                              "w-full flex items-center gap-3 rounded-lg bg-muted/20 hover:bg-muted/40 active:bg-muted/50 px-3 py-2.5 text-left transition-colors",
+                              isInternal && "opacity-60",
+                            )}
+                          >
+                            <div className={cn(
+                              "flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full",
+                              isCredit ? "bg-emerald-500/15" : "bg-destructive/15",
+                            )}>
+                              {isCredit ? (
+                                <ArrowDownLeft className="h-3.5 w-3.5 text-emerald-500" />
+                              ) : (
+                                <ArrowUpRight className="h-3.5 w-3.5 text-destructive" />
+                              )}
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <p className="truncate text-sm font-medium text-foreground leading-tight">{enhancedDesc}</p>
+                              <p className="truncate text-[11px] text-muted-foreground mt-0.5">{subtitle}</p>
+                            </div>
+                            <p className={cn(
+                              "whitespace-nowrap text-sm font-semibold tabular-nums",
+                              isCredit ? "text-emerald-500" : "text-destructive",
+                            )}>
+                              {isCredit ? "+" : "-"}R$ {Math.abs(tx.amount).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            </p>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ));
+              })()}
+            </div>
+
+            {/* DESKTOP: tabela completa */}
+            <div className="hidden md:grid grid-cols-[36px_100px_minmax(0,1.4fr)_180px_140px_130px_120px] gap-3 border-b border-border/50 bg-card px-4 py-3 text-xs text-muted-foreground uppercase tracking-wider">
               <div className="flex items-center justify-center">
                 <Checkbox
                   checked={
@@ -1324,7 +1392,7 @@ export default function ExtratoBancario() {
               <div className="text-right">Valor</div>
             </div>
 
-            <div className="divide-y divide-border/30">
+            <div className="hidden md:block divide-y divide-border/30">
               {filteredTx.map((tx) => {
                 const isCredit = isInflow(tx);
                 const isInternal = isInternalTransaction(tx, creditAccountIds);
