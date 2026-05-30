@@ -426,17 +426,36 @@ export function ClienteVisaoGeralTab({ cliente, onEdit: _onEdit }: Props) {
     retry: 1,
   });
 
-  const toneStyles: Record<string, string> = {
-    danger: "text-destructive",
-    warn: "text-amber-400",
-    ok: "text-emerald-400",
-    info: "text-muted-foreground",
+  const toneConfig: Record<string, { bar: string; heading: string; label: string }> = {
+    danger: { bar: "bg-destructive", heading: "text-destructive", label: "Risco" },
+    warn: { bar: "bg-warning", heading: "text-warning", label: "Atenção" },
+    ok: { bar: "bg-success", heading: "text-success", label: "Oportunidade" },
+    info: { bar: "bg-primary", heading: "text-primary", label: "Sinal" },
   };
-  const toneDot: Record<string, string> = {
-    danger: "bg-destructive",
-    warn: "bg-amber-400",
-    ok: "bg-emerald-400",
-    info: "bg-muted-foreground/50",
+
+  const getInsightArea = (text: string) => {
+    const t = text.toLowerCase();
+    if (t.includes("finance") || t.includes("débito") || t.includes("debito") || t.includes("inadimpl") || t.includes("vencid")) return "Financeiro";
+    if (t.includes("intera") || t.includes("engaj") || t.includes("contato") || t.includes("relacion")) return "Engajamento";
+    if (t.includes("perfil") || t.includes("pf") || t.includes("pj") || t.includes("negocia")) return "Perfil";
+    if (t.includes("churn") || t.includes("reten") || t.includes("fidel")) return "Retenção";
+    return "Cliente";
+  };
+
+  const formatInsight = (tone: string, text: string) => {
+    const cleaned = text.trim();
+    const match = cleaned.match(/^(risco|atenção|atencao|oportunidade|sinal|observação|observacao)\s*[·:\-–—]\s*([^:\-–—]+?)\s*[\-–—:]\s*(.+)$/i);
+    if (match) {
+      return {
+        heading: `${match[1].replace("atencao", "atenção")} · ${match[2]}`.toUpperCase(),
+        body: match[3].trim(),
+      };
+    }
+    const cfg = toneConfig[tone] || toneConfig.info;
+    return {
+      heading: `${cfg.label} · ${getInsightArea(cleaned)}`.toUpperCase(),
+      body: cleaned,
+    };
   };
 
   // ---------- Macro overview lines (above timeline) ----------
