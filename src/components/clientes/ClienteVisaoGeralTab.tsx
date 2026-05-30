@@ -681,16 +681,21 @@ export function ClienteVisaoGeralTab({ cliente, onEdit: _onEdit }: Props) {
   return (
     <div className="space-y-6">
       {/* AI Summary (strategic, non-redundant with macro card) */}
-      <Card className="p-5 border-border/50 shadow-sm">
-        <div className="flex items-start gap-3">
-          <div className="w-9 h-9 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
-            <Sparkles className="w-4 h-4 text-muted-foreground" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-2">
-              <p className="text-sm font-semibold text-foreground">Resumo IA</p>
-              <span className="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-muted text-muted-foreground font-medium">Live</span>
+      <Card className="overflow-hidden border-border/50 bg-card/70 shadow-sm">
+        <div className="flex items-center justify-between gap-3 border-b border-border/50 px-5 py-4">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+              <Sparkles className="w-4 h-4 text-primary" />
             </div>
+            <p className="text-lg font-bold tracking-tight text-foreground">Resumo IA</p>
+          </div>
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/40 bg-primary/10 px-3 py-1 text-[10px] uppercase tracking-wider text-primary font-bold">
+            <span className="h-2 w-2 rounded-full bg-primary" />
+            Live
+          </span>
+        </div>
+
+        <div className="px-5 py-4">
 
             {aiLoading && (
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -705,40 +710,48 @@ export function ClienteVisaoGeralTab({ cliente, onEdit: _onEdit }: Props) {
               </p>
             )}
 
-            {aiData && !aiLoading && (
-              <>
-                <ul className="space-y-1.5">
-                  {aiData.insights.map((ins, i) => {
-                    const onClick = resolveInsightClick(ins.text);
-                    return (
-                      <li key={i} className="flex items-start gap-2 text-sm">
-                        <span className={`w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0 ${toneDot[ins.tone]}`} />
-                        {onClick ? (
-                          <button
-                            onClick={onClick}
-                            className={`${toneStyles[ins.tone]} text-left hover:underline underline-offset-2 cursor-pointer`}
-                          >
-                            {ins.text}
-                          </button>
-                        ) : (
-                          <span className={toneStyles[ins.tone]}>{ins.text}</span>
-                        )}
-                      </li>
-                    );
-                  })}
-                </ul>
-                {aiData.recommendation && (
-                  <div className="mt-3 pt-3 border-t border-border/60 flex items-start gap-2">
-                    <Sparkles className="w-3.5 h-3.5 text-muted-foreground mt-0.5 flex-shrink-0" />
-                    <p className="text-sm text-foreground/90">
-                      <span className="font-semibold text-foreground">Recomendação: </span>
-                      {aiData.recommendation}
-                    </p>
-                  </div>
-                )}
-              </>
-            )}
-          </div>
+          {aiData && !aiLoading && (
+            <>
+              <ul className="divide-y divide-border/50">
+                {aiData.insights.map((ins, i) => {
+                  const onClick = resolveInsightClick(ins.text);
+                  const cfg = toneConfig[ins.tone] || toneConfig.info;
+                  const formatted = formatInsight(ins.tone, ins.text);
+                  const content = (
+                    <>
+                      <span className={`absolute left-0 top-4 bottom-4 w-1 rounded-full ${cfg.bar}`} />
+                      <span className={`block text-[11px] font-bold uppercase tracking-wider ${cfg.heading}`}>
+                        {formatted.heading}
+                      </span>
+                      <span className="mt-1 block text-sm leading-snug text-foreground/85">
+                        {formatted.body}
+                      </span>
+                    </>
+                  );
+                  return (
+                    <li key={i} className="relative py-3.5 pl-6">
+                      {onClick ? (
+                        <button onClick={onClick} className="block w-full text-left hover:opacity-90 transition-opacity">
+                          {content}
+                        </button>
+                      ) : (
+                        <div>{content}</div>
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
+              {aiData.recommendation && (
+                <div className="mt-3 rounded-xl border border-warning/30 bg-warning/10 px-4 py-3.5 flex items-start gap-3">
+                  <Zap className="w-3.5 h-3.5 text-warning mt-0.5 flex-shrink-0" />
+                  <p className="text-sm leading-snug text-foreground/90">
+                    <span className="block text-[11px] font-bold uppercase tracking-wider text-warning mb-1">Recomendação</span>
+                    {aiData.recommendation}
+                  </p>
+                </div>
+              )}
+            </>
+          )}
         </div>
       </Card>
 
