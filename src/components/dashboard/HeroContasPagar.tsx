@@ -1,4 +1,3 @@
-import { AlertTriangle, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const fmt = (v: number) =>
@@ -29,8 +28,6 @@ interface Props {
   metrics: Metric[];
   months: MonthBar[];
   onTotalClick?: () => void;
-  /** Alerta vermelho proeminente para títulos vencidos */
-  overdue?: { count: number; total: number; onClick?: () => void };
 }
 
 export function HeroContasPagar({
@@ -40,7 +37,6 @@ export function HeroContasPagar({
   metrics,
   months,
   onTotalClick,
-  overdue,
 }: Props) {
   const max = Math.max(...months.map((m) => m.total), 1);
   const toneText: Record<Tone, string> = {
@@ -73,37 +69,6 @@ export function HeroContasPagar({
           <p className="text-xs text-muted-foreground mt-1.5">{subtitle}</p>
         )}
       </button>
-
-      {/* Alerta de vencidas */}
-      {overdue && overdue.count > 0 && (
-        <button
-          type="button"
-          onClick={overdue.onClick}
-          disabled={!overdue.onClick}
-          className={cn(
-            "w-full flex items-center gap-3 px-5 sm:px-6 py-3 border-b border-destructive/20",
-            "bg-destructive/10 hover:bg-destructive/15 transition-colors text-left",
-            !overdue.onClick && "cursor-default"
-          )}
-        >
-          <span className="w-7 h-7 rounded-full bg-destructive/20 flex items-center justify-center shrink-0">
-            <AlertTriangle className="w-3.5 h-3.5 text-destructive" />
-          </span>
-          <div className="flex-1 min-w-0">
-            <p className="text-[11px] uppercase tracking-wider text-destructive font-semibold">
-              {overdue.count} título{overdue.count > 1 ? "s" : ""} vencido{overdue.count > 1 ? "s" : ""}
-            </p>
-            <p className="text-sm font-semibold text-foreground tabular-nums truncate">
-              {fmt(overdue.total)}
-            </p>
-          </div>
-          {overdue.onClick && (
-            <ChevronRight className="w-4 h-4 text-destructive/70 shrink-0" />
-          )}
-        </button>
-      )}
-
-
 
       {/* Métricas 2×2 / 4col */}
       <div className="grid grid-cols-2 md:grid-cols-4">
