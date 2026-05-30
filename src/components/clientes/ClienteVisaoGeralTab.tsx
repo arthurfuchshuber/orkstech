@@ -904,7 +904,7 @@ export function ClienteVisaoGeralTab({ cliente, onEdit: _onEdit }: Props) {
         <div className="flex justify-center py-12">
           <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
         </div>
-      ) : interacoes.length === 0 ? (
+      ) : timelineInteracoes.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-16 gap-3">
           <div className="w-10 h-10 rounded-full bg-muted/50 flex items-center justify-center">
             <Sparkles className="w-5 h-5 text-muted-foreground/40" />
@@ -915,7 +915,7 @@ export function ClienteVisaoGeralTab({ cliente, onEdit: _onEdit }: Props) {
         <div className="relative pl-6 space-y-0">
           <div className="absolute left-[11px] top-3 bottom-3 w-px bg-border/40" />
 
-          {interacoes.map((item) => {
+          {timelineInteracoes.map((item) => {
             const { title, body } = parseInteracao(item.descricao);
             const colorClass = tipoColors[item.tipo] || "text-muted-foreground";
             const linkedDocs = getDocsForInteracao(item.id);
