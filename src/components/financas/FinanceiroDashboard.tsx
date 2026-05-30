@@ -968,8 +968,6 @@ export default function FinanceiroDashboard() {
               deltaAbs={deltaAbs}
               series={evolutionData}
               metrics={[
-                { label: "Caixinhas", value: totalInvestments, tone: totalInvestments > 0 ? "pos" : "dim" },
-                { label: "Saldo em conta", value: totalBankBalance, tone: totalBankBalance > 0 ? "neutral" : "dim" },
                 { label: `Entradas ${lastMonth?.month ?? "mês"}`, value: monthEntradas, tone: "pos" },
                 { label: `Saídas ${lastMonth?.month ?? "mês"}`, value: monthSaidas, tone: "neg" },
               ]}
