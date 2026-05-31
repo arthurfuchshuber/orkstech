@@ -224,6 +224,23 @@ export default function ExtratoBancario() {
   const [internoFilter, setInternoFilter] = useState<"all" | "ocultar" | "somente" | InternalSubtype>("all");
   const [allPeriod, setAllPeriod] = useState(false);
 
+  const classifyTiposGastoMutation = useMutation({
+    mutationFn: async () => {
+      if (!empresa?.id) throw new Error("Selecione uma empresa");
+      const { data, error } = await supabase.functions.invoke("classify-tipos-gasto", {
+        body: { empresa_id: empresa.id, only_uncategorized: true },
+      });
+      if (error) throw error;
+      if ((data as any)?.error) throw new Error((data as any).error);
+      return data as { total: number; classified: number; unrecognized: number };
+    },
+    onSuccess: (res) => {
+      toast.success(`IA classificou ${res.classified} de ${res.total} transações${res.unrecognized ? ` • ${res.unrecognized} não reconhecidas` : ""}`);
+      queryClient.invalidateQueries();
+    },
+    onError: (e: any) => toast.error(e?.message || "Erro ao classificar"),
+  });
+
   // Lê ?filtro=sem-categoria da URL e ativa o filtro + período "todo"
   useEffect(() => {
     const f = searchParams.get("filtro");
