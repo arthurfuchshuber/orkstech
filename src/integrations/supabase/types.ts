@@ -50,6 +50,7 @@ export type Database = {
           status: Database["public"]["Enums"]["payable_status"]
           supplier_id: string | null
           supplier_name: string | null
+          tipo_gasto_id: string | null
           ultima_sync_at: string | null
           updated_at: string
           user_id: string
@@ -89,6 +90,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["payable_status"]
           supplier_id?: string | null
           supplier_name?: string | null
+          tipo_gasto_id?: string | null
           ultima_sync_at?: string | null
           updated_at?: string
           user_id: string
@@ -128,6 +130,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["payable_status"]
           supplier_id?: string | null
           supplier_name?: string | null
+          tipo_gasto_id?: string | null
           ultima_sync_at?: string | null
           updated_at?: string
           user_id?: string
@@ -201,6 +204,13 @@ export type Database = {
             columns: ["supplier_id"]
             isOneToOne: false
             referencedRelation: "fornecedores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "accounts_payable_tipo_gasto_id_fkey"
+            columns: ["tipo_gasto_id"]
+            isOneToOne: false
+            referencedRelation: "tipos_gasto"
             referencedColumns: ["id"]
           },
         ]
@@ -762,6 +772,7 @@ export type Database = {
           id: string
           is_caixinha_movement: boolean
           is_internal_transfer: boolean
+          tipo_gasto_id: string | null
           transaction_date: string
           transfer_pair_id: string | null
           type: Database["public"]["Enums"]["cash_transaction_type"]
@@ -780,6 +791,7 @@ export type Database = {
           id?: string
           is_caixinha_movement?: boolean
           is_internal_transfer?: boolean
+          tipo_gasto_id?: string | null
           transaction_date?: string
           transfer_pair_id?: string | null
           type: Database["public"]["Enums"]["cash_transaction_type"]
@@ -798,6 +810,7 @@ export type Database = {
           id?: string
           is_caixinha_movement?: boolean
           is_internal_transfer?: boolean
+          tipo_gasto_id?: string | null
           transaction_date?: string
           transfer_pair_id?: string | null
           type?: Database["public"]["Enums"]["cash_transaction_type"]
@@ -838,6 +851,13 @@ export type Database = {
             columns: ["empresa_id"]
             isOneToOne: false
             referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cash_transactions_tipo_gasto_id_fkey"
+            columns: ["tipo_gasto_id"]
+            isOneToOne: false
+            referencedRelation: "tipos_gasto"
             referencedColumns: ["id"]
           },
         ]
@@ -2448,6 +2468,7 @@ export type Database = {
           notes: string | null
           pluggy_account_id: string | null
           source: string
+          tipo_gasto_id: string | null
           transaction_date: string
           type: string
           updated_at: string
@@ -2468,6 +2489,7 @@ export type Database = {
           notes?: string | null
           pluggy_account_id?: string | null
           source?: string
+          tipo_gasto_id?: string | null
           transaction_date: string
           type: string
           updated_at?: string
@@ -2488,6 +2510,7 @@ export type Database = {
           notes?: string | null
           pluggy_account_id?: string | null
           source?: string
+          tipo_gasto_id?: string | null
           transaction_date?: string
           type?: string
           updated_at?: string
@@ -2527,6 +2550,13 @@ export type Database = {
             columns: ["import_id"]
             isOneToOne: false
             referencedRelation: "cashflow_imports"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "manual_bank_transactions_tipo_gasto_id_fkey"
+            columns: ["tipo_gasto_id"]
+            isOneToOne: false
+            referencedRelation: "tipos_gasto"
             referencedColumns: ["id"]
           },
         ]
@@ -3085,6 +3115,7 @@ export type Database = {
           reconciled: boolean
           reconciled_payable_id: string | null
           reconciled_receivable_id: string | null
+          tipo_gasto_id: string | null
           type: string
           updated_at: string
           user_id: string
@@ -3114,6 +3145,7 @@ export type Database = {
           reconciled?: boolean
           reconciled_payable_id?: string | null
           reconciled_receivable_id?: string | null
+          tipo_gasto_id?: string | null
           type?: string
           updated_at?: string
           user_id: string
@@ -3143,6 +3175,7 @@ export type Database = {
           reconciled?: boolean
           reconciled_payable_id?: string | null
           reconciled_receivable_id?: string | null
+          tipo_gasto_id?: string | null
           type?: string
           updated_at?: string
           user_id?: string
@@ -3181,6 +3214,13 @@ export type Database = {
             columns: ["reconciled_receivable_id"]
             isOneToOne: false
             referencedRelation: "accounts_receivable"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pluggy_transactions_tipo_gasto_id_fkey"
+            columns: ["tipo_gasto_id"]
+            isOneToOne: false
+            referencedRelation: "tipos_gasto"
             referencedColumns: ["id"]
           },
         ]
@@ -4287,6 +4327,50 @@ export type Database = {
           },
         ]
       }
+      tipos_gasto: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          emoji: string
+          empresa_id: string
+          id: string
+          nome: string
+          ordem: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          emoji?: string
+          empresa_id: string
+          id?: string
+          nome: string
+          ordem?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          emoji?: string
+          empresa_id?: string
+          id?: string
+          nome?: string
+          ordem?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tipos_gasto_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_onboarding: {
         Row: {
           checklist_dismissed: boolean
@@ -4653,6 +4737,10 @@ export type Database = {
         Returns: undefined
       }
       seed_rh_menus: { Args: { p_user_id: string }; Returns: undefined }
+      seed_tipos_gasto_padrao: {
+        Args: { _empresa_id: string; _user_id: string }
+        Returns: undefined
+      }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
       sugerir_categorias_por_historico: {
