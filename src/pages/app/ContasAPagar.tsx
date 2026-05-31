@@ -7,7 +7,7 @@ import {
   FileText, Search, CreditCard,
   Building2, Target, Landmark, FolderTree, Copy, Pencil, Trash2,
   Banknote, ChevronDown, ChevronRight, ScanLine, MoreHorizontal, BarChart3, Layers, Eye,
-  Calendar, CalendarDays, Users,
+  Calendar, CalendarDays, Users, Tags,
 } from "lucide-react";
 import { DueStatCard } from "@/components/financas/DueStatCard";
 import { AccountMobileCard } from "@/components/financas/AccountMobileCard";
@@ -1376,6 +1376,21 @@ export default function ContasAPagar() {
                         ),
                       },
                       {
+                        icon: Tags, label: "Tipo de Gasto",
+                        content: (
+                          <InlineManagedCell
+                            value={item.tipo_gasto_id}
+                            options={tiposGasto.map((t: any) => ({ value: t.id, label: `${t.emoji} ${t.nome}` }))}
+                            onChange={(v) => updateMutation.mutate({ id: item.id, data: { tipo_gasto_id: v } as any })}
+                            onAddModal={() => { setTgEditingId(null); setTgModalOpen(true); }}
+                            onEditModal={(id) => { setTgEditingId(id); setTgModalOpen(true); }}
+                            onDelete={tiposGastoCrud.onDelete}
+                            placeholder="Selecionar"
+                            addLabel="Novo tipo de gasto"
+                          />
+                        ),
+                      },
+                      {
                         icon: CreditCard, label: "Forma Pagamento",
                         content: (
                           <InlineManagedCell
@@ -1451,6 +1466,7 @@ export default function ContasAPagar() {
                 <TableHead style={{ minWidth: 160 }}>Subcategoria</TableHead>
                 <TableHead style={{ minWidth: 130 }}>Centro de Custo</TableHead>
                 <TableHead style={{ minWidth: 140 }}>Unidade de Negócio</TableHead>
+                <TableHead style={{ minWidth: 150 }}>Tipo de Gasto</TableHead>
                 <TableHead style={{ minWidth: 140 }}>Forma Pagamento</TableHead>
                 <TableHead style={{ minWidth: 150 }}>Conta Bancária</TableHead>
                 <TableHead style={{ width: 48, minWidth: 48 }} className="text-right sticky right-0 bg-card shadow-[-4px_0_8px_-4px_rgba(0,0,0,0.1)]">Ações</TableHead>
@@ -1592,6 +1608,18 @@ export default function ContasAPagar() {
                           onDelete={businessUnitsCrud.onDelete}
                           placeholder="Selecionar"
                           addLabel="Nova unidade de negócio"
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <InlineManagedCell
+                          value={item.tipo_gasto_id}
+                          options={tiposGasto.map((t: any) => ({ value: t.id, label: `${t.emoji} ${t.nome}` }))}
+                          onChange={(v) => updateMutation.mutate({ id: item.id, data: { tipo_gasto_id: v } as any })}
+                          onAddModal={() => { setTgEditingId(null); setTgModalOpen(true); }}
+                          onEditModal={(id) => { setTgEditingId(id); setTgModalOpen(true); }}
+                          onDelete={tiposGastoCrud.onDelete}
+                          placeholder="Selecionar"
+                          addLabel="Novo tipo de gasto"
                         />
                       </TableCell>
                       <TableCell>
