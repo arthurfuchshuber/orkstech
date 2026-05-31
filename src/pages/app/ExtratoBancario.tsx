@@ -1425,103 +1425,127 @@ export default function ExtratoBancario() {
               })()}
             </div>
 
-            {/* DESKTOP: tabela completa com scroll horizontal */}
-            <div className="hidden md:block overflow-x-auto">
-              <div className="min-w-[1280px]">
-              <div className="grid grid-cols-[36px_96px_minmax(280px,1.6fr)_180px_150px_150px_160px_120px] gap-3 border-b border-border/50 bg-card px-4 py-3 text-xs text-muted-foreground uppercase tracking-wider">
-              <div className="flex items-center justify-center">
-                <Checkbox
-                  checked={
-                    filteredTx.length > 0 &&
-                    filteredTx.every((t) => batchSelection.has(t.id))
-                  }
-                  onCheckedChange={(checked) => {
-                    if (checked) {
-                      setBatchSelection(new Set(filteredTx.map((t) => t.id)));
-                    } else {
-                      setBatchSelection(new Set());
-                    }
-                  }}
-                />
-              </div>
-              <div>Data</div>
-              <div>Descrição</div>
-              <div>Subcategoria</div>
-              <div>Centro de Custo</div>
-              <div>Unidade de Negócio</div>
-              <div>Tipo de Gasto</div>
-              <div className="text-right">Valor</div>
-            </div>
-
-            <div className="divide-y divide-border/30">
-              {filteredTx.map((tx) => {
-                const isCredit = isInflow(tx);
-                const isInternal = isInternalTransaction(tx, creditAccountIds);
-                let internalSubtype = classifyInternalSubtype(tx, creditAccountIds);
-                if (
-                  isInternal &&
-                  internalSubtype !== "pagamento_fatura" &&
-                  !creditAccountIds.has(tx.pluggy_account_id) &&
-                  tx.amount < 0 &&
-                  faturaPaymentKeys.has(`${tx.date}|${Math.abs(tx.amount).toFixed(2)}`)
-                ) {
-                  internalSubtype = "pagamento_fatura";
-                }
-                const enhancedDesc = stripTypePrefix(enhanceDescription(tx));
-                const isCreditCardTx = creditAccountIds.has(tx.pluggy_account_id);
-
-                return (
-                  <div
-                    key={tx.id}
-                    className={cn(
-                      "grid grid-cols-[36px_96px_minmax(280px,1.6fr)_180px_150px_150px_160px_120px] items-center gap-3 px-4 py-3 transition-colors hover:bg-muted/30",
-                      isInternal && "opacity-60",
-                      batchSelection.has(tx.id) && "bg-primary/5"
-                    )}
-                  >
-                    <div className="flex items-center justify-center">
+            {/* DESKTOP: tabela completa (mesmo padrão do Contas a Pagar) */}
+            <div className="overflow-x-auto hidden md:block">
+              <Table className="w-full">
+                <TableHeader>
+                  <TableRow>
+                    <TableHead style={{ width: 36, minWidth: 36 }}>
                       <Checkbox
-                        checked={batchSelection.has(tx.id)}
-                        onCheckedChange={() => toggleBatch(tx.id)}
+                        checked={
+                          filteredTx.length > 0 &&
+                          filteredTx.every((t) => batchSelection.has(t.id))
+                        }
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            setBatchSelection(new Set(filteredTx.map((t) => t.id)));
+                          } else {
+                            setBatchSelection(new Set());
+                          }
+                        }}
                       />
-                    </div>
-                    <div className="text-sm text-muted-foreground">
-                      {formatDate(tx.date)}
-                    </div>
+                    </TableHead>
+                    <TableHead style={{ minWidth: 96 }}>Data</TableHead>
+                    <TableHead style={{ minWidth: 260 }}>Descrição</TableHead>
+                    <TableHead style={{ minWidth: 110 }}>Valor</TableHead>
+                    <TableHead style={{ minWidth: 130 }}>Tipo</TableHead>
+                    <TableHead style={{ minWidth: 160 }}>Subcategoria</TableHead>
+                    <TableHead style={{ minWidth: 130 }}>Centro de Custo</TableHead>
+                    <TableHead style={{ minWidth: 140 }}>Unidade de Negócio</TableHead>
+                    <TableHead style={{ minWidth: 150 }}>Tipo de Gasto</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredTx.map((tx) => {
+                    const isCredit = isInflow(tx);
+                    const isInternal = isInternalTransaction(tx, creditAccountIds);
+                    let internalSubtype = classifyInternalSubtype(tx, creditAccountIds);
+                    if (
+                      isInternal &&
+                      internalSubtype !== "pagamento_fatura" &&
+                      !creditAccountIds.has(tx.pluggy_account_id) &&
+                      tx.amount < 0 &&
+                      faturaPaymentKeys.has(`${tx.date}|${Math.abs(tx.amount).toFixed(2)}`)
+                    ) {
+                      internalSubtype = "pagamento_fatura";
+                    }
+                    const enhancedDesc = stripTypePrefix(enhanceDescription(tx));
+                    const isCreditCardTx = creditAccountIds.has(tx.pluggy_account_id);
 
-                    <div className="min-w-0 flex items-center gap-3">
-                      <div
-                        className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg ${
-                          isCredit ? "bg-primary/10" : "bg-destructive/10"
-                        }`}
-                      >
-                        {isCredit ? (
-                          <ArrowDownLeft className="h-4 w-4 text-primary" />
-                        ) : (
-                          <ArrowUpRight className="h-4 w-4 text-destructive" />
+                    return (
+                      <TableRow
+                        key={tx.id}
+                        className={cn(
+                          "transition-colors hover:bg-muted/30",
+                          isInternal && "opacity-60",
+                          batchSelection.has(tx.id) && "bg-primary/5"
                         )}
-                      </div>
+                      >
+                        <TableCell>
+                          <Checkbox
+                            checked={batchSelection.has(tx.id)}
+                            onCheckedChange={() => toggleBatch(tx.id)}
+                          />
+                        </TableCell>
+                        <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
+                          {formatDate(tx.date)}
+                        </TableCell>
 
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <DescricaoComRegra
-                            description={enhancedDesc}
-                            categoriaId={tx.categoria_financeira_id}
-                            tipoSugerido={isCredit ? "receber" : "pagar"}
+                        <TableCell>
+                          <div className="flex items-center gap-3 min-w-0">
+                            <div
+                              className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg ${
+                                isCredit ? "bg-primary/10" : "bg-destructive/10"
+                              }`}
+                            >
+                              {isCredit ? (
+                                <ArrowDownLeft className="h-4 w-4 text-primary" />
+                              ) : (
+                                <ArrowUpRight className="h-4 w-4 text-destructive" />
+                              )}
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <DescricaoComRegra
+                                  description={enhancedDesc}
+                                  categoriaId={tx.categoria_financeira_id}
+                                  tipoSugerido={isCredit ? "receber" : "pagar"}
+                                >
+                                  <p className="text-sm font-medium text-foreground truncate max-w-[280px]" title={enhancedDesc}>
+                                    {enhancedDesc}
+                                  </p>
+                                </DescricaoComRegra>
+                                {internalSubtype && (
+                                  <Badge variant="outline" className="gap-1 text-[10px] border-muted-foreground/30 text-muted-foreground">
+                                    {INTERNAL_SUBTYPE_LABEL[internalSubtype]}
+                                  </Badge>
+                                )}
+                                {tx.reconciled && (
+                                  <Badge variant="outline" className="gap-1 text-[10px]">
+                                    <CheckCircle2 className="h-3 w-3" />
+                                    Conciliado
+                                  </Badge>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        </TableCell>
+
+                        <TableCell>
+                          <span
+                            className={`whitespace-nowrap text-sm font-semibold ${
+                              isCredit ? "text-primary" : "text-destructive"
+                            }`}
                           >
-                            <p className="truncate text-sm font-medium text-foreground" title={enhancedDesc}>
-                              {enhancedDesc}
-                            </p>
-                          </DescricaoComRegra>
-                          {internalSubtype && (
-                            <Badge variant="outline" className="gap-1 text-[10px] border-muted-foreground/30 text-muted-foreground">
-                              {INTERNAL_SUBTYPE_LABEL[internalSubtype]}
-                            </Badge>
-                          )}
+                            {isCredit ? "+" : "-"} {formatCurrency(Math.abs(tx.amount))}
+                          </span>
+                        </TableCell>
+
+                        <TableCell>
                           <Badge
                             variant="outline"
                             className={cn(
-                              "gap-1 text-[10px]",
+                              "gap-1 text-[10px] whitespace-nowrap",
                               isCreditCardTx
                                 ? "border-purple-500/40 bg-purple-500/10 text-purple-300"
                                 : "border-sky-500/40 bg-sky-500/10 text-sky-300"
@@ -1529,123 +1553,105 @@ export default function ExtratoBancario() {
                           >
                             {isCreditCardTx ? "Cartão de Crédito" : "Conta Corrente"}
                           </Badge>
-                          {tx.reconciled && (
-                            <Badge variant="outline" className="gap-1 text-[10px]">
-                              <CheckCircle2 className="h-3 w-3" />
-                              Conciliado
-                            </Badge>
+                        </TableCell>
+
+                        <TableCell>
+                          {isInternal ? (
+                            <span className="text-xs text-muted-foreground/40 italic">—</span>
+                          ) : (
+                            <CategoriaTreeSelect
+                              categorias={categoriasFinanceiras as any}
+                              value={tx.categoria_financeira_id}
+                              onChange={(v) =>
+                                updateCategoriaMutation.mutate({
+                                  id: tx.id,
+                                  categoria_financeira_id: v,
+                                  description: tx.description,
+                                })
+                              }
+                              direction={isCredit ? "in" : "out"}
+                              placeholder="Selecionar"
+                              footerActions={
+                                <>
+                                  <button
+                                    type="button"
+                                    onClick={() => setPluggyEditTx({ id: tx.id, description: tx.description, amount: tx.amount, date: tx.date })}
+                                    className="flex-1 text-xs text-muted-foreground hover:text-foreground hover:bg-muted/50 px-2 py-1.5 rounded-sm transition-colors text-left"
+                                  >
+                                    Editar lançamento…
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => setCfModalOpen(true)}
+                                    className="text-xs text-primary hover:bg-primary/10 px-2 py-1.5 rounded-sm transition-colors flex items-center gap-1"
+                                  >
+                                    <Plus className="w-3 h-3" /> Nova
+                                  </button>
+                                </>
+                              }
+                            />
                           )}
-                        </div>
-                      </div>
-                    </div>
+                        </TableCell>
 
-                    <div className="min-w-0">
-                      {isInternal ? (
-                        <span className="text-xs text-muted-foreground/40 italic">—</span>
-                      ) : (
-                        <CategoriaTreeSelect
-                          categorias={categoriasFinanceiras as any}
-                          value={tx.categoria_financeira_id}
-                          onChange={(v) =>
-                            updateCategoriaMutation.mutate({
-                              id: tx.id,
-                              categoria_financeira_id: v,
-                              description: tx.description,
-                            })
-                          }
-                          direction={isCredit ? "in" : "out"}
-                          placeholder="Selecionar"
-                          footerActions={
-                            <>
-                              <button
-                                type="button"
-                                onClick={() => setPluggyEditTx({ id: tx.id, description: tx.description, amount: tx.amount, date: tx.date })}
-                                className="flex-1 text-xs text-muted-foreground hover:text-foreground hover:bg-muted/50 px-2 py-1.5 rounded-sm transition-colors text-left"
-                              >
-                                Editar lançamento…
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => setCfModalOpen(true)}
-                                className="text-xs text-primary hover:bg-primary/10 px-2 py-1.5 rounded-sm transition-colors flex items-center gap-1"
-                              >
-                                <Plus className="w-3 h-3" /> Nova
-                              </button>
-                            </>
-                          }
-                        />
-                      )}
-                    </div>
+                        <TableCell>
+                          {isInternal ? (
+                            <span className="text-xs text-muted-foreground/40 italic">—</span>
+                          ) : (
+                            <InlineManagedCell
+                              value={tx.cost_center_id}
+                              options={centrosCusto.map((c) => ({ value: c.id, label: c.nome }))}
+                              onChange={(v) => updateExtraFieldMutation.mutate({ id: tx.id, field: "cost_center_id", value: v })}
+                              onAddModal={() => { setCcEditingId(null); setCcModalOpen(true); }}
+                              onEditModal={(id) => { setCcEditingId(id); setCcModalOpen(true); }}
+                              onDelete={centrosCrud.onDelete}
+                              placeholder="—"
+                              addLabel="Novo centro de custo"
+                            />
+                          )}
+                        </TableCell>
 
-                    {/* Centro de Custo */}
-                    <div className="min-w-0">
-                      {isInternal ? (
-                        <span className="text-xs text-muted-foreground/40 italic">—</span>
-                      ) : (
-                        <InlineManagedCell
-                          value={tx.cost_center_id}
-                          options={centrosCusto.map((c) => ({ value: c.id, label: c.nome }))}
-                          onChange={(v) => updateExtraFieldMutation.mutate({ id: tx.id, field: "cost_center_id", value: v })}
-                          onAddModal={() => { setCcEditingId(null); setCcModalOpen(true); }}
-                          onEditModal={(id) => { setCcEditingId(id); setCcModalOpen(true); }}
-                          onDelete={centrosCrud.onDelete}
-                          placeholder="—"
-                          addLabel="Novo centro de custo"
-                        />
-                      )}
-                    </div>
+                        <TableCell>
+                          {isInternal ? (
+                            <span className="text-xs text-muted-foreground/40 italic">—</span>
+                          ) : (
+                            <InlineManagedCell
+                              value={tx.business_unit_id}
+                              options={businessUnits.map((b) => ({ value: b.id, label: b.nome }))}
+                              onChange={(v) => updateExtraFieldMutation.mutate({ id: tx.id, field: "business_unit_id", value: v })}
+                              onAddModal={() => { setBuEditingId(null); setBuModalOpen(true); }}
+                              onEditModal={(id) => { setBuEditingId(id); setBuModalOpen(true); }}
+                              onDelete={buCrud.onDelete}
+                              placeholder="—"
+                              addLabel="Nova unidade de negócio"
+                            />
+                          )}
+                        </TableCell>
 
-                    {/* Unidade de Negócio */}
-                    <div className="min-w-0">
-                      {isInternal ? (
-                        <span className="text-xs text-muted-foreground/40 italic">—</span>
-                      ) : (
-                        <InlineManagedCell
-                          value={tx.business_unit_id}
-                          options={businessUnits.map((b) => ({ value: b.id, label: b.nome }))}
-                          onChange={(v) => updateExtraFieldMutation.mutate({ id: tx.id, field: "business_unit_id", value: v })}
-                          onAddModal={() => { setBuEditingId(null); setBuModalOpen(true); }}
-                          onEditModal={(id) => { setBuEditingId(id); setBuModalOpen(true); }}
-                          onDelete={buCrud.onDelete}
-                          placeholder="—"
-                          addLabel="Nova unidade de negócio"
-                        />
-                      )}
-                    </div>
-
-                    {/* Tipo de Gasto */}
-                    <div className="min-w-0">
-                      {isInternal ? (
-                        <span className="text-xs text-muted-foreground/40 italic">—</span>
-                      ) : (
-                        <InlineManagedCell
-                          value={tx.tipo_gasto_id}
-                          options={tiposGasto.map((t: any) => ({ value: t.id, label: `${t.emoji} ${t.nome}` }))}
-                          onChange={(v) => updateExtraFieldMutation.mutate({ id: tx.id, field: "tipo_gasto_id", value: v })}
-                          onAddModal={() => { setTgEditingId(null); setTgModalOpen(true); }}
-                          onEditModal={(id) => { setTgEditingId(id); setTgModalOpen(true); }}
-                          onDelete={tiposGastoCrud.onDelete}
-                          placeholder="—"
-                          addLabel="Novo tipo de gasto"
-                        />
-                      )}
-                    </div>
-
-
-                    <p
-                      className={`whitespace-nowrap text-right text-sm font-semibold ${
-                        isCredit ? "text-primary" : "text-destructive"
-                      }`}
-                    >
-                      {isCredit ? "+" : "-"} {formatCurrency(Math.abs(tx.amount))}
-                    </p>
-                  </div>
-                );
-              })}
-            </div>
-              </div>
+                        <TableCell>
+                          {isInternal ? (
+                            <span className="text-xs text-muted-foreground/40 italic">—</span>
+                          ) : (
+                            <InlineManagedCell
+                              value={tx.tipo_gasto_id}
+                              options={tiposGasto.map((t: any) => ({ value: t.id, label: `${t.emoji} ${t.nome}` }))}
+                              onChange={(v) => updateExtraFieldMutation.mutate({ id: tx.id, field: "tipo_gasto_id", value: v })}
+                              onAddModal={() => { setTgEditingId(null); setTgModalOpen(true); }}
+                              onEditModal={(id) => { setTgEditingId(id); setTgModalOpen(true); }}
+                              onDelete={tiposGastoCrud.onDelete}
+                              placeholder="—"
+                              addLabel="Novo tipo de gasto"
+                            />
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
             </div>
           </>
+
+
 
         )}
       </Card>
