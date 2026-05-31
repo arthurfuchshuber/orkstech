@@ -224,6 +224,23 @@ export default function ExtratoBancario() {
   const [internoFilter, setInternoFilter] = useState<"all" | "ocultar" | "somente" | InternalSubtype>("all");
   const [allPeriod, setAllPeriod] = useState(false);
 
+  const classifyTiposGastoMutation = useMutation({
+    mutationFn: async () => {
+      if (!empresa?.id) throw new Error("Selecione uma empresa");
+      const { data, error } = await supabase.functions.invoke("classify-tipos-gasto", {
+        body: { empresa_id: empresa.id, only_uncategorized: true },
+      });
+      if (error) throw error;
+      if ((data as any)?.error) throw new Error((data as any).error);
+      return data as { total: number; classified: number; unrecognized: number };
+    },
+    onSuccess: (res) => {
+      toast.success(`IA classificou ${res.classified} de ${res.total} transações${res.unrecognized ? ` • ${res.unrecognized} não reconhecidas` : ""}`);
+      queryClient.invalidateQueries();
+    },
+    onError: (e: any) => toast.error(e?.message || "Erro ao classificar"),
+  });
+
   // Lê ?filtro=sem-categoria da URL e ativa o filtro + período "todo"
   useEffect(() => {
     const f = searchParams.get("filtro");
@@ -835,13 +852,25 @@ export default function ExtratoBancario() {
             <TabsTrigger value="lista">Lista</TabsTrigger>
             <TabsTrigger value="importacoes">Importações</TabsTrigger>
           </TabsList>
-          <PendenciasIndicator
-            cardsSemVinculo={[]}
-            onCategorizar={() => setUncatModalOpen(true)}
-            onRealocar={() => {}}
-            onRevisarOrfaos={() => {}}
-            onVincularCard={() => {}}
-          />
+          <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-8 gap-1.5"
+              onClick={() => classifyTiposGastoMutation.mutate()}
+              disabled={classifyTiposGastoMutation.isPending || !empresa?.id}
+            >
+              <Sparkles className="h-3.5 w-3.5" />
+              {classifyTiposGastoMutation.isPending ? "Classificando..." : "Classificar Tipos via IA"}
+            </Button>
+            <PendenciasIndicator
+              cardsSemVinculo={[]}
+              onCategorizar={() => setUncatModalOpen(true)}
+              onRealocar={() => {}}
+              onRevisarOrfaos={() => {}}
+              onVincularCard={() => {}}
+            />
+          </div>
         </div>
         <TabsContent value="importacoes" className="mt-4 space-y-4">
           <GenericImporter target="bank_statement" onImported={() => queryClient.invalidateQueries()} />
