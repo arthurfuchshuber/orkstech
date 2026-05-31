@@ -1415,7 +1415,7 @@ export default function ExtratoBancario() {
             </div>
 
             {/* DESKTOP: tabela completa */}
-            <div className="hidden md:grid grid-cols-[36px_100px_minmax(0,1.4fr)_180px_140px_130px_120px] gap-3 border-b border-border/50 bg-card px-4 py-3 text-xs text-muted-foreground uppercase tracking-wider">
+            <div className="hidden md:grid grid-cols-[36px_100px_minmax(0,1.4fr)_180px_140px_130px_150px_120px] gap-3 border-b border-border/50 bg-card px-4 py-3 text-xs text-muted-foreground uppercase tracking-wider">
               <div className="flex items-center justify-center">
                 <Checkbox
                   checked={
@@ -1436,6 +1436,7 @@ export default function ExtratoBancario() {
               <div>Subcategoria</div>
               <div>Centro de Custo</div>
               <div>Unidade de Negócio</div>
+              <div>Tipo de Gasto</div>
               <div className="text-right">Valor</div>
             </div>
 
@@ -1460,7 +1461,7 @@ export default function ExtratoBancario() {
                   <div
                     key={tx.id}
                     className={cn(
-                      "grid grid-cols-[36px_100px_minmax(0,1.4fr)_180px_140px_130px_120px] items-center gap-3 px-4 py-3 transition-colors hover:bg-muted/30",
+                      "grid grid-cols-[36px_100px_minmax(0,1.4fr)_180px_140px_130px_150px_120px] items-center gap-3 px-4 py-3 transition-colors hover:bg-muted/30",
                       isInternal && "opacity-60",
                       batchSelection.has(tx.id) && "bg-primary/5"
                     )}
