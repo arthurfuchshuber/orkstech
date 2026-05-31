@@ -7,7 +7,7 @@ import {
   FileText, Search, CreditCard,
   Building2, Target, Landmark, FolderTree, Copy, Pencil, Trash2,
   Banknote, ChevronDown, ChevronRight, ScanLine, MoreHorizontal, BarChart3, Layers, Eye,
-  Calendar, CalendarDays, Users, Tags,
+  Calendar, CalendarDays, Users, Tags, Sparkles,
 } from "lucide-react";
 import { DueStatCard } from "@/components/financas/DueStatCard";
 import { AccountMobileCard } from "@/components/financas/AccountMobileCard";
