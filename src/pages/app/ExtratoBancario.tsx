@@ -1502,7 +1502,7 @@ export default function ExtratoBancario() {
                       </div>
 
                       <div className="min-w-0">
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
                           <DescricaoComRegra
                             description={enhancedDesc}
                             categoriaId={tx.categoria_financeira_id}
