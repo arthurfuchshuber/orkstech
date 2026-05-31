@@ -1600,6 +1600,25 @@ export default function ExtratoBancario() {
                       )}
                     </div>
 
+                    {/* Tipo de Gasto */}
+                    <div className="min-w-0">
+                      {isInternal ? (
+                        <span className="text-xs text-muted-foreground/40 italic">—</span>
+                      ) : (
+                        <InlineManagedCell
+                          value={tx.tipo_gasto_id}
+                          options={tiposGasto.map((t: any) => ({ value: t.id, label: `${t.emoji} ${t.nome}` }))}
+                          onChange={(v) => updateExtraFieldMutation.mutate({ id: tx.id, field: "tipo_gasto_id", value: v })}
+                          onAddModal={() => { setTgEditingId(null); setTgModalOpen(true); }}
+                          onEditModal={(id) => { setTgEditingId(id); setTgModalOpen(true); }}
+                          onDelete={tiposGastoCrud.onDelete}
+                          placeholder="—"
+                          addLabel="Novo tipo de gasto"
+                        />
+                      )}
+                    </div>
+
+
                     <p
                       className={`whitespace-nowrap text-right text-sm font-semibold ${
                         isCredit ? "text-primary" : "text-destructive"
