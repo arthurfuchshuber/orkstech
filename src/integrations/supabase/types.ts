@@ -1800,7 +1800,7 @@ export type Database = {
         Row: {
           aplicar_em: string
           ativo: boolean
-          categoria_destino_id: string
+          categoria_destino_id: string | null
           condicao_logica: string
           condicoes: Json
           created_at: string
@@ -1810,6 +1810,7 @@ export type Database = {
           id: string
           nome: string
           ordem: number
+          tipo_gasto_destino_id: string | null
           ultima_execucao: string | null
           updated_at: string
           user_id: string
@@ -1817,7 +1818,7 @@ export type Database = {
         Insert: {
           aplicar_em?: string
           ativo?: boolean
-          categoria_destino_id: string
+          categoria_destino_id?: string | null
           condicao_logica?: string
           condicoes?: Json
           created_at?: string
@@ -1827,6 +1828,7 @@ export type Database = {
           id?: string
           nome: string
           ordem?: number
+          tipo_gasto_destino_id?: string | null
           ultima_execucao?: string | null
           updated_at?: string
           user_id: string
@@ -1834,7 +1836,7 @@ export type Database = {
         Update: {
           aplicar_em?: string
           ativo?: boolean
-          categoria_destino_id?: string
+          categoria_destino_id?: string | null
           condicao_logica?: string
           condicoes?: Json
           created_at?: string
@@ -1844,6 +1846,7 @@ export type Database = {
           id?: string
           nome?: string
           ordem?: number
+          tipo_gasto_destino_id?: string | null
           ultima_execucao?: string | null
           updated_at?: string
           user_id?: string
@@ -1861,6 +1864,13 @@ export type Database = {
             columns: ["empresa_id"]
             isOneToOne: false
             referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dre_regras_tipo_gasto_destino_id_fkey"
+            columns: ["tipo_gasto_destino_id"]
+            isOneToOne: false
+            referencedRelation: "tipos_gasto"
             referencedColumns: ["id"]
           },
         ]
@@ -4717,6 +4727,20 @@ export type Database = {
           p_user_id: string
         }
         Returns: string
+      }
+      resolver_destinos_por_regras: {
+        Args: {
+          p_amount: number
+          p_aplicar_em: string
+          p_cliente_id: string
+          p_description: string
+          p_empresa_id: string
+          p_payment_method_id: string
+          p_supplier_id: string
+          p_supplier_name: string
+          p_user_id: string
+        }
+        Returns: Record<string, unknown>
       }
       rh_fechar_folha: {
         Args: { p_due_date: string; p_folha_id: string }
