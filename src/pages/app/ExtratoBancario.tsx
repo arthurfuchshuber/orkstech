@@ -44,7 +44,9 @@ import { CategoriaTreeSelect } from "@/components/inputs/CategoriaTreeSelect";
 import { InlineManagedCell } from "@/components/inputs/InlineManagedCell";
 import { CentroCustoModal } from "@/components/modals/CentroCustoModal";
 import { BusinessUnitModal } from "@/components/modals/BusinessUnitModal";
+import { TipoGastoModal } from "@/components/modals/TipoGastoModal";
 import { useManagedSelect } from "@/hooks/useManagedSelect";
+import { useTiposGasto } from "@/hooks/useTiposGasto";
 
 const ALLOWED_INCOME_TIPOS = ["receita", "receita_financeira", "ajuste"];
 const ALLOWED_EXPENSE_TIPOS = ["despesa", "despesa_comercial", "custo", "deducao", "imposto", "despesa_financeira", "distribuicao_lucros", "ajuste"];
@@ -131,6 +133,7 @@ interface Transaction {
   categoria_financeira_id: string | null;
   cost_center_id: string | null;
   business_unit_id: string | null;
+  tipo_gasto_id: string | null;
   payment_data?: {
     payer?: { name?: string | null; documentNumber?: { value?: string | null } | null } | null;
     receiver?: { name?: string | null; documentNumber?: { value?: string | null } | null } | null;
@@ -437,7 +440,7 @@ export default function ExtratoBancario() {
     queryFn: async () => {
       let query = supabase
         .from("pluggy_transactions" as any)
-        .select("id, description, amount, date, type, category, reconciled, is_internal_transfer, pluggy_account_id, categoria_financeira_id, cost_center_id, business_unit_id, payment_data")
+        .select("id, description, amount, date, type, category, reconciled, is_internal_transfer, pluggy_account_id, categoria_financeira_id, cost_center_id, business_unit_id, tipo_gasto_id, payment_data")
         .eq("user_id", targetUserId!)
         .gte("date", dateFromStr)
         .lte("date", dateToStr)
@@ -506,14 +509,18 @@ export default function ExtratoBancario() {
 
   const centrosCrud = useManagedSelect("centros_custo");
   const buCrud = useManagedSelect("business_units");
+  const tiposGastoCrud = useManagedSelect("tipos_gasto");
+  const { tiposGasto } = useTiposGasto();
 
   const [ccModalOpen, setCcModalOpen] = useState(false);
   const [ccEditingId, setCcEditingId] = useState<string | null>(null);
   const [buModalOpen, setBuModalOpen] = useState(false);
   const [buEditingId, setBuEditingId] = useState<string | null>(null);
+  const [tgModalOpen, setTgModalOpen] = useState(false);
+  const [tgEditingId, setTgEditingId] = useState<string | null>(null);
 
   const updateExtraFieldMutation = useMutation({
-    mutationFn: async ({ id, field, value }: { id: string; field: "cost_center_id" | "business_unit_id"; value: string | null }) => {
+    mutationFn: async ({ id, field, value }: { id: string; field: "cost_center_id" | "business_unit_id" | "tipo_gasto_id"; value: string | null }) => {
       const { error } = await supabase
         .from("pluggy_transactions" as any)
         .update({ [field]: value })
@@ -1394,6 +1401,16 @@ export default function ExtratoBancario() {
                                     placeholder="Unidade"
                                     addLabel="Nova unidade de negócio"
                                   />
+                                  <InlineManagedCell
+                                    value={tx.tipo_gasto_id}
+                                    options={tiposGasto.map((t: any) => ({ value: t.id, label: `${t.emoji} ${t.nome}` }))}
+                                    onChange={(v) => updateExtraFieldMutation.mutate({ id: tx.id, field: "tipo_gasto_id", value: v })}
+                                    onAddModal={() => { setTgEditingId(null); setTgModalOpen(true); }}
+                                    onEditModal={(id) => { setTgEditingId(id); setTgModalOpen(true); }}
+                                    onDelete={tiposGastoCrud.onDelete}
+                                    placeholder="Tipo de gasto"
+                                    addLabel="Novo tipo de gasto"
+                                  />
                                 </div>
                               </div>
                             )}
@@ -1408,7 +1425,7 @@ export default function ExtratoBancario() {
             </div>
 
             {/* DESKTOP: tabela completa */}
-            <div className="hidden md:grid grid-cols-[36px_100px_minmax(0,1.4fr)_180px_140px_130px_120px] gap-3 border-b border-border/50 bg-card px-4 py-3 text-xs text-muted-foreground uppercase tracking-wider">
+            <div className="hidden md:grid grid-cols-[36px_100px_minmax(0,1.4fr)_180px_140px_130px_150px_120px] gap-3 border-b border-border/50 bg-card px-4 py-3 text-xs text-muted-foreground uppercase tracking-wider">
               <div className="flex items-center justify-center">
                 <Checkbox
                   checked={
@@ -1429,6 +1446,7 @@ export default function ExtratoBancario() {
               <div>Subcategoria</div>
               <div>Centro de Custo</div>
               <div>Unidade de Negócio</div>
+              <div>Tipo de Gasto</div>
               <div className="text-right">Valor</div>
             </div>
 
@@ -1453,7 +1471,7 @@ export default function ExtratoBancario() {
                   <div
                     key={tx.id}
                     className={cn(
-                      "grid grid-cols-[36px_100px_minmax(0,1.4fr)_180px_140px_130px_120px] items-center gap-3 px-4 py-3 transition-colors hover:bg-muted/30",
+                      "grid grid-cols-[36px_100px_minmax(0,1.4fr)_180px_140px_130px_150px_120px] items-center gap-3 px-4 py-3 transition-colors hover:bg-muted/30",
                       isInternal && "opacity-60",
                       batchSelection.has(tx.id) && "bg-primary/5"
                     )}
@@ -1592,6 +1610,25 @@ export default function ExtratoBancario() {
                       )}
                     </div>
 
+                    {/* Tipo de Gasto */}
+                    <div className="min-w-0">
+                      {isInternal ? (
+                        <span className="text-xs text-muted-foreground/40 italic">—</span>
+                      ) : (
+                        <InlineManagedCell
+                          value={tx.tipo_gasto_id}
+                          options={tiposGasto.map((t: any) => ({ value: t.id, label: `${t.emoji} ${t.nome}` }))}
+                          onChange={(v) => updateExtraFieldMutation.mutate({ id: tx.id, field: "tipo_gasto_id", value: v })}
+                          onAddModal={() => { setTgEditingId(null); setTgModalOpen(true); }}
+                          onEditModal={(id) => { setTgEditingId(id); setTgModalOpen(true); }}
+                          onDelete={tiposGastoCrud.onDelete}
+                          placeholder="—"
+                          addLabel="Novo tipo de gasto"
+                        />
+                      )}
+                    </div>
+
+
                     <p
                       className={`whitespace-nowrap text-right text-sm font-semibold ${
                         isCredit ? "text-primary" : "text-destructive"
@@ -1665,6 +1702,12 @@ export default function ExtratoBancario() {
         onOpenChange={(o) => { setBuModalOpen(o); if (!o) setBuEditingId(null); }}
         editingId={buEditingId}
         onSaved={() => queryClient.invalidateQueries({ queryKey: ["business_units"] })}
+      />
+      <TipoGastoModal
+        open={tgModalOpen}
+        onOpenChange={(o) => { setTgModalOpen(o); if (!o) setTgEditingId(null); }}
+        editingId={tgEditingId}
+        onSaved={() => queryClient.invalidateQueries({ queryKey: ["tipos_gasto"] })}
       />
     </div>
   );

@@ -5,7 +5,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useEmpresa } from "@/hooks/useEmpresa";
 import type { ManagedOption } from "@/components/inputs/ManagedSelectInput";
 
-type TableName = "categorias_financeiras" | "centros_custo" | "contas_bancarias" | "formas_pagamento" | "cliente_interacao_tipos" | "cliente_produtos" | "business_units";
+type TableName = "categorias_financeiras" | "centros_custo" | "contas_bancarias" | "formas_pagamento" | "cliente_interacao_tipos" | "cliente_produtos" | "business_units" | "tipos_gasto";
 
 interface TableConfig {
   table: TableName;
@@ -30,6 +30,11 @@ const configs: Record<string, TableConfig> = {
   "business_units": {
     table: "business_units",
     queryKey: "business_units",
+    labelField: "nome",
+  },
+  "tipos_gasto": {
+    table: "tipos_gasto" as any,
+    queryKey: "tipos_gasto",
     labelField: "nome",
   },
   "contas_bancarias": {
