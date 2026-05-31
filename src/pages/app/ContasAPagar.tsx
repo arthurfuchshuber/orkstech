@@ -7,7 +7,7 @@ import {
   FileText, Search, CreditCard,
   Building2, Target, Landmark, FolderTree, Copy, Pencil, Trash2,
   Banknote, ChevronDown, ChevronRight, ScanLine, MoreHorizontal, BarChart3, Layers, Eye,
-  Calendar, CalendarDays, Users, Tags,
+  Calendar, CalendarDays, Users, Tags, Sparkles,
 } from "lucide-react";
 import { DueStatCard } from "@/components/financas/DueStatCard";
 import { AccountMobileCard } from "@/components/financas/AccountMobileCard";
@@ -377,6 +377,25 @@ export default function ContasAPagar() {
     },
     onError: () => toast.error("Erro ao registrar pagamento"),
   });
+
+  const classifyTiposGastoMutation = useMutation({
+    mutationFn: async () => {
+      if (!empresa?.id) throw new Error("Selecione uma empresa");
+      const { data, error } = await supabase.functions.invoke("classify-tipos-gasto", {
+        body: { empresa_id: empresa.id, only_uncategorized: true },
+      });
+      if (error) throw error;
+      if ((data as any)?.error) throw new Error((data as any).error);
+      return data as { total: number; classified: number; unrecognized: number };
+    },
+    onSuccess: (res) => {
+      toast.success(`IA classificou ${res.classified} de ${res.total} transações${res.unrecognized ? ` • ${res.unrecognized} não reconhecidas` : ""}`);
+      queryClient.invalidateQueries();
+    },
+    onError: (e: any) => toast.error(e?.message || "Erro ao classificar"),
+  });
+
+
 
   const resetForm = () => {
     setShowForm(false);
@@ -1106,6 +1125,17 @@ export default function ContasAPagar() {
         description="Gerencie suas despesas e pagamentos"
         actions={
           <>
+            <Button
+              variant="outline"
+              onClick={() => classifyTiposGastoMutation.mutate()}
+              disabled={classifyTiposGastoMutation.isPending || !empresa?.id}
+              className="rounded-lg gap-2 shadow-sm h-10"
+            >
+              <Sparkles className="w-4 h-4" />
+              <span className="whitespace-nowrap">
+                {classifyTiposGastoMutation.isPending ? "Classificando..." : "Classificar via IA"}
+              </span>
+            </Button>
             <Button variant="outline" onClick={() => setBulkScanOpen(true)} className="rounded-lg gap-2 shadow-sm h-10">
               <ScanLine className="w-4 h-4" /> <span className="whitespace-nowrap">Escanear em Massa</span>
             </Button>
