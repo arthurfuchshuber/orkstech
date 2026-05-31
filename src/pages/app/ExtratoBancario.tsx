@@ -1693,6 +1693,12 @@ export default function ExtratoBancario() {
         editingId={buEditingId}
         onSaved={() => queryClient.invalidateQueries({ queryKey: ["business_units"] })}
       />
+      <TipoGastoModal
+        open={tgModalOpen}
+        onOpenChange={(o) => { setTgModalOpen(o); if (!o) setTgEditingId(null); }}
+        editingId={tgEditingId}
+        onSaved={() => queryClient.invalidateQueries({ queryKey: ["tipos_gasto"] })}
+      />
     </div>
   );
 }
