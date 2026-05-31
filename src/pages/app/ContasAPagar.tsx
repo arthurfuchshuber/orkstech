@@ -1125,6 +1125,17 @@ export default function ContasAPagar() {
         description="Gerencie suas despesas e pagamentos"
         actions={
           <>
+            <Button
+              variant="outline"
+              onClick={() => classifyTiposGastoMutation.mutate()}
+              disabled={classifyTiposGastoMutation.isPending || !empresa?.id}
+              className="rounded-lg gap-2 shadow-sm h-10"
+            >
+              <Sparkles className="w-4 h-4" />
+              <span className="whitespace-nowrap">
+                {classifyTiposGastoMutation.isPending ? "Classificando..." : "Classificar via IA"}
+              </span>
+            </Button>
             <Button variant="outline" onClick={() => setBulkScanOpen(true)} className="rounded-lg gap-2 shadow-sm h-10">
               <ScanLine className="w-4 h-4" /> <span className="whitespace-nowrap">Escanear em Massa</span>
             </Button>
