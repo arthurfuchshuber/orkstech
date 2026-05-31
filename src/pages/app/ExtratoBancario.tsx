@@ -1424,8 +1424,10 @@ export default function ExtratoBancario() {
               })()}
             </div>
 
-            {/* DESKTOP: tabela completa */}
-            <div className="hidden md:grid grid-cols-[36px_100px_minmax(0,1.4fr)_180px_140px_130px_150px_120px] gap-3 border-b border-border/50 bg-card px-4 py-3 text-xs text-muted-foreground uppercase tracking-wider">
+            {/* DESKTOP: tabela completa com scroll horizontal */}
+            <div className="hidden md:block overflow-x-auto">
+              <div className="min-w-[1280px]">
+              <div className="grid grid-cols-[36px_96px_minmax(280px,1.6fr)_180px_150px_150px_160px_120px] gap-3 border-b border-border/50 bg-card px-4 py-3 text-xs text-muted-foreground uppercase tracking-wider">
               <div className="flex items-center justify-center">
                 <Checkbox
                   checked={
@@ -1450,7 +1452,7 @@ export default function ExtratoBancario() {
               <div className="text-right">Valor</div>
             </div>
 
-            <div className="hidden md:block divide-y divide-border/30">
+            <div className="divide-y divide-border/30">
               {filteredTx.map((tx) => {
                 const isCredit = isInflow(tx);
                 const isInternal = isInternalTransaction(tx, creditAccountIds);
@@ -1471,7 +1473,7 @@ export default function ExtratoBancario() {
                   <div
                     key={tx.id}
                     className={cn(
-                      "grid grid-cols-[36px_100px_minmax(0,1.4fr)_180px_140px_130px_150px_120px] items-center gap-3 px-4 py-3 transition-colors hover:bg-muted/30",
+                      "grid grid-cols-[36px_96px_minmax(280px,1.6fr)_180px_150px_150px_160px_120px] items-center gap-3 px-4 py-3 transition-colors hover:bg-muted/30",
                       isInternal && "opacity-60",
                       batchSelection.has(tx.id) && "bg-primary/5"
                     )}
@@ -1500,7 +1502,7 @@ export default function ExtratoBancario() {
                       </div>
 
                       <div className="min-w-0">
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
                           <DescricaoComRegra
                             description={enhancedDesc}
                             categoriaId={tx.categoria_financeira_id}
@@ -1640,7 +1642,10 @@ export default function ExtratoBancario() {
                 );
               })}
             </div>
+              </div>
+            </div>
           </>
+
         )}
       </Card>
 
