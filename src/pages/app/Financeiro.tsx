@@ -2,6 +2,8 @@ import { Settings2 } from "lucide-react";
 import { PlanoDeContasSection } from "@/components/financas/PlanoDeContasSection";
 import { CentrosCustoSection } from "@/components/financas/CentrosCustoSection";
 import { FormasPagamentoSection } from "@/components/financas/FormasPagamentoSection";
+import { TiposGastoSection } from "@/components/financas/TiposGastoSection";
+import { BusinessUnitsSection } from "@/components/financas/BusinessUnitsSection";
 
 import { usePermissions } from "@/hooks/usePermissions";
 import ContasBancarias from "./ContasBancarias";
