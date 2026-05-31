@@ -2243,6 +2243,11 @@ export default function ContasAPagar() {
         editingId={buEditingId}
         onSaved={(id) => updateField("business_unit_id" as any, id)}
       />
+      <TipoGastoModal
+        open={tgModalOpen}
+        onOpenChange={setTgModalOpen}
+        editingId={tgEditingId}
+      />
       <FormaPagamentoModal
         open={fpModalOpen}
         onOpenChange={setFpModalOpen}
