@@ -30,7 +30,9 @@ import { CategoriaCadastroModal } from "@/components/modals/CategoriaCadastroMod
 import { CategoriaFinanceiraModal } from "@/components/modals/CategoriaFinanceiraModal";
 import { CentroCustoModal } from "@/components/modals/CentroCustoModal";
 import { BusinessUnitModal } from "@/components/modals/BusinessUnitModal";
+import { TipoGastoModal } from "@/components/modals/TipoGastoModal";
 import { useBusinessUnits } from "@/hooks/useBusinessUnits";
+import { useTiposGasto } from "@/hooks/useTiposGasto";
 import { ContaBancariaModal } from "@/components/modals/ContaBancariaModal";
 import { useBankAccountOptions } from "@/hooks/useBankAccountOptions";
 import { FormaPagamentoModal } from "@/components/modals/FormaPagamentoModal";
@@ -186,6 +188,7 @@ export default function ContasAPagar() {
   const contasCrud = useManagedSelect("contas_bancarias");
   const formasCrud = useManagedSelect("formas_pagamento");
   const catFinCrud = useManagedSelect("categorias_financeiras");
+  const tiposGastoCrud = useManagedSelect("tipos_gasto");
 
   // Entity modal states
   const [catModalOpen, setCatModalOpen] = useState(false);
@@ -194,7 +197,10 @@ export default function ContasAPagar() {
   const [ccEditingId, setCcEditingId] = useState<string | null>(null);
   const [buModalOpen, setBuModalOpen] = useState(false);
   const [buEditingId, setBuEditingId] = useState<string | null>(null);
+  const [tgModalOpen, setTgModalOpen] = useState(false);
+  const [tgEditingId, setTgEditingId] = useState<string | null>(null);
   const { businessUnits } = useBusinessUnits();
+  const { tiposGasto } = useTiposGasto();
   const [cbModalOpen, setCbModalOpen] = useState(false);
   const [cbEditingId, setCbEditingId] = useState<string | null>(null);
   const [fpModalOpen, setFpModalOpen] = useState(false);
