@@ -1401,6 +1401,16 @@ export default function ExtratoBancario() {
                                     placeholder="Unidade"
                                     addLabel="Nova unidade de negócio"
                                   />
+                                  <InlineManagedCell
+                                    value={tx.tipo_gasto_id}
+                                    options={tiposGasto.map((t: any) => ({ value: t.id, label: `${t.emoji} ${t.nome}` }))}
+                                    onChange={(v) => updateExtraFieldMutation.mutate({ id: tx.id, field: "tipo_gasto_id", value: v })}
+                                    onAddModal={() => { setTgEditingId(null); setTgModalOpen(true); }}
+                                    onEditModal={(id) => { setTgEditingId(id); setTgModalOpen(true); }}
+                                    onDelete={tiposGastoCrud.onDelete}
+                                    placeholder="Tipo de gasto"
+                                    addLabel="Novo tipo de gasto"
+                                  />
                                 </div>
                               </div>
                             )}
