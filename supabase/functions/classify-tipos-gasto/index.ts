@@ -19,14 +19,30 @@ const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const CRON_SECRET = Deno.env.get("CRON_SECRET");
 
-const CHUNK_SIZE = 40; // transações por chamada de IA
-const MAX_TXS_PER_RUN = 600; // teto por execução para evitar timeout
+const CHUNK_SIZE = 30; // transações por chamada de IA
+const MAX_TXS_PER_RUN = 300; // teto por execução para evitar timeout
+const MAX_AI_TXS_PER_RUN = 120; // heurística resolve o óbvio; IA só revisa o restante
 
 interface Tx {
   table: "accounts_payable" | "pluggy_transactions" | "manual_bank_transactions" | "cash_transactions";
   id: string;
   descricao: string;
 }
+
+const HEURISTIC_RULES: Array<{ tipo: string; patterns: RegExp[] }> = [
+  { tipo: "Transporte", patterns: [/\b(uber|99\s?pop|99\s?taxi|taxi|táxi|cabify|metro|metr[oô]|onibus|ônibus|buser|rodoviari|pedagio|pedágio|estacionamento|posto|combustivel|combustível|shell|ipiranga|petrobras|raizen|sem parar)\b/i] },
+  { tipo: "Alimentação", patterns: [/\b(ifood|restaurante|lanchonete|padaria|mercado|supermercado|hortifruti|acai|aça[ií]|pizzaria|burger|hamburg|mcdonald|bk |burger king|caf[eé]|bar\b|bebidas|confeitaria|bolo|koch|angeloni|carrefour|assai|assa[ií]|extra|pao de acucar|pão de açúcar|atacadao|atacadão)\b/i] },
+  { tipo: "Assinaturas", patterns: [/\b(netflix|spotify|amazon prime|prime video|disney|hbo|max\b|globoplay|youtube|google storage|icloud|apple\.com\/bill|microsoft|adobe|canva|notion|dropbox|openai|chatgpt|claude|recorrente|assinatura)\b/i] },
+  { tipo: "Saúde", patterns: [/\b(farmacia|farmácia|drogaria|droga\s?raia|drogasil|pacheco|panvel|ultrafarma|hospital|clinica|clínica|laboratorio|laboratório|exame|medico|m[eé]dico|odonto|dentista|sou funcional)\b/i] },
+  { tipo: "Moradia", patterns: [/\b(aluguel|condominio|condomínio|energia|eletrica|elétrica|enel|cemig|copel|celesc|light|agua|água|saneamento|sabesp|comgas|gás|internet|vivo|claro|tim\s?s\s?a|oi\b|imovel|imóvel|manutencao|manutenção)\b/i] },
+  { tipo: "Educação", patterns: [/\b(escola|faculdade|universidade|curso|udemy|alura|hotmart|coursera|educa|livraria|material escolar|mensalidade escolar)\b/i] },
+  { tipo: "Lazer", patterns: [/\b(cinema|teatro|show|ingresso|sympla|eventim|steam|playstation|xbox|nintendo|viagem|hotel|airbnb|booking|decolar|latam|gol linhas|azul linhas|barbearia do lazer)\b/i] },
+  { tipo: "Cuidados Pessoais", patterns: [/\b(barbearia|salao|salão|beleza|cosmetico|cosmético|perfume|maquiagem|academia|smart fit|bio ritmo|cabeleireiro|manicure|estetica|estética)\b/i] },
+  { tipo: "Compras", patterns: [/\b(amazon|mercado livre|mercadolivre|shopee|magalu|magazine luiza|americanas|lojas renner|renner|riachuelo|cea|c&a|zara|shein|aliexpress|loja|informatica|informática|eletronico|eletrônico)\b/i] },
+  { tipo: "Seguros", patterns: [/\b(seguro|seguradora|porto seguro|tokio marine|allianz|azul seguros|bradesco seguros|mapfre)\b/i] },
+  { tipo: "Empréstimos", patterns: [/\b(emprestimo|empréstimo|financiamento|parcela financiamento|credito pessoal|crédito pessoal|consignado)\b/i] },
+  { tipo: "Consumos", patterns: [/\b(consumo|material de limpeza|descartaveis|descartáveis|utilidades|suprimentos)\b/i] },
+];
 
 const j = (status: number, body: unknown) =>
   new Response(JSON.stringify(body), {
