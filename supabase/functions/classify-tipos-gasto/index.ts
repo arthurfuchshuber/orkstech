@@ -100,6 +100,17 @@ async function classifyEmpresa(
   empresaId: string,
   onlyUncategorized: boolean,
 ): Promise<{ total: number; classified: number; unrecognized: number }> {
+  const { data: empresa, error: empresaErr } = await admin
+    .from("empresas")
+    .select("id, user_id")
+    .eq("id", empresaId)
+    .maybeSingle();
+  if (empresaErr || !empresa?.user_id) {
+    console.error("[", empresaId, "] erro empresa:", empresaErr ?? "empresa não encontrada");
+    return { total: 0, classified: 0, unrecognized: 0 };
+  }
+  const ownerUserId = empresa.user_id as string;
+
   // 1) Tipos da empresa
   const { data: tipos, error: tiposErr } = await admin
     .from("tipos_gasto")
@@ -120,7 +131,7 @@ async function classifyEmpresa(
   {
     let q = admin
       .from("accounts_payable")
-      .select("id, titulo, descricao, beneficiario_nome")
+      .select("id, description, supplier_name, notes, document_number, amount")
       .eq("empresa_id", empresaId)
       .limit(MAX_TXS_PER_RUN);
     if (onlyUncategorized) q = q.is("tipo_gasto_id", null);
@@ -130,7 +141,7 @@ async function classifyEmpresa(
       txs.push({
         table: "accounts_payable",
         id: r.id,
-        descricao: [r.titulo, r.beneficiario_nome, r.descricao].filter(Boolean).join(" • "),
+        descricao: [r.description, r.supplier_name, r.notes, r.document_number].filter(Boolean).join(" • "),
       }),
     );
   }
@@ -139,17 +150,23 @@ async function classifyEmpresa(
   {
     let q = admin
       .from("pluggy_transactions")
-      .select("id, description, amount, is_internal_transfer")
-      .eq("empresa_id", empresaId)
+      .select("id, description, amount, type, is_internal_transfer, payment_data")
+      .eq("user_id", ownerUserId)
       .lt("amount", 0)
       .or("is_internal_transfer.is.null,is_internal_transfer.eq.false")
       .limit(MAX_TXS_PER_RUN);
     if (onlyUncategorized) q = q.is("tipo_gasto_id", null);
     const { data, error } = await q;
     if (error) console.error("[", empresaId, "] pluggy err:", error);
-    data?.forEach((r: any) =>
-      txs.push({ table: "pluggy_transactions", id: r.id, descricao: r.description ?? "" }),
-    );
+    data?.forEach((r: any) => {
+      const receiver = r.payment_data?.receiver?.name || r.payment_data?.receiver?.documentNumber?.value;
+      const payer = r.payment_data?.payer?.name || r.payment_data?.payer?.documentNumber?.value;
+      txs.push({
+        table: "pluggy_transactions",
+        id: r.id,
+        descricao: [r.description, receiver, payer].filter(Boolean).join(" • "),
+      });
+    });
   }
 
   // manual_bank_transactions
