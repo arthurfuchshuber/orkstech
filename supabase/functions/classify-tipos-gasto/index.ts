@@ -164,13 +164,22 @@ async function classifyEmpresa(
 
   // pluggy_transactions: saída (amount < 0) e ignora transferência interna
   {
+    const { data: creditAccounts } = await admin
+      .from("pluggy_bank_accounts")
+      .select("pluggy_account_id")
+      .eq("user_id", ownerUserId)
+      .eq("type", "CREDIT");
+    const creditAccountIds = (creditAccounts ?? []).map((a: any) => a.pluggy_account_id).filter(Boolean);
+
     let q = admin
       .from("pluggy_transactions")
       .select("id, description, amount, type, is_internal_transfer, payment_data")
       .eq("user_id", ownerUserId)
-      .lt("amount", 0)
       .or("is_internal_transfer.is.null,is_internal_transfer.eq.false")
       .limit(MAX_TXS_PER_RUN);
+    q = creditAccountIds.length
+      ? q.or(`amount.lt.0,and(pluggy_account_id.in.(${creditAccountIds.join(",")}),amount.gt.0)`)
+      : q.lt("amount", 0);
     if (onlyUncategorized) q = q.is("tipo_gasto_id", null);
     const { data, error } = await q;
     if (error) console.error("[", empresaId, "] pluggy err:", error);
