@@ -226,9 +226,28 @@ async function classifyEmpresa(
 
   let classified = 0;
   let unrecognized = 0;
+  const remainingForAi: Tx[] = [];
 
-  for (let start = 0; start < txs.length; start += CHUNK_SIZE) {
-    const chunk = txs.slice(start, start + CHUNK_SIZE);
+  for (const tx of txs) {
+    const tipoId = getHeuristicTipoId(tx.descricao, tipoByNome);
+    if (!tipoId) {
+      remainingForAi.push(tx);
+      continue;
+    }
+    const { data, error } = await admin
+      .from(tx.table)
+      .update({ tipo_gasto_id: tipoId })
+      .eq("id", tx.id)
+      .is("tipo_gasto_id", null)
+      .select("id");
+    if (!error && (data?.length ?? 0) > 0) classified++;
+    else if (error) console.error("heuristic update err", tx.table, tx.id, error.message);
+  }
+
+  const aiTxs = remainingForAi.slice(0, MAX_AI_TXS_PER_RUN);
+
+  for (let start = 0; start < aiTxs.length; start += CHUNK_SIZE) {
+    const chunk = aiTxs.slice(start, start + CHUNK_SIZE);
     const txList = chunk
       .map((t, i) => `${i}. ${t.descricao?.trim() || "(sem descrição)"}`)
       .join("\n");
@@ -332,8 +351,19 @@ async function classifyEmpresa(
     }
   }
 
+  unrecognized += remainingForAi.length - aiTxs.length;
+
   console.log(`[${empresaId}] done: classified=${classified} unrecognized=${unrecognized}`);
   return { total: txs.length, classified, unrecognized };
+}
+
+function getHeuristicTipoId(descricao: string, tipoByNome: Map<string, string>) {
+  const text = descricao ?? "";
+  for (const rule of HEURISTIC_RULES) {
+    if (!tipoByNome.has(normalize(rule.tipo))) continue;
+    if (rule.patterns.some((p) => p.test(text))) return tipoByNome.get(normalize(rule.tipo))!;
+  }
+  return null;
 }
 
 function normalize(s: string) {
