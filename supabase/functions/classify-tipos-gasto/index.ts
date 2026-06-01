@@ -20,7 +20,7 @@ const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const CRON_SECRET = Deno.env.get("CRON_SECRET");
 
 const CHUNK_SIZE = 30; // transações por chamada de IA
-const MAX_TXS_PER_RUN = 300; // teto por execução para evitar timeout
+const MAX_TXS_PER_RUN = 5000; // permite varrer histórico completo; IA continua limitada abaixo
 const MAX_AI_TXS_PER_RUN = 120; // heurística resolve o óbvio; IA só revisa o restante
 
 interface Tx {
